@@ -1,0 +1,10 @@
+body{
+    margin: 0;
+    font-family: Lato, sans-serif;
+    background-color: #f0f0f0;
+}
+
+row{
+    justify-content: space-between;
+    display: flex;
+}

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/mainPageStyle.css">
+</head>
+
+<body class="bg-gradient1-custom">
+
+    <div class="container-fluid mainContainer">
+
+        <div class="container login-container">
+
+            <div class="box loginBox bg-light border rounded-4 shadow">
+
+                <img src="/images/logo.png" class="img-rounded" alt="Logo" width="200">
+
+                <h3>LOGIN</h3>
+
+                <form action="/login" method="post">
+                    <input name="email" type="text" class="form-control rounded-input-bootstrap mb-1"
+                        placeholder="Email">
+                    <input name="password" type="password" class="form-control rounded-input-bootstrap mb-1"
+                        placeholder="Password">
+                    <button type="submit" class="btn btn-dark rounded-pill">Login</button>
+                </form>
+
+                <h4>-------------- don't have an account? --------------</h4>
+                <a href="#" style="color: orangered; text-decoration: none;">Register</a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>
