@@ -11,12 +11,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 @Controller
 public class LoginController {
 
-    // Hiển thị trang login
-    @GetMapping("/login")
-    public String showLoginPage() {
-        return "mainPage/loginPage"; // Gọi tới templates/mainPage/loginPage.html
-    }
-
     // Xử lý khi nhấn nút Login
     @PostMapping("/login")
     public String handleLogin(
@@ -30,7 +24,7 @@ public class LoginController {
         if (account != null) {
             // Nếu đăng nhập đúng → lưu thông tin user
             session.setAttribute("user", account);
-            return "redirect:/home"; // chuyển đến HomeController
+            return "mainPage/homePage"; // chuyển đến HomeController
         } else {
             // Nếu sai → quay lại login và thêm lỗi
             return "redirect:/login?error=1";
@@ -39,6 +33,6 @@ public class LoginController {
     @GetMapping("/logout")
     public String logout(HttpSession session) {
         session.invalidate(); // xóa session user
-        return "redirect:/login"; // quay lại trang login
+        return "mainPage/loginPage"; // quay lại trang login
     }
 }
