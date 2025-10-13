@@ -10,4 +10,5 @@ public class HomeController {
     public String showHomePage() {
         return "mainPage/menuProject"; // Gọi tới templates/mainPage/homePage.html
     }
+
 }
