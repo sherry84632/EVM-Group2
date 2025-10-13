@@ -37,7 +37,7 @@ public class LoginController {
         if (account != null) {
             // Nếu đăng nhập đúng → lưu thông tin user
             session.setAttribute("user", account);
-            return "mainPage/homePage"; // chuyển đến HomeController
+            return "evmPage/homePage"; // chuyển đến HomeController
         } else {
             // Nếu sai → quay lại login và thêm lỗi
             return "redirect:/login?error=1";
