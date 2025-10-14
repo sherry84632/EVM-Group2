@@ -110,4 +110,27 @@ public class DAOVehicle {
         return vehicles;
     }
 
+    public void insertVehicle(DTOVehicle vehicle) {
+        String sql = "INSERT INTO Vehicle (VIN, ColorID, ManufactureYear, EngineNumber, CurrentOwner, Status, ModelID) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?)";
+
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, vehicle.getVIN());
+            ps.setInt(2, vehicle.getColorID());
+            ps.setInt(3, vehicle.getManufactureYear());
+            ps.setString(4, vehicle.getEngineNumber());
+            ps.setString(5, vehicle.getCurrentOwner());
+            ps.setString(6, vehicle.getStatus());
+            ps.setInt(7, vehicle.getModelID());
+
+            ps.executeUpdate();
+            System.out.println("✅ Vehicle inserted successfully!");
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
 }
