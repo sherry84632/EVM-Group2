@@ -1,4 +1,5 @@
-package com.dealermanagementsysstem.project.model;
+package com.dealermanagementsysstem.project.Model;
+import com.dealermanagementsysstem.project.Model.DTOVehicle;
 
 import utils.DBUtils;
 
@@ -10,7 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class DAOVehicle {
-    public List<DTOVehicle> getVehicles(){
+    public List<DTOVehicle> getVehicles() {
         List<DTOVehicle> vehicles = new ArrayList<>();
         String sql = "SELECT VIN, ColorID, ManufactureYear, EngineNumber, CurrentOwner, Status FROM Vehicle";
         try (Connection conn = DBUtils.getConnection();

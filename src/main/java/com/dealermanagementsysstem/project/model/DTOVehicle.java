@@ -1,4 +1,4 @@
-package com.dealermanagementsysstem.project.model;
+package com.dealermanagementsysstem.project.Model;
 
 public class DTOVehicle {
     private String VIN;
