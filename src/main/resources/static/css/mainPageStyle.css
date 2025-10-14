@@ -89,3 +89,18 @@
     background-color: white;
     padding: 1px 50px;
 }
+
+.create-vehicle-form-input {
+    width: 500px;
+    height: 30px;
+    border: 1px solid #969696;
+    border-radius: 50px;
+    padding: .5rem .75rem;
+    box-shadow: none;
+    transition: box-shadow .15s ease, border-color .15s ease;
+}
+
+.create-vehicle-form-input-control {
+    width: 500px;
+    margin-left: 125px;
+}
