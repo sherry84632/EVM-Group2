@@ -19,7 +19,6 @@
 </head>
 <body>
 <div class="container__navbar-front">
-    a
     <div class="content__inside">
         <div class="navbar__contact">
             <i class="fas fa-phone"></i> CONTACT +84335999999
@@ -28,9 +27,7 @@
             <a href="#support"><i class="fas fa-headset"></i> SUPPORT</a>
         </div>
         <div class="navbar__auch">
-            <a href="/templates/mainPage/loginPage.html"><i class="fas fa-sign-in-alt"></i> LOGIN</a>
-            <span class="line">|</span>
-            <a href="#register"><i class="fas fa-user-plus"></i> REGISTER</a>
+            <a th:href="@{/login}"><i class="fas fa-sign-in-alt"></i> LOGIN</a>
         </div>
     </div>
 </div>
@@ -105,14 +102,8 @@
             <div class="hero__buttons">
                 <!-- Element + Modifier: hero__button hero__button--primary -->
                 <button class="hero__button hero__button--primary">
-                    <span>REGISTER NOW</span>
-                    <span>→</span>
-                </button>
-
-                <!-- Element + Modifier: hero__button hero__button--secondary -->
-                <button class="hero__button hero__button--secondary">
+                    <span>LOGIN NOW</span>
                     <span>▶</span>
-                    <span>LOGIN</span>
                 </button>
             </div>
         </div>
