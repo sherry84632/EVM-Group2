@@ -8,7 +8,7 @@ public class HomeController {
 
     @GetMapping("/")
     public String showHomePage() {
-        return "mainPage/loginPage"; // Gọi tới templates/mainPage/homePage.html
+        return "mainPage/menuProject"; // Gọi tới templates/mainPage/homePage.html
     }
 
 }
