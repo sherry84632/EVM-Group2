@@ -10,7 +10,7 @@ import java.util.List;
 
 @Controller
 public class VehicleController {
-    @GetMapping("/vehicleList")
+    @GetMapping("/getVehicleList")
     public String vehicleList(Model model)
     {
         DAOVehicle daoVehicle = new DAOVehicle();

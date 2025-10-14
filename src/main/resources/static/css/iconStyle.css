@@ -30,6 +30,34 @@
     box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25);
 }
 
+.createNewVehicleButton {
+    margin-top: 13px;
+    display: flex;
+    flex-direction: column; /* stack icon + text vertically */
+    align-items: center;     /* center both horizontally */
+    background-color: #ff6d00;
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    padding: 1px;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    width: 190px; /* optional: fix width for neat layout */
+    height: 30px;
+    color: white;
+}
+
+.createNewVehicleButton span {
+    font-weight: 500;
+    color: white;
+    text-align: center;
+}
+
+.createNewVehicleButton:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25);
+}
+
 .button_vehicle_list {
     display: flex;
     flex-direction: column; /* stack icon + text vertically */
@@ -77,5 +105,5 @@
     padding: 1px;
     overflow: scroll;
     width: 1653px;
-    height: 800px;
+    height: 825px;
 }
