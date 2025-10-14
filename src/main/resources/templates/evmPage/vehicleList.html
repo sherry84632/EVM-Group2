@@ -31,17 +31,22 @@
                 <h1>Vehicle list</h1>
             </span>
 
-            <form action="/searchVehicleListController" method="post">
-                <input name="email" type="text" class="form-control rounded-input-bootstrap mb-1"
-                       placeholder="Search by model name">
-                <button type="submit" class="btn btn-dark rounded-pill">Login</button>
+            <form action="/searchVehicleListController" method="get">
+                <input name="keyword"
+                       type="text"
+                       class="form-control rounded-input-bootstrap mb-1"
+                       placeholder="Search by model name"
+                       th:value="${keyword}">
+                <button type="submit" class="btn btn-dark rounded-pill">Search</button>
             </form>
 
-            <button class="createNewVehicleButton">
-                <span>
-                    Create new vehicle
-                </span>
-            </button>
+            <a href="/evmCreateANewVehicleToList" style="text-decoration: none">
+                <button class="createNewVehicleButton">
+                    <span>
+                        Create new vehicle
+                    </span>
+                </button>
+            </a>
 
         </div>
 
