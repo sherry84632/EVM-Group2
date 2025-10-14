@@ -59,4 +59,55 @@ public class DAOVehicle {
 
         return vehicles;
     }
+
+    public List<DTOVehicle> searchVehiclesByModelName(String keyword) {
+        List<DTOVehicle> vehicles = new ArrayList<>();
+
+        String sql = """
+        SELECT 
+            v.VIN,
+            v.ManufactureYear,
+            v.ColorID,
+            vc.ColorName,
+            v.EngineNumber,
+            v.CurrentOwner,
+            v.Status,
+            vm.ModelID,
+            vm.ModelName,
+            vm.BasePrice
+        FROM Vehicle v
+        LEFT JOIN VehicleModel vm ON v.ModelID = vm.ModelID
+        LEFT JOIN VehicleColor vc ON v.ColorID = vc.ColorID
+        WHERE vm.ModelName LIKE ?
+    """;
+
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, "%" + keyword + "%");
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    DTOVehicle vehicle = new DTOVehicle();
+
+                    vehicle.setVIN(rs.getString("VIN"));
+                    vehicle.setManufactureYear(rs.getInt("ManufactureYear"));
+                    vehicle.setColorID(rs.getInt("ColorID"));
+                    vehicle.setColorName(rs.getString("ColorName"));
+                    vehicle.setEngineNumber(rs.getString("EngineNumber"));
+                    vehicle.setCurrentOwner(rs.getString("CurrentOwner"));
+                    vehicle.setStatus(rs.getString("Status"));
+                    vehicle.setModelID(rs.getInt("ModelID"));
+                    vehicle.setModelName(rs.getString("ModelName"));
+                    vehicle.setBasePrice(rs.getBigDecimal("BasePrice"));
+
+                    vehicles.add(vehicle);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return vehicles;
+    }
+
 }
