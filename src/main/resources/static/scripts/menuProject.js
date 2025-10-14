@@ -5,7 +5,6 @@ const chatInput = document.querySelector('.chat-input textarea');
 let userMessage;
 const chatbox = document.querySelector('.chatbox');
 const body = document.body;
-const babyboy = document.querySelectorAll('body')
 
 hamburger.addEventListener('click', (e) => {
     e.stopPropagation();
