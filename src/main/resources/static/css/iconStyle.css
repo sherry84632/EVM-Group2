@@ -32,6 +32,7 @@
 
 .createNewVehicleButton {
     margin-top: 13px;
+    margin-left: 15px;
     display: flex;
     flex-direction: column; /* stack icon + text vertically */
     align-items: center;     /* center both horizontally */
