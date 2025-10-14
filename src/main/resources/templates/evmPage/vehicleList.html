@@ -31,6 +31,12 @@
                 <h1>Vehicle list</h1>
             </span>
 
+            <form action="/searchVehicleListController" method="post">
+                <input name="email" type="text" class="form-control rounded-input-bootstrap mb-1"
+                       placeholder="Search by model name">
+                <button type="submit" class="btn btn-dark rounded-pill">Login</button>
+            </form>
+
             <button class="createNewVehicleButton">
                 <span>
                     Create new vehicle
@@ -46,9 +52,9 @@
                     <button class="button_vehicle_list">
                         <img src="/images/logo.png">
                         <span>
-                            <p th:text="${vehicle.VIN}"></p>
+                            <p th:text="${vehicle.modelName}"></p>
+                            <p th:text="${vehicle.basePrice}"></p>
                             <p th:text="${vehicle.ManufactureYear}"></p>
-                            <p th:text="${vehicle.CurrentOwner}"></p>
                         </span>
                     </button>
                 </a>
