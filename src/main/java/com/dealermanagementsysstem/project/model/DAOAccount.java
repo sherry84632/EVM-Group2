@@ -1,4 +1,4 @@
-package com.dealermanagementsysstem.project.Model;
+package com.dealermanagementsysstem.project.model;
 
 import utils.DBUtils;
 import java.sql.Connection;
