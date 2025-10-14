@@ -41,7 +41,7 @@
     padding: 20px;
     cursor: pointer;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
-    width: 350px; /* optional: fix width for neat layout */
+    width: 280px; /* optional: fix width for neat layout */
     height: 400px;
 }
 .button_vehicle_list img {
@@ -66,22 +66,16 @@
     box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25);
 }
 
-.vehicle-scroll-container {
+.scroll-box {
+    justify-items: start; /* align items to the left horizontally */
+    align-items: start;   /* align items to the top vertically */
+    justify-content: start; /* ensure grid stays aligned to top-left */
+    align-content: start;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); /* responsive layout */
-    gap: 2x;
-    padding: 2px;
-
-    height: 700px;
-    width: 1650px;
-    overflow-y: auto;      /* enable vertical scroll */
-    overflow-x: hidden;    /* disable horizontal scroll */
-}
-
-.vehicle-scroll-container::-webkit-scrollbar {
-    height: 50px;          /* scroll bar thickness */
-}
-.vehicle-scroll-container::-webkit-scrollbar-thumb {
-    background-color: #ccc;
-    border-radius: 10px;
+    grid-template-columns: repeat(auto-fill, minmax(272px, 1fr));
+    gap: 1px;
+    padding: 1px;
+    overflow: scroll;
+    width: 1653px;
+    height: 800px;
 }
