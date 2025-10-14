@@ -34,9 +34,10 @@
             <form action="/searchVehicleListController" method="get">
                 <input name="keyword"
                        type="text"
-                       class="form-control rounded-input-bootstrap mb-1"
+                       class="search-vehicle-list-input-control search-vehicle-list-input mb-1"
                        placeholder="Search by model name"
-                       th:value="${keyword}">
+                       th:value="${keyword}"
+                        style="margin-top: 10px;">
                 <button type="submit" class="btn btn-dark rounded-pill">Search</button>
             </form>
 
