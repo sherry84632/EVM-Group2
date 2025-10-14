@@ -1,7 +1,7 @@
 package com.dealermanagementsysstem.project.controller;
 
-import com.dealermanagementsysstem.project.Model.DAOAccount;
-import com.dealermanagementsysstem.project.Model.DTOAccount;
+import com.dealermanagementsysstem.project.model.DAOAccount;
+import com.dealermanagementsysstem.project.model.DTOAccount;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
