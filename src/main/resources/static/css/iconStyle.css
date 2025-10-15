@@ -143,3 +143,72 @@
     transform: translateY(-15px);
     box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25);
 }
+
+/* RESPONSIVE */
+/* TABLET */
+@media (max-width: 1024px) {
+    .icon-btn{
+        width: 160px;
+        height: 160px;
+    }
+
+    .icon-btn i{
+        font-size: 60px;
+    }
+
+    .icon-btn span{
+        font-size: 12px;
+    }
+}
+
+/* MOBILE */
+@media (max-width: 767px) {
+    .icon-btn{
+        width: 140px;
+        height: 140px;
+        margin: 10px;
+    }
+
+    .icon-btn i{
+        font-size: 50px;
+    }
+
+    .icon-btn span{
+        font-size: 11px;
+    }
+
+    .button_vehicle_list{
+        width: 240px;
+        height: 220px;
+    }
+
+    .scroll-box{
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        height: auto;
+        max-height: 600px;
+    }
+}
+
+@media (max-width: 374px) {
+    .icon-btn {
+        width: 100px;
+        height: 100px;
+        padding: 10px;
+    }
+
+    .icon-btn i {
+        font-size: 32px;
+    }
+
+    .icon-btn span {
+        font-size: 9px;
+    }
+
+    h1 {
+        font-size: 18px;
+    }
+
+    h2 {
+        font-size: 14px;
+    }
+}
