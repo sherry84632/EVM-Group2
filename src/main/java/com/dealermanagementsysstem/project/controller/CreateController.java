@@ -43,7 +43,7 @@ public class CreateController {
         v.setStatus(status);
 
         daoVehicle.insertVehicle(v);
-        return "redirect:/vehicleList";
+        return "redirect:/getVehicleList";
     }
 }
 
