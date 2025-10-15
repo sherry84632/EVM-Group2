@@ -35,7 +35,7 @@
 
         <div class="d-flex create-vehicle-form-container">
 
-            <form action="/createVehicleController" method="post">
+            <form action="/createVehicle" method="post">
 
                 <div class="create-vehicle-form-row">
                     <label>VIN:</label>
@@ -84,6 +84,10 @@
                     <button type="submit" class="btn btn-dark rounded-pill">Create</button>
                 </div>
             </form>
+
+            <div th:if="${error}" class="alert alert-danger mt-3" role="alert">
+                <span th:text="${error}"></span>
+            </div>
 
         </div>
 

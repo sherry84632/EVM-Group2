@@ -15,6 +15,8 @@ public class PageConfig implements WebMvcConfigurer {
         registry.addViewController("/evmDiscountPolicy").setViewName("");
         registry.addViewController("/evmVehicleList").setViewName("evmPage/vehicleList");
         registry.addViewController("/evmCreateANewVehicleToList").setViewName("evmPage/createANewVehicleToList");
+        registry.addViewController("/evmOrderList").setViewName("evmPage/evmOrderList");
+        registry.addViewController("/evmOrderHistory").setViewName("evmPage/evmOrderHistory");
     }
 
 }
