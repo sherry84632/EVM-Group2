@@ -160,6 +160,12 @@
     .mainSideBar{
         width: 250px;
         transform: translateX(-100%);
+        position: fixed;
+        left: 0;
+        top: 0;
+        height: 100%;
+        transition: transform 0.3s ease;
+        z-index: 1000;
     }
 
     .mainSideBar.active{
@@ -167,17 +173,16 @@
     }
 
     .mainContent{
+        width: 100% !important;
         margin-left: 0;
-        padding: 60px 15px 15px 15px !important;
     }
 
     .mobile-menu-toggle{
         display: block;
     }
 
-    .d-flex:has(.icon-btn){
-        flex-wrap: wrap;
-        justify-content: center !important;
+    .d-flex{
+        flex-direction: column;
     }
 
     .search-vehicle-list-input{
