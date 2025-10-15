@@ -113,3 +113,97 @@
     width: 400px;
     height: 40px;
 }
+
+.mobile-menu-toggle{
+    display: none;
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 1001;
+    background-color: #ff6b16;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 15px;
+    cursor: pointer;
+    font-size: 24px;
+}
+
+/* RESPONSIVE */
+/* TABLET */
+@media(max-width: 1024px){
+    .mainSideBar{
+        width: 200px;
+        min-width: 200px;
+    }
+
+    .mainContent{
+        margin-left: 200px;
+    }
+
+    .search-vehicle-list-input{
+        width: 400px;
+    }
+
+    .create-vehicle-form-input{
+        width: 400px;
+    }
+
+    .search-vehicle-list-input-control{
+        width: 400px;
+        margin-left: 50px;
+    }
+}
+
+/* MOBILE */
+@media (max-width: 767px) {
+    .mainSideBar{
+        width: 250px;
+        transform: translateX(-100%);
+    }
+
+    .mainSideBar.active{
+        transform: translateX(0);
+    }
+
+    .mainContent{
+        margin-left: 0;
+        padding: 60px 15px 15px 15px !important;
+    }
+
+    .mobile-menu-toggle{
+        display: block;
+    }
+
+    .d-flex:has(.icon-btn){
+        flex-wrap: wrap;
+        justify-content: center !important;
+    }
+
+    .search-vehicle-list-input{
+        width: 100%;
+        max-width: 350px;
+    }
+
+    .create-vehicle-form-input{
+        width: 100%;
+        max-width: 350px;
+    }
+
+    .create-vehicle-form-input-control{
+        width: 100%;
+        margin-left: 0;
+    }
+
+    h1{
+        font-size: 24px;
+    }
+
+    h2{
+        font-size: 18px;
+    }
+
+    .topToolBar{
+        padding: 10px 20px;
+    }
+}
