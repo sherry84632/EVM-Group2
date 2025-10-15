@@ -133,4 +133,30 @@ public class DAOVehicle {
         }
     }
 
+    public Integer getModelIdByName(String modelName) {
+        String sql = "SELECT ModelID FROM VehicleModel WHERE ModelName = ?";
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, modelName);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) return rs.getInt("ModelID");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public Integer getColorIdByName(String colorName) {
+        String sql = "SELECT ColorID FROM VehicleColor WHERE ColorName = ?";
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, colorName);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) return rs.getInt("ColorID");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
 }
