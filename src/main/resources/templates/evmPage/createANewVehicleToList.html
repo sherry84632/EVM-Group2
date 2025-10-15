@@ -33,14 +33,56 @@
 
         </div>
 
-        <div class="d-flex">
+        <div class="d-flex create-vehicle-form-container">
 
-            <form action="/createANewVehicleController" method="post">
-                <input name="email" type="text" class="create-vehicle-form-input-control create-vehicle-form-input mb-1"
-                       placeholder="">
-                <input name="password" type="password" class="create-vehicle-form-input-control create-vehicle-form-input mb-1"
-                       placeholder="">
-                <button type="submit" class="btn btn-dark rounded-pill">Create</button>
+            <form action="/createVehicle" method="post">
+
+                <div class="create-vehicle-form-row">
+                    <label>VIN:</label>
+                    <input name="VIN" type="text" class="create-vehicle-form-input-control create-vehicle-form-input mb-1"
+                               placeholder="">
+                </div>
+
+                <div class="create-vehicle-form-row">
+                    <label>Color name:</label>
+                    <input name="colorName" type="text" class="create-vehicle-form-input-control create-vehicle-form-input mb-1"
+                           placeholder="">
+                </div>
+
+                <div class="create-vehicle-form-row">
+                    <label>Model name:</label>
+                    <input name="modelName" type="text" class="create-vehicle-form-input-control create-vehicle-form-input mb-1"
+                           placeholder="">
+                </div>
+
+                <div class="create-vehicle-form-row">
+                    <label>Manufacture year:</label>
+                    <input name="manufactureYear" type="text" class="create-vehicle-form-input-control create-vehicle-form-input mb-1"
+                           placeholder="">
+                </div>
+
+                <div class="create-vehicle-form-row">
+                    <label>Engine number:</label>
+                    <input name="engineNumber" type="text" class="create-vehicle-form-input-control create-vehicle-form-input mb-1"
+                           placeholder="">
+                </div>
+
+                <div class="create-vehicle-form-row">
+                    <label>Current owner:</label>
+                    <input name="currentOwner" type="text" class="create-vehicle-form-input-control create-vehicle-form-input mb-1"
+                           placeholder="">
+                </div>
+
+                <div class="create-vehicle-form-row">
+                    <label>Status:</label>
+                    <input name="status" type="text" class="create-vehicle-form-input-control create-vehicle-form-input mb-1"
+                           placeholder="">
+                </div>
+
+                <div class="create-vehicle-form-row">
+                    <label></label>
+                    <button type="submit" class="btn btn-dark rounded-pill">Create</button>
+                </div>
             </form>
 
         </div>

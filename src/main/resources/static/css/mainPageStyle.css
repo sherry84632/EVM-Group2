@@ -107,5 +107,9 @@
 
 .create-vehicle-form-input-control {
     width: 500px !important;
-    margin-left: 125px !important;
+}
+
+.create-vehicle-form-row label {
+    width: 400px;
+    height: 35px;
 }
