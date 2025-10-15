@@ -104,3 +104,21 @@
     width: 500px;
     margin-left: 125px;
 }
+
+/* RESPONSIVE STYLES */
+/*TABLET*/
+@media (max-width: 1024px) {
+    .mainSideBar{
+        width: 200px;
+        min-width: 200px;
+    }
+
+    .mainContent{
+        margin-left: 200px;
+    }
+
+    .icon-btn{
+        width: 160px;
+        height: 160px;
+    }
+}
