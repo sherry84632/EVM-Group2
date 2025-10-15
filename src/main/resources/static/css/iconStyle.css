@@ -73,6 +73,7 @@
     width: 280px; /* optional: fix width for neat layout */
     height: 400px;
 }
+
 .button_vehicle_list img {
     width: 275px;
     height: 275px;
@@ -92,7 +93,7 @@
 
 .button_vehicle_list:hover {
     transform: translateY(-30px);
-    box-shadow: 0 6px 14px rgb(99, 99, 99);
+    box-shadow: 0 6px 14px rgb(154, 154, 154);
 }
 
 .scroll-box {
@@ -106,5 +107,39 @@
     padding: 1px;
     overflow: scroll;
     width: 1653px;
-    height: 825px;
+    height: 815px;
+}
+
+.scroll-box-order {
+    justify-items: start; /* align items to the left horizontally */
+    align-items: start;   /* align items to the top vertically */
+    justify-content: start; /* ensure grid stays aligned to top-left */
+    align-content: start;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(375px, 1fr));
+    gap: 1px;
+    padding: 1px;
+    overflow: scroll;
+    width: 1653px;
+    height: 815px;
+}
+
+.button_order {
+    display: flex;
+    flex-direction: column; /* stack icon + text vertically */
+    align-items: center;     /* center both horizontally */
+    background-color: white;
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    padding: 20px;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    width: 325px; /* optional: fix width for neat layout */
+    height: 225px;
+}
+
+.button_order:hover {
+    transform: translateY(-15px);
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25);
 }
