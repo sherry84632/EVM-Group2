@@ -9,6 +9,8 @@ public class PageConfig implements WebMvcConfigurer {
 
     @Override
     public void addViewControllers(ViewControllerRegistry registry) {
+        registry.addViewController("/showDealerHomePage").setViewName("dealerPage/DealerHomePage");
+        registry.addViewController("/showEVMHomePage").setViewName("evmPage/homePage");
         registry.addViewController("/vehicleDistributionManagement").setViewName("evmPage/vehicleDistributionManagement");
         registry.addViewController("/dealerManagement").setViewName("");
         registry.addViewController("/evmReport").setViewName("");
