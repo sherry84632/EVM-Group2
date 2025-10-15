@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 @Controller
 public class CreateController {
 
-    @PostMapping("/createVehicle")
+    @PostMapping("/createVehicleController")
     public String createVehicle(
             @RequestParam("VIN") String VIN,
             @RequestParam("colorName") String colorName,
