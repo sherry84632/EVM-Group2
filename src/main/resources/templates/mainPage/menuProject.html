@@ -3,15 +3,11 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Electric Dealer</title>
-
-    <!-- Bootstrap -->
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
-
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="/css/menuProject.css" />
-
-    <!-- Font Awesome -->
+    <link
+            rel="stylesheet"
+            href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+    />
+    <link rel="stylesheet" href="/static/css/menuProject.css" />
     <link
             rel="stylesheet"
             href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"
@@ -19,29 +15,30 @@
             crossorigin="anonymous"
             referrerpolicy="no-referrer"
     />
+    <title>Electric Dealer</title>
 </head>
-
-<body>
-<!-- 🔹 TOP BAR -->
+<body class="show-chatbot">
 <div class="container__navbar-front">
     <div class="content__inside">
-        <div class="navbar__left">
-            <span><i class="fas fa-phone"></i> CONTACT +84335999999</span>
+        <div class="navbar__contact">
+            <i class="fas fa-phone"></i> CONTACT +84335999999
+        </div>
+        <div class="navbar__support">
             <a href="#support"><i class="fas fa-headset"></i> SUPPORT</a>
         </div>
-        <div class="navbar__right">
+        <div class="navbar__auch">
             <a href="/login"><i class="fas fa-sign-in-alt"></i> LOGIN</a>
-            <span class="line">|</span>
-            <a href="#register"><i class="fas fa-user-plus"></i> REGISTER</a>
         </div>
     </div>
 </div>
 
-<!-- 🔹 NAVIGATION BAR -->
 <nav>
     <div class="nav-container">
         <a href="#" class="logo">
-            <img src="/images/logo.png" alt="Logo Electric Dealer" />
+            <img
+                    src="/src/main/image/logo-removebg-preview.png"
+                    alt="Logo Electric Dealer"
+            />
         </a>
 
         <ul class="nav-links" id="navLinks">
@@ -59,24 +56,33 @@
     </div>
 </nav>
 
-<!-- 🔹 HERO SECTION -->
+<!-- Big Banner -->
 <section class="hero">
+    <!-- Element: hero__container -->
     <div class="hero__container">
+        <!-- Element: hero__content -->
         <div class="hero__content">
+            <!-- Element: hero__badge -->
             <div class="hero__badge">
                 <span class="hero__badge-icon">⚡</span>
                 <span>THE FUTURE OF BUSINESS</span>
             </div>
 
+            <!-- Element: hero__title -->
             <h1 class="hero__title">
-                Platform<span class="hero__title-highlight"><br />Electric Vehicle Sales Management</span>
+                Platform<span class="hero__title-highlight"
+            ><br />Electric Vehicle Sales Management</span
+            >
             </h1>
 
+            <!-- Element: hero__description -->
             <p class="hero__description">
-                Pioneering sales management technology with superior performance, elegant design, and an exceptional user experience.
-                Discover the future of sales today!
+                Pioneering sales management technology with superior performance,
+                elegant design, and an exceptional user experience. Discover the
+                future of sales today!
             </p>
 
+            <!-- Element: hero__stats -->
             <div class="hero__stats">
                 <div class="hero__stat">
                     <span class="hero__stat-number">500+</span>
@@ -84,7 +90,7 @@
                 </div>
                 <div class="hero__stat">
                     <span class="hero__stat-number">98%</span>
-                    <span class="hero__stat-label">Satisfaction</span>
+                    <span class="hero__stat-label">satisfaction</span>
                 </div>
                 <div class="hero__stat">
                     <span class="hero__stat-number">15+</span>
@@ -92,24 +98,26 @@
                 </div>
             </div>
 
+            <!-- Element: hero__buttons -->
             <div class="hero__buttons">
+                <!-- Element + Modifier: hero__button hero__button--primary -->
                 <button class="hero__button hero__button--primary">
-                    <span>REGISTER NOW</span>
-                    <span>→</span>
+                    <a href="/login">
+                        <span>LOGIN NOW</span>
+                        <span>→</span>
+                    </a>
                 </button>
-                <a href="/login" class="hero__button hero__button--primary">
-                    <span>▶</span>
-                    <span>LOGIN</span>
-                </a>
-
             </div>
         </div>
 
+        <!-- Element: hero__visual -->
         <div class="hero__visual">
+            <!-- Element: hero__image -->
             <div class="hero__image">
-                <img src="/images/bannerrobot.jpg" alt="Xe điện hiện đại" />
+                <img src="/src/main/image/bannerrobot.jpg" alt="Xe điện hiện đại" />
             </div>
 
+            <!-- Element: hero__features (top) -->
             <div class="hero__features hero__features--top">
                 <div class="hero__feature-item">
                     <div class="hero__feature-icon">🔋</div>
@@ -120,6 +128,7 @@
                 </div>
             </div>
 
+            <!-- Element: hero__features (bottom) -->
             <div class="hero__features hero__features--bottom">
                 <div class="hero__feature-item">
                     <div class="hero__feature-icon">⚡</div>
@@ -133,46 +142,62 @@
     </div>
 </section>
 
-<!-- 🔹 FEATURES SECTION -->
+<!-- Features Section -->
 <section class="features" id="features">
     <h2 class="section-title">Why Choose Electric Dealer?</h2>
     <div class="features-grid">
         <div class="feature-card fade-in">
             <span class="feature-icon">🚗</span>
             <h3>Wide Selection of Electric Vehicle Models</h3>
-            <p>From compact city cars to high-performance vehicles, we offer a variety of options to fit your needs.</p>
+            <p>
+                From compact city cars to high-performance vehicles, we offer a
+                variety of options to fit your needs.
+            </p>
         </div>
 
         <div class="feature-card fade-in">
             <span class="feature-icon">💰</span>
             <h3>Smart Financing Options</h3>
-            <p>Flexible payment plans designed to make owning an Electric Vehicle easier than ever.</p>
+            <p>
+                Flexible payment plans designed to make owning an Electric Vehicle
+                easier than ever.
+            </p>
         </div>
 
         <div class="feature-card fade-in">
             <span class="feature-icon">🌐</span>
             <h3>Seamless Experience</h3>
-            <p>Easy online browsing, smart comparisons, and fast, secure transactions.</p>
+            <p>
+                Easy online browsing, smart comparisons, and fast, secure
+                transactions.
+            </p>
         </div>
 
         <div class="feature-card fade-in">
             <span class="feature-icon">🌱</span>
             <h3>Sustainable Future</h3>
-            <p>By choosing Electric Dealer, you contribute to a cleaner, greener planet.</p>
+            <p>
+                By choosing Electric Dealer, you contribute to a cleaner, greener
+                planet.
+            </p>
         </div>
 
         <div class="feature-card fade-in">
             <span class="feature-icon">🛠️</span>
             <h3>Trusted Quality & Warranty</h3>
-            <p>Every vehicle is verified and backed by genuine warranty support.</p>
+            <p>
+                Every vehicle is verified and backed by genuine warranty support.
+            </p>
         </div>
 
         <div class="feature-card fade-in">
             <span class="feature-icon">👥</span>
             <h3>Expert Consultation</h3>
-            <p>Our team of Electric Dealer specialists helps you choose the right model and guides you through the entire process.</p>
+            <p>
+                Our team of Electric Dealer specialists helps you choose the right
+                model and guides you through the entire process.
+            </p>
         </div>
-
         <button class="hero__button hero__button--primary" style="width: 374px">
             <span>LEARN MORE</span>
             <span>→</span>
@@ -180,30 +205,77 @@
     </div>
 </section>
 
-<!-- 🔹 CHATBOT -->
-<button class="chatbot-toggler">
-    <span><i class="fa-regular fa-comments"></i></span>
-    <span><i class="fa-solid fa-xmark"></i></span>
-</button>
+<!-- Feedback -->
+<div class="customer__feedback">
+    <div class="section-header">
+        <h2>What Electric Dealer Users Say</h2>
+        <p>What Businesses Say About Electric Dealer</p>
+    </div>
 
+    <!-- Featured Testimonial -->
+    <div class="featured-testimonial">
+        <div class="quote-icon">"</div>
+        <div class="featured-content">
+            <div class="featured-quote">
+                “Electric Dealer has simplified the way I sell and manage my store.
+                Inventory management and financial tracking across multiple channels
+                are now seamless and organized. I truly appreciate Sapo’s dedicated
+                24/7 support.”
+            </div>
+            <div class="featured-customer">
+                <div class="featured-avatar">MK</div>
+                <div class="customer-details">
+                    <div class="customer-name">Micheal killian</div>
+                    <div class="customer-role">Owner, Shopee Online Store</div>
+                    <div class="rating">
+                        <span class="star">★</span>
+                        <span class="star">★</span>
+                        <span class="star">★</span>
+                        <span class="star">★</span>
+                        <span class="star">★</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chatbot -->
+<button class="chatbot-toggler">
+      <span>
+        <i class="fa-regular fa-comments material-symbols-outlined"></i>
+      </span>
+    <span>
+        <i class="fa-solid fa-xmark material-symbols-outlined"></i>
+      </span>
+</button>
 <div class="chatbot">
     <header>
         <h2>Electric Dealer Assistant</h2>
-        <span><i class="fa-solid fa-xmark"></i></span>
+        <span>
+          <i class="fa-solid fa-xmark material-symbols-outlined"></i>
+        </span>
     </header>
     <ul class="chatbox">
         <li class="chat incoming">
-            <span><i class="fa-solid fa-robot"></i></span>
-            <p>Hi there 🤝 <br />How can I help you today?</p>
+          <span
+          ><i class="fa-solid fa-robot material-symbols-outlined"></i
+          ></span>
+            <p>
+                Hi there🤝 <br />
+                How can I help you today?
+            </p>
         </li>
     </ul>
     <div class="chat-input">
         <textarea placeholder="Enter a message..." required></textarea>
-        <span id="send-btn"><i class="fa-solid fa-paper-plane"></i></span>
+        <span id="send-btn">
+          <i class="fa-solid fa-paper-plane"></i>
+        </span>
     </div>
 </div>
 
-<!-- JS -->
+<!-- JavaScript -->
 <script src="/scripts/menuProject.js"></script>
 </body>
 </html>

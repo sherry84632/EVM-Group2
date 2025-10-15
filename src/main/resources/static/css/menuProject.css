@@ -56,7 +56,6 @@ body {
     gap: 15px;
     align-items: center;
 }
-
 /* MAIN NAVBAR */
 nav {
     background: #000;
@@ -359,6 +358,20 @@ nav {
 .hero__button--primary:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(255, 140, 0, 0.6);
+}
+
+/* Modifier: hero__button--secondary */
+.hero__button--secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+}
+
+.hero__button--secondary:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
 }
 
 /* Element: hero__visual */
@@ -1066,4 +1079,3 @@ nav {
         display: block;
     }
 }
-
