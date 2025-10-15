@@ -10,21 +10,39 @@ import org.springframework.web.bind.annotation.*;
 @Controller
 public class CreateController {
 
-    @GetMapping("/createVehicleForm")
-    public String showCreateForm(Model model) {
+    @PostMapping("/createVehicle")
+    public String createVehicle(
+            @RequestParam("VIN") String VIN,
+            @RequestParam("colorName") String colorName,
+            @RequestParam("modelName") String modelName,
+            @RequestParam("manufactureYear") int manufactureYear,
+            @RequestParam("engineNumber") String engineNumber,
+            @RequestParam("currentOwner") String currentOwner,
+            @RequestParam("status") String status,
+            Model model
+    ) {
+        DAOVehicle daoVehicle = new DAOVehicle();
         DAOVehicleModel daoModel = new DAOVehicleModel();
         DAOColor daoColor = new DAOColor();
 
-        model.addAttribute("vehicle", new DTOVehicle());
-        model.addAttribute("modelList", daoModel.getAllModels());
-        model.addAttribute("colorList", daoColor.getAllColors());
-        return "evmPage/createVehicle";
-    }
+        Integer modelID = daoVehicle.getModelIdByName(modelName);
+        Integer colorID = daoVehicle.getColorIdByName(colorName);
 
-    @PostMapping("/createVehicle")
-    public String createVehicle(@ModelAttribute("vehicle") DTOVehicle vehicle) {
-        DAOVehicle daoVehicle = new DAOVehicle();
-        daoVehicle.insertVehicle(vehicle);
+        if (modelID == null || colorID == null) {
+            model.addAttribute("error", "⚠️ ModelName hoặc ColorName không tồn tại trong hệ thống.");
+            return "evmPage/createVehicle";
+        }
+
+        DTOVehicle v = new DTOVehicle();
+        v.setVIN(VIN);
+        v.setColorID(colorID);
+        v.setModelID(modelID);
+        v.setManufactureYear(manufactureYear);
+        v.setEngineNumber(engineNumber);
+        v.setCurrentOwner(currentOwner);
+        v.setStatus(status);
+
+        daoVehicle.insertVehicle(v);
         return "redirect:/vehicleList";
     }
 }
