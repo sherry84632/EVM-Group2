@@ -159,4 +159,49 @@ public class DAOVehicle {
         return null;
     }
 
+    public DTOVehicle getVehicleByVIN(String vin) {
+        DTOVehicle vehicle = null;
+        try (Connection conn = DBUtils.getConnection()) {
+            String sql = "SELECT * FROM Vehicle WHERE VIN = ?";
+            PreparedStatement stmt = conn.prepareStatement(sql);
+            stmt.setString(1, vin);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                vehicle = new DTOVehicle();
+                vehicle.setVIN(rs.getString("VIN"));
+                vehicle.setColorID(rs.getInt("ColorID"));
+                vehicle.setManufactureYear(rs.getInt("ManufactureYear"));
+                vehicle.setEngineNumber(rs.getString("EngineNumber"));
+                vehicle.setCurrentOwner(rs.getString("CurrentOwner"));
+                vehicle.setStatus(rs.getString("Status"));
+                vehicle.setModelID(rs.getInt("ModelID"));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return vehicle;
+    }
+
+    public boolean updateVehicle(DTOVehicle vehicle) {
+        try (Connection conn = DBUtils.getConnection()) {
+            String sql = "UPDATE Vehicle SET ColorID = ?, ManufactureYear = ?, EngineNumber = ?, " +
+                    "CurrentOwner = ?, Status = ?, ModelID = ? WHERE VIN = ?";
+            PreparedStatement stmt = conn.prepareStatement(sql);
+            stmt.setInt(1, vehicle.getColorID());
+            stmt.setInt(2, vehicle.getManufactureYear());
+            stmt.setString(3, vehicle.getEngineNumber());
+            stmt.setString(4, vehicle.getCurrentOwner());
+            stmt.setString(5, vehicle.getStatus());
+            stmt.setInt(6, vehicle.getModelID());
+            stmt.setString(7, vehicle.getVIN());
+
+            int rowsUpdated = stmt.executeUpdate();
+            return rowsUpdated > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
 }

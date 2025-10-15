@@ -8,7 +8,7 @@ public class DBUtils {
 
     private static final String DB_NAME = "CarDealerDBI";
     private static final String USER_NAME = "sa";
-    private static final String PASSWORD = "1";
+    private static final String PASSWORD = "12345";
     private static final String HOST = "localhost";
     private static final String PORT = "1433";
 
