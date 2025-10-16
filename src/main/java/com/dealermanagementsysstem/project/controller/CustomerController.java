@@ -1,11 +1,13 @@
 package com.dealermanagementsysstem.project.controller;
-
+import java.sql.Date;
 import com.dealermanagementsysstem.project.Model.DAOCustomer;
 import com.dealermanagementsysstem.project.Model.DTOCustomer;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.sql.Timestamp;
 import java.util.List;
 
 @Controller
@@ -42,15 +44,49 @@ public class CustomerController {
         return "customer-list";
     }
     
+<<<<<<< Updated upstream
     // ✅ Thêm mới khách hàng
+=======
+    // ✅ Hiển thị form thêm mới
+    @GetMapping("/new")
+    public String showNewForm(Model model) {
+        model.addAttribute("customer", new DTOCustomer());
+        return "customer-form";
+    }
+
+
+
+>>>>>>> Stashed changes
     @PostMapping("/insert")
-    public String insertCustomer(@ModelAttribute("customer") DTOCustomer c) {
+    public String insertCustomer(
+            @RequestParam("FullName") String fullName,
+            @RequestParam("Phone") String phone,
+            @RequestParam("Email") String email,
+            @RequestParam("Address") String address,
+            @RequestParam(value = "CreatedAt", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm") Timestamp createdAt,
+            @RequestParam(value = "BirthDate", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date birthDate,
+            @RequestParam(value = "Note", required = false) String note,
+            @RequestParam(value = "TestDriveSchedule", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm") Timestamp testDriveSchedule,
+            @RequestParam(value = "VehicleInterest", required = false) String vehicleInterest
+    ) {
+        DTOCustomer c = new DTOCustomer();
+        c.setFullName(fullName);
+        c.setPhone(phone);
+        c.setEmail(email);
+        c.setAddress(address);
+        c.setCreatedAt(createdAt);
+        c.setBirthDate(birthDate);
+        c.setNote(note);
+        c.setTestDriveSchedule(testDriveSchedule);
+        c.setVehicleInterest(vehicleInterest);
+
         if (dao.insertCustomer(c)) {
             return "redirect:/customer";
         } else {
             return "redirect:/customer/new?error=invalid";
         }
     }
+
 
     // ✅ Hiển thị form chỉnh sửa
     @GetMapping("/edit/{id}")
