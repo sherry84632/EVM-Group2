@@ -96,7 +96,7 @@ public class CustomerController {
         }
     }
 
-    // ✅ Hiển thị form chỉnh sửa
+    // ✅ Hiển thị form chỉnh sửa b
     @GetMapping("/edit/{id}")
     public String showEditForm(@PathVariable("id") int id, Model model) {
         DTOCustomer existing = dao.getAllCustomers().stream()

@@ -35,12 +35,15 @@
 
         <div class="customer_detail_content">
 
-            Phone: <span th:text="${customer.phone}"></span>
-            Email: <span th:text="${customer.email}"></span>
-            Home address: <span th:text="${customer.address}"></span>
-            Date of birth: <span th:text="${customer.birthDate}"></span>
-            Test drive schedule: <span th:text="${customer.testDriveSchedule}"></span>
-            Notes: <span th:text="${customer.note}"></span>
+            Customer ID: <span th:text="${customer.customerID}"></span> <br>
+            Phone: <span th:text="${customer.phone}"></span> <br>
+            Email: <span th:text="${customer.email}"></span> <br>
+            Home address: <span th:text="${customer.address}"></span> <br>
+            Created at: <span th:text="${customer.createdAt}"></span> <br>
+            Date of birth: <span th:text="${customer.birthDate}"></span> <br>
+            Test drive schedule: <span th:text="${customer.testDriveSchedule}"></span> <br>
+            Test drive schedule: <span th:text="${customer.vehicleInterest}"></span> <br>
+            Notes: <span th:text="${customer.note}"></span> <br>
 
         </div>
 
