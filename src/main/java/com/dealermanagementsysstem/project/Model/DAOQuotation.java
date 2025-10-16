@@ -15,12 +15,13 @@ public class DAOQuotation {
             SELECT q.QuotationID, q.CreatedAt, q.Status,
                    d.DealerID, d.DealerName, d.Email AS DealerEmail, d.Phone AS DealerPhone,
                    c.CustomerID, c.FullName AS CustomerName, c.Email AS CustomerEmail, c.Phone AS CustomerPhone,
-                   v.VehicleID, v.ModelName, v.BasePrice,
+                   v.VIN AS VIN, vm.ModelName, vm.BasePrice,
                    dp.DiscountPolicyID, dp.HangPercent
             FROM Quotation q
             JOIN Dealer d ON q.DealerID = d.DealerID
             JOIN Customer c ON q.CustomerID = c.CustomerID
-            JOIN Vehicle v ON q.VehicleID = v.VehicleID
+            JOIN Vehicle v ON q.VehicleID = v.VIN
+            LEFT JOIN VehicleModel vm ON v.ModelID = vm.ModelID
             LEFT JOIN DiscountPolicy dp ON q.DiscountPolicyID = dp.DiscountPolicyID
             ORDER BY q.QuotationID DESC
         """;
@@ -117,6 +118,76 @@ public class DAOQuotation {
         }
     }
 
+    // ✅ Lấy quotation theo ID (kèm Dealer/Customer/Vehicle/Discount)
+    public DTOQuotation getQuotationById(int quotationId) {
+        String sql = """
+            SELECT q.QuotationID, q.CreatedAt, q.Status,
+                   d.DealerID, d.DealerName, d.Email AS DealerEmail, d.Phone AS DealerPhone,
+                   c.CustomerID, c.FullName AS CustomerName, c.Email AS CustomerEmail, c.Phone AS CustomerPhone,
+                   v.VIN AS VIN, vm.ModelName, vm.BasePrice,
+                   dp.DiscountPolicyID, dp.HangPercent
+            FROM Quotation q
+            JOIN Dealer d ON q.DealerID = d.DealerID
+            JOIN Customer c ON q.CustomerID = c.CustomerID
+            JOIN Vehicle v ON q.VehicleID = v.VIN
+            LEFT JOIN VehicleModel vm ON v.ModelID = vm.ModelID
+            LEFT JOIN DiscountPolicy dp ON q.DiscountPolicyID = dp.DiscountPolicyID
+            WHERE q.QuotationID = ?
+        """;
+
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, quotationId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    DTOQuotation q = new DTOQuotation();
+                    q.setQuotationID(rs.getInt("QuotationID"));
+                    q.setCreatedAt(rs.getTimestamp("CreatedAt"));
+                    q.setStatus(rs.getString("Status"));
+
+                    DTODealer dealer = new DTODealer();
+                    dealer.setDealerID(rs.getInt("DealerID"));
+                    dealer.setDealerName(rs.getString("DealerName"));
+                    dealer.setEmail(rs.getString("DealerEmail"));
+                    dealer.setPhone(rs.getString("DealerPhone"));
+                    q.setDealer(dealer);
+
+                    DTOCustomer customer = new DTOCustomer();
+                    customer.setCustomerID(rs.getInt("CustomerID"));
+                    customer.setFullName(rs.getString("CustomerName"));
+                    customer.setEmail(rs.getString("CustomerEmail"));
+                    customer.setPhone(rs.getString("CustomerPhone"));
+                    q.setCustomer(customer);
+
+                    DTOVehicle vehicle = new DTOVehicle();
+                    vehicle.setVIN(rs.getString("VIN"));
+                    vehicle.setModelName(rs.getString("ModelName"));
+                    vehicle.setBasePrice(rs.getBigDecimal("BasePrice"));
+                    q.setVehicle(vehicle);
+
+                    if (rs.getObject("DiscountPolicyID") != null) {
+                        DTODiscountPolicy dp = new DTODiscountPolicy();
+                        dp.setPolicyID(rs.getInt("DiscountPolicyID"));
+                        dp.setHangPercent(rs.getDouble("HangPercent"));
+                        q.setDiscountPolicy(dp);
+                    }
+
+                    double basePrice = vehicle.getBasePrice() != null ? vehicle.getBasePrice().doubleValue() : 0d;
+                    if (q.getDiscountPolicy() != null) {
+                        q.setTotalPrice(basePrice * q.getDiscountPolicy().getHangPercent());
+                    } else {
+                        q.setTotalPrice(basePrice);
+                    }
+
+                    return q;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     // ✅ Update status
     public boolean updateQuotationStatus(int quotationID, String newStatus) {
         String sql = "UPDATE Quotation SET Status = ? WHERE QuotationID = ?";
@@ -139,14 +210,15 @@ public class DAOQuotation {
             SELECT q.QuotationID, q.CreatedAt, q.Status,
                    d.DealerID, d.DealerName, d.Email AS DealerEmail, d.Phone AS DealerPhone,
                    c.CustomerID, c.FullName AS CustomerName, c.Email AS CustomerEmail, c.Phone AS CustomerPhone,
-                   v.VehicleID, v.ModelName, v.BasePrice,
+                   v.VIN AS VIN, vm.ModelName, vm.BasePrice,
                    dp.DiscountPolicyID, dp.HangPercent
             FROM Quotation q
             JOIN Dealer d ON q.DealerID = d.DealerID
             JOIN Customer c ON q.CustomerID = c.CustomerID
-            JOIN Vehicle v ON q.VehicleID = v.VehicleID
+            JOIN Vehicle v ON q.VehicleID = v.VIN
+            LEFT JOIN VehicleModel vm ON v.ModelID = vm.ModelID
             LEFT JOIN DiscountPolicy dp ON q.DiscountPolicyID = dp.DiscountPolicyID
-            WHERE d.DealerName LIKE ? OR c.FullName LIKE ? OR v.ModelName LIKE ?
+            WHERE d.DealerName LIKE ? OR c.FullName LIKE ? OR vm.ModelName LIKE ?
             ORDER BY q.CreatedAt DESC
         """;
 
@@ -181,7 +253,7 @@ public class DAOQuotation {
                 q.setCustomer(customer);
 
                 DTOVehicle vehicle = new DTOVehicle();
-                vehicle.setVIN(rs.getString("VehicleID"));
+                vehicle.setVIN(rs.getString("VIN"));
                 vehicle.setModelName(rs.getString("ModelName"));
                 vehicle.setBasePrice(rs.getBigDecimal("BasePrice"));
                 q.setVehicle(vehicle);

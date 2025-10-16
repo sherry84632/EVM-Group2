@@ -14,6 +14,7 @@ import java.util.List;
 public class QuotationController {
 
     private final DAOQuotation dao = new DAOQuotation();
+    private final DAOPurchaseOrder purchaseOrderDao = new DAOPurchaseOrder();
 
     // ✅ 1. Hiển thị danh sách tất cả báo giá
     @GetMapping
@@ -86,4 +87,19 @@ public class QuotationController {
         return "redirect:/quotation";
     }
 
+    // ✅ 6. Convert quotation -> purchase order (status Pending)
+    @GetMapping("/{id}/convert-to-order")
+    public String convertToOrder(@PathVariable("id") int id) {
+        DTOQuotation q = dao.getQuotationById(id);
+        if (q == null) return "redirect:/quotation";
+
+        DTOPurchaseOrder order = new DTOPurchaseOrder();
+        order.setDealerId(q.getDealer().getDealerID());
+        // TODO: get staffId from session; use dealer staff placeholder for now
+        order.setStaffId(1);
+        order.setStatus("Pending");
+        purchaseOrderDao.addPurchaseOrder(order);
+
+        return "redirect:/orderdealer/list";
+    }
 }
