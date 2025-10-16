@@ -137,6 +137,11 @@
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
 }
 
+.customer_detail_box label {
+    width: 400px;
+    height: 40px;
+}
+
 /* RESPONSIVE */
 /* TABLET */
 @media(max-width: 1024px){
