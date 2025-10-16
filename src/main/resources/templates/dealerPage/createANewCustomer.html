@@ -28,54 +28,60 @@
         <div class="d-flex">
 
             <span>
-                <h1>Create a new vehicle</h1>
+                <h1>Create a new customer</h1>
             </span>
 
         </div>
 
         <div class="d-flex create-vehicle-form-container">
 
-            <form action="/createVehicle" method="post">
+            <form action="/customerController/insert" method="post">
 
                 <div class="create-vehicle-form-row">
-                    <label>VIN:</label>
-                    <input name="VIN" type="text" class="create-vehicle-form-input-control create-vehicle-form-input mb-1"
+                    <label>Full name</label>
+                    <input name="fullName" type="text" class="create-vehicle-form-input-control create-vehicle-form-input mb-1"
                                placeholder="" required>
                 </div>
 
                 <div class="create-vehicle-form-row">
-                    <label>Color name:</label>
-                    <input name="colorName" type="text" class="create-vehicle-form-input-control create-vehicle-form-input mb-1"
+                    <label>Email</label>
+                    <input name="email" type="text" class="create-vehicle-form-input-control create-vehicle-form-input mb-1"
                            placeholder="" required>
                 </div>
 
                 <div class="create-vehicle-form-row">
-                    <label>Model name:</label>
-                    <input name="modelName" type="text" class="create-vehicle-form-input-control create-vehicle-form-input mb-1"
+                    <label>Phone number</label>
+                    <input name="phoneNumber" type="text" class="create-vehicle-form-input-control create-vehicle-form-input mb-1"
                            placeholder="" required>
                 </div>
 
                 <div class="create-vehicle-form-row">
-                    <label>Manufacture year:</label>
-                    <input name="manufactureYear" type="number" class="create-vehicle-form-input-control create-vehicle-form-input mb-1"
+                    <label>Address</label>
+                    <input name="address" type="number" class="create-vehicle-form-input-control create-vehicle-form-input mb-1"
                            placeholder="" required>
                 </div>
 
                 <div class="create-vehicle-form-row">
-                    <label>Engine number:</label>
-                    <input name="engineNumber" type="text" class="create-vehicle-form-input-control create-vehicle-form-input mb-1"
+                    <label>Birth date</label>
+                    <input name="birthDate" type="text" class="create-vehicle-form-input-control create-vehicle-form-input mb-1"
                            placeholder="" required>
                 </div>
 
                 <div class="create-vehicle-form-row">
-                    <label>Current owner:</label>
-                    <input name="currentOwner" type="text" class="create-vehicle-form-input-control create-vehicle-form-input mb-1"
+                    <label>Note</label>
+                    <input name="note" type="text" class="create-vehicle-form-input-control create-vehicle-form-input mb-1"
                            placeholder="" required>
                 </div>
 
                 <div class="create-vehicle-form-row">
-                    <label>Status:</label>
-                    <input name="status" type="text" class="create-vehicle-form-input-control create-vehicle-form-input mb-1"
+                    <label>Test driver schedule</label>
+                    <input name="testDriverSchedule" type="text" class="create-vehicle-form-input-control create-vehicle-form-input mb-1"
+                           placeholder="" required>
+                </div>
+
+                <div class="create-vehicle-form-row">
+                    <label>Vehicle of interest</label>
+                    <input name="vehicleOfInterest" type="text" class="create-vehicle-form-input-control create-vehicle-form-input mb-1"
                            placeholder="" required>
                 </div>
 
