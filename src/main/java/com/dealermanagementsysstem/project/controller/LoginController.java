@@ -37,16 +37,16 @@ public class LoginController {
         if (account != null) {
             // Nếu đăng nhập đúng → lưu thông tin user
             session.setAttribute("user", account);
-//                        String role = account.getRole();
-//            return switch (role) {
-//                case "Admin" -> "redirect:/admin/dashboard";
-//                case "EVM" -> "redirect:/evm/dashboard";
-//                case "DealerStaff" -> "redirect:/dealerstaff/dashboard";
-//                case "Dealer" -> "redirect:/dealer/dashboard";
-//                case "EVMStaff" -> "redirect:/evmstaff/dashboard";
-//                default -> "redirect:/login?error=role";
-//            };
-            return "evmPage/homePage"; // chuyển đến HomeController
+            String role = account.getRole();
+            return switch (role) {
+                case "Admin" -> "redirect:/showEVMHomePage";
+                case "EVM" -> "redirect:/showEVMHomePage";
+                case "DealerStaff" -> "redirect:/showDealerHomePage";
+                case "Dealer" -> "redirect:/showDealerHomePage";
+                case "EVMStaff" -> "redirect:/showEVMHomePage";
+                default -> "redirect:/login?error=role";
+            };
+
         } else {
             // Nếu sai → quay lại login và thêm lỗi
             return "redirect:/login?error=1";

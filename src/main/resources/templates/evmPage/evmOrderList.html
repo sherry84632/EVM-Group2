@@ -28,7 +28,7 @@
         <div class="d-flex">
 
             <span>
-                <h1>Vehicle list</h1>
+                <h1>Orders</h1>
             </span>
 
             <form action="/searchVehicleListController" method="get">
@@ -41,17 +41,9 @@
                 <button type="submit" class="btn btn-dark rounded-pill">Search</button>
             </form>
 
-            <a href="/evmCreateANewVehicleToList" style="text-decoration: none">
-                <button class="createNewVehicleButton">
-                    <span>
-                        Create new vehicle
-                    </span>
-                </button>
-            </a>
-
         </div>
 
-        <div class="scroll-box">
+        <div class="scroll-box-order">
 
             <div th:each="vehicle : ${vehicleList}" class="d-flex" style="justify-content: center; align-items: center; padding: 35px;">
                 <a href="" style="text-decoration: none">
@@ -61,6 +53,35 @@
                             <p th:text="${vehicle.modelName}"></p>
                             <p th:text="${vehicle.basePrice}"></p>
                             <p th:text="${vehicle.ManufactureYear}"></p>
+                        </span>
+                    </button>
+                </a>
+            </div>
+
+
+            <div class="d-flex" style="justify-content: center; align-items: center; padding: 35px;">
+                <a href="" style="text-decoration: none">
+                    <button class="button_order">
+                        <span>
+                            <p>Order ID: 154878</p>
+                            <p>Dealer name: Dealer A</p>
+                            <p>Dealer ID: 02156</p>
+                            <p>Status: Pending</p>
+                            <p>Date: 1/1/2025</p>
+                        </span>
+                    </button>
+                </a>
+            </div>
+
+            <div class="d-flex" style="justify-content: center; align-items: center; padding: 35px;">
+                <a href="" style="text-decoration: none">
+                    <button class="button_order">
+                        <span>
+                            <p>Order ID: 154878</p>
+                            <p>Dealer name: Dealer A</p>
+                            <p>Dealer ID: 02156</p>
+                            <p>Status: Pending</p>
+                            <p>Date: 1/1/2025</p>
                         </span>
                     </button>
                 </a>
