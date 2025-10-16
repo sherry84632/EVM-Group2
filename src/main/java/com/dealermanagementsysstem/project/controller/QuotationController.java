@@ -15,6 +15,7 @@ public class QuotationController {
 
     private final DAOQuotation dao = new DAOQuotation();
 
+    // ✅ Hiển thị form báo giá
     @GetMapping("/new")
     public String showQuotationForm(
             @RequestParam("vin") String vin,
@@ -43,14 +44,14 @@ public class QuotationController {
             return "dealerPage/errorPage";
         }
 
-        // 3️⃣ Ngày tạo
+        // 3️⃣ Ngày tạo báo giá
         Timestamp createdAt = Timestamp.valueOf(LocalDateTime.now());
 
-        // 4️⃣ Truyền dữ liệu ra HTML
+        // 4️⃣ Truyền dữ liệu sang view
         model.addAttribute("dealer", dealer);
         model.addAttribute("vehicle", vehicle);
         model.addAttribute("createdAt", createdAt);
 
-        return "dealerPage/quotationForm";
+        return "dealerPage/quotationForm"; // ✅ Tên file HTML của bạn
     }
 }

@@ -5,14 +5,14 @@ import java.sql.*;
 
 public class DAOQuotation {
 
-    // ✅ Lấy thông tin xe theo VIN (JOIN Vehicle + EVM_VehicleModel)
+    // ✅ Lấy thông tin xe theo VIN (JOIN Vehicle + VehicleModel)
     public DTOVehicle getVehicleByVIN(String vin) {
         DTOVehicle vehicle = null;
 
         String sql = """
             SELECT v.VIN, v.ManufactureYear, vm.ModelName, vm.BasePrice
             FROM Vehicle v
-            JOIN EVM_VehicleModel vm ON v.ModelID = vm.ModelID
+            JOIN VehicleModel vm ON v.ModelID = vm.ModelID
             WHERE v.VIN = ?
         """;
 
@@ -20,6 +20,7 @@ public class DAOQuotation {
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, vin);
+
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     vehicle = new DTOVehicle();
@@ -33,10 +34,11 @@ public class DAOQuotation {
             System.out.println("❌ Lỗi khi lấy thông tin xe theo VIN!");
             e.printStackTrace();
         }
+
         return vehicle;
     }
 
-    // ✅ Lấy thông tin Dealer theo dealerID
+    // ✅ Lấy thông tin Dealer theo dealerID (từ tài khoản đăng nhập)
     public DTODealer getDealerByID(int dealerID) {
         DTODealer dealer = null;
 
@@ -50,6 +52,7 @@ public class DAOQuotation {
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, dealerID);
+
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     dealer = new DTODealer();
@@ -64,6 +67,7 @@ public class DAOQuotation {
             System.out.println("❌ Lỗi khi lấy thông tin dealer!");
             e.printStackTrace();
         }
+
         return dealer;
     }
 }
