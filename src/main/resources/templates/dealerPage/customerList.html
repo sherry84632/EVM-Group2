@@ -28,40 +28,33 @@
         <div class="d-flex">
 
             <span>
-                <h1>Vehicle list</h1>
+                <h1>Customers list</h1>
             </span>
 
             <form action="/searchVehicleListController" method="get">
                 <input name="keyword"
                        type="text"
                        class="search-vehicle-list-input-control search-vehicle-list-input mb-1"
-                       placeholder="Search by model name"
+                       placeholder="Search by customer name"
                        th:value="${keyword}"
-                        style="margin-top: 12px;">
+                       style="margin-top: 12px;">
                 <button type="submit" class="btn btn-dark rounded-pill">Search</button>
             </form>
-
-            <a href="/evmCreateANewVehicleToList" style="text-decoration: none">
-                <button class="createNewVehicleButton">
-                    <span>
-                        Create new vehicle
-                    </span>
-                </button>
-            </a>
 
         </div>
 
         <div class="scroll-box">
 
-            <div th:each="vehicle : ${vehicleList}" class="d-flex" style="justify-content: center; align-items: center; padding: 35px;">
+            <div th:each="customer : ${customersList}" class="d-flex" style="justify-content: center; align-items: center; padding: 35px;">
                 <a href="" style="text-decoration: none">
-                    <button class="button_vehicle_list">
-                        <img src="/images/logo.png">
+                    <button class="button_customer_list">
+                        <i class="fa-solid fa-user"></i>
                         <span>
-                            <p th:text="${vehicle.modelName}"></p>
-                            <p th:text="${vehicle.basePrice}"></p>
-                            <p th:text="${vehicle.ManufactureYear}"></p>
-                        </span>
+                            <h4 th:text="${customer.fullName}"></h4>
+                            <p th:text="${customer.email}"></p>
+                            <p th:text="${customer.phone}"></p>
+                            <p th:text="${customer.birthDate}"></p>
+                         </span>
                     </button>
                 </a>
             </div>

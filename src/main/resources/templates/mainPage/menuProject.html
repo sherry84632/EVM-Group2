@@ -7,7 +7,7 @@
             rel="stylesheet"
             href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
     />
-    <link rel="stylesheet" href="/static/css/menuProject.css" />
+    <link rel="stylesheet" href="/css/menuProject.css" />
     <link
             rel="stylesheet"
             href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"
@@ -17,7 +17,7 @@
     />
     <title>Electric Dealer</title>
 </head>
-<body class="show-chatbot">
+<body>
 <div class="container__navbar-front">
     <div class="content__inside">
         <div class="navbar__contact">
@@ -36,7 +36,7 @@
     <div class="nav-container">
         <a href="#" class="logo">
             <img
-                    src="/src/main/image/logo-removebg-preview.png"
+                    src="/images/logo.png"
                     alt="Logo Electric Dealer"
             />
         </a>
@@ -102,7 +102,7 @@
             <div class="hero__buttons">
                 <!-- Element + Modifier: hero__button hero__button--primary -->
                 <button class="hero__button hero__button--primary">
-                    <a href="/login">
+                    <a href="/login" style="text-decoration: none; color: white">
                         <span>LOGIN NOW</span>
                         <span>→</span>
                     </a>
@@ -114,7 +114,7 @@
         <div class="hero__visual">
             <!-- Element: hero__image -->
             <div class="hero__image">
-                <img src="/src/main/image/bannerrobot.jpg" alt="Xe điện hiện đại" />
+                <img src="/images/bannerrobot.jpg" alt="Xe điện hiện đại" />
             </div>
 
             <!-- Element: hero__features (top) -->
@@ -205,40 +205,21 @@
     </div>
 </section>
 
-<!-- Feedback -->
-<div class="customer__feedback">
-    <div class="section-header">
-        <h2>What Electric Dealer Users Say</h2>
-        <p>What Businesses Say About Electric Dealer</p>
-    </div>
-
-    <!-- Featured Testimonial -->
-    <div class="featured-testimonial">
-        <div class="quote-icon">"</div>
-        <div class="featured-content">
-            <div class="featured-quote">
-                “Electric Dealer has simplified the way I sell and manage my store.
-                Inventory management and financial tracking across multiple channels
-                are now seamless and organized. I truly appreciate Sapo’s dedicated
-                24/7 support.”
+<!--Footer-->
+<footer class="footer">
+    <div class="footer-container">
+        <div class="footer-bottom">
+            <div class="payment-methods">
+                <i class="fab fa-cc-visa"></i>
+                <i class="fab fa-cc-mastercard"></i>
+                <i class="fab fa-cc-paypal"></i>
+                <i class="fas fa-credit-card"></i>
             </div>
-            <div class="featured-customer">
-                <div class="featured-avatar">MK</div>
-                <div class="customer-details">
-                    <div class="customer-name">Micheal killian</div>
-                    <div class="customer-role">Owner, Shopee Online Store</div>
-                    <div class="rating">
-                        <span class="star">★</span>
-                        <span class="star">★</span>
-                        <span class="star">★</span>
-                        <span class="star">★</span>
-                        <span class="star">★</span>
-                    </div>
-                </div>
-            </div>
+            <p style="margin-top: 20px;">© 2025 <a href="#">Electric Dealer</a>. All Rights Reserved.</p>
+            <p>We are here with <i class="fas fa-heart" style="color: #ff6600;"></i> to bring a better experience</p>
         </div>
     </div>
-</div>
+</footer>
 
 <!-- Chatbot -->
 <button class="chatbot-toggler">

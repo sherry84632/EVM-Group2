@@ -1,4 +1,5 @@
 package com.dealermanagementsysstem.project.controller;
+
 import com.dealermanagementsysstem.project.Model.DAOColor;
 import com.dealermanagementsysstem.project.Model.DAOVehicle;
 import com.dealermanagementsysstem.project.Model.DAOVehicleModel;
@@ -28,11 +29,14 @@ public class CreateController {
         Integer modelID = daoVehicle.getModelIdByName(modelName);
         Integer colorID = daoVehicle.getColorIdByName(colorName);
 
+        // ⚠️ Nếu không tìm thấy modelName hoặc colorName
         if (modelID == null || colorID == null) {
             model.addAttribute("error", "⚠️ ModelName hoặc ColorName không tồn tại trong hệ thống.");
-            return "evmPage/createVehicle";
+            // Trỏ đúng file HTML đang có
+            return "evmPage/createANewVehicleToList";
         }
 
+        // ✅ Tạo đối tượng Vehicle
         DTOVehicle v = new DTOVehicle();
         v.setVIN(VIN);
         v.setColorID(colorID);
@@ -42,8 +46,10 @@ public class CreateController {
         v.setCurrentOwner(currentOwner);
         v.setStatus(status);
 
+        // ✅ Lưu vào DB
         daoVehicle.insertVehicle(v);
-        return "redirect:/vehicleList";
+
+        // ✅ Redirect sang VehicleController hiển thị danh sách xe
+        return "redirect:/getVehicleList";
     }
 }
-

@@ -4,6 +4,8 @@ const sendChatBtn = document.querySelector('.chat-input span');
 const chatInput = document.querySelector('.chat-input textarea');
 let userMessage;
 const chatbox = document.querySelector('.chatbox');
+const sidebar = document.getElementById('sidebar');
+const sandwich = document.querySelector('.mobile-menu-toggle');
 const body = document.body;
 
 hamburger.addEventListener('click', (e) => {
@@ -44,6 +46,36 @@ document.querySelectorAll('.nav-links a').forEach((link) => {
         navLinks.classList.remove('active');
         body.style.overflow = '';
     });
+});
+
+// RESPONSIVE
+function toggleSidebar(){
+    sidebar.classList.toggle('active');
+    sandwich.classList.toggle('active');
+
+    if (sidebar.classList.contains('active')){
+        body.style.overflow = 'hidden';
+    }else{
+        body.style.overflow = '';
+    }
+}
+
+document.addEventListener('click', function (event){
+    if (window.innerWidth <= 767){
+        if (!sidebar.contains(event.target) && !sandwich.contains(event.target)){
+            sidebar.classList.remove('active');
+            sandwich.classList.remove('active');
+            body.style.overflow = '';
+        }
+    }
+});
+
+window.addEventListener('resize', function(){
+    if (window.innerWidth > 767){
+        sidebar.classList.remove('active');
+        sandwich.classList.remove('active');
+        body.style.overflow = '';
+    }
 });
 
 const createChatLi = (message, className) => {
@@ -103,3 +135,5 @@ const handleChat = () => {
 };
 
 sendChatBtn.addEventListener('click', handleChat);
+
+// Media
