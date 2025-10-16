@@ -35,50 +35,35 @@
 
         <div class="d-flex create-vehicle-form-container">
 
-            <form action="/customer/insert" method="post">
+            <form action="/saleorder/insert" method="post">
                 <div class="create-vehicle-form-row">
-                    <label>Full name</label>
-                    <input name="FullName" type="text" class="create-vehicle-form-input mb-1" required>
+                    <label>Customer ID:</label>
+                    <input name="customerID" type="text" class="create-vehicle-form-input mb-1" required>
                 </div>
 
                 <div class="create-vehicle-form-row">
-                    <label>Email</label>
-                    <input name="Email" type="email" class="create-vehicle-form-input mb-1" required>
+                    <label>Dealer ID:</label>
+                    <input name="dealerID" type="text" class="create-vehicle-form-input mb-1" required>
                 </div>
 
                 <div class="create-vehicle-form-row">
-                    <label>Phone number</label>
-                    <input name="Phone" type="text" class="create-vehicle-form-input mb-1" required>
+                    <label>Staff ID:</label>
+                    <input name="staffID" type="text" class="create-vehicle-form-input mb-1" required>
                 </div>
 
                 <div class="create-vehicle-form-row">
-                    <label>Address</label>
-                    <input name="Address" type="text" class="create-vehicle-form-input mb-1" required>
+                    <label>VIN:</label>
+                    <input name="vin" type="text" class="create-vehicle-form-input mb-1" required>
                 </div>
 
                 <div class="create-vehicle-form-row">
-                    <label>Birth date</label>
-                    <input name="BirthDate" type="date" class="create-vehicle-form-input mb-1" required>
+                    <label>Price:</label>
+                    <input name="price" type="number" class="create-vehicle-form-input mb-1" required>
                 </div>
 
                 <div class="create-vehicle-form-row">
-                    <label>Created at</label>
-                    <input name="CreateAt" type="datetime-local" class="create-vehicle-form-input mb-1" required>
-                </div>
-
-                <div class="create-vehicle-form-row">
-                    <label>Note</label>
-                    <input name="Note" type="text" class="create-vehicle-form-input mb-1">
-                </div>
-
-                <div class="create-vehicle-form-row">
-                    <label>Test drive schedule</label>
-                    <input name="TestDriveSchedule" type="datetime-local" class="create-vehicle-form-input mb-1">
-                </div>
-
-                <div class="create-vehicle-form-row">
-                    <label>Vehicle of interest</label>
-                    <input name="VehicleInterest" type="text" class="create-vehicle-form-input mb-1">
+                    <label>Status:</label>
+                    <input name="status" type="text" class="create-vehicle-form-input mb-1" required>
                 </div>
 
                 <button type="submit" class="btn btn-dark rounded-pill">Create</button>

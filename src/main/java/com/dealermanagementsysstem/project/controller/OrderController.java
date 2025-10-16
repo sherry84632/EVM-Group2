@@ -25,7 +25,7 @@ public class OrderController {
     public String listSaleOrders(Model model) {
         List<DTOSaleOrder> orders = dao.getAllSaleOrders();
         model.addAttribute("orders", orders);
-        return "dealerPage/saleOrderList";
+        return "dealerPage/customerOrderList";
     }
 
     // ✅ Hiển thị form tạo đơn hàng mới
@@ -81,7 +81,7 @@ public class OrderController {
         } else {
             System.out.println("❌ [FAILED] Failed to create SaleOrder for VIN: " + vin);
             model.addAttribute("error", "Failed to create sale order. Please check input data!");
-            return "dealerPage/createSaleOrder";
+            return "dealerPage/DealerHomePage";
         }
     }
 
