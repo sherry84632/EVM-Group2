@@ -11,7 +11,7 @@ import java.sql.Timestamp;
 import java.util.List;
 
 @Controller
-@RequestMapping("/customer")
+@RequestMapping("/customerController")
 public class CustomerController {
 
     private final DAOCustomer dao;
@@ -24,8 +24,8 @@ public class CustomerController {
     @GetMapping
     public String listCustomers(Model model) {
         List<DTOCustomer> list = dao.getAllCustomers();
-        model.addAttribute("customers", list);
-        return "customer-list"; // Tên file JSP/Thymeleaf: src/main/resources/templates/customer-list.html
+        model.addAttribute("customersList", list);
+        return "dealerPage/customerList"; // Tên file JSP/Thymeleaf: src/main/resources/templates/customer-list.html
     }
 
     // ✅ Hiển thị form thêm mới
