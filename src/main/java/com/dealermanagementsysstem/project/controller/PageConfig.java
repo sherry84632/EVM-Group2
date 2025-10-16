@@ -22,6 +22,7 @@ public class PageConfig implements WebMvcConfigurer {
         registry.addViewController("/dealerCustomerManagement").setViewName("dealerPage/customerManagement");
         registry.addViewController("/dealerCustomerList").setViewName("dealerPage/customerList");
         registry.addViewController("/dealerCreateANewCustomer").setViewName("dealerPage/createANewCustomer");
+        registry.addViewController("/dealerCustomerDetail").setViewName("dealerPage/customerDetail");
     }
 
 }
