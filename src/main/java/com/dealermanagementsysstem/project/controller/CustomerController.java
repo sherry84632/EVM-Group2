@@ -72,4 +72,11 @@ public class CustomerController {
         dao.deleteCustomer(id);
         return "redirect:/customer";
     }
+
+    @GetMapping("/showCustomerDetail")
+    public String showCustomerDetail(Model model) {
+        model.addAttribute("customer", new DTOCustomer());
+        return "customer-form"; // src/main/resources/templates/customer-form.html
+    }
+
 }
