@@ -27,4 +27,13 @@ public class VehicleController {
         model.addAttribute("vehicleList", vehicle);
         return "dealerPage/chooseVehicleToOrder";
     }
+
+    @GetMapping("/getVehicleListToCreateQuotation")
+    public String vehicleList3(Model model)
+    {
+        DAOVehicle daoVehicle = new DAOVehicle();
+        List<DTOVehicle> vehicle = daoVehicle.getVehicles();
+        model.addAttribute("vehicleList", vehicle);
+        return "dealerPage/dealerVehicleList";
+    }
 }
