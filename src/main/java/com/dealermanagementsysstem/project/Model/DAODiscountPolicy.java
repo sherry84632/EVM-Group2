@@ -1,10 +1,12 @@
 package com.dealermanagementsysstem.project.Model;
 
+import org.springframework.stereotype.Repository;
 import utils.DBUtils;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
+@Repository
 public class DAODiscountPolicy {
 
     // 1️⃣ Lấy toàn bộ chính sách giảm giá

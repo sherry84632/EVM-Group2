@@ -2,70 +2,74 @@ package com.dealermanagementsysstem.project.controller;
 
 import com.dealermanagementsysstem.project.Model.DAODiscountPolicy;
 import com.dealermanagementsysstem.project.Model.DTODiscountPolicy;
-import jakarta.servlet.*;
-import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
-import java.io.IOException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.*;
+
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.List;
 
-@WebServlet(name = "DiscountPolicyController", urlPatterns = {"/discount-policy"})
-public class DiscountPolicyController extends HttpServlet {
+@Controller
+@RequestMapping("/discount-policy")
+public class DiscountPolicyController {
 
-    private final DAODiscountPolicy dao = new DAODiscountPolicy();
+    private final DAODiscountPolicy dao;
 
-    @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-
-        String action = request.getParameter("action");
-
-        try {
-            if (action == null || action.equals("list")) {
-                List<DTODiscountPolicy> list = dao.getAllPolicies();
-                request.setAttribute("policies", list);
-                request.getRequestDispatcher("templates/evmPage/discountPolicyList.html")
-                        .forward(request, response);
-
-            } else if (action.equals("apply")) {
-                int policyId = Integer.parseInt(request.getParameter("policyId"));
-                int detailId = Integer.parseInt(request.getParameter("orderDetailId"));
-                boolean ok = dao.applyPolicyToSaleOrderDetail(detailId, policyId);
-                if (ok) {
-                    response.getWriter().write("Đã áp dụng chính sách cho chi tiết đơn hàng.");
-                } else {
-                    response.getWriter().write("Áp dụng thất bại.");
-                }
-            } else if (action.equals("create")) {
-                request.getRequestDispatcher("templates/evmPage/createDiscountPolicy.html")
-                        .forward(request, response);
-            }
-        } catch (SQLException e) {
-            throw new ServletException(e);
-        }
+    @Autowired
+    public DiscountPolicyController(DAODiscountPolicy dao) {
+        this.dao = dao;
     }
 
-    @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
+    // 🟢 [GET] /discount-policy
+    @GetMapping
+    public String listPolicies(Model model) throws SQLException {
+        List<DTODiscountPolicy> policies = dao.getAllPolicies();
+        model.addAttribute("policies", policies);
+        return "templates/evmPage/discountPolicyList"; // bỏ .html vì Thymeleaf tự hiểu
+    }
 
-        int dealerId = Integer.parseInt(request.getParameter("dealerId"));
-        String name = request.getParameter("policyName");
-        String desc = request.getParameter("description");
-        double hangPercent = Double.parseDouble(request.getParameter("hangPercent"));
-        double dailyPercent = Double.parseDouble(request.getParameter("dailyPercent"));
-        LocalDate startDate = LocalDate.parse(request.getParameter("startDate"));
-        LocalDate endDate = LocalDate.parse(request.getParameter("endDate"));
+    // 🟢 [GET] /discount-policy/create
+    @GetMapping("/create")
+    public String showCreateForm() {
+        return "templates/evmPage/createDiscountPolicy";
+    }
 
-        DTODiscountPolicy dto = new DTODiscountPolicy(0, dealerId, name, desc,
-                hangPercent, dailyPercent, startDate, endDate, "Active");
+    // 🟢 [POST] /discount-policy
+    @PostMapping
+    public String createPolicy(
+            @RequestParam("dealerId") int dealerId,
+            @RequestParam("policyName") String policyName,
+            @RequestParam("description") String description,
+            @RequestParam("hangPercent") double hangPercent,
+            @RequestParam("dailyPercent") double dailyPercent,
+            @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+    ) throws SQLException {
 
-        try {
-            dao.addPolicy(dto);
-            response.sendRedirect("discount-policy?action=list");
-        } catch (SQLException e) {
-            throw new ServletException(e);
+        DTODiscountPolicy dto = new DTODiscountPolicy(
+                0, dealerId, policyName, description,
+                hangPercent, dailyPercent, startDate, endDate, "Active"
+        );
+        dao.addPolicy(dto);
+        return "redirect:/discount-policy";
+    }
+
+    // 🟢 [POST] /discount-policy/apply
+    @PostMapping("/apply")
+    @ResponseBody
+    public String applyPolicy(
+            @RequestParam("policyId") int policyId,
+            @RequestParam("orderDetailId") int orderDetailId
+    ) throws SQLException {
+
+        boolean ok = dao.applyPolicyToSaleOrderDetail(orderDetailId, policyId);
+        if (ok) {
+            return "Đã áp dụng chính sách cho chi tiết đơn hàng.";
+        } else {
+            return "Áp dụng thất bại.";
         }
     }
 }
