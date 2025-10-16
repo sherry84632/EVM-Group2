@@ -74,7 +74,7 @@ public class CustomerController {
         c.setVehicleInterest(vehicleInterest);
 
         if (dao.insertCustomer(c)) {
-            return "redirect:/customer";
+            return "redirect:/dealerPage/success";
         } else {
             return "redirect:/customer/new?error=invalid";
         }
