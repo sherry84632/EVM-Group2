@@ -31,13 +31,16 @@
                 <h1 th:text="${customer.fullName}"></h1>
             </span>
 
-
-
         </div>
 
         <div class="customer_detail_content">
 
-
+            Phone: <span th:text="${customer.phone}"></span>
+            Email: <span th:text="${customer.email}"></span>
+            Home address: <span th:text="${customer.address}"></span>
+            Date of birth: <span th:text="${customer.birthDate}"></span>
+            Test drive schedule: <span th:text="${customer.testDriveSchedule}"></span>
+            Notes: <span th:text="${customer.note}"></span>
 
         </div>
 
