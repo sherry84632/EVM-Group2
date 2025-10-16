@@ -129,6 +129,13 @@
     font-size: 24px;
 }
 
+.customer_detail_content {
+    width: 800px;
+    height: 675px;
+    display: flex;
+    background: white;
+}
+
 /* RESPONSIVE */
 /* TABLET */
 @media(max-width: 1024px){

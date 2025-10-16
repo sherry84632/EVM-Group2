@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @Controller
-@RequestMapping("/customer")
+@RequestMapping("/customerController")
 public class CustomerController {
 
     private final DAOCustomer dao;
@@ -22,8 +22,8 @@ public class CustomerController {
     @GetMapping
     public String listCustomers(Model model) {
         List<DTOCustomer> list = dao.getAllCustomers();
-        model.addAttribute("customers", list);
-        return "customer-list";
+        model.addAttribute("customersList", list);
+        return "dealerPage/customerList";
     }
 
     // ✅ Tìm kiếm khách hàng theo tên hoặc email
@@ -55,14 +55,14 @@ public class CustomerController {
     }
 
     // ✅ Hiển thị form chỉnh sửa
-    @GetMapping("/edit/{id}")
+    @GetMapping("/showCustomerDetail/{id}")
     public String showEditForm(@PathVariable("id") int id, Model model) {
         DTOCustomer existing = dao.getAllCustomers().stream()
                 .filter(c -> c.getCustomerID() == id)
                 .findFirst()
                 .orElse(null);
         model.addAttribute("customer", existing);
-        return "customer-form";
+        return "dealerPage/customerDetail";
     }
 
     // ✅ Cập nhật khách hàng
@@ -80,12 +80,6 @@ public class CustomerController {
     public String deleteCustomer(@PathVariable("id") int id) {
         dao.deleteCustomer(id);
         return "redirect:/customer";
-    }
-
-    @GetMapping("/showCustomerDetail")
-    public String showCustomerDetail(Model model) {
-        model.addAttribute("customer", new DTOCustomer());
-        return "customer-form"; // src/main/resources/templates/customer-form.html
     }
 
 }
