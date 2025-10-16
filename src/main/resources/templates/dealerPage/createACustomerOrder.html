@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/mainPageStyle.css">
+    <link rel="stylesheet" href="/css/iconStyle.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"
+          integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw=="
+          crossorigin="anonymous" referrerpolicy="no-referrer"/>
+</head>
+
+<body class="bg-gradient2-custom">
+
+<div class="d-flex">
+
+    <div th:replace="mainPage/navBarFragment :: navBar"></div>
+
+    <div class="mainContent flex-grow-1 p-3" style="overflow: hidden">
+
+        <div class="d-flex">
+            <h2>This is a navigation link.</h2>
+        </div>
+
+        <div class="d-flex">
+
+            <span>
+                <h1>Create a new customer order</h1>
+            </span>
+
+        </div>
+
+        <div class="d-flex create-vehicle-form-container">
+
+            <form action="/customer/insert" method="post">
+                <div class="create-vehicle-form-row">
+                    <label>Full name</label>
+                    <input name="FullName" type="text" class="create-vehicle-form-input mb-1" required>
+                </div>
+
+                <div class="create-vehicle-form-row">
+                    <label>Email</label>
+                    <input name="Email" type="email" class="create-vehicle-form-input mb-1" required>
+                </div>
+
+                <div class="create-vehicle-form-row">
+                    <label>Phone number</label>
+                    <input name="Phone" type="text" class="create-vehicle-form-input mb-1" required>
+                </div>
+
+                <div class="create-vehicle-form-row">
+                    <label>Address</label>
+                    <input name="Address" type="text" class="create-vehicle-form-input mb-1" required>
+                </div>
+
+                <div class="create-vehicle-form-row">
+                    <label>Birth date</label>
+                    <input name="BirthDate" type="date" class="create-vehicle-form-input mb-1" required>
+                </div>
+
+                <div class="create-vehicle-form-row">
+                    <label>Created at</label>
+                    <input name="CreateAt" type="datetime-local" class="create-vehicle-form-input mb-1" required>
+                </div>
+
+                <div class="create-vehicle-form-row">
+                    <label>Note</label>
+                    <input name="Note" type="text" class="create-vehicle-form-input mb-1">
+                </div>
+
+                <div class="create-vehicle-form-row">
+                    <label>Test drive schedule</label>
+                    <input name="TestDriveSchedule" type="datetime-local" class="create-vehicle-form-input mb-1">
+                </div>
+
+                <div class="create-vehicle-form-row">
+                    <label>Vehicle of interest</label>
+                    <input name="VehicleInterest" type="text" class="create-vehicle-form-input mb-1">
+                </div>
+
+                <button type="submit" class="btn btn-dark rounded-pill">Create</button>
+            </form>
+
+
+            <div th:if="${error}" class="alert alert-danger mt-3" role="alert">
+                <span th:text="${error}"></span>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+
+</html>
