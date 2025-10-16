@@ -7,7 +7,7 @@ import java.util.List;
 
 public class DAOQuotation {
 
-    // ✅ Lấy toàn bộ danh sách quotation (kèm Dealer, Customer, Vehicle, DiscountPolicy)
+    // ✅ Lấy toàn bộ danh sách quotation (kèm Dealer, Customer, tổng tiền từ QuotationDetail)
     public List<DTOQuotation> getAllQuotations() {
         List<DTOQuotation> list = new ArrayList<>();
 
@@ -15,14 +15,14 @@ public class DAOQuotation {
             SELECT q.QuotationID, q.CreatedAt, q.Status,
                    d.DealerID, d.DealerName, d.Email AS DealerEmail, d.Phone AS DealerPhone,
                    c.CustomerID, c.FullName AS CustomerName, c.Email AS CustomerEmail, c.Phone AS CustomerPhone,
-                   v.VIN AS VIN, vm.ModelName, vm.BasePrice,
-                   dp.DiscountPolicyID, dp.HangPercent
+                   SUM(ISNULL(qd.UnitPrice, 0) * ISNULL(qd.Quantity, 0)) AS TotalAmount
             FROM Quotation q
             JOIN Dealer d ON q.DealerID = d.DealerID
             JOIN Customer c ON q.CustomerID = c.CustomerID
-            JOIN Vehicle v ON q.VehicleID = v.VIN
-            LEFT JOIN VehicleModel vm ON v.ModelID = vm.ModelID
-            LEFT JOIN DiscountPolicy dp ON q.DiscountPolicyID = dp.DiscountPolicyID
+            LEFT JOIN QuotationDetail qd ON q.QuotationID = qd.QuotationID
+            GROUP BY q.QuotationID, q.CreatedAt, q.Status,
+                     d.DealerID, d.DealerName, d.Email, d.Phone,
+                     c.CustomerID, c.FullName, c.Email, c.Phone
             ORDER BY q.QuotationID DESC
         """;
 
@@ -54,29 +54,8 @@ public class DAOQuotation {
                 customer.setPhone(rs.getString("CustomerPhone"));
                 q.setCustomer(customer);
 
-                // --- Vehicle ---
-                DTOVehicle vehicle = new DTOVehicle();
-                vehicle.setVIN(rs.getString("VIN"));
-                vehicle.setModelName(rs.getString("ModelName"));
-                vehicle.setBasePrice(rs.getBigDecimal("BasePrice"));
-                q.setVehicle(vehicle);
-
-                // --- Discount Policy ---
-                if (rs.getObject("DiscountPolicyID") != null) {
-                    DTODiscountPolicy dp = new DTODiscountPolicy();
-                    dp.setPolicyID(rs.getInt("DiscountPolicyID"));
-                    dp.setHangPercent(rs.getDouble("HangPercent"));
-                    q.setDiscountPolicy(dp);
-                }
-
-                // --- Total Price ---
-                double basePrice = q.getVehicle().getBasePrice().doubleValue();
-                if (q.getDiscountPolicy() != null) {
-                    double percent = q.getDiscountPolicy().getHangPercent();
-                    q.setTotalPrice(basePrice * percent);
-                } else {
-                    q.setTotalPrice(basePrice);
-                }
+                // --- Tổng tiền từ chi tiết ---
+                q.setTotalPrice(rs.getDouble("TotalAmount"));
 
                 list.add(q);
             }
@@ -88,11 +67,11 @@ public class DAOQuotation {
         return list;
     }
 
-    // ✅ Insert quotation mới
+    // ✅ Insert quotation mới (header only)
     public boolean insertQuotation(DTOQuotation q) {
         String sql = """
-            INSERT INTO Quotation (DealerID, CustomerID, VehicleID, DiscountPolicyID, CreatedAt, Status)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO Quotation (DealerID, CustomerID, StaffID, CreatedAt, Status)
+            VALUES (?, ?, ?, ?, ?)
         """;
 
         try (Connection conn = DBUtils.getConnection();
@@ -100,15 +79,11 @@ public class DAOQuotation {
 
             ps.setInt(1, q.getDealer().getDealerID());
             ps.setInt(2, q.getCustomer().getCustomerID());
-            ps.setString(3, q.getVehicle().getVIN());
-
-            if (q.getDiscountPolicy() != null)
-                ps.setInt(4, q.getDiscountPolicy().getPolicyID());
-            else
-                ps.setNull(4, Types.INTEGER);
-
-            ps.setTimestamp(5, q.getCreatedAt());
-            ps.setString(6, q.getStatus());
+            // For now, store staff id in StaffID via Customer's id? Controller provides staff separately
+            // Expect controller to handle correct staff id usage when calling insertReturningId
+            ps.setInt(3, 0);
+            ps.setTimestamp(4, q.getCreatedAt());
+            ps.setString(5, q.getStatus());
 
             return ps.executeUpdate() > 0;
 
@@ -118,21 +93,46 @@ public class DAOQuotation {
         }
     }
 
-    // ✅ Lấy quotation theo ID (kèm Dealer/Customer/Vehicle/Discount)
+    // ✅ Insert quotation mới và trả về ID (header only)
+    public Integer insertQuotationReturningId(int dealerId, int customerId, int staffId, Timestamp createdAt, String status) {
+        String sql = """
+            INSERT INTO Quotation (DealerID, CustomerID, StaffID, CreatedAt, Status)
+            VALUES (?, ?, ?, ?, ?)
+        """;
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            ps.setInt(1, dealerId);
+            ps.setInt(2, customerId);
+            ps.setInt(3, staffId);
+            ps.setTimestamp(4, createdAt);
+            ps.setString(5, status);
+            int affected = ps.executeUpdate();
+            if (affected > 0) {
+                try (ResultSet rs = ps.getGeneratedKeys()) {
+                    if (rs.next()) return rs.getInt(1);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    // ✅ Lấy quotation theo ID (kèm Dealer/Customer, tổng tiền từ chi tiết)
     public DTOQuotation getQuotationById(int quotationId) {
         String sql = """
             SELECT q.QuotationID, q.CreatedAt, q.Status,
                    d.DealerID, d.DealerName, d.Email AS DealerEmail, d.Phone AS DealerPhone,
                    c.CustomerID, c.FullName AS CustomerName, c.Email AS CustomerEmail, c.Phone AS CustomerPhone,
-                   v.VIN AS VIN, vm.ModelName, vm.BasePrice,
-                   dp.DiscountPolicyID, dp.HangPercent
+                   SUM(ISNULL(qd.UnitPrice, 0) * ISNULL(qd.Quantity, 0)) AS TotalAmount
             FROM Quotation q
             JOIN Dealer d ON q.DealerID = d.DealerID
             JOIN Customer c ON q.CustomerID = c.CustomerID
-            JOIN Vehicle v ON q.VehicleID = v.VIN
-            LEFT JOIN VehicleModel vm ON v.ModelID = vm.ModelID
-            LEFT JOIN DiscountPolicy dp ON q.DiscountPolicyID = dp.DiscountPolicyID
+            LEFT JOIN QuotationDetail qd ON q.QuotationID = qd.QuotationID
             WHERE q.QuotationID = ?
+            GROUP BY q.QuotationID, q.CreatedAt, q.Status,
+                     d.DealerID, d.DealerName, d.Email, d.Phone,
+                     c.CustomerID, c.FullName, c.Email, c.Phone
         """;
 
         try (Connection conn = DBUtils.getConnection();
@@ -159,25 +159,7 @@ public class DAOQuotation {
                     customer.setPhone(rs.getString("CustomerPhone"));
                     q.setCustomer(customer);
 
-                    DTOVehicle vehicle = new DTOVehicle();
-                    vehicle.setVIN(rs.getString("VIN"));
-                    vehicle.setModelName(rs.getString("ModelName"));
-                    vehicle.setBasePrice(rs.getBigDecimal("BasePrice"));
-                    q.setVehicle(vehicle);
-
-                    if (rs.getObject("DiscountPolicyID") != null) {
-                        DTODiscountPolicy dp = new DTODiscountPolicy();
-                        dp.setPolicyID(rs.getInt("DiscountPolicyID"));
-                        dp.setHangPercent(rs.getDouble("HangPercent"));
-                        q.setDiscountPolicy(dp);
-                    }
-
-                    double basePrice = vehicle.getBasePrice() != null ? vehicle.getBasePrice().doubleValue() : 0d;
-                    if (q.getDiscountPolicy() != null) {
-                        q.setTotalPrice(basePrice * q.getDiscountPolicy().getHangPercent());
-                    } else {
-                        q.setTotalPrice(basePrice);
-                    }
+                    q.setTotalPrice(rs.getDouble("TotalAmount"));
 
                     return q;
                 }
@@ -202,7 +184,7 @@ public class DAOQuotation {
         }
     }
 
-    // ✅ Search quotation theo DealerName / CustomerName / ModelName
+    // ✅ Search quotation theo DealerName / CustomerName
     public List<DTOQuotation> searchQuotation(String keyword) {
         List<DTOQuotation> list = new ArrayList<>();
 
@@ -210,15 +192,15 @@ public class DAOQuotation {
             SELECT q.QuotationID, q.CreatedAt, q.Status,
                    d.DealerID, d.DealerName, d.Email AS DealerEmail, d.Phone AS DealerPhone,
                    c.CustomerID, c.FullName AS CustomerName, c.Email AS CustomerEmail, c.Phone AS CustomerPhone,
-                   v.VIN AS VIN, vm.ModelName, vm.BasePrice,
-                   dp.DiscountPolicyID, dp.HangPercent
+                   SUM(ISNULL(qd.UnitPrice, 0) * ISNULL(qd.Quantity, 0)) AS TotalAmount
             FROM Quotation q
             JOIN Dealer d ON q.DealerID = d.DealerID
             JOIN Customer c ON q.CustomerID = c.CustomerID
-            JOIN Vehicle v ON q.VehicleID = v.VIN
-            LEFT JOIN VehicleModel vm ON v.ModelID = vm.ModelID
-            LEFT JOIN DiscountPolicy dp ON q.DiscountPolicyID = dp.DiscountPolicyID
-            WHERE d.DealerName LIKE ? OR c.FullName LIKE ? OR vm.ModelName LIKE ?
+            LEFT JOIN QuotationDetail qd ON q.QuotationID = qd.QuotationID
+            WHERE d.DealerName LIKE ? OR c.FullName LIKE ?
+            GROUP BY q.QuotationID, q.CreatedAt, q.Status,
+                     d.DealerID, d.DealerName, d.Email, d.Phone,
+                     c.CustomerID, c.FullName, c.Email, c.Phone
             ORDER BY q.CreatedAt DESC
         """;
 
@@ -252,26 +234,7 @@ public class DAOQuotation {
                 customer.setPhone(rs.getString("CustomerPhone"));
                 q.setCustomer(customer);
 
-                DTOVehicle vehicle = new DTOVehicle();
-                vehicle.setVIN(rs.getString("VIN"));
-                vehicle.setModelName(rs.getString("ModelName"));
-                vehicle.setBasePrice(rs.getBigDecimal("BasePrice"));
-                q.setVehicle(vehicle);
-
-                if (rs.getObject("DiscountPolicyID") != null) {
-                    DTODiscountPolicy dp = new DTODiscountPolicy();
-                    dp.setPolicyID(rs.getInt("DiscountPolicyID"));
-                    dp.setHangPercent(rs.getDouble("HangPercent"));
-                    q.setDiscountPolicy(dp);
-                }
-
-                double basePrice = q.getVehicle().getBasePrice().doubleValue();
-                if (q.getDiscountPolicy() != null) {
-                    double percent = q.getDiscountPolicy().getHangPercent();
-                    q.setTotalPrice(basePrice * percent);
-                } else {
-                    q.setTotalPrice(basePrice);
-                }
+                q.setTotalPrice(rs.getDouble("TotalAmount"));
 
                 list.add(q);
             }

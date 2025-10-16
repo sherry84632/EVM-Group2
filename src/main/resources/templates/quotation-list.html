@@ -35,7 +35,7 @@
                     <th>ID</th>
                     <th>Dealer</th>
                     <th>Customer</th>
-                    <th>Vehicle</th>
+                    <th>Lines</th>
                     <th>Total</th>
                     <th>Status</th>
                     <th>Created</th>
@@ -47,10 +47,7 @@
                     <td th:text="${q.quotationID}"></td>
                     <td th:text="${q.dealer.dealerName}"></td>
                     <td th:text="${q.customer.fullName}"></td>
-                    <td>
-                        <span th:text="${q.vehicle.modelName}"></span>
-                        <small class="text-muted" th:text="${q.vehicle.VIN}"></small>
-                    </td>
+                    <td th:text="${q.linesCount}"></td>
                     <td th:text="${#numbers.formatDecimal(q.totalPrice, 1, 'COMMA', 0, 'POINT')}"></td>
                     <td th:text="${q.status}"></td>
                     <td th:text="${#dates.format(q.createdAt, 'yyyy-MM-dd HH:mm')}"></td>

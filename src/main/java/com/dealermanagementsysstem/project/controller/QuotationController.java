@@ -15,6 +15,8 @@ public class QuotationController {
 
     private final DAOQuotation dao = new DAOQuotation();
     private final DAOPurchaseOrder purchaseOrderDao = new DAOPurchaseOrder();
+    private final DAOQuotationDetail quotationDetailDao = new DAOQuotationDetail();
+    private final DAOPurchaseOrderDetail purchaseOrderDetailDao = new DAOPurchaseOrderDetail();
 
     // ✅ 1. Hiển thị danh sách tất cả báo giá
     @GetMapping
@@ -37,8 +39,11 @@ public class QuotationController {
     public String insertQuotation(
             @RequestParam("dealerId") int dealerId,
             @RequestParam("customerId") int customerId,
-            @RequestParam("vehicleVin") String vehicleVin,
-            @RequestParam(value = "discountPolicyId", required = false) Integer discountPolicyId,
+            @RequestParam("staffId") int staffId,
+            @RequestParam("colorId") int colorId,
+            @RequestParam("quantity") int quantity,
+            @RequestParam("unitPrice") java.math.BigDecimal unitPrice,
+            @RequestParam(value = "vin", required = false) String vin,
             @RequestParam(value = "status", required = false, defaultValue = "Pending") String status
     ) {
         DTOQuotation q = new DTOQuotation();
@@ -52,22 +57,23 @@ public class QuotationController {
         customer.setCustomerID(customerId);
         q.setCustomer(customer);
 
-        DTOVehicle vehicle = new DTOVehicle();
-        vehicle.setVIN(vehicleVin);
-        q.setVehicle(vehicle);
-
-        if (discountPolicyId != null) {
-            DTODiscountPolicy dp = new DTODiscountPolicy();
-            dp.setPolicyID(discountPolicyId);
-            q.setDiscountPolicy(dp);
-        }
+        // Staff placeholder: stored as staffId in Quotation table per schema
 
         q.setStatus(status);
         q.setCreatedAt(new Timestamp(System.currentTimeMillis()));
 
-        // Gọi DAO
-        boolean success = dao.insertQuotation(q);
-        return success ? "redirect:/quotation" : "redirect:/quotation/new?error=1";
+        Integer newQuotationId = dao.insertQuotationReturningId(dealerId, customerId, staffId, new Timestamp(System.currentTimeMillis()), status);
+        if (newQuotationId == null) return "redirect:/quotation/new?error=1";
+
+        DTOQuotationDetail d = new DTOQuotationDetail();
+        d.setQuotationId(newQuotationId);
+        d.setColorId(colorId);
+        d.setQuantity(quantity);
+        d.setUnitPrice(unitPrice);
+        d.setVin(vin);
+        quotationDetailDao.insertDetail(d);
+
+        return "redirect:/quotation";
     }
 
     // ✅ 4. Tìm kiếm báo giá theo từ khóa
@@ -98,7 +104,20 @@ public class QuotationController {
         // TODO: get staffId from session; use dealer staff placeholder for now
         order.setStaffId(1);
         order.setStatus("Pending");
-        purchaseOrderDao.addPurchaseOrder(order);
+        Integer orderId = purchaseOrderDao.addPurchaseOrderReturningId(order);
+        if (orderId == null) {
+            return "redirect:/quotation";
+        }
+
+        // Map QuotationDetail rows to PurchaseOrderDetail rows
+        List<DTOQuotationDetail> details = quotationDetailDao.getDetailsByQuotationId(id);
+        for (DTOQuotationDetail d : details) {
+            DTOPurchaseOrderDetail pod = new DTOPurchaseOrderDetail();
+            pod.setPurchaseOrderId(orderId);
+            pod.setColorId(d.getColorId());
+            pod.setQuantity(d.getQuantity());
+            purchaseOrderDetailDao.addDetail(pod);
+        }
 
         return "redirect:/orderdealer/list";
     }

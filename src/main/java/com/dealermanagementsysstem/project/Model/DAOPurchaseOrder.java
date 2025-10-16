@@ -24,6 +24,28 @@ public class DAOPurchaseOrder {
         return 0;
     }
 
+    // CREATE and return generated ID
+    public Integer addPurchaseOrderReturningId(DTOPurchaseOrder order) {
+        String sql = "INSERT INTO PurchaseOrder (DealerID, StaffID, CreatedAt, Status) VALUES (?, ?, GETDATE(), ?)";
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            ps.setInt(1, order.getDealerId());
+            ps.setInt(2, order.getStaffId());
+            ps.setString(3, order.getStatus());
+            int affected = ps.executeUpdate();
+            if (affected > 0) {
+                try (ResultSet rs = ps.getGeneratedKeys()) {
+                    if (rs.next()) {
+                        return rs.getInt(1);
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     // READ - danh sách
     public List<DTOPurchaseOrder> getAllPurchaseOrders() {
         List<DTOPurchaseOrder> list = new ArrayList<>();
