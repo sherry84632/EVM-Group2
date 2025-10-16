@@ -35,61 +35,55 @@
 
         <div class="d-flex create-vehicle-form-container">
 
-            <form action="/customerController/insert" method="post">
-
+            <form action="/customer/insert" method="post">
                 <div class="create-vehicle-form-row">
                     <label>Full name</label>
-                    <input name="FullName" type="text" class="create-vehicle-form-input-control create-vehicle-form-input mb-1"
-                               placeholder="" required>
+                    <input name="FullName" type="text" class="create-vehicle-form-input mb-1" required>
                 </div>
 
                 <div class="create-vehicle-form-row">
                     <label>Email</label>
-                    <input name="Email" type="text" class="create-vehicle-form-input-control create-vehicle-form-input mb-1"
-                           placeholder="" required>
+                    <input name="Email" type="email" class="create-vehicle-form-input mb-1" required>
                 </div>
 
                 <div class="create-vehicle-form-row">
                     <label>Phone number</label>
-                    <input name="Phone" type="text" class="create-vehicle-form-input-control create-vehicle-form-input mb-1"
-                           placeholder="" required>
+                    <input name="Phone" type="text" class="create-vehicle-form-input mb-1" required>
                 </div>
 
                 <div class="create-vehicle-form-row">
                     <label>Address</label>
-                    <input name="Address" type="text" class="create-vehicle-form-input-control create-vehicle-form-input mb-1"
-                           placeholder="" required>
+                    <input name="Address" type="text" class="create-vehicle-form-input mb-1" required>
                 </div>
 
                 <div class="create-vehicle-form-row">
                     <label>Birth date</label>
-                    <input name="BirthDate" type="text" class="create-vehicle-form-input-control create-vehicle-form-input mb-1"
-                           placeholder="" required>
+                    <input name="BirthDate" type="date" class="create-vehicle-form-input mb-1" required>
+                </div>
+
+                <div class="create-vehicle-form-row">
+                    <label>Created at</label>
+                    <input name="BirthDate" type="datetime-local" class="create-vehicle-form-input mb-1" required>
                 </div>
 
                 <div class="create-vehicle-form-row">
                     <label>Note</label>
-                    <input name="Note" type="text" class="create-vehicle-form-input-control create-vehicle-form-input mb-1"
-                           placeholder="" required>
+                    <input name="Note" type="text" class="create-vehicle-form-input mb-1">
                 </div>
 
                 <div class="create-vehicle-form-row">
-                    <label>Test driver schedule</label>
-                    <input name="TestDriveSchedule" type="text" class="create-vehicle-form-input-control create-vehicle-form-input mb-1"
-                           placeholder="" required>
+                    <label>Test drive schedule</label>
+                    <input name="TestDriveSchedule" type="datetime-local" class="create-vehicle-form-input mb-1">
                 </div>
 
                 <div class="create-vehicle-form-row">
                     <label>Vehicle of interest</label>
-                    <input name="VehicleInterest" type="text" class="create-vehicle-form-input-control create-vehicle-form-input mb-1"
-                           placeholder="" required>
+                    <input name="VehicleInterest" type="text" class="create-vehicle-form-input mb-1">
                 </div>
 
-                <div class="create-vehicle-form-row">
-                    <label></label>
-                    <button type="submit" class="btn btn-dark rounded-pill">Create</button>
-                </div>
+                <button type="submit" class="btn btn-dark rounded-pill">Create</button>
             </form>
+
 
             <div th:if="${error}" class="alert alert-danger mt-3" role="alert">
                 <span th:text="${error}"></span>

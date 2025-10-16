@@ -27,7 +27,7 @@ public class CustomerController {
     public String listCustomers(Model model) {
         List<DTOCustomer> list = dao.getAllCustomers();
         model.addAttribute("customers", list);
-        return "customer-list";
+        return "dealerPage/customerList";
     }
 
     // ✅ Hiển thị form thêm mới

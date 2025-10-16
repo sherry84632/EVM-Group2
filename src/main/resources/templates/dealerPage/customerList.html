@@ -45,7 +45,7 @@
 
         <div class="scroll-box">
 
-            <div th:each="customer : ${customersList}" class="d-flex" style="justify-content: center; align-items: center; padding: 35px;">
+            <div th:each="customer : ${customers}" class="d-flex" style="justify-content: center; align-items: center; padding: 35px;">
                 <a th:href="@{/customerController/showCustomerDetail/{id}(id=${customer.customerID})}" style="text-decoration: none">
                     <button class="button_customer_list">
                         <i class="fa-solid fa-user"></i>
