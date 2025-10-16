@@ -2,6 +2,11 @@ package com.dealermanagementsysstem.project.controller;
 
 import com.dealermanagementsysstem.project.Model.DAOPurchaseOrder;
 import com.dealermanagementsysstem.project.Model.DAOEVMOrderProcessing;
+import com.dealermanagementsysstem.project.Model.DAOPurchaseOrderDetail;
+import com.dealermanagementsysstem.project.Model.DAODealerInventory;
+import com.dealermanagementsysstem.project.Model.DAOVehicle;
+import com.dealermanagementsysstem.project.Model.DAODelivery;
+import com.dealermanagementsysstem.project.Model.DAODeliveryDetail;
 import com.dealermanagementsysstem.project.Model.DTOPurchaseOrder;
 import com.dealermanagementsysstem.project.Model.DTOEVMOrderProcessing;
 import org.springframework.stereotype.Controller;
@@ -16,6 +21,11 @@ public class EVMOrderController {
 
     private final DAOPurchaseOrder purchaseOrderDAO = new DAOPurchaseOrder();
     private final DAOEVMOrderProcessing processDAO = new DAOEVMOrderProcessing();
+    private final DAOPurchaseOrderDetail orderDetailDao = new DAOPurchaseOrderDetail();
+    private final DAODealerInventory dealerInventoryDao = new DAODealerInventory();
+    private final DAOVehicle vehicleDao = new DAOVehicle();
+    private final DAODelivery deliveryDao = new DAODelivery();
+    private final DAODeliveryDetail deliveryDetailDao = new DAODeliveryDetail();
 
     // Hiển thị danh sách đơn hàng từ dealer (chưa xử lý)
     @GetMapping("/pending")
@@ -23,7 +33,7 @@ public class EVMOrderController {
         List<DTOPurchaseOrder> pendingOrders = purchaseOrderDAO.getAllPurchaseOrders()
                 .stream()
                 .filter(o -> "Pending".equalsIgnoreCase(o.getStatus()))
-                .toList();
+                .collect(java.util.stream.Collectors.toList());
         model.addAttribute("orders", pendingOrders);
         return "evmPage/evmPendingOrders";
     }
@@ -47,11 +57,38 @@ public class EVMOrderController {
 
         processDAO.addProcessing(process);
 
-        // Cập nhật trạng thái đơn hàng theo hành động
-        String newStatus = process.getActionType().equalsIgnoreCase("Approve") ? "Approved" : "Rejected";
         DTOPurchaseOrder order = purchaseOrderDAO.getPurchaseOrderById(id);
-        order.setStatus(newStatus);
-        purchaseOrderDAO.updatePurchaseOrder(order);
+        if (process.getActionType().equalsIgnoreCase("Approve")) {
+            // Allocate inventory per PurchaseOrderDetail
+            java.util.List<com.dealermanagementsysstem.project.Model.DTOPurchaseOrderDetail> details = orderDetailDao.getDetailsByOrderId(id);
+            java.util.List<String> allocatedVins = new java.util.ArrayList<>();
+            for (com.dealermanagementsysstem.project.Model.DTOPurchaseOrderDetail d : details) {
+                java.util.List<String> vins = vehicleDao.getAvailableVINsByColor(d.getColorId(), d.getQuantity());
+                if (vins.size() < d.getQuantity()) {
+                    // Not enough stock -> mark rejected and stop
+                    order.setStatus("Rejected");
+                    purchaseOrderDAO.updatePurchaseOrder(order);
+                    return "redirect:/evm/orders/pending?error=out_of_stock";
+                }
+                for (String vin : vins) {
+                    dealerInventoryDao.insertInventory(order.getDealerId(), vin, "IN_STOCK");
+                    vehicleDao.markVehicleSold(vin);
+                    allocatedVins.add(vin);
+                }
+            }
+            // Create delivery record and delivery details
+            Integer deliveryId = deliveryDao.createDelivery(order.getPurchaseOrderId(), order.getDealerId(), "Completed");
+            if (deliveryId != null) {
+                for (String vin : allocatedVins) {
+                    deliveryDetailDao.addDeliveryDetail(deliveryId, vin);
+                }
+            }
+            order.setStatus("Approved");
+            purchaseOrderDAO.updatePurchaseOrder(order);
+        } else {
+            order.setStatus("Rejected");
+            purchaseOrderDAO.updatePurchaseOrder(order);
+        }
 
         return "redirect:/evm/orders/pending";
     }

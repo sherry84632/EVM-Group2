@@ -186,4 +186,30 @@ public class DAOVehicle {
         }
         return false;
     }
+
+    public java.util.List<String> getAvailableVINsByColor(int colorId, int limit) {
+        java.util.List<String> vins = new java.util.ArrayList<>();
+        String sql = "SELECT TOP (?) VIN FROM Vehicle WHERE ColorID = ? AND Status = 'AVAILABLE'";
+        try (PreparedStatement ps = DBUtils.createPreparedStatement(sql)) {
+            ps.setInt(1, limit);
+            ps.setInt(2, colorId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) vins.add(rs.getString("VIN"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return vins;
+    }
+
+    public boolean markVehicleSold(String vin) {
+        String sql = "UPDATE Vehicle SET Status='SOLD', CurrentOwner='DAILY' WHERE VIN=?";
+        try (PreparedStatement ps = DBUtils.createPreparedStatement(sql)) {
+            ps.setString(1, vin);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
 }
