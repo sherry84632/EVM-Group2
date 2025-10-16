@@ -10,47 +10,47 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 
 @Controller
+@RequestMapping("/quotation")
 public class QuotationController {
 
-    private final DAOQuotation dao;
+    private final DAOQuotation dao = new DAOQuotation();
 
-    public QuotationController() {
-        this.dao = new DAOQuotation();
-    }
-
-    // ✅ Khi click vào “Tạo báo giá” từ Vehicle List
-    @GetMapping("/createQuotationForm")
+    @GetMapping("/new")
     public String showQuotationForm(
-            @RequestParam("vehicleVIN") String vin,
+            @RequestParam("vin") String vin,
             HttpSession session,
             Model model
     ) {
-        // --- Lấy thông tin Dealer từ session ---
+        System.out.println("🧾 [DEBUG] Mở form báo giá cho VIN: " + vin);
+
+        // 1️⃣ Lấy thông tin xe
+        DTOVehicle vehicle = dao.getVehicleByVIN(vin);
+        if (vehicle == null) {
+            model.addAttribute("error", "Không tìm thấy thông tin xe.");
+            return "dealerPage/errorPage";
+        }
+
+        // 2️⃣ Lấy thông tin dealer từ session
         DTOAccount account = (DTOAccount) session.getAttribute("user");
         if (account == null || account.getDealerId() == null) {
-            model.addAttribute("error", "Bạn cần đăng nhập bằng tài khoản đại lý!");
+            model.addAttribute("error", "Bạn cần đăng nhập bằng tài khoản dealer!");
             return "mainPage/loginPage";
         }
 
-        // --- Lấy thông tin xe từ DB ---
-        DTOVehicle vehicle = dao.getVehicleByVIN(vin);
-        if (vehicle == null) {
-            model.addAttribute("error", "Không tìm thấy thông tin xe!");
-            return "redirect:/vehiclelist";
+        DTODealer dealer = dao.getDealerByID(account.getDealerId());
+        if (dealer == null) {
+            model.addAttribute("error", "Không tìm thấy thông tin đại lý.");
+            return "dealerPage/errorPage";
         }
 
-        // --- Lấy thông tin Dealer (từ DB hoặc session) ---
-        DTODealer dealer = dao.getDealerById(account.getDealerId());
-
-        // --- Ngày tạo báo giá ---
+        // 3️⃣ Ngày tạo
         Timestamp createdAt = Timestamp.valueOf(LocalDateTime.now());
 
-        // --- Truyền dữ liệu sang form báo giá ---
+        // 4️⃣ Truyền dữ liệu ra HTML
         model.addAttribute("dealer", dealer);
         model.addAttribute("vehicle", vehicle);
         model.addAttribute("createdAt", createdAt);
 
-        // Form này chỉ để hiển thị, không lưu DB
         return "dealerPage/quotationForm";
     }
 }
