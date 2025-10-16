@@ -28,33 +28,52 @@
         <div class="d-flex">
 
             <span>
-                <h1>Choose a vehicle to order</h1>
+                <h1>Order status</h1>
             </span>
 
-            <form action="/searchVehicleListController" method="get">
-                <input name="keyword"
-                       type="text"
-                       class="search-vehicle-list-input-control search-vehicle-list-input mb-1"
-                       placeholder="Search by model name"
-                       th:value="${keyword}"
-                        style="margin-top: 12px;">
-                <button type="submit" class="btn btn-dark rounded-pill">Search</button>
-            </form>
+
 
         </div>
 
-        <div class="scroll-box">
+        <div class="scroll-box-order">
 
             <div th:each="vehicle : ${vehicleList}" class="d-flex" style="justify-content: center; align-items: center; padding: 35px;">
                 <a href="" style="text-decoration: none">
-                    <button class="button_vehicle_list" onclick="return confirmOrder('${vehicle.modelName}')">
+                    <button class="button_vehicle_list">
                         <img src="/images/logo.png">
                         <span>
                             <p th:text="${vehicle.modelName}"></p>
-                            <p th:text="${vehicle.ManufactureYear}"></p>
-                            <p th:text="${vehicle.engineNumber}"></p>
-                            <p th:text="${vehicle.colorName}"></p>
                             <p th:text="${vehicle.basePrice}"></p>
+                            <p th:text="${vehicle.ManufactureYear}"></p>
+                        </span>
+                    </button>
+                </a>
+            </div>
+
+
+            <div class="d-flex" style="justify-content: center; align-items: center; padding: 35px;">
+                <a href="" style="text-decoration: none">
+                    <button class="button_order">
+                        <span>
+                            <p>Order ID: 154878</p>
+                            <p>Dealer name: Dealer A</p>
+                            <p>Dealer ID: 02156</p>
+                            <p>Status: Pending</p>
+                            <p>Date: 1/1/2025</p>
+                        </span>
+                    </button>
+                </a>
+            </div>
+
+            <div class="d-flex" style="justify-content: center; align-items: center; padding: 35px;">
+                <a href="" style="text-decoration: none">
+                    <button class="button_order">
+                        <span>
+                            <p>Order ID: 154878</p>
+                            <p>Dealer name: Dealer A</p>
+                            <p>Dealer ID: 02156</p>
+                            <p>Status: Pending</p>
+                            <p>Date: 1/1/2025</p>
                         </span>
                     </button>
                 </a>
@@ -64,18 +83,7 @@
 
     </div>
 
-    <script>
-        function confirmOrder(modelName) {
-            const confirmResult = confirm(`Do you want to order this vehicle: ${modelName}?`);
-            if (confirmResult) {
-                // ✅ User clicked Yes — redirect or send form
-                window.location.href = `/orderVehicle?model=${encodeURIComponent(modelName)}`;
-            } else {
-                // ❌ User clicked No — do nothing
-                return false;
-            }
-        }
-    </script>
+    </div>
 
 </div>
 
