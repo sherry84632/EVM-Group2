@@ -9,17 +9,23 @@ public class DTOQuotation {
     private DTOVehicle vehicle;
     private Timestamp createdAt;
     private String status;
+    private DTODiscountPolicy discountPolicy;
+    private double totalPrice;
 
     public DTOQuotation() {
     }
 
-    public DTOQuotation(int quotationID, DTODealer dealer, DTOCustomer customer, DTOVehicle vehicle, Timestamp createdAt, String status) {
+    public DTOQuotation(int quotationID, DTODealer dealer, DTOCustomer customer,
+                        DTOVehicle vehicle, Timestamp createdAt, String status,
+                        DTODiscountPolicy discountPolicy, double totalPrice) {
         this.quotationID = quotationID;
         this.dealer = dealer;
         this.customer = customer;
         this.vehicle = vehicle;
         this.createdAt = createdAt;
         this.status = status;
+        this.discountPolicy = discountPolicy;
+        this.totalPrice = totalPrice;
     }
 
     public int getQuotationID() {
@@ -68,5 +74,21 @@ public class DTOQuotation {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public DTODiscountPolicy getDiscountPolicy() {
+        return discountPolicy;
+    }
+
+    public void setDiscountPolicy(DTODiscountPolicy discountPolicy) {
+        this.discountPolicy = discountPolicy;
+    }
+
+    public double getTotalPrice() {
+        return totalPrice;
+    }
+
+    public void setTotalPrice(double totalPrice) {
+        this.totalPrice = totalPrice;
     }
 }
