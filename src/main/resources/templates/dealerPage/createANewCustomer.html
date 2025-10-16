@@ -28,29 +28,29 @@
         <div class="d-flex">
 
             <span>
-                <h1>Create a new vehicle</h1>
+                <h1>Create a new customer</h1>
             </span>
 
         </div>
 
         <div class="d-flex create-vehicle-form-container">
 
-            <form action="/createVehicle" method="post">
+            <form action="/customer/new" method="post">
 
                 <div class="create-vehicle-form-row">
-                    <label>VIN:</label>
+                    <label>Full name</label>
                     <input name="VIN" type="text" class="create-vehicle-form-input-control create-vehicle-form-input mb-1"
                                placeholder="" required>
                 </div>
 
                 <div class="create-vehicle-form-row">
-                    <label>Color name:</label>
+                    <label>Email</label>
                     <input name="colorName" type="text" class="create-vehicle-form-input-control create-vehicle-form-input mb-1"
                            placeholder="" required>
                 </div>
 
                 <div class="create-vehicle-form-row">
-                    <label>Model name:</label>
+                    <label>Phone number</label>
                     <input name="modelName" type="text" class="create-vehicle-form-input-control create-vehicle-form-input mb-1"
                            placeholder="" required>
                 </div>
@@ -62,19 +62,25 @@
                 </div>
 
                 <div class="create-vehicle-form-row">
-                    <label>Engine number:</label>
+                    <label>Birth date</label>
                     <input name="engineNumber" type="text" class="create-vehicle-form-input-control create-vehicle-form-input mb-1"
                            placeholder="" required>
                 </div>
 
                 <div class="create-vehicle-form-row">
-                    <label>Current owner:</label>
+                    <label>Note</label>
                     <input name="currentOwner" type="text" class="create-vehicle-form-input-control create-vehicle-form-input mb-1"
                            placeholder="" required>
                 </div>
 
                 <div class="create-vehicle-form-row">
-                    <label>Status:</label>
+                    <label>Test driver schedule</label>
+                    <input name="status" type="text" class="create-vehicle-form-input-control create-vehicle-form-input mb-1"
+                           placeholder="" required>
+                </div>
+
+                <div class="create-vehicle-form-row">
+                    <label>Vehicle of interest</label>
                     <input name="status" type="text" class="create-vehicle-form-input-control create-vehicle-form-input mb-1"
                            placeholder="" required>
                 </div>
