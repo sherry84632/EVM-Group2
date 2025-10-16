@@ -1,6 +1,5 @@
-package dao;
+package com.dealermanagementsysstem.project.Model;
 
-import com.dealermanagementsysstem.project.Model.*;
 import utils.DBUtils;
 import java.sql.*;
 import java.util.ArrayList;
@@ -9,7 +8,7 @@ import java.util.List;
 public class DAOQuotation {
 
     // ✅ Lấy toàn bộ danh sách quotation (kèm Dealer, Customer, Vehicle, DiscountPolicy)
-    public List<DAOQuotation> getAllQuotations() {
+    public List<DTOQuotation> getAllQuotations() {
         List<DTOQuotation> list = new ArrayList<>();
 
         String sql = """
@@ -100,10 +99,10 @@ public class DAOQuotation {
 
             ps.setInt(1, q.getDealer().getDealerID());
             ps.setInt(2, q.getCustomer().getCustomerID());
-            ps.setInt(3, q.getVehicle().getVehicleID());
+            ps.setString(3, q.getVehicle().getVIN());
 
             if (q.getDiscountPolicy() != null)
-                ps.setInt(4, q.getDiscountPolicy().getDiscountPolicyID());
+                ps.setInt(4, q.getDiscountPolicy().getPolicyID());
             else
                 ps.setNull(4, Types.INTEGER);
 
@@ -182,21 +181,21 @@ public class DAOQuotation {
                 q.setCustomer(customer);
 
                 DTOVehicle vehicle = new DTOVehicle();
-                vehicle.setVehicleID(rs.getInt("VehicleID"));
+                vehicle.setVIN(rs.getString("VehicleID"));
                 vehicle.setModelName(rs.getString("ModelName"));
                 vehicle.setBasePrice(rs.getBigDecimal("BasePrice"));
                 q.setVehicle(vehicle);
 
                 if (rs.getObject("DiscountPolicyID") != null) {
                     DTODiscountPolicy dp = new DTODiscountPolicy();
-                    dp.setDiscountPolicyID(rs.getInt("DiscountPolicyID"));
-                    dp.setHangPercent(rs.getBigDecimal("HangPercent"));
+                    dp.setPolicyID(rs.getInt("DiscountPolicyID"));
+                    dp.setHangPercent(rs.getDouble("HangPercent"));
                     q.setDiscountPolicy(dp);
                 }
 
                 double basePrice = q.getVehicle().getBasePrice().doubleValue();
                 if (q.getDiscountPolicy() != null) {
-                    double percent = q.getDiscountPolicy().getHangPercent().doubleValue();
+                    double percent = q.getDiscountPolicy().getHangPercent();
                     q.setTotalPrice(basePrice * percent);
                 } else {
                     q.setTotalPrice(basePrice);
