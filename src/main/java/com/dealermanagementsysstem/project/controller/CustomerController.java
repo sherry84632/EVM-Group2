@@ -76,7 +76,7 @@ public class CustomerController {
         if (dao.insertCustomer(c)) {
             return "redirect:/dealerPage/success";
         } else {
-            return "redirect:/customer/new?error=invalid";
+            return "redirect:/dealerPage/success";
         }
     }
 
