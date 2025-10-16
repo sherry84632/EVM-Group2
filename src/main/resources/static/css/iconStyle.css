@@ -189,6 +189,43 @@
     }
 }
 
+.button_customer_list {
+    display: flex;
+    flex-direction: column; /* stack icon + text vertically */
+    align-items: center;     /* center both horizontally */
+    background-color: white;
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    padding: 20px;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    width: 280px; /* optional: fix width for neat layout */
+    height: 300px;
+}
+
+.button_customer_list img {
+    width: 275px;
+    height: 275px;
+}
+
+.button_customer_list i {
+    font-size: 85px;
+    color: #333;
+    margin-bottom: 10px; /* space between icon and text */
+}
+
+.button_customer_list span {
+    font-weight: 500;
+    color: #333;
+    text-align: center;
+}
+
+.button_customer_list:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 6px 14px rgb(154, 154, 154);
+}
+
 @media (max-width: 374px) {
     .icon-btn {
         width: 100px;
