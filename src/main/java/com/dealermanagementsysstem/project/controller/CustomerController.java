@@ -6,12 +6,10 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
-import java.sql.Date;
-import java.sql.Timestamp;
 import java.util.List;
 
 @Controller
-@RequestMapping("/customerController")
+@RequestMapping("/customer")
 public class CustomerController {
 
     private final DAOCustomer dao;
@@ -20,22 +18,33 @@ public class CustomerController {
         this.dao = new DAOCustomer();
     }
 
-    // ✅ Hiển thị danh sách khách hàng
+    // ✅ Danh sách tất cả khách hàng
     @GetMapping
     public String listCustomers(Model model) {
         List<DTOCustomer> list = dao.getAllCustomers();
-        model.addAttribute("customersList", list);
-        return "dealerPage/customerList"; // Tên file JSP/Thymeleaf: src/main/resources/templates/customer-list.html
+        model.addAttribute("customers", list);
+        return "customer-list";
     }
 
+    // ✅ Tìm kiếm khách hàng theo tên hoặc email
+    @GetMapping("/search")
+    public String searchCustomers(@RequestParam("keyword") String keyword, Model model) {
+        List<DTOCustomer> list = dao.searchCustomer(keyword);
+        model.addAttribute("customers", list);
+        model.addAttribute("keyword", keyword);
+        return "customer-list";
+    }
+    
     // ✅ Hiển thị form thêm mới
     @GetMapping("/new")
     public String showNewForm(Model model) {
         model.addAttribute("customer", new DTOCustomer());
-        return "customer-form"; // src/main/resources/templates/customer-form.html
+        return "customer-form";
     }
 
-    // ✅ Lưu khách hàng mới
+
+
+    // ✅ Thêm mới khách hàng
     @PostMapping("/insert")
     public String insertCustomer(@ModelAttribute("customer") DTOCustomer c) {
         if (dao.insertCustomer(c)) {
