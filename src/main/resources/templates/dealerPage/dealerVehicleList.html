@@ -54,7 +54,7 @@
         <div class="scroll-box">
 
             <div th:each="vehicle : ${vehicleList}" class="d-flex" style="justify-content: center; align-items: center; padding: 35px;">
-                <a th:href="@{/createQuotationForm(vehicleVIN=${vehicle.VIN})}" style="text-decoration: none">
+                <a th:href="@{/quotation/new(vin=${vehicle.VIN})}" style="text-decoration: none">
                     <button class="button_vehicle_list">
                         <img src="/images/logo.png">
                         <span>
