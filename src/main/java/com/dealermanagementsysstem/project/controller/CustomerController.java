@@ -39,7 +39,7 @@ public class CustomerController {
     @GetMapping("/new")
     public String showNewForm(Model model) {
         model.addAttribute("customer", new DTOCustomer());
-        return "customer-form";
+        return "dealerPage/success";
     }
 
 
