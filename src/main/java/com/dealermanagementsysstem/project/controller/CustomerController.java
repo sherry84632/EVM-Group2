@@ -26,13 +26,6 @@ public class CustomerController {
         return "customer-list";
     }
 
-    // ✅ Hiển thị form thêm mới
-    @GetMapping("/new")
-    public String showNewForm(Model model) {
-        model.addAttribute("customer", new DTOCustomer());
-        return "customer-form";
-    }
-
     // ✅ Tìm kiếm khách hàng theo tên hoặc email
     @GetMapping("/search")
     public String searchCustomers(@RequestParam("keyword") String keyword, Model model) {
@@ -42,6 +35,15 @@ public class CustomerController {
         return "customer-list";
     }
     
+    // ✅ Hiển thị form thêm mới
+    @GetMapping("/new")
+    public String showNewForm(Model model) {
+        model.addAttribute("customer", new DTOCustomer());
+        return "customer-form";
+    }
+
+
+
     // ✅ Thêm mới khách hàng
     @PostMapping("/insert")
     public String insertCustomer(@ModelAttribute("customer") DTOCustomer c) {
