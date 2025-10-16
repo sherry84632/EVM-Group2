@@ -25,7 +25,7 @@ public class OrderController {
     public String listSaleOrders(Model model) {
         List<DTOSaleOrder> orders = dao.getAllSaleOrders();
         model.addAttribute("orders", orders);
-        return "dealerPage/saleOrderList"; // 👉 trang Thymeleaf hiển thị danh sách
+        return "dealerPage/customerOrderList"; // 👉 trang Thymeleaf hiển thị danh sách
     }
 
     // ✅ Hiển thị form tạo đơn hàng mới
