@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quotation Form</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <style>
+        .scroll-box {
+            max-height: 80vh;
+            overflow-y: scroll;
+            background: #fff;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+        }
+
+        .section-title {
+            font-weight: bold;
+            text-decoration: underline;
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #f8f9fa;
+        }
+
+        .right-section {
+            border-left: 2px solid #ccc;
+            padding-left: 25px;
+        }
+
+        .header {
+            text-align: center;
+            font-weight: bold;
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+
+        .small-text {
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body class="bg-light">
+
+<div class="d-flex">
+
+    <div th:replace="mainPage/navBarFragment :: navBar"></div>
+
+    <div class="mainContent flex-grow-1 p-3" style="overflow: hidden">
+
+        <h2 class="mb-3">Quotation Detail</h2>
+
+        <div class="scroll-box">
+
+            <div class="container-fluid">
+                <div class="row">
+                    <!-- LEFT SIDE -->
+                    <div class="col-md-6">
+                        <div class="header">QUOTATION FORM</div>
+
+                        <p>Dealership Name & Logo</p>
+                        <p>Address: [Dealership Address]</p>
+                        <p>Phone: [Dealership Phone]</p>
+                        <p>Email: [Dealership Email]</p>
+                        <p>Date: <span th:text="${quotationDetail.date}"></span></p>
+                        <p>Quotation No.: <span th:text="${quotationDetail.quotationNo}"></span></p>
+
+                        <p class="section-title">1. Customer Information</p>
+                        <p>Full Name: <span th:text="${quotationDetail.customerName}"></span></p>
+                        <p>Phone Number: <span th:text="${quotationDetail.customerPhone}"></span></p>
+                        <p>Email: <span th:text="${quotationDetail.customerEmail}"></span></p>
+                        <p>Address: <span th:text="${quotationDetail.customerAddress}"></span></p>
+
+                        <p class="section-title">2. Vehicle Information</p>
+                        <table>
+                            <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Description</th>
+                                <th>Qty</th>
+                                <th>Unit Price (VND)</th>
+                                <th>Total (VND)</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr>
+                                <td>1</td>
+                                <td th:text="${quotationDetail.vehicleDescription}"></td>
+                                <td th:text="${quotationDetail.quantity}"></td>
+                                <td th:text="${quotationDetail.unitPrice}"></td>
+                                <td th:text="${quotationDetail.totalPrice}"></td>
+                            </tr>
+                            </tbody>
+                        </table>
+
+                        <p>Subtotal: <span th:text="${quotationDetail.subTotal}"></span> VND</p>
+                        <p>Discount/Promotion: <span th:text="${quotationDetail.discount}"></span> VND</p>
+                        <p><b>Final Price: <span th:text="${quotationDetail.finalPrice}"></span> VND</b></p>
+
+                        <p class="section-title">3. On-road Costs (Optional)</p>
+                        <table>
+                            <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Amount (VND)</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr>
+                                <td>Registration Tax</td>
+                                <td th:text="${quotationDetail.registrationTax}"></td>
+                            </tr>
+                            <tr>
+                                <td>License Plate Fee</td>
+                                <td th:text="${quotationDetail.licensePlateFee}"></td>
+                            </tr>
+                            <tr>
+                                <td>Civil Liability Insurance</td>
+                                <td th:text="${quotationDetail.civilInsurance}"></td>
+                            </tr>
+                            <tr>
+                                <td>Comprehensive Insurance</td>
+                                <td th:text="${quotationDetail.comprehensiveInsurance}"></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                        <p><b>Total On-road Price: <span th:text="${quotationDetail.totalOnRoadPrice}"></span> VND</b></p>
+                    </div>
+
+                    <!-- RIGHT SIDE -->
+                    <div class="col-md-6 right-section">
+                        <p class="section-title">4. Payment Method</p>
+                        <p>
+                            <input type="checkbox" th:checked="${quotationDetail.fullPayment}" disabled> Full Payment<br>
+                            <input type="checkbox" th:checked="${quotationDetail.installment}" disabled> Installment
+                        </p>
+
+                        <div th:if="${quotationDetail.installment}">
+                            <p>Bank: <span th:text="${quotationDetail.bank}"></span></p>
+                            <p>Down Payment: <span th:text="${quotationDetail.downPayment}"></span></p>
+                            <p>Loan Term: <span th:text="${quotationDetail.loanTerm}"></span></p>
+                            <p>Interest Rate: <span th:text="${quotationDetail.interestRate}"></span></p>
+                            <p>Monthly Payment: <span th:text="${quotationDetail.monthlyPayment}"></span></p>
+                        </div>
+
+                        <p class="section-title">5. Promotions & Notes</p>
+                        <p th:text="${quotationDetail.promotions}"></p>
+                        <p>Expected Delivery Date: <span th:text="${quotationDetail.deliveryDate}"></span></p>
+
+                        <p class="section-title">6. Authorized By</p>
+                        <p>Salesperson: <span th:text="${quotationDetail.salesperson}"></span></p>
+                        <p>Position: <span th:text="${quotationDetail.position}"></span></p>
+                        <p>Signature & Stamp: ________________________</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+
+</html>
