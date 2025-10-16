@@ -60,21 +60,20 @@
                 </a>
             </div>
 
-            <form id="createOrderForm" action="/orderdealer/create" method="post" style="display:none;">
-                <input type="hidden" name="staffId" th:value="${session.user.dealerStaffId}"> <!-- Or dynamic value -->
-                <input type="hidden" name="status" value="Pending">
-            </form>
-
         </div>
 
     </div>
 
     <script>
         function confirmOrder(modelName) {
-            if (confirm(`Do you want to order this vehicle: ${modelName}?`)) {
-                document.getElementById("createOrderForm").submit();
+            const confirmResult = confirm(`Do you want to order this vehicle: ${modelName}?`);
+            if (confirmResult) {
+                // ✅ User clicked Yes — redirect or send form
+                window.location.href = `/orderVehicle?model=${encodeURIComponent(modelName)}`;
+            } else {
+                // ❌ User clicked No — do nothing
+                return false;
             }
-            return false;
         }
     </script>
 

@@ -53,7 +53,7 @@ public class PurchaseOrderController {
         // DB sẽ tự sinh PurchaseOrderID (IDENTITY)
         dao.addPurchaseOrder(order);
 
-        return "redirect:/orderdealer/list";
+        return "redirect:/dealerPage/orderStatusList";
     }
 
     // ✅ UPDATE - Hiển thị form chỉnh sửa
