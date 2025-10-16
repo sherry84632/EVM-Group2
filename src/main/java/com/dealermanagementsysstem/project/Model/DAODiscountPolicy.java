@@ -9,7 +9,7 @@ import java.util.List;
 @Repository
 public class DAODiscountPolicy {
 
-    // 1️⃣ Lấy toàn bộ chính sách giảm giá
+    //  Lấy toàn bộ chính sách giảm giá
     public List<DTODiscountPolicy> getAllPolicies() throws SQLException {
         List<DTODiscountPolicy> list = new ArrayList<>();
         String sql = "SELECT * FROM DiscountPolicy ORDER BY StartDate DESC";
@@ -25,7 +25,7 @@ public class DAODiscountPolicy {
         return list;
     }
 
-    // 2️⃣ Lấy chính sách đang hiệu lực theo đại lý
+    //  Lấy chính sách đang hiệu lực theo đại lý
     public DTODiscountPolicy getActivePolicy(int dealerId) throws SQLException {
         String sql = """
             SELECT TOP 1 * FROM DiscountPolicy
@@ -46,7 +46,7 @@ public class DAODiscountPolicy {
         return null;
     }
 
-    // 3️⃣ Thêm mới chính sách
+    //  Thêm mới chính sách
     public boolean addPolicy(DTODiscountPolicy dto) throws SQLException {
         String sql = """
             INSERT INTO DiscountPolicy(DealerID, PolicyName, Description, HangPercent, DailyPercent, StartDate, EndDate, Status)
@@ -67,7 +67,7 @@ public class DAODiscountPolicy {
         }
     }
 
-    // 4️⃣ Áp dụng chính sách vào chi tiết đơn hàng
+    //  Áp dụng chính sách vào chi tiết đơn hàng
     public boolean applyPolicyToSaleOrderDetail(int orderDetailId, int policyId) throws SQLException {
         String sql = """
             UPDATE SaleOrderDetail SET PolicyID = ?
