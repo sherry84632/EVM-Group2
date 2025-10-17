@@ -28,16 +28,16 @@
         <div class="d-flex">
 
             <span>
-                <h1>Customers list</h1>
+                <h1>Choose a vehicle to order</h1>
             </span>
 
-            <form action="/dealerCustomerDetail" method="get">
+            <form action="/searchVehicleListController" method="get">
                 <input name="keyword"
                        type="text"
                        class="search-vehicle-list-input-control search-vehicle-list-input mb-1"
-                       placeholder="Search by customer name"
+                       placeholder="Search by model name"
                        th:value="${keyword}"
-                       style="margin-top: 12px;">
+                        style="margin-top: 12px;">
                 <button type="submit" class="btn btn-dark rounded-pill">Search</button>
             </form>
 
@@ -45,23 +45,38 @@
 
         <div class="scroll-box">
 
-            <div th:each="customer : ${customers}" class="d-flex" style="justify-content: center; align-items: center; padding: 35px;">
-                <a th:href="@{/customer/edit/{id}(id=${customer.customerID})}" style="text-decoration: none">
-                    <button class="button_customer_list">
-                        <i class="fa-solid fa-user"></i>
+            <div th:each="vehicle : ${vehicleList}" class="d-flex" style="justify-content: center; align-items: center; padding: 35px;">
+                <a href="" style="text-decoration: none">
+                    <button class="button_vehicle_list" onclick="return confirmOrder('${vehicle.modelName}')">
+                        <img src="/images/logo.png">
                         <span>
-                            <h4 th:text="${customer.fullName}"></h4>
-                            <p th:text="${customer.email}"></p>
-                            <p th:text="${customer.phone}"></p>
-                            <p th:text="${customer.birthDate}"></p>
-                         </span>
+                            <p th:text="${vehicle.modelName}"></p>
+                            <p th:text="${vehicle.ManufactureYear}"></p>
+                            <p th:text="${vehicle.engineNumber}"></p>
+                            <p th:text="${vehicle.colorName}"></p>
+                            <p th:text="${vehicle.basePrice}"></p>
+                        </span>
                     </button>
                 </a>
             </div>
 
+            <form id="createOrderForm" action="/orderdealer/create" method="post" style="display:none;">
+                <input type="hidden" name="staffId" th:value="${session.user.dealerStaffId}"> <!-- Or dynamic value -->
+                <input type="hidden" name="status" value="Pending">
+            </form>
+
         </div>
 
     </div>
+
+    <script>
+        function confirmOrder(modelName) {
+            if (confirm(`Do you want to order this vehicle: ${modelName}?`)) {
+                document.getElementById("createOrderForm").submit();
+            }
+            return false;
+        }
+    </script>
 
 </div>
 

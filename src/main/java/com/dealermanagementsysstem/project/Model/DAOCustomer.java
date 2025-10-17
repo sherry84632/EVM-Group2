@@ -1,34 +1,10 @@
 package com.dealermanagementsysstem.project.Model;
 
-import com.dealermanagementsysstem.project.Model.DTOCustomer;
 import utils.DBUtils;
 import java.sql.*;
 import java.util.*;
-import java.util.Date;
-import java.util.regex.Pattern;
 
 public class DAOCustomer {
-
-    // ✅ Kiểm tra số điện thoại hợp lệ (theo nhà mạng VN)
-    private boolean isValidPhone(String phone) {
-        String regex = "^(09|03|07|08|05)\\d{8}$";
-        return Pattern.matches(regex, phone);
-    }
-
-    // ✅ Kiểm tra email hợp lệ
-    private boolean isValidEmail(String email) {
-        String regex = "^[\\w.%+-]+@[\\w.-]+\\.[A-Za-z]{2,}$";
-        return Pattern.matches(regex, email);
-    }
-
-    // ✅ Kiểm tra ngày không nằm trong quá khứ
-    private boolean isFutureOrPresent(Timestamp timestamp) {
-        return timestamp == null || !timestamp.before(new Timestamp(System.currentTimeMillis()));
-    }
-
-    private boolean isFutureOrPresent(Date  date) {
-        return date == null || !date.before(new Date(System.currentTimeMillis()));
-    }
 
     // ✅ Lấy danh sách Customer
     public List<DTOCustomer> getAllCustomers() {
@@ -54,30 +30,14 @@ public class DAOCustomer {
                 list.add(c);
             }
         } catch (SQLException e) {
+            System.out.println("❌ Error while fetching customers:");
             e.printStackTrace();
         }
         return list;
     }
 
-    // ✅ Thêm mới Customer
+    // ✅ Thêm mới Customer (KHÔNG kiểm tra trùng, KHÔNG kiểm tra ngày)
     public boolean insertCustomer(DTOCustomer c) {
-        if (!isValidPhone(c.getPhone())) {
-            System.out.println("❌ Số điện thoại không hợp lệ!");
-            return false;
-        }
-        if (!isValidEmail(c.getEmail())) {
-            System.out.println("❌ Email không hợp lệ!");
-            return false;
-        }
-        if (c.getCreatedAt() != null && c.getCreatedAt().before(new Timestamp(System.currentTimeMillis()))) {
-            System.out.println("❌ CreatedAt không được là quá khứ!");
-            return false;
-        }
-        if (c.getTestDriveSchedule() != null && c.getTestDriveSchedule().before(new Timestamp(System.currentTimeMillis()))) {
-            System.out.println("❌ TestDriveSchedule không được là quá khứ!");
-            return false;
-        }
-
         String sql = """
             INSERT INTO Customer (FullName, Phone, Email, Address, CreatedAt, BirthDate, Note, TestDriveSchedule, VehicleInterest)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -96,35 +56,23 @@ public class DAOCustomer {
             ps.setTimestamp(8, c.getTestDriveSchedule());
             ps.setString(9, c.getVehicleInterest());
 
-            ps.executeUpdate();
-            System.out.println("✅ Customer inserted successfully!");
-            return true;
+            int rows = ps.executeUpdate();
+            if (rows > 0) {
+                System.out.println("✅ Customer inserted successfully: " + c.getFullName());
+                return true;
+            } else {
+                System.out.println("⚠️ No customer was inserted (0 rows affected).");
+            }
 
         } catch (SQLException e) {
+            System.out.println("❌ Failed to insert customer!");
             e.printStackTrace();
         }
         return false;
     }
 
-    // ✅ Cập nhật Customer
+    // ✅ Cập nhật Customer (KHÔNG kiểm tra trùng)
     public boolean updateCustomer(DTOCustomer c) {
-        if (!isValidPhone(c.getPhone())) {
-            System.out.println("❌ Số điện thoại không hợp lệ!");
-            return false;
-        }
-        if (!isValidEmail(c.getEmail())) {
-            System.out.println("❌ Email không hợp lệ!");
-            return false;
-        }
-        if (c.getCreatedAt() != null && c.getCreatedAt().before(new Timestamp(System.currentTimeMillis()))) {
-            System.out.println("❌ CreatedAt không được là quá khứ!");
-            return false;
-        }
-        if (c.getTestDriveSchedule() != null && c.getTestDriveSchedule().before(new Timestamp(System.currentTimeMillis()))) {
-            System.out.println("❌ TestDriveSchedule không được là quá khứ!");
-            return false;
-        }
-
         String sql = """
             UPDATE Customer 
             SET FullName=?, Phone=?, Email=?, Address=?, CreatedAt=?, BirthDate=?, Note=?, TestDriveSchedule=?, VehicleInterest=? 
@@ -147,10 +95,14 @@ public class DAOCustomer {
 
             int updated = ps.executeUpdate();
             if (updated > 0) {
-                System.out.println("✅ Customer updated successfully!");
+                System.out.println("✅ Customer updated successfully: " + c.getFullName());
                 return true;
+            } else {
+                System.out.println("⚠️ No customer updated (ID not found: " + c.getCustomerID() + ")");
             }
+
         } catch (SQLException e) {
+            System.out.println("❌ Failed to update customer!");
             e.printStackTrace();
         }
         return false;
@@ -165,10 +117,13 @@ public class DAOCustomer {
             ps.setInt(1, id);
             int deleted = ps.executeUpdate();
             if (deleted > 0) {
-                System.out.println("✅ Customer deleted successfully!");
+                System.out.println("🗑️ Customer deleted successfully (ID: " + id + ")");
                 return true;
+            } else {
+                System.out.println("⚠️ No customer deleted (ID not found: " + id + ")");
             }
         } catch (SQLException e) {
+            System.out.println("❌ Failed to delete customer!");
             e.printStackTrace();
         }
         return false;
@@ -202,6 +157,7 @@ public class DAOCustomer {
                 }
             }
         } catch (SQLException e) {
+            System.out.println("❌ Failed to search customer!");
             e.printStackTrace();
         }
         return list;

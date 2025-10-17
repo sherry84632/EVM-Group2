@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create Account</title>
+    <title>Customer Detail</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="/css/mainPageStyle.css">
     <link rel="stylesheet" href="/css/iconStyle.css">
@@ -33,14 +33,66 @@
 
         </div>
 
-        <div class="customer_detail_content">
+        <div class="d-flex">
 
-            Phone: <span th:text="${customer.phone}"></span>
-            Email: <span th:text="${customer.email}"></span>
-            Home address: <span th:text="${customer.address}"></span>
-            Date of birth: <span th:text="${customer.birthDate}"></span>
-            Test drive schedule: <span th:text="${customer.testDriveSchedule}"></span>
-            Notes: <span th:text="${customer.note}"></span>
+<!--            Customer ID: <p th:text="${customer.customerID}"></p> <br>-->
+<!--            Phone: <p th:text="${customer.phone}"></p> <br>-->
+<!--            Email: <p th:text="${customer.email}"></p> <br>-->
+<!--            Home address: <p th:text="${customer.address}"></p> <br>-->
+<!--            Created at: <p th:text="${customer.createdAt}"></p> <br>-->
+<!--            Date of birth: <p th:text="${customer.birthDate}"></p> <br>-->
+<!--            Test drive schedule: <p th:text="${customer.testDriveSchedule}"></p> <br>-->
+<!--            Test drive schedule: <p th:text="${customer.vehicleInterest}"></p> <br>-->
+<!--            Notes: <p th:text="${customer.note}"></p> <br>-->
+
+            <form action="/customer/insert" method="post">
+
+                <div class="create-vehicle-form-row">
+                    <label>Email</label>
+                    <input name="Email" type="email" class="create-vehicle-form-input mb-1" required th:value="${customer.email}">
+                </div>
+
+                <div class="create-vehicle-form-row">
+                    <label>Phone number</label>
+                    <input name="Phone" type="text" class="create-vehicle-form-input mb-1" required th:value="${customer.phone}">
+                </div>
+
+                <div class="create-vehicle-form-row">
+                    <label>Address</label>
+                    <input name="Address" type="text" class="create-vehicle-form-input mb-1" required th:value="${customer.address}">
+                </div>
+
+                <div class="create-vehicle-form-row">
+                    <label>Birth date</label>
+                    <input name="BirthDate" type="date" class="create-vehicle-form-input mb-1" required th:value="${customer.birthDate}">
+                </div>
+
+                <div class="create-vehicle-form-row">
+                    <label>Created at</label>
+                    <input name="CreateAt" type="datetime-local" class="create-vehicle-form-input mb-1" required th:value="${customer.createdAt}">
+                </div>
+
+                <div class="create-vehicle-form-row">
+                    <label>Note</label>
+                    <input name="Note" type="text" class="create-vehicle-form-input mb-1" required th:value="${customer.note}">
+                </div>
+
+                <div class="create-vehicle-form-row">
+                    <label>Test drive schedule</label>
+                    <input name="TestDriveSchedule" type="datetime-local" class="create-vehicle-form-input mb-1" required th:value="${customer.testDriveSchedule}">
+                </div>
+
+                <div class="create-vehicle-form-row">
+                    <label>Vehicle of interest</label>
+                    <input name="VehicleInterest" type="text" class="create-vehicle-form-input mb-1" required th:value="${customer.vehicleInterest}">
+                </div>
+
+                <div class="create-vehicle-form-row">
+                    <label></label>
+                    <button type="submit" class="btn btn-dark rounded-pill">Updates</button>
+                </div>
+
+            </form>
 
         </div>
 
