@@ -212,4 +212,26 @@ public class DAOVehicle {
         }
         return false;
     }
+
+    public java.util.List<DTOVehicle> listCompanyInventory() {
+        java.util.List<DTOVehicle> vehicles = new java.util.ArrayList<>();
+        String sql = "SELECT VIN, ColorID, ManufactureYear, EngineNumber, CurrentOwner, Status, ModelID FROM Vehicle WHERE CurrentOwner='HANG'";
+        try (PreparedStatement ps = DBUtils.createPreparedStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                DTOVehicle v = new DTOVehicle();
+                v.setVIN(rs.getString("VIN"));
+                v.setColorID(rs.getInt("ColorID"));
+                v.setManufactureYear(rs.getInt("ManufactureYear"));
+                v.setEngineNumber(rs.getString("EngineNumber"));
+                v.setCurrentOwner(rs.getString("CurrentOwner"));
+                v.setStatus(rs.getString("Status"));
+                v.setModelID(rs.getInt("ModelID"));
+                vehicles.add(v);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return vehicles;
+    }
 }
