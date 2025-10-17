@@ -10,31 +10,67 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"
           integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw=="
           crossorigin="anonymous" referrerpolicy="no-referrer"/>
+    <style>
+        body { background-color: #FFF8F2; font-family: sans-serif; }
+        .sidebar { background-color: #F5F0E8; padding: 20px; min-height: 100vh; }
+        .main-content { padding: 20px; }
+        .breadcrumb { background: none; padding: 10px 0; }
+        .breadcrumb-item.active { background-color: #FF8C00; color: white; padding: 5px 10px; border-radius: 3px; }
+        .inventory-title { margin: 20px 0; }
+        .inventory-highlight { background-color: #FFD700; color: black; padding: 5px 10px; border-radius: 3px; }
+        .inventory-item { 
+            display: flex; 
+            align-items: center; 
+            margin: 15px 0; 
+            padding: 15px; 
+            background: white; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .product-image { 
+            width: 60px; 
+            height: 60px; 
+            border: 1px solid #ddd; 
+            border-radius: 4px; 
+            margin-right: 15px; 
+            object-fit: cover;
+        }
+        .product-details { flex: 1; }
+        .product-name { font-size: 16px; font-weight: bold; margin-bottom: 5px; }
+        .product-price { color: #DC3545; font-weight: bold; font-size: 14px; }
+        .order-id { font-size: 12px; color: #666; margin-top: 3px; }
+        .quantity { text-align: right; font-weight: bold; }
+    </style>
 </head>
-<body class="bg-gradient2-custom">
+<body>
 <div class="d-flex">
-    <div th:replace="mainPage/navBarFragment :: navBar"></div>
-    <div class="mainContent flex-grow-1 p-3">
-        <h2 class="mb-3">Dealer Inventory</h2>
-        <div class="table-responsive bg-white rounded shadow-sm">
-            <table class="table table-hover mb-0">
-                <thead>
-                <tr>
-                    <th>Dealer ID</th>
-                    <th>VIN</th>
-                    <th>Received</th>
-                    <th>Status</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:each="it : ${items}">
-                    <td th:text="${it.dealerId}"></td>
-                    <td th:text="${it.vin}"></td>
-                    <td th:text="${#dates.format(it.receivedDate, 'yyyy-MM-dd')}"></td>
-                    <td th:text="${it.status}"></td>
-                </tr>
-                </tbody>
-            </table>
+    <div class="sidebar">
+        <div th:replace="mainPage/navBarFragment :: navBar"></div>
+    </div>
+    <div class="main-content flex-grow-1">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/">Home</a></li>
+                <li class="breadcrumb-item"><a href="#">Customers Management</a></li>
+                <li class="breadcrumb-item"><a href="#">Vehicles Information</a></li>
+                <li class="breadcrumb-item active">Inventory</li>
+            </ol>
+        </nav>
+        
+        <div class="inventory-title">
+            <h1><span class="inventory-highlight">INVENTORY</span> MANAGEMENT</h1>
+        </div>
+        
+        <div th:each="item : ${items}">
+            <div class="inventory-item">
+                <img src="/images/logo.png" alt="Vehicle" class="product-image">
+                <div class="product-details">
+                    <div class="product-name">Vehicle VIN: <span th:text="${item.vin}"></span></div>
+                    <div class="product-price">Status: <span th:text="${item.status}"></span></div>
+                    <div class="order-id">Order ID: <span th:text="${item.dealerId}"></span></div>
+                </div>
+                <div class="quantity">Qty. 1</div>
+            </div>
         </div>
     </div>
 </div>
