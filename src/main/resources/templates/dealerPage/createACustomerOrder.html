@@ -78,7 +78,8 @@
 
                 <div class="create-vehicle-form-row">
                     <label>Vehicle of interest</label>
-                    <input name="VehicleInterest" type="text" class="create-vehicle-form-input mb-1">
+                    <input type="text" id="VehicleInterest" name="VehicleInterest" class="form-control"
+                           th:value="${vehicleName}" required>
                 </div>
 
                 <button type="submit" class="btn btn-dark rounded-pill">Create</button>

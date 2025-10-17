@@ -7,6 +7,7 @@ import com.dealermanagementsysstem.project.Model.DTOEVMOrderProcessing;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
 
@@ -17,51 +18,45 @@ public class EVMOrderController {
     private final DAOPurchaseOrder purchaseOrderDAO = new DAOPurchaseOrder();
     private final DAOEVMOrderProcessing processDAO = new DAOEVMOrderProcessing();
 
-    // Hiển thị danh sách đơn hàng từ dealer (chưa xử lý)
-    @GetMapping("/pending")
-    public String showPendingOrders(Model model) {
-        List<DTOPurchaseOrder> pendingOrders = purchaseOrderDAO.getAllPurchaseOrders()
-                .stream()
-                .filter(o -> "Pending".equalsIgnoreCase(o.getStatus()))
-                .toList();
-        model.addAttribute("orders", pendingOrders);
-        return "evmPage/evmPendingOrders";
+    // 🔹 Hiển thị toàn bộ danh sách đơn hàng (EVM xem)
+    @GetMapping("/evmOrderList")
+    public String showAllOrders(Model model,
+                                @ModelAttribute("message") String message,
+                                @ModelAttribute("statusType") String statusType) {
+
+        List<DTOPurchaseOrder> orders = purchaseOrderDAO.getAllPurchaseOrders();
+        model.addAttribute("orders", orders);
+
+        if (message != null && !message.isEmpty()) {
+            model.addAttribute("message", message);
+            model.addAttribute("statusType", statusType);
+        }
+
+        return "evmPage/evmOrderList";
     }
 
-    // Hiển thị form xử lý đơn hàng
-    @GetMapping("/process/{id}")
-    public String showProcessForm(@PathVariable int id, Model model) {
-        DTOPurchaseOrder order = purchaseOrderDAO.getPurchaseOrderById(id);
-        model.addAttribute("order", order);
-        model.addAttribute("process", new DTOEVMOrderProcessing());
-        return "evmPage/evmProcessOrder";
-    }
-
-    // Xử lý đơn hàng (phê duyệt / từ chối)
+    // 🔹 Xử lý đơn hàng (phê duyệt / từ chối)
     @PostMapping("/process/{id}")
     public String processOrder(@PathVariable int id,
-                               @ModelAttribute("process") DTOEVMOrderProcessing process) {
-        // Giả sử EvmStaffID đang là 1 (sau này lấy từ session)
-        process.setPurchaseOrderId(id);
-        process.setEvmStaffId(1);
+                               @ModelAttribute("process") DTOEVMOrderProcessing process,
+                               RedirectAttributes redirectAttributes) {
 
+        process.setPurchaseOrderId(id);
+        process.setEvmStaffId(1); // demo
         processDAO.addProcessing(process);
 
-        // Cập nhật trạng thái đơn hàng theo hành động
         String newStatus = process.getActionType().equalsIgnoreCase("Approve") ? "Approved" : "Rejected";
         DTOPurchaseOrder order = purchaseOrderDAO.getPurchaseOrderById(id);
         order.setStatus(newStatus);
-        purchaseOrderDAO.updatePurchaseOrder(order);
+        purchaseOrderDAO.updatePurchaseOrderStatus(order.getPurchaseOrderId(), order.getStatus());
 
-        return "redirect:/evm/orders/pending";
-    }
+        // 🔹 Gửi flash message về lại evmOrderList
+        String msg = newStatus.equals("Approved")
+                ? " The order has been approved successfully!"
+                : " The order has been rejected!";
+        redirectAttributes.addFlashAttribute("message", msg);
+        redirectAttributes.addFlashAttribute("statusType", newStatus);
 
-    // Xem lịch sử xử lý
-    @GetMapping("/history/{id}")
-    public String viewHistory(@PathVariable int id, Model model) {
-        List<DTOEVMOrderProcessing> history = processDAO.getProcessHistoryByOrderId(id);
-        model.addAttribute("history", history);
-        model.addAttribute("orderId", id);
-        return "evmPage/evmOrderHistory";
+        return "redirect:/evm/orders/evmOrderList";
     }
 }

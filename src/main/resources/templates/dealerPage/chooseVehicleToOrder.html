@@ -5,83 +5,101 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create Account</title>
+
+    <!-- Bootstrap -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+
+    <!-- Custom CSS -->
     <link rel="stylesheet" href="/css/mainPageStyle.css">
     <link rel="stylesheet" href="/css/iconStyle.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"
           integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw=="
-          crossorigin="anonymous" referrerpolicy="no-referrer"/>
+          crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
 
 <body class="bg-gradient2-custom">
 
 <div class="d-flex">
 
+    <!-- Navbar -->
     <div th:replace="mainPage/navBarFragment :: navBar"></div>
 
-    <div class="mainContent flex-grow-1 p-3" style="overflow: hidden">
+    <!-- Main content -->
+    <div class="mainContent flex-grow-1 p-3" style="overflow: hidden;">
 
         <div class="d-flex">
             <h2>This is a navigation link.</h2>
         </div>
 
-        <div class="d-flex">
-
+        <div class="d-flex align-items-center justify-content-between">
             <span>
                 <h1>Choose a vehicle to order</h1>
             </span>
 
-            <form action="/searchVehicleListController" method="get">
+            <form action="/searchVehicleListController" method="get" class="d-flex align-items-center">
                 <input name="keyword"
                        type="text"
-                       class="search-vehicle-list-input-control search-vehicle-list-input mb-1"
+                       class="form-control me-2 search-vehicle-list-input-control search-vehicle-list-input mb-1"
                        placeholder="Search by model name"
                        th:value="${keyword}"
-                        style="margin-top: 12px;">
+                       style="margin-top: 12px; width: 250px;">
                 <button type="submit" class="btn btn-dark rounded-pill">Search</button>
             </form>
-
         </div>
 
-        <div class="scroll-box">
+        <!-- Vehicle list -->
+        <div class="scroll-box mt-4">
 
-            <div th:each="vehicle : ${vehicleList}" class="d-flex" style="justify-content: center; align-items: center; padding: 35px;">
-                <a href="" style="text-decoration: none">
-                    <button class="button_vehicle_list" onclick="return confirmOrder('${vehicle.modelName}')">
-                        <img src="/images/logo.png">
-                        <span>
+            <div th:each="vehicle : ${vehicleList}"
+                 class="d-flex justify-content-center align-items-center p-4">
+
+                <a href="#" style="text-decoration: none;">
+                    <button class="button_vehicle_list"
+                            type="button"
+                            onclick="return confirmOrder('[[${vehicle.modelName}]]')">
+
+                        <img src="/images/logo.png" alt="Vehicle Image">
+
+                        <span class="ms-3 text-start">
                             <p th:text="${vehicle.modelName}"></p>
                             <p th:text="${vehicle.ManufactureYear}"></p>
                             <p th:text="${vehicle.engineNumber}"></p>
                             <p th:text="${vehicle.colorName}"></p>
                             <p th:text="${vehicle.basePrice}"></p>
                         </span>
+
                     </button>
                 </a>
             </div>
 
-            <form id="createOrderForm" action="/orderdealer/create" method="post" style="display:none;">
-                <input type="hidden" name="staffId" th:value="${session.user.dealerStaffId}"> <!-- Or dynamic value -->
+            <!-- Hidden form for creating order -->
+            <form id="createOrderForm" action="/orderdealer/create" method="post" style="display: none;">
+                <input type="hidden" name="staffId" th:value="${session.user.dealerStaffId}">
                 <input type="hidden" name="status" value="Pending">
+                <input type="hidden" id="vehicleModel" name="vehicleModel">
             </form>
 
         </div>
 
     </div>
-
-    <script>
-        function confirmOrder(modelName) {
-            if (confirm(`Do you want to order this vehicle: ${modelName}?`)) {
-                document.getElementById("createOrderForm").submit();
-            }
-            return false;
-        }
-    </script>
-
 </div>
 
+<!-- JavaScript -->
+<script>
+    function confirmOrder(modelName) {
+        if (confirm(`Do you want to order this vehicle: ${modelName}?`)) {
+            document.getElementById("vehicleModel").value = modelName;
+            document.getElementById("createOrderForm").submit();
+        }
+        return false;
+    }
+</script>
+
+<!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
-
 </html>

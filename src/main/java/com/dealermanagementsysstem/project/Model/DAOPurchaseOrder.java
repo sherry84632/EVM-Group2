@@ -1,29 +1,32 @@
 package com.dealermanagementsysstem.project.Model;
 
+import org.springframework.stereotype.Repository;
 import utils.DBUtils;
+
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
+@Repository // 🔹 THÊM DÒNG NÀY — rất quan trọng!
 public class DAOPurchaseOrder {
 
-    // ✅ Lấy danh sách tất cả đơn hàng
+    // Lấy danh sách tất cả PurchaseOrders
     public List<DTOPurchaseOrder> getAllPurchaseOrders() {
         List<DTOPurchaseOrder> list = new ArrayList<>();
-        String sql = "SELECT * FROM PurchaseOrder ORDER BY PurchaseOrderID DESC";
+        String sql = "SELECT PurchaseOrderID, DealerID, StaffID, CreatedAt, Status FROM PurchaseOrder ORDER BY PurchaseOrderID DESC";
 
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
-                DTOPurchaseOrder o = new DTOPurchaseOrder();
-                o.setPurchaseOrderId(rs.getInt("PurchaseOrderID"));
-                o.setDealerId(rs.getInt("DealerID"));
-                o.setStaffId(rs.getInt("StaffID"));
-                o.setStatus(rs.getString("Status"));
-                o.setCreatedAt(rs.getTimestamp("CreatedAt"));
-                list.add(o);
+                DTOPurchaseOrder dto = new DTOPurchaseOrder();
+                dto.setPurchaseOrderId(rs.getInt("PurchaseOrderID"));
+                dto.setDealerId(rs.getInt("DealerID"));
+                dto.setStaffId(rs.getInt("StaffID"));
+                dto.setCreatedAt(rs.getTimestamp("CreatedAt"));
+                dto.setStatus(rs.getString("Status"));
+                list.add(dto);
             }
 
         } catch (SQLException e) {
@@ -32,105 +35,93 @@ public class DAOPurchaseOrder {
         return list;
     }
 
-    // ✅ Thêm đơn hàng mới (DealerID tự động, ID tự sinh)
-    public int addPurchaseOrder(DTOPurchaseOrder order) {
-        String sql = "INSERT INTO PurchaseOrder (DealerID, StaffID, Status) VALUES (?, ?, ?)";
-
-        try (Connection conn = DBUtils.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-
-            ps.setInt(1, order.getDealerId());
-            ps.setInt(2, order.getStaffId());
-            ps.setString(3, order.getStatus());
-            ps.executeUpdate();
-
-            // ✅ Lấy ID tự sinh (PurchaseOrderID)
-            ResultSet rs = ps.getGeneratedKeys();
-            if (rs.next()) {
-                return rs.getInt(1);
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return 0;
-    }
-
-    // ✅ Lấy đơn hàng theo ID
+    // Lấy 1 đơn theo id (kèm chi tiết)
     public DTOPurchaseOrder getPurchaseOrderById(int id) {
-        String sql = "SELECT * FROM PurchaseOrder WHERE PurchaseOrderID = ?";
-        DTOPurchaseOrder o = null;
+        String sqlOrder = "SELECT PurchaseOrderID, DealerID, StaffID, CreatedAt, Status FROM PurchaseOrder WHERE PurchaseOrderID = ?";
+        String sqlDetail = "SELECT PODetailID, PurchaseOrderID, ColorID, Quantity, ModelID FROM PurchaseOrderDetail WHERE PurchaseOrderID = ?";
 
         try (Connection conn = DBUtils.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+             PreparedStatement psOrder = conn.prepareStatement(sqlOrder)) {
 
-            ps.setInt(1, id);
-            ResultSet rs = ps.executeQuery();
+            psOrder.setInt(1, id);
+            try (ResultSet rs = psOrder.executeQuery()) {
+                if (rs.next()) {
+                    DTOPurchaseOrder dto = new DTOPurchaseOrder();
+                    dto.setPurchaseOrderId(rs.getInt("PurchaseOrderID"));
+                    dto.setDealerId(rs.getInt("DealerID"));
+                    dto.setStaffId(rs.getInt("StaffID"));
+                    dto.setCreatedAt(rs.getTimestamp("CreatedAt"));
+                    dto.setStatus(rs.getString("Status"));
 
-            if (rs.next()) {
-                o = new DTOPurchaseOrder();
-                o.setPurchaseOrderId(rs.getInt("PurchaseOrderID"));
-                o.setDealerId(rs.getInt("DealerID"));
-                o.setStaffId(rs.getInt("StaffID"));
-                o.setStatus(rs.getString("Status"));
-                o.setCreatedAt(rs.getTimestamp("CreatedAt"));
+                    // details
+                    try (PreparedStatement psDetail = conn.prepareStatement(sqlDetail)) {
+                        psDetail.setInt(1, id);
+                        try (ResultSet drs = psDetail.executeQuery()) {
+                            List<DTOPurchaseOrderDetail> details = new ArrayList<>();
+                            while (drs.next()) {
+                                DTOPurchaseOrderDetail d = new DTOPurchaseOrderDetail();
+                                d.setPoDetailId(drs.getInt("PODetailID"));
+                                d.setPurchaseOrderId(drs.getInt("PurchaseOrderID"));
+                                d.setColorId(drs.getInt("ColorID"));
+                                d.setQuantity(drs.getInt("Quantity"));
+                                d.setModelId(drs.getInt("ModelID"));
+                                details.add(d);
+                            }
+                            dto.setOrderDetails(details);
+                        }
+                    }
+
+                    return dto;
+                }
             }
 
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return o;
+        return null;
     }
 
-    // ✅ Cập nhật đơn hàng
-    public int updatePurchaseOrder(DTOPurchaseOrder order) {
-        String sql = "UPDATE PurchaseOrder SET StaffID = ?, Status = ? WHERE PurchaseOrderID = ?";
-
+    // Cập nhật status cho PurchaseOrder
+    public boolean updatePurchaseOrderStatus(int id, String newStatus) {
+        String sql = "UPDATE PurchaseOrder SET Status = ? WHERE PurchaseOrderID = ?";
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setInt(1, order.getStaffId());
-            ps.setString(2, order.getStatus());
-            ps.setInt(3, order.getPurchaseOrderId());
-
-            return ps.executeUpdate();
-
+            ps.setString(1, newStatus);
+            ps.setInt(2, id);
+            return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return 0;
+        return false;
     }
 
-    // ✅ Xóa đơn hàng
+    // Xoá đơn
     public int deletePurchaseOrder(int id) {
         String sql = "DELETE FROM PurchaseOrder WHERE PurchaseOrderID = ?";
-
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, id);
             return ps.executeUpdate();
-
         } catch (SQLException e) {
             e.printStackTrace();
         }
         return 0;
     }
 
-    // ✅ Lấy DealerID dựa trên tên tài khoản (nếu cần)
-    public int getDealerIdByAccount(String username) {
-        String sql = "SELECT DealerID FROM Account WHERE Username = ?";
+    // Thêm đơn hàng mới
+    public boolean insertPurchaseOrder(DTOPurchaseOrder order) {
+        String sql = "INSERT INTO PurchaseOrder (DealerID, StaffID, CreatedAt, Status) VALUES (?, ?, ?, ?)";
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setString(1, username);
-            ResultSet rs = ps.executeQuery();
-            if (rs.next()) {
-                return rs.getInt("DealerID");
-            }
-
+            ps.setInt(1, order.getDealerId());
+            ps.setInt(2, order.getStaffId());
+            ps.setTimestamp(3, (Timestamp) order.getCreatedAt());
+            ps.setString(4, order.getStatus());
+            return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             e.printStackTrace();
+            return false;
         }
-        return 0;
     }
+
 }
