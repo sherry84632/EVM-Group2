@@ -4,8 +4,8 @@ const sendChatBtn = document.querySelector('.chat-input span');
 const chatInput = document.querySelector('.chat-input textarea');
 let userMessage;
 const chatbox = document.querySelector('.chatbox');
-const sidebar = document.getElementById('sidebar');
-const sandwich = document.querySelector('.mobile-menu-toggle');
+const sideBar = document.getElementById('sideBar');
+const toggleBtn = document.getElementById('menuToggleBtn');
 const body = document.body;
 
 hamburger.addEventListener('click', (e) => {
@@ -49,91 +49,12 @@ document.querySelectorAll('.nav-links a').forEach((link) => {
 });
 
 // RESPONSIVE
-function toggleSidebar(){
-    sidebar.classList.toggle('active');
-    sandwich.classList.toggle('active');
-
-    if (sidebar.classList.contains('active')){
-        body.style.overflow = 'hidden';
-    }else{
-        body.style.overflow = '';
-    }
-}
-
-document.addEventListener('click', function (event){
-    if (window.innerWidth <= 767){
-        if (!sidebar.contains(event.target) && !sandwich.contains(event.target)){
-            sidebar.classList.remove('active');
-            sandwich.classList.remove('active');
-            body.style.overflow = '';
-        }
-    }
+toggleBtn.addEventListener('click', () => {
+   sideBar.classList.toggle('active');
 });
 
-window.addEventListener('resize', function(){
-    if (window.innerWidth > 767){
-        sidebar.classList.remove('active');
-        sandwich.classList.remove('active');
-        body.style.overflow = '';
-    }
+document.addEventListener('click', (e) => {
+   if (!sideBar.contains(e.target) && !toggleBtn.contains(e.target)){
+       sideBar.classList.remove('active');
+   }
 });
-
-const createChatLi = (message, className) => {
-    const chatLi = document.createElement('li');
-    chatLi.classList.add('chat', className);
-    let chatContent =
-        className === 'outgoing'
-            ? `<p></p>`
-            : `<span
-            ><i class="fa-solid fa-robot material-symbols-outlined"></i
-          ></span><p></p>`;
-    chatLi.innerHTML = chatContent;
-    chatLi.querySelector('p').textContent = message;
-    return chatLi;
-};
-
-const generateResponse = (incomingChatLi) => {
-    const messageElement = incomingChatLi.querySelector('p');
-
-    // Send the request to the OpenAI API
-    fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMessage }),
-    })
-        .then((res) => res.json())
-        .then((data) => {
-            if (data.choices) {
-                messageElement.textContent = data.choices[0].message.content;
-            } else {
-                messageElement.textContent = '⚠️ Error: Unable to get response.';
-            }
-        })
-        .catch(() => {
-            messageElement.textContent =
-                'Oops! Something went wrong. Please try again.';
-        })
-        .finally(() => {
-            chatbox.scrollTo(0, chatbox.scrollHeight);
-        });
-};
-
-const handleChat = () => {
-    userMessage = chatInput.value.trim();
-    if (!userMessage) return;
-    chatInput.value = '';
-
-    chatbox.appendChild(createChatLi(userMessage, 'outgoing'));
-    chatbox.scrollTo(0, chatbox.scrollHeight);
-
-    setTimeout(() => {
-        const incomingChatLi = createChatLi('Thinking...', 'incoming');
-        chatbox.appendChild(incomingChatLi);
-        chatbox.scrollTo(0, chatbox.scrollHeight);
-        generateResponse(incomingChatLi);
-    }, 600);
-};
-
-sendChatBtn.addEventListener('click', handleChat);
-
-// Media
