@@ -143,4 +143,21 @@
 }
 
 /* RESPONSIVE */
+/* Tablet */
+@media (max-width: 1024px) {
+    .mainContent{
+        padding: 20px;
+    }
 
+    .icon-btn{
+        width: 160px;
+        height: 160px;
+        margin: 10px;
+    }
+
+    .icon-btn i{
+        font-size: 60px;
+    }
+}
+
+/* Mobile */
