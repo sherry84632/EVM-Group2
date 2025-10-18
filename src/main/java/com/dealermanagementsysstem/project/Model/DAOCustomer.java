@@ -3,7 +3,9 @@ package com.dealermanagementsysstem.project.Model;
 import utils.DBUtils;
 import java.sql.*;
 import java.util.*;
+import org.springframework.stereotype.Repository;
 
+@Repository
 public class DAOCustomer {
 
     // ✅ Lấy danh sách Customer

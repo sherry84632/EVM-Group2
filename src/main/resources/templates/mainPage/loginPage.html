@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 
 <head>
     <meta charset="UTF-8">
@@ -21,7 +21,18 @@
 
                 <h3>LOGIN</h3>
 
+                <!-- Error Message Display -->
+                <div th:if="${errorMessage}" class="alert alert-danger" role="alert">
+                    <span th:text="${errorMessage}"></span>
+                </div>
+                
+                <!-- Success Message Display -->
+                <div th:if="${successMessage}" class="alert alert-success" role="alert">
+                    <span th:text="${successMessage}"></span>
+                </div>
+
                 <form action="/login" method="post">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
                     <input name="email" type="text" class="form-control rounded-input-bootstrap mb-1"
                         placeholder="Email">
                     <input name="password" type="password" class="form-control rounded-input-bootstrap mb-1"

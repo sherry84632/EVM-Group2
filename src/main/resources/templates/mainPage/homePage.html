@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 
 <head>
     <meta charset="UTF-8">
@@ -30,7 +30,7 @@
                 <h2>THIS IS A NAVIGATION LINK.</h2>
             </div>
 
-            <h1>Welcome <span style="color: #ff9c5b" th:text="${session.user.username}">User</span>,</h1>
+            <h1>Welcome <span style="color: #ff9c5b" th:text="${#authentication.name}">User</span>,</h1>
 
             <div class="d-flex">
 

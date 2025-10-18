@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 
 <head>
     <meta charset="UTF-8">
@@ -81,7 +81,7 @@
 
             <!-- Hidden form for creating order -->
             <form id="createOrderForm" action="/orderdealer/create" method="post" style="display: none;">
-                <input type="hidden" name="staffId" th:value="${session.user.dealerStaffId}">
+                <input type="hidden" name="staffId" th:value="${dealerStaffId}">
                 <input type="hidden" name="status" value="Pending">
                 <input type="hidden" id="vehicleModel" name="vehicleModel">
             </form>

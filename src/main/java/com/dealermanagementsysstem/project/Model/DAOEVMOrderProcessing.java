@@ -6,9 +6,12 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import org.springframework.stereotype.Repository;
+
 import java.util.ArrayList;
 import java.util.List;
 
+@Repository
 public class DAOEVMOrderProcessing {
     public int addProcessing(DTOEVMOrderProcessing process) {
         String sql = "INSERT INTO EVM_OrderProcessing (PurchaseOrderID, EvmStaffID, ActionType, Remarks) VALUES (?, ?, ?, ?)";
