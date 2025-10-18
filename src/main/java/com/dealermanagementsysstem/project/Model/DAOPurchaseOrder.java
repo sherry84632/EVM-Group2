@@ -13,7 +13,12 @@ public class DAOPurchaseOrder {
     // Lấy danh sách tất cả PurchaseOrders
     public List<DTOPurchaseOrder> getAllPurchaseOrders() {
         List<DTOPurchaseOrder> list = new ArrayList<>();
-        String sql = "SELECT PurchaseOrderID, DealerID, StaffID, CreatedAt, Status FROM PurchaseOrder ORDER BY PurchaseOrderID DESC";
+        String sql = "SELECT po.PurchaseOrderID, po.DealerID, po.StaffID, po.CreatedAt, po.Status, " +
+                     "d.DealerName, ds.FullName as StaffName " +
+                     "FROM PurchaseOrder po " +
+                     "LEFT JOIN Dealer d ON po.DealerID = d.DealerID " +
+                     "LEFT JOIN DealerStaff ds ON po.StaffID = ds.StaffID " +
+                     "ORDER BY po.PurchaseOrderID DESC";
 
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -24,6 +29,8 @@ public class DAOPurchaseOrder {
                 dto.setPurchaseOrderId(rs.getInt("PurchaseOrderID"));
                 dto.setDealerId(rs.getInt("DealerID"));
                 dto.setStaffId(rs.getInt("StaffID"));
+                dto.setDealerName(rs.getString("DealerName"));
+                dto.setStaffName(rs.getString("StaffName"));
                 dto.setCreatedAt(rs.getTimestamp("CreatedAt"));
                 dto.setStatus(rs.getString("Status"));
                 list.add(dto);

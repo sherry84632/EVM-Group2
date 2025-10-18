@@ -7,6 +7,8 @@ public class DTOPurchaseOrder {
     private int purchaseOrderId;   // Tự sinh từ DB (IDENTITY)
     private int dealerId;          // Lấy tự động từ Account / Dealer
     private int staffId;           // Nhân viên EVM tạo / duyệt
+    private String dealerName;     // Tên dealer
+    private String staffName;      // Tên staff
     private String status;         // Pending / Approved / Rejected
     private Date createdAt;        // Ngày tạo (DB default GETDATE())
 
@@ -73,12 +75,30 @@ public class DTOPurchaseOrder {
         this.orderDetails = orderDetails;
     }
 
+    public String getDealerName() {
+        return dealerName;
+    }
+
+    public void setDealerName(String dealerName) {
+        this.dealerName = dealerName;
+    }
+
+    public String getStaffName() {
+        return staffName;
+    }
+
+    public void setStaffName(String staffName) {
+        this.staffName = staffName;
+    }
+
     @Override
     public String toString() {
         return "DTOPurchaseOrder{" +
                 "purchaseOrderId=" + purchaseOrderId +
                 ", dealerId=" + dealerId +
                 ", staffId=" + staffId +
+                ", dealerName='" + dealerName + '\'' +
+                ", staffName='" + staffName + '\'' +
                 ", status='" + status + '\'' +
                 ", createdAt=" + createdAt +
                 ", orderDetails=" + orderDetails +
