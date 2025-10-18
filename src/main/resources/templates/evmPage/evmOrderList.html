@@ -179,6 +179,11 @@
 </head>
 
 <body class="bg-gradient2-custom">
+
+<button class="mobile-menu-toggle" id="menuToggleBtn">
+    <i class="fa-solid fa-bars"></i>
+</button>
+
 <div class="d-flex">
     <!-- NavBar -->
     <div th:replace="~{mainPage/navBarFragment :: navBar}"></div>
@@ -220,6 +225,8 @@
                 if (alert) alert.style.display = 'none';
             }, 3000);
         </script>
+
+        <script src="/scripts/navBarMenuProject.js"></script>
 
         <!-- 🔹 Nếu không có đơn hàng -->
         <div th:if="${#lists.isEmpty(orders)}" class="no-orders">
