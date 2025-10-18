@@ -35,6 +35,18 @@ public class EVMOrderController {
         return "evmPage/evmOrderList";
     }
 
+    // 🔹 Hiển thị chi tiết đơn hàng
+    @GetMapping("/detail/{id}")
+    public String showOrderDetail(@PathVariable("id") int orderId, Model model) {
+        DTOPurchaseOrder order = purchaseOrderDAO.getPurchaseOrderById(orderId);
+        if (order != null) {
+            model.addAttribute("order", order);
+            return "evmPage/orderDetail";
+        } else {
+            return "redirect:/evm/orders/evmOrderList?error=Order not found";
+        }
+    }
+
     // 🔹 Xử lý đơn hàng (phê duyệt / từ chối)
     @PostMapping("/process/{id}")
     public String processOrder(@PathVariable int id,
