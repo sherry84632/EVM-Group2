@@ -161,3 +161,76 @@
 }
 
 /* Mobile */
+@media (max-width: 767px) {
+    .mainContent{
+        width: 100%;
+        margin-left: 0 !important;
+        padding: 15px;
+    }
+
+    h1{
+        font-size: 24px;
+        text-align: center;
+    }
+
+    h2{
+        font-size: 18px;
+        text-align: center;
+    }
+
+    .d-flex.flex-wrap{
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .icon-btn{
+        width: 150px;
+        height: 150px;
+        margin: 15px 0;
+    }
+
+    .icon-btn i{
+        font-size: 55px;
+    }
+
+    .mobile-menu-toggle{
+        display: block;
+        position: fixed;
+        top: 15px;
+        left: 15px;
+        z-index: 2000;
+        background-color: #ff6b16;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 14px;
+        cursor: pointer;
+        font-size: 22px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .mainSideBar{
+        width: 240px;
+        transform: translateX(-100%);
+        position: fixed;
+        left: 0;
+        top: 0;
+        height: 100%;
+        background: linear-gradient(135deg, #2b2b2b, #ff6b16);
+        transition: transform 0.3s ease;
+        z-index: 1500;
+    }
+
+    .mainSideBar.active {
+        transform: translateX(0);
+    }
+
+    /* Làm mờ nền khi mở menu */
+    body.sidebar-open::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.3);
+        z-index: 1000;
+    }
+}

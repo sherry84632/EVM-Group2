@@ -1,9 +1,5 @@
 const hamburger = document.getElementById('hamburger');
 const navLinks = document.getElementById('navLinks');
-const sendChatBtn = document.querySelector('.chat-input span');
-const chatInput = document.querySelector('.chat-input textarea');
-let userMessage;
-const chatbox = document.querySelector('.chatbox');
 const sideBar = document.getElementById('sideBar');
 const toggleBtn = document.getElementById('menuToggleBtn');
 const body = document.body;
@@ -46,15 +42,4 @@ document.querySelectorAll('.nav-links a').forEach((link) => {
         navLinks.classList.remove('active');
         body.style.overflow = '';
     });
-});
-
-// RESPONSIVE
-toggleBtn.addEventListener('click', () => {
-   sideBar.classList.toggle('active');
-});
-
-document.addEventListener('click', (e) => {
-   if (!sideBar.contains(e.target) && !toggleBtn.contains(e.target)){
-       sideBar.classList.remove('active');
-   }
 });
