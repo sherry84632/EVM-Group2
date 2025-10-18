@@ -2,7 +2,9 @@ package com.dealermanagementsysstem.project.Model;
 
 import utils.DBUtils;
 import java.sql.*;
+import org.springframework.stereotype.Repository;
 
+@Repository
 public class DAOQuotation {
 
     // ✅ Lấy thông tin xe theo VIN (JOIN Vehicle + VehicleModel)

@@ -1,12 +1,10 @@
 package com.dealermanagementsysstem.project.controller;
 
-import com.dealermanagementsysstem.project.Model.DAOAccount;
-import com.dealermanagementsysstem.project.Model.DTOAccount;
-import jakarta.servlet.http.HttpSession;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 @Controller
@@ -16,45 +14,42 @@ public class LoginController {
     @GetMapping("/login")
     public String showLoginPage(
             @RequestParam(value = "error", required = false) String error,
+            @RequestParam(value = "logout", required = false) String logout,
+            @RequestParam(value = "access_denied", required = false) String accessDenied,
             Model model) {
+        
         if (error != null) {
-            model.addAttribute("errorMessage", "Email hoặc mật khẩu không đúng!");
+            if ("true".equals(error)) {
+                model.addAttribute("errorMessage", "Email hoặc mật khẩu không đúng!");
+            } else if ("access_denied".equals(error)) {
+                model.addAttribute("errorMessage", "Bạn không có quyền truy cập trang này!");
+            } else {
+                model.addAttribute("errorMessage", "Đăng nhập thất bại. Vui lòng thử lại!");
+            }
         }
+        
+        if (logout != null) {
+            model.addAttribute("successMessage", "Đăng xuất thành công!");
+        }
+        
         return "mainPage/loginPage";
     }
 
-    // Xử lý khi nhấn nút Login
-    @PostMapping("/login")
-    public String handleLogin(
-            @RequestParam("email") String email,
-            @RequestParam("password") String password,
-            HttpSession session,
-            Model model) {
-
-        DAOAccount dao = new DAOAccount();
-        DTOAccount account = dao.checkLogin(email, password);
-
-        if (account != null) {
-            // Nếu đăng nhập đúng → lưu thông tin user
-            session.setAttribute("user", account);
-            String role = account.getRole();
+    // Default success handler - redirect based on user role
+    @GetMapping("/success")
+    public String defaultSuccessHandler() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        
+        if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName())) {
+            String role = auth.getAuthorities().iterator().next().getAuthority();
+            
             return switch (role) {
-                case "Admin" -> "redirect:/showEVMHomePage";
-                case "EVM" -> "redirect:/showEVMHomePage";
-                case "DealerStaff" -> "redirect:/showDealerHomePage";
-                case "Dealer" -> "redirect:/showDealerHomePage";
-                case "EVMStaff" -> "redirect:/showEVMHomePage";
+                case "ROLE_ADMIN", "ROLE_EVM", "ROLE_EVMSTAFF" -> "redirect:/showEVMHomePage";
+                case "ROLE_DEALER", "ROLE_DEALERSTAFF" -> "redirect:/showDealerHomePage";
                 default -> "redirect:/login?error=role";
             };
-
-        } else {
-            // Nếu sai → quay lại login và thêm lỗi
-            return "redirect:/login?error=1";
         }
-    }
-    @GetMapping("/logout")
-    public String logout(HttpSession session) {
-        session.invalidate(); // xóa session user
-        return "mainPage/loginPage"; // quay lại trang login
+        
+        return "redirect:/login";
     }
 }
