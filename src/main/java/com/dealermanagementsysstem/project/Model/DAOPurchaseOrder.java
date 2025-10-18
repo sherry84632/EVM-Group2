@@ -44,8 +44,19 @@ public class DAOPurchaseOrder {
 
     // Lấy 1 đơn theo id (kèm chi tiết)
     public DTOPurchaseOrder getPurchaseOrderById(int id) {
-        String sqlOrder = "SELECT PurchaseOrderID, DealerID, StaffID, CreatedAt, Status FROM PurchaseOrder WHERE PurchaseOrderID = ?";
-        String sqlDetail = "SELECT PODetailID, PurchaseOrderID, ColorID, Quantity, ModelID FROM PurchaseOrderDetail WHERE PurchaseOrderID = ?";
+        String sqlOrder = "SELECT po.PurchaseOrderID, po.DealerID, po.StaffID, po.CreatedAt, po.Status, " +
+                         "d.DealerName, d.Address as DealerAddress, d.Phone as DealerPhone, d.Email as DealerEmail, " +
+                         "ds.FullName as StaffName, ds.Position as StaffPosition " +
+                         "FROM PurchaseOrder po " +
+                         "LEFT JOIN Dealer d ON po.DealerID = d.DealerID " +
+                         "LEFT JOIN DealerStaff ds ON po.StaffID = ds.StaffID " +
+                         "WHERE po.PurchaseOrderID = ?";
+        String sqlDetail = "SELECT pod.PODetailID, pod.PurchaseOrderID, pod.ColorID, pod.Quantity, pod.ModelID, " +
+                          "vm.ModelName, vc.ColorName " +
+                          "FROM PurchaseOrderDetail pod " +
+                          "LEFT JOIN VehicleModel vm ON pod.ModelID = vm.ModelID " +
+                          "LEFT JOIN VehicleColor vc ON pod.ColorID = vc.ColorID " +
+                          "WHERE pod.PurchaseOrderID = ?";
 
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement psOrder = conn.prepareStatement(sqlOrder)) {
@@ -57,6 +68,8 @@ public class DAOPurchaseOrder {
                     dto.setPurchaseOrderId(rs.getInt("PurchaseOrderID"));
                     dto.setDealerId(rs.getInt("DealerID"));
                     dto.setStaffId(rs.getInt("StaffID"));
+                    dto.setDealerName(rs.getString("DealerName"));
+                    dto.setStaffName(rs.getString("StaffName"));
                     dto.setCreatedAt(rs.getTimestamp("CreatedAt"));
                     dto.setStatus(rs.getString("Status"));
 
@@ -72,6 +85,8 @@ public class DAOPurchaseOrder {
                                 d.setColorId(drs.getInt("ColorID"));
                                 d.setQuantity(drs.getInt("Quantity"));
                                 d.setModelId(drs.getInt("ModelID"));
+                                d.setModelName(drs.getString("ModelName"));
+                                d.setColorName(drs.getString("ColorName"));
                                 details.add(d);
                             }
                             dto.setOrderDetails(details);
