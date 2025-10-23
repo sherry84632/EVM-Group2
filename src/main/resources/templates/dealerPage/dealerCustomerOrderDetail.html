@@ -35,22 +35,22 @@
                     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
                     <div class="form-group" th:each="detail : ${order.detail}">
                         <label for="promoName">Sale order id</label>
-                        <input type="text" id="promoName" name="policyName" placeholder="Enter policy name" th:value="${detail.saleOrderID}" required>
+                        <input type="text" id="promoName" name="saleOrderID" placeholder="Enter policy name" th:value="${detail.saleOrderID}" readonly>
                     </div>
 
                     <div class="form-group">
                         <label for="promoName">Dealer id</label>
-                        <input type="text" id="promoName" name="policyName" placeholder="Enter policy name" th:value="${order.dealer.dealerID}" required>
+                        <input type="text" id="promoName" name="dealerID" placeholder="Enter policy name" th:value="${order.dealer.dealerID}" readonly>
                     </div>
 
                     <div class="form-group">
                         <label for="promoName">Dealer staff id</label>
-                        <input type="text" id="promoName" name="policyName" placeholder="Enter policy name" th:value="${order.staff.staffID}" required>
+                        <input type="text" id="promoName" name="staffID" placeholder="Enter policy name" th:value="${order.staff.staffID}" readonly>
                     </div>
 
                     <div class="form-group">
                         <label for="startDate">Created at</label>
-                        <input type="datetime-local" id="startDate" name="startDate" th:value="${order.createdAt}" required>
+                        <input type="datetime-local" id="startDate" name="createdAt" th:value="${order.createdAt}" readonly>
                     </div>
 
                     <div class="form-group">
@@ -61,55 +61,55 @@
                 </form>
             </div>
 
-            <div class="form-wrapper">
-                <h1>Delivery Infos</h1>
-                <form id="promotionForm" action="/discount-policy/create" method="post">
-                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+<!--            <div class="form-wrapper">-->
+<!--                <h1>Delivery Infos</h1>-->
+<!--                <form id="promotionForm" action="/discount-policy/create" method="post">-->
+<!--                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>-->
 
-                    <div class="form-group">
-                        <label for="promoName">Estimated delivery date</label>
-                        <input type="text" id="promoName" name="policyName" placeholder="Enter policy name" required>
-                    </div>
+<!--                    <div class="form-group">-->
+<!--                        <label for="promoName">Estimated delivery date</label>-->
+<!--                        <input type="text" id="promoName" name="policyName" placeholder="Enter policy name" required>-->
+<!--                    </div>-->
 
-                    <div class="form-group">
-                        <label for="promoName">Actual delivery date</label>
-                        <input type="text" id="promoName" name="policyName" placeholder="Enter policy name" required>
-                    </div>
+<!--                    <div class="form-group">-->
+<!--                        <label for="promoName">Actual delivery date</label>-->
+<!--                        <input type="text" id="promoName" name="policyName" placeholder="Enter policy name" required>-->
+<!--                    </div>-->
 
-                </form>
-            </div>
+<!--                </form>-->
+<!--            </div>-->
 
         </div>
 
         <div class="right-column">
 
-            <div class="form-wrapper">
-                <h1>Vehicle Infos</h1>
-                <form id="promotionForm" action="/discount-policy/create" method="post">
-                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+<!--            <div class="form-wrapper">-->
+<!--                <h1>Vehicle Infos</h1>-->
+<!--                <form id="promotionForm2" action="/discount-policy/create" method="post">-->
+<!--                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>-->
 
-                    <div class="form-group">
-                        <label for="promoName">VIN</label>
-                        <input type="text" id="promoName" name="policyName" placeholder="Enter policy name" required>
-                    </div>
+<!--                    <div class="form-group">-->
+<!--                        <label for="promoName">VIN</label>-->
+<!--                        <input type="text" id="promoName" name="policyName" placeholder="Enter policy name" required>-->
+<!--                    </div>-->
 
-                    <div class="form-group">
-                        <label for="promoName">Quantity</label>
-                        <input type="text" id="promoName" name="policyName" placeholder="Enter policy name" required>
-                    </div>
+<!--                    <div class="form-group">-->
+<!--                        <label for="promoName">Quantity</label>-->
+<!--                        <input type="text" id="promoName" name="policyName" placeholder="Enter policy name" required>-->
+<!--                    </div>-->
 
-                    <div class="form-group">
-                        <label for="promoName">Discount applied</label>
-                        <input type="text" id="promoName" name="policyName" placeholder="Enter policy name" required>
-                    </div>
+<!--                    <div class="form-group">-->
+<!--                        <label for="promoName">Discount applied</label>-->
+<!--                        <input type="text" id="promoName" name="policyName" placeholder="Enter policy name" required>-->
+<!--                    </div>-->
 
-                    <div class="form-group">
-                        <label for="promoName">Total price</label>
-                        <input type="text" id="promoName" name="policyName" placeholder="Enter policy name" required>
-                    </div>
+<!--                    <div class="form-group">-->
+<!--                        <label for="promoName">Total price</label>-->
+<!--                        <input type="text" id="promoName" name="policyName" placeholder="Enter policy name" required>-->
+<!--                    </div>-->
 
-                </form>
-            </div>
+<!--                </form>-->
+<!--            </div>-->
 
             <div class="form-wrapper">
 
