@@ -164,6 +164,6 @@ public class OrderController {
             return "redirect:/saleorder";
         }
         model.addAttribute("order", order);
-        return "dealerPage/saleOrderDetail";
+        return "dealerPage/dealerCustomerOrderDetail";
     }
 }
