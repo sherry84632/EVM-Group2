@@ -115,7 +115,7 @@
 
                 <h1>Actions</h1>
 
-                <button type="submit" class="submit-btn">Update</button>
+                <button type="button" class="submit-btn" onclick="submitAllForms()">Update</button>
 
             </div>
 
@@ -127,6 +127,26 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="/scripts/navBarMenuProject.js"></script>
+<script>
+    function submitAllForms() {
+        const forms = document.querySelectorAll("form");
+        const formData = new FormData();
+
+        forms.forEach(form => {
+            new FormData(form).forEach((value, key) => {
+                formData.append(key, value);
+            });
+        });
+
+        fetch('/discount-policy/update', {
+            method: 'POST',
+            body: formData
+        }).then(response => {
+            if (response.ok) alert('Updated successfully!');
+            else alert('Update failed');
+        });
+    }
+</script>
 
 </body>
 
