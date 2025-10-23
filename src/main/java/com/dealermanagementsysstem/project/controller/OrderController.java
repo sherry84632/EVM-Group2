@@ -163,7 +163,7 @@ public class OrderController {
             model.addAttribute("error", "Không tìm thấy đơn hàng!");
             return "redirect:/saleorder";
         }
-        model.addAttribute("order", order);
-        return "dealerPage/saleOrderDetail";
+        model.addAttribute("orders", order);
+        return "dealerPage/dealerCustomerOrderDetail";
     }
 }

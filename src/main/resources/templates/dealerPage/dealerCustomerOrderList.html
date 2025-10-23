@@ -56,7 +56,7 @@
                     <div th:each="order : ${orders}">
 
                         <!-- Item  -->
-                        <a href="/dealerShowCustomerOrderDetailTest" style="text-decoration: none;">
+                        <a th:href="@{/saleorder/detail/{id}(id=${order.orderID})}" style="text-decoration: none">
                             <button class="item-button">
                                 <div class="image-placeholder">
                                     <i class="fa-solid fa-clipboard-list"></i>
