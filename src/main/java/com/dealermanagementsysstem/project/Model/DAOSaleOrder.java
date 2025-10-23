@@ -19,9 +19,16 @@ public class DAOSaleOrder {
     public int createSaleOrderFromQuotation(int quotationID) {
         log.info("Creating SaleOrder from QuotationID={}", quotationID);
 
+        // ✅ FIX: Check if quotation is approved
         if (!daoQuotation.isQuotationApproved(quotationID)) {
             log.warn("QuotationID={} chưa được duyệt -> không thể tạo SaleOrder", quotationID);
             return -1;
+        }
+
+        // ✅ FIX: Check if quotation has already been converted (prevent duplicate orders)
+        if (daoQuotation.isQuotationConverted(quotationID)) {
+            log.warn("QuotationID={} đã được chuyển thành SaleOrder -> không thể tạo lại", quotationID);
+            return -2; // Return -2 to indicate "already converted"
         }
 
         DTOQuotation quotation = daoQuotation.getQuotationById(quotationID);
@@ -89,6 +96,11 @@ public class DAOSaleOrder {
                         psDetail.addBatch();
                     }
                     psDetail.executeBatch();
+                }
+
+                // ✅ FIX: Mark quotation as converted to prevent duplicate orders
+                if (!daoQuotation.markQuotationAsConverted(quotationID)) {
+                    log.warn("Failed to mark quotation as converted, but SaleOrder created id={}", saleOrderID);
                 }
 
                 conn.commit();

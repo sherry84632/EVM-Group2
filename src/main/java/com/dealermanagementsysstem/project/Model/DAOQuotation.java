@@ -111,15 +111,19 @@
             // Apply optional extra discount percent (e.g., promotional) if provided
             BigDecimal finalPrice = baseFinalPrice;
             if (quotation.getExtraDiscountPercent() != null && quotation.getExtraDiscountPercent() > 0) {
-                BigDecimal extra = BigDecimal.valueOf(quotation.getExtraDiscountPercent()).divide(BigDecimal.valueOf(100));
+                BigDecimal extra = BigDecimal.valueOf(quotation.getExtraDiscountPercent()).divide(BigDecimal.valueOf(100), 4, java.math.RoundingMode.HALF_UP);
                 finalPrice = finalPrice.multiply(BigDecimal.ONE.subtract(extra));
             }
 
                     // 2. Insert main Quotation
                     try (PreparedStatement ps = conn.prepareStatement(insertQuotationSQL, Statement.RETURN_GENERATED_KEYS)) {
                         ps.setInt(1, quotation.getCustomer().getCustomerID());
-                        int staffId = quotation.getStaff() != null ? quotation.getStaff().getStaffID() : quotation.getDealer().getDealerID(); // fallback old behavior
-                        ps.setInt(2, staffId);
+                        // ✅ FIX: Use NULL for StaffID if not available (don't use DealerID as StaffID!)
+                        if (quotation.getStaff() != null) {
+                            ps.setInt(2, quotation.getStaff().getStaffID());
+                        } else {
+                            ps.setNull(2, java.sql.Types.INTEGER);
+                        }
                         ps.setInt(3, quotation.getDealer().getDealerID());
                         ps.setTimestamp(4, quotation.getCreatedAt());
                         ps.setString(5, quotation.getStatus() != null ? quotation.getStatus() : "Pending");
@@ -294,9 +298,9 @@
                     }
 
                     // Add price information if available
-                    if (rs.getString("VIN") != null) {
-                        DTOQuotation quotation = quotations.get(quotations.size() - 1);
+                    DTOQuotation quotation = quotations.get(quotations.size() - 1);
 
+                    if (rs.getString("VIN") != null) {
                         // Calculate total price (UnitPrice * Quantity)
                         BigDecimal unitPrice = rs.getBigDecimal("UnitPrice");
                         int quantity = rs.getInt("Quantity");
@@ -309,6 +313,13 @@
                         vehicle.setModelName(rs.getString("ModelName"));
                         vehicle.setColorName(rs.getString("ColorName"));
                         quotation.setVehicle(vehicle);
+                    } else {
+                        // ✅ FIX: Always initialize vehicle to prevent NullPointerException
+                        DTOVehicle vehicle = new DTOVehicle();
+                        vehicle.setVIN("N/A");
+                        vehicle.setModelName("Not specified");
+                        quotation.setVehicle(vehicle);
+                        quotation.setTotalPrice(0.0);
                     }
                 }
 
@@ -369,6 +380,53 @@
             }
 
             return false;
+        }
+
+        // ✅ FIX: Check if quotation has already been converted to SaleOrder (prevent duplicate)
+        public boolean isQuotationConverted(int quotationID) {
+            String sql = "SELECT COUNT(*) FROM SaleOrder WHERE QuotationID = ?";
+
+            try (Connection conn = DBUtils.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(sql)) {
+
+                ps.setInt(1, quotationID);
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        int count = rs.getInt(1);
+                        log.debug("QuotationID={} converted count={}", quotationID, count);
+                        return count > 0;
+                    }
+                }
+            } catch (SQLException e) {
+                log.error("Error checking converted quotation id={}", quotationID, e);
+            }
+
+            return false;
+        }
+
+        // ✅ FIX: Mark quotation as converted after creating SaleOrder
+        public boolean markQuotationAsConverted(int quotationID) {
+            String sql = "UPDATE Quotation SET Status = 'Converted' WHERE QuotationID = ?";
+
+            try (Connection conn = DBUtils.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(sql)) {
+
+                ps.setInt(1, quotationID);
+                int affected = ps.executeUpdate();
+
+                if (affected > 0) {
+                    log.info("Quotation marked as Converted id={}", quotationID);
+                    return true;
+                } else {
+                    log.warn("Failed to mark quotation as converted id={}", quotationID);
+                    return false;
+                }
+
+            } catch (SQLException e) {
+                log.error("Error marking quotation as converted id={}", quotationID, e);
+                return false;
+            }
         }
 
         // 🔥 CORE FLOW STEP 6: Get quotations by dealer (for dealer-specific view)

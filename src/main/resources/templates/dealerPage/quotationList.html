@@ -370,11 +370,7 @@
 
                                 <div th:if="${quotation.status == 'Accepted'}">
 
-                                    <form th:action="@{/saleorder/insert}" method="post" style="display:inline;">
-                                        <input type="hidden" name="quotationID" th:value="${quotation.quotationID}" />
-                                        <input type="hidden" name="customerID" th:value="${quotation.customer.customerID}" />
-                                        <input type="hidden" name="staffID" value="1" />
-                                        <input type="hidden" name="vin" th:value="${quotation.vehicle.VIN}" />
+                                    <form th:action="@{'/saleorder/create-from-quotation/' + ${quotation.quotationID}}" method="post" style="display:inline;">
                                         <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
 
                                         <button type="submit" class="btn btn-primary btn-action"
@@ -383,6 +379,11 @@
                                         </button>
                                     </form>
 
+                                </div>
+
+                                <!-- ✅ Show message if quotation is already converted -->
+                                <div th:if="${quotation.status == 'Converted'}" class="text-success">
+                                    <i class="fas fa-check-circle me-1"></i>Converted to Order
                                 </div>
                             </div>
                         </div>

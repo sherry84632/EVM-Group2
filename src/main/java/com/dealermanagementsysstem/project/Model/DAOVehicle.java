@@ -69,6 +69,7 @@ public class DAOVehicle {
             WHERE vm.ModelName LIKE ?
         """;
 
+
         try (PreparedStatement ps = DBUtils.createPreparedStatement(sql)) {
             ps.setString(1, "%" + keyword + "%");
             try (ResultSet rs = ps.executeQuery()) {

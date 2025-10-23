@@ -38,10 +38,15 @@ public class OrderController {
         log.info("POST /saleorder/create-from-quotation/{}", quotationID);
 
         try {
-            // Kiểm tra trạng thái quotation
-            boolean approved = daoQuotation.isQuotationApproved(quotationID);
-            if (!approved) {
+            // ✅ FIX: Validate quotation status before creating order
+            if (!daoQuotation.isQuotationApproved(quotationID)) {
                 model.addAttribute("error", "Quotation này chưa được duyệt. Không thể tạo SaleOrder.");
+                return "redirect:/quotation/list";
+            }
+
+            // ✅ FIX: Check if already converted to prevent duplicate orders
+            if (daoQuotation.isQuotationConverted(quotationID)) {
+                model.addAttribute("error", "Quotation này đã được chuyển thành SaleOrder. Không thể tạo lại.");
                 return "redirect:/quotation/list";
             }
 
@@ -52,6 +57,9 @@ public class OrderController {
                 model.addAttribute("success", "Tạo SaleOrder thành công (ID: " + saleOrderID + ")");
                 log.info("SaleOrder created successfully ID={}", saleOrderID);
                 return "redirect:/saleorder/list";
+            } else if (saleOrderID == -2) {
+                model.addAttribute("error", "Quotation đã được chuyển thành SaleOrder trước đó.");
+                return "redirect:/quotation/list";
             } else {
                 model.addAttribute("error", "Không thể tạo SaleOrder. Vui lòng kiểm tra log.");
                 return "redirect:/quotation/list";
