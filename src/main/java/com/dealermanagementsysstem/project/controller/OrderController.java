@@ -192,8 +192,11 @@ public class OrderController {
             model.addAttribute("message", "Cập nhật trạng thái đơn hàng thành công!");
         } else {
             model.addAttribute("error", "Không thể cập nhật trạng thái đơn hàng!");
+            System.out.println("Cap nhat ko thanh coing");
+            System.out.println(saleOrderID);
+            System.out.println(status);
         }
-        return "redirect:/saleorder/detail/" + saleOrderID;
+        return "redirect:/saleorder";
     }
 
 }
