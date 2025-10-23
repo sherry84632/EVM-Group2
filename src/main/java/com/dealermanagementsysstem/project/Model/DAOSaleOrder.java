@@ -316,5 +316,21 @@ public class DAOSaleOrder {
         return detail;
     }
 
+    // ======================================================
+// 🟢 UPDATE CHỈ STATUS CỦA SALE ORDER
+// ======================================================
+    public boolean updateSaleOrderStatus(int saleOrderID, String status) {
+        String sql = "UPDATE SaleOrder SET Status = ? WHERE SaleOrderID = ?";
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, status);
+            ps.setInt(2, saleOrderID);
+            int rows = ps.executeUpdate();
+            return rows > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 
 }

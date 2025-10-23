@@ -177,4 +177,23 @@ public class OrderController {
         DAOSaleOrder dao = new DAOSaleOrder();
         return dao.getDetailById(detailId);
     }
+
+    // ======================================================
+// 🟢 UPDATE STATUS ĐƠN HÀNG
+// ======================================================
+    @PostMapping("/updateStatus")
+    public String updateStatus(
+            @RequestParam("saleOrderID") int saleOrderID,
+            @RequestParam("status") String status,
+            Model model
+    ) {
+        boolean success = dao.updateSaleOrderStatus(saleOrderID, status);
+        if (success) {
+            model.addAttribute("message", "Cập nhật trạng thái đơn hàng thành công!");
+        } else {
+            model.addAttribute("error", "Không thể cập nhật trạng thái đơn hàng!");
+        }
+        return "redirect:/saleorder/detail/" + saleOrderID;
+    }
+
 }
