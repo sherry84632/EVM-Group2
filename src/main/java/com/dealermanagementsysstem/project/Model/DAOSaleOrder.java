@@ -1,123 +1,124 @@
 package com.dealermanagementsysstem.project.Model;
 
 import utils.DBUtils;
-
-import java.sql.*;
-import java.util.*;
-import java.math.BigDecimal;
+import org.springframework.stereotype.Repository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.*;
+import java.math.BigDecimal;
+import java.util.List;
+
+@Repository
 public class DAOSaleOrder {
 
     private static final Logger log = LoggerFactory.getLogger(DAOSaleOrder.class);
+    private final DAOQuotation daoQuotation = new DAOQuotation(); // để truy xuất dữ liệu quotation
 
-    // ======================================================
-    // 1️⃣  TẠO SALE ORDER MỚI
-    // ======================================================
-    public boolean createSaleOrder(DTOSaleOrder saleOrder) {
-        String sqlOrder = "INSERT INTO SaleOrder (CustomerID, DealerID, StaffID, CreatedAt, Status, TotalQuantity, TotalAmount) "
-                + "VALUES (?, ?, ?, GETDATE(), ?, ?, ?)";
-        String sqlDetail = "INSERT INTO SaleOrderDetail (SaleOrderID, VIN, Price, PolicyID, Quantity) "
-                + "VALUES (?, ?, ?, ?, ?)";
+    // ✅ Tạo SaleOrder mới dựa vào Quotation đã được duyệt
+    public int createSaleOrderFromQuotation(int quotationID) {
+        log.info("Creating SaleOrder from QuotationID={}", quotationID);
 
-        Connection conn = null;
-        PreparedStatement psOrder = null;
-        PreparedStatement psDetail = null;
-        ResultSet rs = null;
+        if (!daoQuotation.isQuotationApproved(quotationID)) {
+            log.warn("QuotationID={} chưa được duyệt -> không thể tạo SaleOrder", quotationID);
+            return -1;
+        }
 
-        try {
-            conn = DBUtils.getConnection();
-            conn.setAutoCommit(false); // ⚙️ Transaction start
-            log.debug("Creating SaleOrder for customerId={} dealerId={} staffId={}",
-                    saleOrder.getCustomer().getCustomerID(),
-                    saleOrder.getDealer().getDealerID(),
-                    saleOrder.getStaff().getStaffID());
+        DTOQuotation quotation = daoQuotation.getQuotationById(quotationID);
+        if (quotation == null) {
+            log.error("Không tìm thấy QuotationID={}", quotationID);
+            return -1;
+        }
 
-            // === Insert SaleOrder ===
-            psOrder = conn.prepareStatement(sqlOrder, Statement.RETURN_GENERATED_KEYS);
-            psOrder.setInt(1, saleOrder.getCustomer().getCustomerID());
-            psOrder.setInt(2, saleOrder.getDealer().getDealerID());
-            psOrder.setInt(3, saleOrder.getStaff().getStaffID());
-            psOrder.setString(4, saleOrder.getStatus());
-        int totalQuantity = saleOrder.getDetail().stream().mapToInt(DTOSaleOrderDetail::getQuantity).sum();
-        psOrder.setInt(5, totalQuantity);
-        BigDecimal totalAmount = saleOrder.getDetail().stream()
-                    .map(d -> d.getPrice().multiply(BigDecimal.valueOf(d.getQuantity())))
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-            psOrder.setBigDecimal(6, totalAmount);
+        List<DTOQuotationDetail> details = daoQuotation.getQuotationDetails(quotationID);
+        if (details == null || details.isEmpty()) {
+            log.error("QuotationID={} không có chi tiết", quotationID);
+            return -1;
+        }
 
-            psOrder.executeUpdate();
-            log.trace("Inserted SaleOrder main row");
+        String insertOrderSQL = """
+                INSERT INTO SaleOrder (CustomerID, DealerID, StaffID, CreatedAt, Status, TotalQuantity, TotalAmount)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """;
 
-            // === Get generated SaleOrderID ===
-            rs = psOrder.getGeneratedKeys();
-            int saleOrderID = 0;
-            if (rs.next()) {
-                saleOrderID = rs.getInt(1);
-                log.info("Generated SaleOrderID={}", saleOrderID);
+        String insertDetailSQL = """
+                INSERT INTO SaleOrderDetail (SaleOrderID, VIN, Quantity, Price, QuotationID, ColorID)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """;
+
+        try (Connection conn = DBUtils.getConnection()) {
+            conn.setAutoCommit(false);
+
+            try (PreparedStatement psOrder = conn.prepareStatement(insertOrderSQL, Statement.RETURN_GENERATED_KEYS)) {
+
+                // ✅ Tổng số lượng và tổng tiền
+                int totalQuantity = details.stream().mapToInt(DTOQuotationDetail::getQuantity).sum();
+                BigDecimal totalAmount = details.stream()
+                        .map(d -> d.getUnitPrice().multiply(BigDecimal.valueOf(d.getQuantity())))
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                psOrder.setInt(1, quotation.getCustomer().getCustomerID());
+                psOrder.setInt(2, quotation.getDealer().getDealerID());
+                psOrder.setInt(3, quotation.getDealer().getDealerID()); // tạm lấy dealer làm staff nếu chưa có staff
+                psOrder.setTimestamp(4, new Timestamp(System.currentTimeMillis()));
+                psOrder.setString(5, "Pending");
+                psOrder.setInt(6, totalQuantity);
+                psOrder.setBigDecimal(7, totalAmount);
+
+                psOrder.executeUpdate();
+
+                int saleOrderID;
+                try (ResultSet rs = psOrder.getGeneratedKeys()) {
+                    if (rs.next()) {
+                        saleOrderID = rs.getInt(1);
+                        log.info("SaleOrder inserted ID={}", saleOrderID);
+                    } else {
+                        throw new SQLException("Không lấy được SaleOrderID sau khi insert.");
+                    }
+                }
+
+                // ✅ Thêm các SaleOrderDetail
+                try (PreparedStatement psDetail = conn.prepareStatement(insertDetailSQL)) {
+                    for (DTOQuotationDetail d : details) {
+                        psDetail.setInt(1, saleOrderID);
+                        psDetail.setString(2, d.getVIN());
+                        psDetail.setInt(3, d.getQuantity());
+                        psDetail.setBigDecimal(4, d.getUnitPrice());
+                        psDetail.setInt(5, quotationID);
+                        psDetail.setInt(6, d.getColorID());
+                        psDetail.addBatch();
+                    }
+                    psDetail.executeBatch();
+                }
+
+                conn.commit();
+                log.info("SaleOrder created successfully from QuotationID={} -> SaleOrderID={}", quotationID, saleOrderID);
+                return saleOrderID;
+
+            } catch (SQLException e) {
+                conn.rollback();
+                log.error("Tạo SaleOrder thất bại, rollback QuotationID={}", quotationID, e);
+                return -1;
             }
-
-            // Update aggregated fields on DTO for downstream view usage
-            saleOrder.setSaleOrderID(saleOrderID);
-            saleOrder.setTotalQuantity(totalQuantity);
-            saleOrder.setTotalAmount(totalAmount);
-
-            // === Insert SaleOrderDetails ===
-            psDetail = conn.prepareStatement(sqlDetail);
-            for (DTOSaleOrderDetail detail : saleOrder.getDetail()) {
-                psDetail.setInt(1, saleOrderID);
-                psDetail.setString(2, detail.getVehicle().getVIN());
-                psDetail.setBigDecimal(3, detail.getPrice());
-                psDetail.setInt(4, saleOrder.getDealer().getPolicyID()); // lấy từ dealer
-                psDetail.setInt(5, detail.getQuantity());
-                psDetail.addBatch();
-                log.trace("Queued SaleOrderDetail VIN={} qty={} price={}", detail.getVehicle().getVIN(), detail.getQuantity(), detail.getPrice());
-            }
-            psDetail.executeBatch();
-            log.debug("Inserted {} SaleOrderDetail rows", saleOrder.getDetail().size());
-
-            conn.commit();
-            log.info("SaleOrder committed id={}", saleOrderID);
-            return true;
 
         } catch (SQLException e) {
-            log.error("Error creating SaleOrder - performing rollback", e);
-            try {
-                if (conn != null) conn.rollback();
-            } catch (SQLException ex) {
-                log.error("Rollback failed", ex);
-            }
-        } finally {
-            try {
-                if (rs != null) rs.close();
-                if (psOrder != null) psOrder.close();
-                if (psDetail != null) psDetail.close();
-                if (conn != null) conn.close();
-            } catch (SQLException ex) {
-                log.error("Error closing resources", ex);
-            }
+            log.error("Database error khi tạo SaleOrder từ QuotationID={}", quotationID, e);
+            return -1;
         }
-        return false;
     }
 
-    // ======================================================
-    // 2️⃣  LẤY TOÀN BỘ SALE ORDERS
-    // ======================================================
+    // ✅ Lấy tất cả SaleOrder
     public List<DTOSaleOrder> getAllSaleOrders() {
-        List<DTOSaleOrder> list = new ArrayList<>();
+        List<DTOSaleOrder> list = new java.util.ArrayList<>();
 
         String sql = """
-            SELECT so.SaleOrderID, so.CreatedAt, so.Status, so.TotalAmount, so.TotalQuantity,
-                   c.CustomerID, c.FullName AS CustomerName,
-                   d.DealerID, d.DealerName, d.PolicyID,
-                   s.StaffID, s.FullName AS StaffName
-            FROM SaleOrder so
-            JOIN Customer c ON so.CustomerID = c.CustomerID
-            JOIN Dealer d ON so.DealerID = d.DealerID
-            JOIN DealerStaff s ON so.StaffID = s.StaffID
-            ORDER BY so.SaleOrderID DESC
-        """;
+                SELECT s.SaleOrderID, s.CustomerID, s.DealerID, s.StaffID, s.CreatedAt, s.Status, s.TotalQuantity, s.TotalAmount,
+                       c.FullName AS CustomerName, d.DealerName
+                FROM SaleOrder s
+                JOIN Customer c ON s.CustomerID = c.CustomerID
+                JOIN Dealer d ON s.DealerID = d.DealerID
+                ORDER BY s.CreatedAt DESC
+            """;
 
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -126,143 +127,31 @@ public class DAOSaleOrder {
             while (rs.next()) {
                 DTOSaleOrder order = new DTOSaleOrder();
                 order.setSaleOrderID(rs.getInt("SaleOrderID"));
+                order.getCustomer().setCustomerID(rs.getInt("CustomerID"));
+                order.getDealer().setDealerID(rs.getInt("DealerID"));
+                order.getStaff().setStaffID(rs.getInt("StaffID"));
                 order.setCreatedAt(rs.getTimestamp("CreatedAt"));
                 order.setStatus(rs.getString("Status"));
-                order.setTotalAmount(rs.getBigDecimal("TotalAmount"));
                 order.setTotalQuantity(rs.getInt("TotalQuantity"));
+                order.setTotalAmount(rs.getBigDecimal("TotalAmount"));
 
-                // Customer
                 DTOCustomer customer = new DTOCustomer();
                 customer.setCustomerID(rs.getInt("CustomerID"));
                 customer.setFullName(rs.getString("CustomerName"));
                 order.setCustomer(customer);
 
-                // Dealer
                 DTODealer dealer = new DTODealer();
                 dealer.setDealerID(rs.getInt("DealerID"));
                 dealer.setDealerName(rs.getString("DealerName"));
-                dealer.setPolicyID(rs.getInt("PolicyID"));
                 order.setDealer(dealer);
 
-                // Staff
-                DTODealerStaff staff = new DTODealerStaff();
-                staff.setStaffID(rs.getInt("StaffID"));
-                staff.setFullName(rs.getString("StaffName"));
-                order.setStaff(staff);
-
-                // Total
-                order.setDetail(getSaleOrderDetails(order.getSaleOrderID()));
                 list.add(order);
             }
 
         } catch (SQLException e) {
-            log.error("Error retrieving all SaleOrders", e);
+            log.error("Error fetching SaleOrders", e);
         }
+
         return list;
-    }
-
-    // ======================================================
-    // 3️⃣  LẤY SALE ORDER THEO ID
-    // ======================================================
-    public DTOSaleOrder getSaleOrderById(int id) {
-        DTOSaleOrder order = null;
-        String sql = """
-            SELECT so.SaleOrderID, so.CreatedAt, so.Status, so.TotalAmount, so.TotalQuantity,
-                   c.CustomerID, c.FullName AS CustomerName,
-                   d.DealerID, d.DealerName, d.PolicyID,
-                   s.StaffID, s.FullName AS StaffName
-            FROM SaleOrder so
-            JOIN Customer c ON so.CustomerID = c.CustomerID
-            JOIN Dealer d ON so.DealerID = d.DealerID
-            JOIN DealerStaff s ON so.StaffID = s.StaffID
-            WHERE so.SaleOrderID = ?
-        """;
-
-        try (Connection conn = DBUtils.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setInt(1, id);
-            ResultSet rs = ps.executeQuery();
-
-            if (rs.next()) {
-                order = new DTOSaleOrder();
-                order.setSaleOrderID(rs.getInt("SaleOrderID"));
-                order.setCreatedAt(rs.getTimestamp("CreatedAt"));
-                order.setStatus(rs.getString("Status"));
-                order.setTotalAmount(rs.getBigDecimal("TotalAmount"));
-                order.setTotalQuantity(rs.getInt("TotalQuantity"));
-
-                DTOCustomer c = new DTOCustomer();
-                c.setCustomerID(rs.getInt("CustomerID"));
-                c.setFullName(rs.getString("CustomerName"));
-                order.setCustomer(c);
-
-                DTODealer d = new DTODealer();
-                d.setDealerID(rs.getInt("DealerID"));
-                d.setDealerName(rs.getString("DealerName"));
-                d.setPolicyID(rs.getInt("PolicyID"));
-                order.setDealer(d);
-
-                DTODealerStaff s = new DTODealerStaff();
-                s.setStaffID(rs.getInt("StaffID"));
-                s.setFullName(rs.getString("StaffName"));
-                order.setStaff(s);
-
-                order.setDetail(getSaleOrderDetails(id));
-            }
-
-        } catch (SQLException e) {
-            log.error("Error retrieving SaleOrder by id={}", id, e);
-        }
-        return order;
-    }
-
-    // ======================================================
-    // 4️⃣  LẤY CHI TIẾT ĐƠN HÀNG
-    // ======================================================
-    public List<DTOSaleOrderDetail> getSaleOrderDetails(int saleOrderID) {
-        List<DTOSaleOrderDetail> details = new ArrayList<>();
-
-        String sql = """
-            SELECT sod.SODetailID, sod.SaleOrderID, sod.VIN, sod.Price, sod.Quantity,
-                   v.ManufactureYear, v.ColorID, vm.ModelID, vm.ModelName, vm.BasePrice,
-                   vc.ColorName
-            FROM SaleOrderDetail sod
-            JOIN Vehicle v ON sod.VIN = v.VIN
-            LEFT JOIN VehicleModel vm ON v.ModelID = vm.ModelID
-            LEFT JOIN VehicleColor vc ON v.ColorID = vc.ColorID
-            WHERE sod.SaleOrderID = ?
-        """;
-
-       try (Connection conn = DBUtils.getConnection();
-           PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setInt(1, saleOrderID);
-            ResultSet rs = ps.executeQuery();
-
-            while (rs.next()) {
-                DTOVehicle vehicle = new DTOVehicle();
-                vehicle.setVIN(rs.getString("VIN"));
-                vehicle.setManufactureYear(rs.getInt("ManufactureYear"));
-                vehicle.setColorID(rs.getInt("ColorID"));
-                vehicle.setColorName(rs.getString("ColorName"));
-                vehicle.setModelID(rs.getInt("ModelID"));
-                vehicle.setModelName(rs.getString("ModelName"));
-                vehicle.setBasePrice(rs.getBigDecimal("BasePrice"));
-
-                DTOSaleOrderDetail detail = new DTOSaleOrderDetail();
-                detail.setSoDetailID(rs.getInt("SODetailID"));
-                detail.setSaleOrderID(rs.getInt("SaleOrderID"));
-                detail.setVehicle(vehicle);
-                detail.setPrice(rs.getBigDecimal("Price"));
-                detail.setQuantity(rs.getInt("Quantity"));
-
-                details.add(detail);
-            }
-
-        } catch (SQLException e) {
-            log.error("Error retrieving SaleOrder details saleOrderID={}", saleOrderID, e);
-        }
-        return details;
     }
 }

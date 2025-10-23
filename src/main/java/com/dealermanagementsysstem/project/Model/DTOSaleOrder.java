@@ -11,7 +11,7 @@ public class DTOSaleOrder {
     private DTODealerStaff staff;
     private Timestamp createdAt;
     private String status;
-    private List<DTOSaleOrderDetail> detail; // 🔹 Danh sách chi tiết đơn hàng
+    private DTOSaleOrderDetail detail; // 🔹 Danh sách chi tiết đơn hàng
     // Aggregated fields
     private int totalQuantity;            // Tổng số lượng (sum of details)
     private BigDecimal totalAmount;       // Tổng tiền (sum of price * quantity)
@@ -21,7 +21,7 @@ public class DTOSaleOrder {
 
     public DTOSaleOrder(int saleOrderID, DTOCustomer customer, DTODealer dealer,
                         DTODealerStaff staff, Timestamp createdAt, String status,
-                        List<DTOSaleOrderDetail> detail) {
+                        DTOSaleOrderDetail detail) {
         this.saleOrderID = saleOrderID;
         this.customer = customer;
         this.dealer = dealer;
@@ -97,11 +97,11 @@ public class DTOSaleOrder {
         this.status = status;
     }
 
-    public List<DTOSaleOrderDetail> getDetail() {
+    public DTOSaleOrderDetail getDetail() {
         return detail;
     }
 
-    public void setDetail(List<DTOSaleOrderDetail> detail) {
+    public void setDetail(DTOSaleOrderDetail detail) {
         this.detail = detail;
     }
 
