@@ -1,4 +1,3 @@
-// src/main/java/com/dealermanagementsysstem/project/controller/OrderController.java
 package com.dealermanagementsysstem.project.controller;
 
 import com.dealermanagementsysstem.project.Model.*;
@@ -21,17 +20,23 @@ public class OrderController {
 
     private final DAOSaleOrder dao = new DAOSaleOrder();
 
-    // (Temporary) Landing page since listing retrieval methods are absent in DAO
+    // ======================================================
+    // 1️⃣ HIỂN THỊ DANH SÁCH TẤT CẢ ĐƠN HÀNG
+    // ======================================================
     @GetMapping
-    public String landing(Model model) {
-        model.addAttribute("message", "Listing not available (DAO missing getAllSaleOrders).");
-        model.addAttribute("orders", List.of());
+    public String listSaleOrders(Model model) {
+        List<DTOSaleOrder> orders = dao.getAllSaleOrders();
+        model.addAttribute("orders", orders);
         return "dealerPage/dealerCustomerOrderList";
     }
 
-    // Form create
+    // ======================================================
+    // 2️⃣ FORM TẠO ĐƠN HÀNG MỚI
+    // ======================================================
     @GetMapping("/new")
     public String showCreateForm(Model model, HttpSession session) {
+
+        // ✅ Lấy user từ Spring Security
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String email = auth.getName();
 
@@ -62,16 +67,21 @@ public class OrderController {
         return "dealerPage/createSaleOrder";
     }
 
-    // Insert
+    // ======================================================
+    // 3️⃣ XỬ LÝ SUBMIT FORM
+    // ======================================================
     @PostMapping("/insert")
-    public String insertSaleOrder(@RequestParam("quantity") int quantity,
-                                  @RequestParam("customerID") int customerID,
-                                  @RequestParam("staffID") int staffID,
-                                  @RequestParam("vin") String vin,
-                                  @RequestParam("quotationID") int quotationID,
-                                  @RequestParam(value = "status", required = false, defaultValue = "Pending") String status,
-                                  Model model) {
-
+    public String insertSaleOrder(
+            @RequestParam("quantity") int quantity,
+            @RequestParam("customerID") int customerID,
+            @RequestParam("staffID") int staffID,
+            @RequestParam("vin") String vin,
+            @RequestParam("quotationID") int quotationID,
+            @RequestParam(value = "status", required = false, defaultValue = "Pending") String status,
+            Model model
+    ) {
+        // ✅ Lấy user từ Spring Security
+        System.out.println("CONCKCNCCCGFG " + quantity );
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String email = auth.getName();
 
@@ -83,18 +93,19 @@ public class OrderController {
             return "redirect:/login";
         }
 
+        // Debug removed: vin available via param if needed for logging framework
+
         Integer dealerID = account.getDealerId();
 
         DAOQuotation quotationDAO = new DAOQuotation();
         DTOQuotation quotation = quotationDAO.getQuotationById(quotationID);
-        if (quotation == null || !("Approved".equalsIgnoreCase(quotation.getStatus()) ||
-                "Accepted".equalsIgnoreCase(quotation.getStatus()))) {
+        if (quotation == null || !("Approved".equalsIgnoreCase(quotation.getStatus()) || "Accepted".equalsIgnoreCase(quotation.getStatus()))) {
             model.addAttribute("error", "Quotation không hợp lệ hoặc chưa được duyệt!");
             return "redirect:/quotation/list";
         }
 
+        // === Build DTO ===
         DTOSaleOrder order = new DTOSaleOrder();
-
         DTOCustomer customer = new DTOCustomer();
         customer.setCustomerID(customerID);
         order.setCustomer(customer);
@@ -111,11 +122,14 @@ public class OrderController {
         order.setCreatedAt(Timestamp.valueOf(LocalDateTime.now()));
         order.setStatus(status);
 
+        // === Detail ===
         DTOVehicle vehicle = new DTOVehicle();
         vehicle.setVIN(vin);
 
         DTOSaleOrderDetail detail = new DTOSaleOrderDetail();
         detail.setVehicle(vehicle);
+
+        // ✅ FIX: Kiểm tra null trước khi gọi get(0)
         BigDecimal unitPrice = BigDecimal.ZERO;
         if (quotation.getQuotationDetails() != null && !quotation.getQuotationDetails().isEmpty()) {
             unitPrice = quotation.getQuotationDetails().get(0).getUnitPrice();
@@ -127,6 +141,7 @@ public class OrderController {
         details.add(detail);
         order.setDetail(details);
 
+        // === Insert ===
         boolean success = dao.createSaleOrder(order);
 
         if (success) {
@@ -138,63 +153,17 @@ public class OrderController {
         }
     }
 
-    // Update status only
-    @PostMapping("/{id}/status")
-    public String updateStatus(@PathVariable("id") int id,
-                               @RequestParam("status") String status,
-                               Model model) {
-        boolean ok = dao.updateSaleOrderStatus(id, status);
-        if (!ok) {
-            model.addAttribute("error", "Cập nhật trạng thái thất bại!");
+    // ======================================================
+    // 4️⃣ CHI TIẾT 1 ĐƠN HÀNG
+    // ======================================================
+    @GetMapping("/detail/{id}")
+    public String viewOrderDetail(@PathVariable("id") int id, Model model) {
+        DTOSaleOrder order = dao.getSaleOrderById(id);
+        if (order == null) {
+            model.addAttribute("error", "Không tìm thấy đơn hàng!");
+            return "redirect:/saleorder";
         }
-        return "redirect:/saleorder";
-    }
-
-    // Full update (expects form posts all fields & one detail; expand as needed)
-    @PostMapping("/update")
-    public String updateSaleOrder(@RequestParam("saleOrderID") int saleOrderID,
-                                  @RequestParam("customerID") int customerID,
-                                  @RequestParam("dealerID") int dealerID,
-                                  @RequestParam("staffID") int staffID,
-                                  @RequestParam("status") String status,
-                                  @RequestParam("vin") String vin,
-                                  @RequestParam("quantity") int quantity,
-                                  @RequestParam("price") BigDecimal price,
-                                  Model model) {
-
-        DTOSaleOrder order = new DTOSaleOrder();
-        order.setSaleOrderID(saleOrderID);
-
-        DTOCustomer c = new DTOCustomer();
-        c.setCustomerID(customerID);
-        order.setCustomer(c);
-
-        DTODealer d = new DTODealer();
-        d.setDealerID(dealerID);
-        // PolicyID must be supplied by form or looked up; placeholder 0
-        d.setPolicyID(0);
-        order.setDealer(d);
-
-        DTODealerStaff s = new DTODealerStaff();
-        s.setStaffID(staffID);
-        order.setStaff(s);
-
-        order.setStatus(status);
-
-        DTOVehicle vehicle = new DTOVehicle();
-        vehicle.setVIN(vin);
-
-        DTOSaleOrderDetail det = new DTOSaleOrderDetail();
-        det.setVehicle(vehicle);
-        det.setPrice(price);
-        det.setQuantity(quantity);
-
-        order.setDetail(List.of(det));
-
-        boolean ok = dao.updateSaleOrder(order);
-        if (!ok) {
-            model.addAttribute("error", "Cập nhật đơn hàng thất bại!");
-        }
-        return "redirect:/saleorder";
+        model.addAttribute("order", order);
+        return "dealerPage/saleOrderDetail";
     }
 }
