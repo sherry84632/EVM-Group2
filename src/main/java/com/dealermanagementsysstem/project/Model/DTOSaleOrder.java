@@ -6,29 +6,35 @@ import java.util.List;
 
 public class DTOSaleOrder {
     private int saleOrderID;
+    private int quotationID; // ✅ FIX: Add quotationID to track source quotation
     private DTOCustomer customer;
     private DTODealer dealer;
     private DTODealerStaff staff;
     private Timestamp createdAt;
     private String status;
-    private DTOSaleOrderDetail detail; // 🔹 Danh sách chi tiết đơn hàng
+    private List<DTOSaleOrderDetail> details; // ✅ FIX: Changed from singular to List
     // Aggregated fields
     private int totalQuantity;            // Tổng số lượng (sum of details)
     private BigDecimal totalAmount;       // Tổng tiền (sum of price * quantity)
 
     public DTOSaleOrder() {
+        this.customer = new DTOCustomer();
+        this.dealer = new DTODealer();
+        this.staff = new DTODealerStaff();
+        this.details = new java.util.ArrayList<>(); // ✅ Initialize list
     }
 
-    public DTOSaleOrder(int saleOrderID, DTOCustomer customer, DTODealer dealer,
+    public DTOSaleOrder(int saleOrderID, int quotationID, DTOCustomer customer, DTODealer dealer,
                         DTODealerStaff staff, Timestamp createdAt, String status,
-                        DTOSaleOrderDetail detail) {
+                        List<DTOSaleOrderDetail> details) {
         this.saleOrderID = saleOrderID;
+        this.quotationID = quotationID;
         this.customer = customer;
         this.dealer = dealer;
         this.staff = staff;
         this.createdAt = createdAt;
         this.status = status;
-        this.detail = detail;
+        this.details = details;
     }
 
     public int getSaleOrderID() {
@@ -97,12 +103,39 @@ public class DTOSaleOrder {
         this.status = status;
     }
 
-    public DTOSaleOrderDetail getDetail() {
-        return detail;
+    // ✅ FIX: Add quotationID getter/setter
+    public int getQuotationID() {
+        return quotationID;
     }
 
+    public void setQuotationID(int quotationID) {
+        this.quotationID = quotationID;
+    }
+
+    // ✅ FIX: Changed from detail (singular) to details (List)
+    public List<DTOSaleOrderDetail> getDetails() {
+        return details;
+    }
+
+    public void setDetails(List<DTOSaleOrderDetail> details) {
+        this.details = details;
+    }
+
+    // Legacy support for old code using getDetail()
+    @Deprecated
+    public DTOSaleOrderDetail getDetail() {
+        return details != null && !details.isEmpty() ? details.get(0) : null;
+    }
+
+    @Deprecated
     public void setDetail(DTOSaleOrderDetail detail) {
-        this.detail = detail;
+        if (this.details == null) {
+            this.details = new java.util.ArrayList<>();
+        }
+        this.details.clear();
+        if (detail != null) {
+            this.details.add(detail);
+        }
     }
 
     // === Aggregated total quantity ===
