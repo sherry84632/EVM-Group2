@@ -5,6 +5,7 @@ import utils.DBUtils;
 import java.sql.*;
 import java.util.*;
 import java.math.BigDecimal;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,9 +41,9 @@ public class DAOSaleOrder {
             psOrder.setInt(2, saleOrder.getDealer().getDealerID());
             psOrder.setInt(3, saleOrder.getStaff().getStaffID());
             psOrder.setString(4, saleOrder.getStatus());
-        int totalQuantity = saleOrder.getDetail().stream().mapToInt(DTOSaleOrderDetail::getQuantity).sum();
-        psOrder.setInt(5, totalQuantity);
-        BigDecimal totalAmount = saleOrder.getDetail().stream()
+            int totalQuantity = saleOrder.getDetail().stream().mapToInt(DTOSaleOrderDetail::getQuantity).sum();
+            psOrder.setInt(5, totalQuantity);
+            BigDecimal totalAmount = saleOrder.getDetail().stream()
                     .map(d -> d.getPrice().multiply(BigDecimal.valueOf(d.getQuantity())))
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
             psOrder.setBigDecimal(6, totalAmount);
@@ -109,16 +110,16 @@ public class DAOSaleOrder {
         List<DTOSaleOrder> list = new ArrayList<>();
 
         String sql = """
-            SELECT so.SaleOrderID, so.CreatedAt, so.Status, so.TotalAmount, so.TotalQuantity,
-                   c.CustomerID, c.FullName AS CustomerName,
-                   d.DealerID, d.DealerName, d.PolicyID,
-                   s.StaffID, s.FullName AS StaffName
-            FROM SaleOrder so
-            JOIN Customer c ON so.CustomerID = c.CustomerID
-            JOIN Dealer d ON so.DealerID = d.DealerID
-            JOIN DealerStaff s ON so.StaffID = s.StaffID
-            ORDER BY so.SaleOrderID DESC
-        """;
+                    SELECT so.SaleOrderID, so.CreatedAt, so.Status, so.TotalAmount, so.TotalQuantity,
+                           c.CustomerID, c.FullName AS CustomerName,
+                           d.DealerID, d.DealerName, d.PolicyID,
+                           s.StaffID, s.FullName AS StaffName
+                    FROM SaleOrder so
+                    JOIN Customer c ON so.CustomerID = c.CustomerID
+                    JOIN Dealer d ON so.DealerID = d.DealerID
+                    JOIN DealerStaff s ON so.StaffID = s.StaffID
+                    ORDER BY so.SaleOrderID DESC
+                """;
 
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -168,16 +169,16 @@ public class DAOSaleOrder {
     public DTOSaleOrder getSaleOrderById(int id) {
         DTOSaleOrder order = null;
         String sql = """
-            SELECT so.SaleOrderID, so.CreatedAt, so.Status, so.TotalAmount, so.TotalQuantity,
-                   c.CustomerID, c.FullName AS CustomerName,
-                   d.DealerID, d.DealerName, d.PolicyID,
-                   s.StaffID, s.FullName AS StaffName
-            FROM SaleOrder so
-            JOIN Customer c ON so.CustomerID = c.CustomerID
-            JOIN Dealer d ON so.DealerID = d.DealerID
-            JOIN DealerStaff s ON so.StaffID = s.StaffID
-            WHERE so.SaleOrderID = ?
-        """;
+                    SELECT so.SaleOrderID, so.CreatedAt, so.Status, so.TotalAmount, so.TotalQuantity,
+                           c.CustomerID, c.FullName AS CustomerName,
+                           d.DealerID, d.DealerName, d.PolicyID,
+                           s.StaffID, s.FullName AS StaffName
+                    FROM SaleOrder so
+                    JOIN Customer c ON so.CustomerID = c.CustomerID
+                    JOIN Dealer d ON so.DealerID = d.DealerID
+                    JOIN DealerStaff s ON so.StaffID = s.StaffID
+                    WHERE so.SaleOrderID = ?
+                """;
 
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -225,18 +226,18 @@ public class DAOSaleOrder {
         List<DTOSaleOrderDetail> details = new ArrayList<>();
 
         String sql = """
-            SELECT sod.SODetailID, sod.SaleOrderID, sod.VIN, sod.Price, sod.Quantity,
-                   v.ManufactureYear, v.ColorID, vm.ModelID, vm.ModelName, vm.BasePrice,
-                   vc.ColorName
-            FROM SaleOrderDetail sod
-            JOIN Vehicle v ON sod.VIN = v.VIN
-            LEFT JOIN VehicleModel vm ON v.ModelID = vm.ModelID
-            LEFT JOIN VehicleColor vc ON v.ColorID = vc.ColorID
-            WHERE sod.SaleOrderID = ?
-        """;
+                    SELECT sod.SODetailID, sod.SaleOrderID, sod.VIN, sod.Price, sod.Quantity,
+                           v.ManufactureYear, v.ColorID, vm.ModelID, vm.ModelName, vm.BasePrice,
+                           vc.ColorName
+                    FROM SaleOrderDetail sod
+                    JOIN Vehicle v ON sod.VIN = v.VIN
+                    LEFT JOIN VehicleModel vm ON v.ModelID = vm.ModelID
+                    LEFT JOIN VehicleColor vc ON v.ColorID = vc.ColorID
+                    WHERE sod.SaleOrderID = ?
+                """;
 
-       try (Connection conn = DBUtils.getConnection();
-           PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, saleOrderID);
             ResultSet rs = ps.executeQuery();
@@ -266,4 +267,54 @@ public class DAOSaleOrder {
         }
         return details;
     }
+
+    // ======================================================
+// 5️⃣  LẤY 1 CHI TIẾT SALE ORDER DETAIL THEO ID
+// ======================================================
+    public DTOSaleOrderDetail getDetailById(int detailId) {
+        DTOSaleOrderDetail detail = null;
+        String sql = """
+                    SELECT sod.SODetailID, sod.SaleOrderID, sod.VIN, sod.Price, sod.Quantity,
+                           v.ManufactureYear, v.ColorID, vm.ModelID, vm.ModelName, vm.BasePrice, vc.ColorName
+                    FROM SaleOrderDetail sod
+                    JOIN Vehicle v ON sod.VIN = v.VIN
+                    LEFT JOIN VehicleModel vm ON v.ModelID = vm.ModelID
+                    LEFT JOIN VehicleColor vc ON v.ColorID = vc.ColorID
+                    WHERE sod.SODetailID = ?
+                """;
+
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, detailId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    // === Vehicle Info ===
+                    DTOVehicle vehicle = new DTOVehicle();
+                    vehicle.setVIN(rs.getString("VIN"));
+                    vehicle.setManufactureYear(rs.getInt("ManufactureYear"));
+                    vehicle.setColorID(rs.getInt("ColorID"));
+                    vehicle.setColorName(rs.getString("ColorName"));
+                    vehicle.setModelID(rs.getInt("ModelID"));
+                    vehicle.setModelName(rs.getString("ModelName"));
+                    vehicle.setBasePrice(rs.getBigDecimal("BasePrice"));
+
+                    // === SaleOrderDetail ===
+                    detail = new DTOSaleOrderDetail();
+                    detail.setSoDetailID(rs.getInt("SODetailID"));
+                    detail.setSaleOrderID(rs.getInt("SaleOrderID"));
+                    detail.setVehicle(vehicle);
+                    detail.setQuantity(rs.getInt("Quantity"));
+                    detail.setPrice(rs.getBigDecimal("Price"));
+                }
+            }
+
+        } catch (SQLException e) {
+            log.error("Error retrieving SaleOrderDetail by id={}", detailId, e);
+        }
+
+        return detail;
+    }
+
+
 }

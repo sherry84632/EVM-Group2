@@ -21,7 +21,7 @@ public class OrderController {
     private final DAOSaleOrder dao = new DAOSaleOrder();
 
     // ======================================================
-    // 1️⃣ HIỂN THỊ DANH SÁCH TẤT CẢ ĐƠN HÀNG
+    // 1️⃣  DANH SÁCH TẤT CẢ SALE ORDER
     // ======================================================
     @GetMapping
     public String listSaleOrders(Model model) {
@@ -31,12 +31,12 @@ public class OrderController {
     }
 
     // ======================================================
-    // 2️⃣ FORM TẠO ĐƠN HÀNG MỚI
+    // 2️⃣  FORM TẠO SALE ORDER MỚI
     // ======================================================
     @GetMapping("/new")
     public String showCreateForm(Model model, HttpSession session) {
 
-        // ✅ Lấy user từ Spring Security
+        // ✅ Lấy thông tin người dùng đăng nhập
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String email = auth.getName();
 
@@ -48,6 +48,7 @@ public class OrderController {
             return "redirect:/login";
         }
 
+        // ✅ Lấy danh sách quotation đã duyệt cho dealer này
         DAOQuotation quotationDAO = new DAOQuotation();
         List<DTOQuotation> approvedQuotations = quotationDAO.getQuotationsByDealer(account.getDealerId())
                 .stream()
@@ -68,7 +69,7 @@ public class OrderController {
     }
 
     // ======================================================
-    // 3️⃣ XỬ LÝ SUBMIT FORM
+    // 3️⃣  XỬ LÝ SUBMIT FORM TẠO SALE ORDER
     // ======================================================
     @PostMapping("/insert")
     public String insertSaleOrder(
@@ -80,8 +81,7 @@ public class OrderController {
             @RequestParam(value = "status", required = false, defaultValue = "Pending") String status,
             Model model
     ) {
-        // ✅ Lấy user từ Spring Security
-        System.out.println("CONCKCNCCCGFG " + quantity );
+        // ✅ Lấy thông tin tài khoản hiện tại
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String email = auth.getName();
 
@@ -93,10 +93,9 @@ public class OrderController {
             return "redirect:/login";
         }
 
-        // Debug removed: vin available via param if needed for logging framework
-
         Integer dealerID = account.getDealerId();
 
+        // ✅ Lấy quotation được chọn
         DAOQuotation quotationDAO = new DAOQuotation();
         DTOQuotation quotation = quotationDAO.getQuotationById(quotationID);
         if (quotation == null || !("Approved".equalsIgnoreCase(quotation.getStatus()) || "Accepted".equalsIgnoreCase(quotation.getStatus()))) {
@@ -104,8 +103,9 @@ public class OrderController {
             return "redirect:/quotation/list";
         }
 
-        // === Build DTO ===
+        // === Build DTO chính ===
         DTOSaleOrder order = new DTOSaleOrder();
+
         DTOCustomer customer = new DTOCustomer();
         customer.setCustomerID(customerID);
         order.setCustomer(customer);
@@ -122,26 +122,26 @@ public class OrderController {
         order.setCreatedAt(Timestamp.valueOf(LocalDateTime.now()));
         order.setStatus(status);
 
-        // === Detail ===
+        // === Build chi tiết đơn hàng (SaleOrderDetail) ===
         DTOVehicle vehicle = new DTOVehicle();
         vehicle.setVIN(vin);
 
         DTOSaleOrderDetail detail = new DTOSaleOrderDetail();
         detail.setVehicle(vehicle);
 
-        // ✅ FIX: Kiểm tra null trước khi gọi get(0)
         BigDecimal unitPrice = BigDecimal.ZERO;
         if (quotation.getQuotationDetails() != null && !quotation.getQuotationDetails().isEmpty()) {
             unitPrice = quotation.getQuotationDetails().get(0).getUnitPrice();
         }
         detail.setPrice(unitPrice);
         detail.setQuantity(quantity);
+        detail.setQuotationID(quotationID);
 
         List<DTOSaleOrderDetail> details = new ArrayList<>();
         details.add(detail);
         order.setDetail(details);
 
-        // === Insert ===
+        // === Gọi DAO để insert ===
         boolean success = dao.createSaleOrder(order);
 
         if (success) {
@@ -154,7 +154,7 @@ public class OrderController {
     }
 
     // ======================================================
-    // 4️⃣ CHI TIẾT 1 ĐƠN HÀNG
+    // 4️⃣  XEM CHI TIẾT SALE ORDER
     // ======================================================
     @GetMapping("/detail/{id}")
     public String viewOrderDetail(@PathVariable("id") int id, Model model) {
@@ -165,5 +165,16 @@ public class OrderController {
         }
         model.addAttribute("order", order);
         return "dealerPage/dealerCustomerOrderDetail";
+    }
+
+    // ======================================================
+    // 5️⃣  LẤY CHI TIẾT 1 SALE ORDER DETAIL (DỰA VÀO VIN)
+    // ======================================================
+    @GetMapping("/detail/item/{detailId}")
+    @ResponseBody
+    public DTOSaleOrderDetail getDetailItem(@PathVariable("detailId") int detailId) {
+        // ✅ Lấy chi tiết đơn hàng qua DAO
+        DAOSaleOrder dao = new DAOSaleOrder();
+        return dao.getDetailById(detailId);
     }
 }
