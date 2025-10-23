@@ -140,6 +140,8 @@ public class OrderController {
         order.setDetail(details);
 
         // === Insert ===
+        System.out.println(quotation.getQuantity());
+
         boolean success = dao.createSaleOrder(order);
 
         if (success) {
