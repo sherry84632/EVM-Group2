@@ -248,10 +248,25 @@
                         </div>
 
                         <div th:if="${quotation.status == 'Accepted'}">
-                            <a th:href="@{/saleorder/new?quotationID={id}(id=${quotation.quotationID})}"
-                               class="btn btn-primary">
-                                <i class="fas fa-shopping-cart me-2"></i>Create Sale Order
-                            </a>
+
+                            <div th:each="detail : ${details}">
+
+                                <form th:action="@{/saleorder/insert}" method="post" style="display:inline;">
+                                    <input type="hidden" name="quotationID" th:value="${quotation.quotationID}" />
+                                    <input type="hidden" name="customerID" th:value="${quotation.customer.customerID}" />
+                                    <input type="hidden" name="staffID" value="1" />
+                                    <input type="hidden" name="vin" th:value="${quotation.vehicle.VIN}" />
+                                    <input type="hidden" name="quantity" th:value="${detail.quantity}" />
+                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
+                                    <button type="submit" class="btn btn-primary btn-action"
+                                            onclick="return confirm('Create order from this quotation?')">
+                                        <i class="fas fa-shopping-cart me-1"></i>Create Sale Order
+                                    </button>
+                                </form>
+
+                            </div>
+
                         </div>
 
                         <a th:href="@{/quotation/list}" class="btn btn-outline-secondary">

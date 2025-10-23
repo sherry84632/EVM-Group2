@@ -72,6 +72,7 @@ public class OrderController {
     // ======================================================
     @PostMapping("/insert")
     public String insertSaleOrder(
+            @RequestParam("quantity") int quantity,
             @RequestParam("customerID") int customerID,
             @RequestParam("staffID") int staffID,
             @RequestParam("vin") String vin,
@@ -80,6 +81,7 @@ public class OrderController {
             Model model
     ) {
         // ✅ Lấy user từ Spring Security
+        System.out.println("CONCKCNCCCGFG " + quantity );
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String email = auth.getName();
 
@@ -133,7 +135,7 @@ public class OrderController {
             unitPrice = quotation.getQuotationDetails().get(0).getUnitPrice();
         }
         detail.setPrice(unitPrice);
-        detail.setQuantity(1);
+        detail.setQuantity(quantity);
 
         List<DTOSaleOrderDetail> details = new ArrayList<>();
         details.add(detail);
