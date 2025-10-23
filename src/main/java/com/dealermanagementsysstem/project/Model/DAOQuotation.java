@@ -155,6 +155,7 @@
                             log.trace("Insert QuotationDetail colorId={}", quotation.getVehicle().getColorID());
                             psDetail.executeUpdate();
 
+                            Integer staffId = (quotation.getStaff() != null) ? quotation.getStaff().getStaffID() : null;
                             log.debug("QuotationDetail price={} qty={} extraDiscount={} basePrice={} staffId={}", finalPrice, quotation.getQuantity(), quotation.getExtraDiscountPercent(), baseFinalPrice, staffId);
                         }
 
@@ -304,8 +305,8 @@
                         // Calculate total price (UnitPrice * Quantity)
                         BigDecimal unitPrice = rs.getBigDecimal("UnitPrice");
                         int quantity = rs.getInt("Quantity");
-                        double totalPrice = unitPrice.doubleValue() * quantity;
-                        quotation.setTotalPrice(totalPrice);
+                        BigDecimal totalPrice = unitPrice.multiply(BigDecimal.valueOf(quantity));
+                        quotation.setTotalPrice(totalPrice.doubleValue());
 
                         // Set vehicle info
                         DTOVehicle vehicle = new DTOVehicle();
@@ -497,8 +498,8 @@
                             // Calculate total price (UnitPrice * Quantity)
                             BigDecimal unitPrice = rs.getBigDecimal("UnitPrice");
                             int quantity = rs.getInt("Quantity");
-                            double totalPrice = unitPrice.doubleValue() * quantity;
-                            quotation.setTotalPrice(totalPrice);
+                            BigDecimal totalPrice = unitPrice.multiply(BigDecimal.valueOf(quantity));
+                            quotation.setTotalPrice(totalPrice.doubleValue());
 
                             // Set vehicle info
                             DTOVehicle vehicle = new DTOVehicle();
@@ -569,8 +570,8 @@
 
                         // Apply formula: BasePrice × (1 - ManufacturerDiscount) × (1 - DealerDiscount)
                         BigDecimal finalPrice = basePrice
-                                .multiply(BigDecimal.ONE.subtract(manufacturerDiscount.divide(new BigDecimal(100))))
-                                .multiply(BigDecimal.ONE.subtract(dealerDiscount.divide(new BigDecimal(100))));
+                                .multiply(BigDecimal.ONE.subtract(manufacturerDiscount.divide(new BigDecimal(100), 4, java.math.RoundingMode.HALF_UP)))
+                                .multiply(BigDecimal.ONE.subtract(dealerDiscount.divide(new BigDecimal(100), 4, java.math.RoundingMode.HALF_UP)));
 
                         log.debug("Price calc VIN={} base={} manufacturerDiscount={} dealerDiscount={} final={}", vin, basePrice, manufacturerDiscount, dealerDiscount, finalPrice);
 
