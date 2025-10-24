@@ -52,7 +52,7 @@
 <div class="d-flex">
     <div th:replace="~{mainPage/navBarFragment :: navBar}"></div>
 
-    <div class="mainContent flex-grow-1">
+    <div class="mainContent flex-grow-1" style="overflow-y: auto; overflow-x: hidden; width: 100%; height: 95vh;">
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb">
                 <li class="breadcrumb-item">
@@ -90,7 +90,7 @@
                         <span class="info-value" th:text="${customer.phone}">-</span>
                     </div>
                     <div class="info-row">
-                        <span class="info-label">Birth:</span>
+                        <span class="info-label">Date of birth:</span>
                         <span class="info-value" th:text="${#temporals.format(customer.birthDate, 'dd/MM/yyyy')}">-</span>
                     </div>
                     <div class="info-row">
@@ -106,14 +106,6 @@
                         <span class="info-value" th:text="${customer.note}">-</span>
                     </div>
                 </div>
-
-                <div class="detail-card">
-                    <h6><i class="fas fa-comments me-2"></i>Complaints & Feedback</h6>
-                    <div class="info-row">
-                        <span class="info-label">Feedback:</span>
-                        <span class="info-value empty-field">Good service, will buy again.</span>
-                    </div>
-                </div>
             </div>
 
             <div class="col-lg-6">
@@ -126,24 +118,18 @@
                 </div>
 
                 <div class="detail-card">
-                    <h6><i class="fas fa-car me-2"></i>Vehicle of Interest</h6>
-                    <div class="info-row">
-                        <span class="info-label">Vehicle:</span>
-                        <span class="info-value" th:text="${customer.vehicleInterest}">-</span>
-                    </div>
-                    <div class="info-row"><span class="info-label">VIN:</span><span class="info-value empty-field">0001152365</span></div>
-                    <div class="info-row"><span class="info-label">Model:</span><span class="info-value empty-field">EEFF11</span></div>
-                    <div class="info-row"><span class="info-label">Production Date:</span><span class="info-value empty-field">20/12/1999</span></div>
-                    <div class="info-row"><span class="info-label">Price:</span><span class="info-value empty-field">$12000</span></div>
-                    <div class="info-row"><span class="info-label">Brand:</span><span class="info-value empty-field">Vinfast</span></div>
-                    <div class="info-row"><span class="info-label">Color:</span><span class="info-value empty-field">Black</span></div>
-                </div>
-
-                <div class="detail-card">
                     <h6><i class="fas fa-map-marker-alt me-2"></i>Address Information</h6>
                     <div class="info-row">
                         <span class="info-label">Address:</span>
                         <span class="info-value" th:text="${customer.address}">-</span>
+                    </div>
+                </div>
+
+                <div class="detail-card">
+                    <h6><i class="fas fa-comments me-2"></i>Complaints & Feedback</h6>
+                    <div class="info-row">
+                        <span class="info-label">Feedback:</span>
+                        <span class="info-value empty-field">Good service, will buy again.</span>
                     </div>
                 </div>
             </div>

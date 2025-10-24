@@ -27,7 +27,7 @@ public class CustomerController {
     public String listCustomers(Model model) {
         List<DTOCustomer> customerList = daoCustomer.getAllCustomers();
         model.addAttribute("customers", customerList);
-        return "dealerPage/customerList";
+        return "dealerPage/betterCustomerListFinal";
                 // ✅ Giao diện chính
     }
 
@@ -102,7 +102,7 @@ public class CustomerController {
         List<DTOCustomer> customerList = daoCustomer.searchCustomer(keyword);
         model.addAttribute("customers", customerList);
         model.addAttribute("keyword", keyword);
-        return "dealerPage/betterCustomerList";
+        return "dealerPage/betterCustomerListFinal";
     }
     // ✅ Hiển thị chi tiết khách hàng
     @GetMapping("/customer/detail/{id}")
