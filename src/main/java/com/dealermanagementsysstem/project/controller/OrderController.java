@@ -189,6 +189,20 @@ public class OrderController {
     ) {
         boolean success = dao.updateSaleOrderStatus(saleOrderID, status);
         if (success) {
+            // ✅ Nếu trạng thái là "Confirmed", xóa xe khỏi inventory
+            if ("Confirmed".equalsIgnoreCase(status)) {
+                DTOSaleOrder order = dao.getSaleOrderById(saleOrderID);
+                if (order != null && order.getDetail() != null) {
+                    DAODealerInventory inventoryDAO = new DAODealerInventory();
+                    for (DTOSaleOrderDetail detail : order.getDetail()) {
+                        String vin = detail.getVehicle().getVIN();
+                        boolean removed = inventoryDAO.removeVehicleByVIN(vin);
+                        if (!removed) {
+                            System.out.println("⚠️ Không thể xóa VIN " + vin + " khỏi inventory");
+                        }
+                    }
+                }
+            }
             model.addAttribute("message", "Cập nhật trạng thái đơn hàng thành công!");
         } else {
             model.addAttribute("error", "Không thể cập nhật trạng thái đơn hàng!");

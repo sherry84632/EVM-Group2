@@ -2,8 +2,10 @@ package com.dealermanagementsysstem.project.controller;
 
 import com.dealermanagementsysstem.project.Model.DAOPurchaseOrder;
 import com.dealermanagementsysstem.project.Model.DAOEVMOrderProcessing;
+import com.dealermanagementsysstem.project.Model.DAODealerInventory;
 import com.dealermanagementsysstem.project.Model.DTOPurchaseOrder;
 import com.dealermanagementsysstem.project.Model.DTOEVMOrderProcessing;
+import com.dealermanagementsysstem.project.Model.DTOPurchaseOrderDetail;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -53,19 +55,70 @@ public class EVMOrderController {
                                @ModelAttribute("process") DTOEVMOrderProcessing process,
                                RedirectAttributes redirectAttributes) {
 
+        System.out.println("🔍 Processing order ID: " + id);
+
         process.setPurchaseOrderId(id);
         process.setEvmStaffId(1); // demo
         processDAO.addProcessing(process);
 
         String newStatus = process.getActionType().equalsIgnoreCase("Approve") ? "Approved" : "Rejected";
+
+        // ✅ Lấy chi tiết đơn hàng TRƯỚC KHI update status
         DTOPurchaseOrder order = purchaseOrderDAO.getPurchaseOrderById(id);
+
+        if (order == null) {
+            System.out.println("❌ Không tìm thấy đơn hàng với ID: " + id);
+            redirectAttributes.addFlashAttribute("message", "❌ Order not found!");
+            redirectAttributes.addFlashAttribute("statusType", "error");
+            return "redirect:/evm/orders/evmOrderList";
+        }
+
+        System.out.println("📦 Order found - DealerID: " + order.getDealerId() + ", Status: " + order.getStatus());
+
+        // Update status
         order.setStatus(newStatus);
         purchaseOrderDAO.updatePurchaseOrderStatus(order.getPurchaseOrderId(), order.getStatus());
+        System.out.println("✅ Updated status to: " + newStatus);
+
+        // ✅ Nếu đơn hàng được Approved, thêm xe vào inventory của dealer
+        if ("Approved".equals(newStatus)) {
+            System.out.println("🚗 Bắt đầu thêm xe vào inventory...");
+            DAODealerInventory inventoryDAO = new DAODealerInventory();
+
+            if (order.getOrderDetails() == null || order.getOrderDetails().isEmpty()) {
+                System.out.println("⚠️ CẢNH BÁO: OrderDetails là NULL hoặc RỖNG!");
+                System.out.println("⚠️ Không có xe nào để thêm vào inventory!");
+            } else {
+                System.out.println("📋 Tìm thấy " + order.getOrderDetails().size() + " chi tiết đơn hàng");
+
+                int successCount = 0;
+                for (DTOPurchaseOrderDetail detail : order.getOrderDetails()) {
+                    System.out.println("  ➤ Thêm xe: ModelID=" + detail.getModelId()
+                        + ", ColorID=" + detail.getColorId()
+                        + ", Quantity=" + detail.getQuantity());
+
+                    boolean added = inventoryDAO.addVehiclesToInventory(
+                        order.getDealerId(),
+                        detail.getModelId(),
+                        detail.getColorId(),
+                        detail.getQuantity()
+                    );
+
+                    if (added) {
+                        successCount++;
+                        System.out.println("  ✅ Thành công!");
+                    } else {
+                        System.out.println("  ❌ THẤT BẠI - Không thể thêm xe vào inventory!");
+                    }
+                }
+                System.out.println("📊 Kết quả: " + successCount + "/" + order.getOrderDetails().size() + " thành công");
+            }
+        }
 
         // 🔹 Gửi flash message về lại evmOrderList
         String msg = newStatus.equals("Approved")
-                ? " The order has been approved successfully!"
-                : " The order has been rejected!";
+                ? "✅ The order has been approved successfully!"
+                : "❌ The order has been rejected!";
         redirectAttributes.addFlashAttribute("message", msg);
         redirectAttributes.addFlashAttribute("statusType", newStatus);
 

@@ -57,7 +57,7 @@ public class DAOPurchaseOrder {
                 """;
 
         String sqlDetail = """
-                SELECT pod.PODetailID, pod.PurchaseOrderID, pod.ColorID, pod.Quantity, pod.ModelID,
+                SELECT pod.PODetailID, pod.PurchaseOrderID, pod.ColorID, pod.Quantity, pod.ModelID, pod.Version,
                        vm.ModelName, vc.ColorName
                 FROM PurchaseOrderDetail pod
                 LEFT JOIN VehicleModel vm ON pod.ModelID = vm.ModelID
@@ -92,6 +92,7 @@ public class DAOPurchaseOrder {
                                 d.setColorId(drs.getInt("ColorID"));
                                 d.setQuantity(drs.getInt("Quantity"));
                                 d.setModelId(drs.getInt("ModelID"));
+                                d.setVersion(drs.getString("Version"));
                                 d.setModelName(drs.getString("ModelName"));
                                 d.setColorName(drs.getString("ColorName"));
                                 details.add(d);

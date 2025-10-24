@@ -326,6 +326,7 @@ public class DAOSaleOrder {
             ps.setString(1, status);
             ps.setInt(2, saleOrderID);
             int rows = ps.executeUpdate();
+
             return rows > 0;
         } catch (SQLException e) {
             e.printStackTrace();
