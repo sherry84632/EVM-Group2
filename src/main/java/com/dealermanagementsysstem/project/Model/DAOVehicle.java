@@ -2,6 +2,7 @@ package com.dealermanagementsysstem.project.Model;
 
 import utils.DBUtils;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -27,6 +28,10 @@ public class DAOVehicle {
                 vc.ColorName,
                 vv.VersionID,
                 vv.VersionName,
+                vm.ModelID,
+                vm.ModelName,
+                vm.Brand,
+                vm.Year,
                 c.CustomerID,
                 c.FullName AS CustomerName,
                 d.DealerID,
@@ -34,6 +39,7 @@ public class DAOVehicle {
             FROM Vehicle v
             LEFT JOIN VehicleColor vc ON v.ColorID = vc.ColorID
             LEFT JOIN VehicleVersion vv ON v.VersionID = vv.VersionID
+            LEFT JOIN VehicleModel vm ON vv.ModelID = vm.ModelID
             LEFT JOIN Customer c ON v.OwnerID = c.CustomerID
             LEFT JOIN Dealer d ON v.CurrentDealerID = d.DealerID
             ORDER BY v.CreatedAt DESC
@@ -59,11 +65,22 @@ public class DAOVehicle {
                     v.setColor(color);
                 }
 
-                // Set version relationship
+                // Set version relationship with model
                 if (rs.getString("VersionName") != null) {
                     DTOVehicleVersion version = new DTOVehicleVersion();
                     version.setVersionID(rs.getInt("VersionID"));
                     version.setVersionName(rs.getString("VersionName"));
+
+                    // Set model relationship inside version
+                    if (rs.getString("ModelName") != null) {
+                        DTOVehicleModel model = new DTOVehicleModel();
+                        model.setModelID(rs.getInt("ModelID"));
+                        model.setModelName(rs.getString("ModelName"));
+                        model.setBrand(rs.getString("Brand"));
+                        model.setYear(rs.getInt("Year"));
+                        version.setModel(model);
+                    }
+
                     v.setVersion(version);
                 }
 
@@ -99,7 +116,7 @@ public class DAOVehicle {
                 v.VIN, ManufactureYear, EngineNumber, Status, CreatedAt, UpdatedAt,
                 vc.ColorID, vc.ColorName,
                 vv.VersionID, vv.VersionName,
-                vm.ModelID, vm.ModelName,
+                vm.ModelID, vm.ModelName, vm.Brand, vm.Year,
                 c.CustomerID, c.FullName AS CustomerName,
                 d.DealerID, d.DealerName
             FROM Vehicle v
@@ -132,11 +149,22 @@ public class DAOVehicle {
                         v.setColor(color);
                     }
 
-                    // Set version relationship
+                    // Set version relationship with model
                     if (rs.getString("VersionName") != null) {
                         DTOVehicleVersion version = new DTOVehicleVersion();
                         version.setVersionID(rs.getInt("VersionID"));
                         version.setVersionName(rs.getString("VersionName"));
+
+                        // Set model relationship inside version
+                        if (rs.getString("ModelName") != null) {
+                            DTOVehicleModel model = new DTOVehicleModel();
+                            model.setModelID(rs.getInt("ModelID"));
+                            model.setModelName(rs.getString("ModelName"));
+                            model.setBrand(rs.getString("Brand"));
+                            model.setYear(rs.getInt("Year"));
+                            version.setModel(model);
+                        }
+
                         v.setVersion(version);
                     }
 
@@ -168,21 +196,62 @@ public class DAOVehicle {
     public void insertVehicle(DTOVehicle v) {
         String sql = "INSERT INTO Vehicle (VIN, ColorID, VersionID, ManufactureYear, EngineNumber, OwnerID, CurrentDealerID, Status, CreatedAt, UpdatedAt) " +
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        try (PreparedStatement ps = DBUtils.createPreparedStatement(sql)) {
+
+        Connection conn = null;
+        PreparedStatement ps = null;
+
+        try {
+            conn = DBUtils.getConnection();
+            ps = conn.prepareStatement(sql);
+
             ps.setString(1, v.getVIN());
-            ps.setInt(2, v.getColor() != null ? v.getColor().getColorID() : null);
-            ps.setInt(3, v.getVersion() != null ? v.getVersion().getVersionID() : null);
+
+            // Use setObject for nullable integer fields
+            if (v.getColor() != null && v.getColor().getColorID() > 0) {
+                ps.setInt(2, v.getColor().getColorID());
+            } else {
+                ps.setNull(2, java.sql.Types.INTEGER);
+            }
+
+            if (v.getVersion() != null && v.getVersion().getVersionID() > 0) {
+                ps.setInt(3, v.getVersion().getVersionID());
+            } else {
+                ps.setNull(3, java.sql.Types.INTEGER);
+            }
+
             ps.setInt(4, v.getManufactureYear());
             ps.setString(5, v.getEngineNumber());
-            ps.setInt(6, v.getOwner() != null ? v.getOwner().getCustomerID() : null);
-            ps.setInt(7, v.getCurrentDealer() != null ? v.getCurrentDealer().getDealerID() : null);
+
+            if (v.getOwner() != null && v.getOwner().getCustomerID() > 0) {
+                ps.setInt(6, v.getOwner().getCustomerID());
+            } else {
+                ps.setNull(6, java.sql.Types.INTEGER);
+            }
+
+            if (v.getCurrentDealer() != null && v.getCurrentDealer().getDealerID() > 0) {
+                ps.setInt(7, v.getCurrentDealer().getDealerID());
+            } else {
+                ps.setNull(7, java.sql.Types.INTEGER);
+            }
+
             ps.setString(8, v.getStatus().toString());
             ps.setTimestamp(9, v.getCreatedAt());
             ps.setTimestamp(10, v.getUpdatedAt());
-            ps.executeUpdate();
-            System.out.println("✅ Vehicle inserted successfully!");
+
+            int rowsAffected = ps.executeUpdate();
+
+            if (rowsAffected > 0) {
+                System.out.println("✅ Vehicle inserted successfully! VIN: " + v.getVIN());
+            } else {
+                System.out.println("⚠️ No rows were inserted!");
+            }
+
         } catch (SQLException e) {
+            System.err.println("❌ Error inserting vehicle: " + e.getMessage());
             e.printStackTrace();
+        } finally {
+            DBUtils.closeQuietly(ps);
+            DBUtils.closeQuietly(conn);
         }
     }
 

@@ -15,6 +15,7 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.file.*;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import jakarta.servlet.http.HttpServletRequest;
@@ -32,25 +33,37 @@ public class EVMVehicleController {
     public String listVehicles(@RequestParam(value = "keyword", required = false) String keyword, Model model) {
         List<DTOVehicle> vehicles;
 
-        if (keyword != null && !keyword.trim().isEmpty()) {
-            vehicles = dao.searchVehiclesByModelName(keyword);
-            model.addAttribute("keyword", keyword);
-        } else {
-            vehicles = dao.getVehicles();
-        }
-
-        model.addAttribute("vehicles", vehicles);
-
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-
-        if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName())) {
-            String role = auth.getAuthorities().iterator().next().getAuthority();
-
-            if (role.equals("ROLE_EVM") || role.equals("ROLE_EVMSTAFF") || role.equals("ROLE_ADMIN")) {
-                model.addAttribute("actionRole", "EVM");
-            } else if (role.equals("ROLE_DEALER") || role.equals("ROLE_DEALERSTAFF")) {
-                model.addAttribute("actionRole", "DEALER");
+        try {
+            if (keyword != null && !keyword.trim().isEmpty()) {
+                vehicles = dao.searchVehiclesByModelName(keyword);
+                model.addAttribute("keyword", keyword);
+            } else {
+                vehicles = dao.getVehicles();
             }
+
+            // Ensure vehicles is never null
+            if (vehicles == null) {
+                vehicles = new ArrayList<>();
+            }
+
+            model.addAttribute("vehicles", vehicles);
+
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+            if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName())) {
+                String role = auth.getAuthorities().iterator().next().getAuthority();
+
+                if (role.equals("ROLE_EVM") || role.equals("ROLE_EVMSTAFF") || role.equals("ROLE_ADMIN")) {
+                    model.addAttribute("actionRole", "EVM");
+                } else if (role.equals("ROLE_DEALER") || role.equals("ROLE_DEALERSTAFF")) {
+                    model.addAttribute("actionRole", "DEALER");
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("❌ Error loading vehicle list: " + e.getMessage());
+            e.printStackTrace();
+            model.addAttribute("vehicles", new ArrayList<>());
+            model.addAttribute("error", "Failed to load vehicles: " + e.getMessage());
         }
 
         return "evmPage/vehicleList";
@@ -168,15 +181,15 @@ public class EVMVehicleController {
     }
     @PostMapping("/create")
     public String createVehicle(
-            @RequestParam("vin") String vin,
-            @RequestParam("colorName") String colorName,
-            @RequestParam("modelName") String modelName,
-            @RequestParam("manufactureYear") int manufactureYear,
-            @RequestParam("engineNumber") String engineNumber,
-            @RequestParam("ownerID") int ownerID,
-            @RequestParam("currentDealerID") int currentDealerID,
-            @RequestParam("versionID") int versionID,
-            @RequestParam("status") String status,
+            @RequestParam(value = "vin", required = false, defaultValue = "") String vin,
+            @RequestParam(value = "colorName", required = false, defaultValue = "") String colorName,
+            @RequestParam(value = "modelName", required = false, defaultValue = "") String modelName,
+            @RequestParam(value = "manufactureYear", required = false, defaultValue = "0") int manufactureYear,
+            @RequestParam(value = "engineNumber", required = false, defaultValue = "") String engineNumber,
+            @RequestParam(value = "ownerID", required = false, defaultValue = "0") int ownerID,
+            @RequestParam(value = "currentDealerID", required = false, defaultValue = "0") int currentDealerID,
+            @RequestParam(value = "versionID", required = false, defaultValue = "0") int versionID,
+            @RequestParam(value = "status", required = false, defaultValue = "AVAILABLE") String status,
             @RequestParam(value = "thumbnail", required = false) MultipartFile thumbnail,
             Model model
     ) {
@@ -185,7 +198,34 @@ public class EVMVehicleController {
         System.out.println("🔍 [DEBUG] Status: " + status);
         System.out.println("🔍 [DEBUG] Request reached controller successfully - CSRF disabled for testing");
         
+        // Validate required fields
+        if (vin == null || vin.trim().isEmpty()) {
+            model.addAttribute("error", "VIN is required");
+            return "evmPage/createANewVehicleToList";
+        }
+
+        if (manufactureYear == 0) {
+            model.addAttribute("error", "Manufacture year is required");
+            return "evmPage/createANewVehicleToList";
+        }
+
         try {
+            // === Validate and fetch Color ID ===
+            Integer colorID = null;
+            if (colorName != null && !colorName.trim().isEmpty()) {
+                colorID = dao.getColorIdByName(colorName);
+                if (colorID == null) {
+                    model.addAttribute("error", "❌ Color not found: " + colorName);
+                    return "evmPage/createANewVehicleToList";
+                }
+            }
+
+            // === Validate Version ID ===
+            if (versionID <= 0) {
+                model.addAttribute("error", "❌ Version ID is required");
+                return "evmPage/createANewVehicleToList";
+            }
+
             // === Create DTOVehicle object ===
             DTOVehicle vehicle = new DTOVehicle();
             vehicle.setVIN(vin);
@@ -195,29 +235,36 @@ public class EVMVehicleController {
             vehicle.setCreatedAt(new java.sql.Timestamp(System.currentTimeMillis()));
             vehicle.setUpdatedAt(new java.sql.Timestamp(System.currentTimeMillis()));
 
-            // === Set relationships (simplified for now) ===
-            // Note: In a real implementation, you would fetch these entities from their respective DAOs
-            // For now, we'll create minimal objects with just the IDs
-            
-            // Set color relationship
-            DTOVehicleColor color = new DTOVehicleColor();
-            color.setColorName(colorName);
-            vehicle.setColor(color);
+            // === Set relationships with proper IDs ===
+
+            // Set color relationship with actual ColorID from database
+            if (colorID != null) {
+                DTOVehicleColor color = new DTOVehicleColor();
+                color.setColorID(colorID);
+                color.setColorName(colorName);
+                vehicle.setColor(color);
+            }
 
             // Set version relationship
-            DTOVehicleVersion version = new DTOVehicleVersion();
-            version.setVersionID(versionID);
-            vehicle.setVersion(version);
+            if (versionID > 0) {
+                DTOVehicleVersion version = new DTOVehicleVersion();
+                version.setVersionID(versionID);
+                vehicle.setVersion(version);
+            }
 
-            // Set owner relationship
-            DTOCustomer owner = new DTOCustomer();
-            owner.setCustomerID(ownerID);
-            vehicle.setOwner(owner);
+            // Set owner relationship (optional)
+            if (ownerID > 0) {
+                DTOCustomer owner = new DTOCustomer();
+                owner.setCustomerID(ownerID);
+                vehicle.setOwner(owner);
+            }
 
-            // Set current dealer relationship
-            DTODealer currentDealer = new DTODealer();
-            currentDealer.setDealerID(currentDealerID);
-            vehicle.setCurrentDealer(currentDealer);
+            // Set current dealer relationship (optional)
+            if (currentDealerID > 0) {
+                DTODealer currentDealer = new DTODealer();
+                currentDealer.setDealerID(currentDealerID);
+                vehicle.setCurrentDealer(currentDealer);
+            }
 
             // === Handle image upload ===
             if (thumbnail != null && !thumbnail.isEmpty()) {
@@ -232,23 +279,31 @@ public class EVMVehicleController {
                 Path filePath = uploadPath.resolve(fileName);
                 Files.copy(thumbnail.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
                 
-                // Store image path in a field or handle as needed
-                // For now, we'll just log the successful upload
                 System.out.println("✅ [SUCCESS] Image uploaded: " + fileName);
             }
 
             // === Call DAO to insert vehicle ===
+            System.out.println("🔍 [DEBUG] Inserting vehicle with VIN: " + vin);
             dao.insertVehicle(vehicle);
+            System.out.println("✅ [SUCCESS] Vehicle created successfully!");
 
             model.addAttribute("success", true);
             model.addAttribute("message", "✅ Vehicle created successfully!");
 
         } catch (IOException e) {
+            System.err.println("❌ [ERROR] Error uploading thumbnail: " + e.getMessage());
             model.addAttribute("success", false);
             model.addAttribute("message", "⚠️ Error uploading thumbnail: " + e.getMessage());
             e.printStackTrace();
             return "evmPage/createANewVehicleToList";
+        } catch (IllegalArgumentException e) {
+            System.err.println("❌ [ERROR] Invalid status value: " + e.getMessage());
+            model.addAttribute("success", false);
+            model.addAttribute("message", "⚠️ Invalid status: " + status);
+            e.printStackTrace();
+            return "evmPage/createANewVehicleToList";
         } catch (Exception e) {
+            System.err.println("❌ [ERROR] Unexpected error: " + e.getMessage());
             model.addAttribute("success", false);
             model.addAttribute("message", "⚠️ Error: " + e.getMessage());
             e.printStackTrace();

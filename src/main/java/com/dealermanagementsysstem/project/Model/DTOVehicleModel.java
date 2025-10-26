@@ -16,9 +16,18 @@ public class DTOVehicleModel {
     @Column(name = "ModelName")
     private String modelName;
     
+    @Column(name = "Brand")
+    private String brand;
+
+    @Column(name = "Year")
+    private int year;
+
     @Column(name = "BasePrice")
     private BigDecimal basePrice;
     
+    @Column(name = "ModelImage")
+    private byte[] modelImage;
+
     @Column(name = "EvmID")
     private int evmID;
     
@@ -51,6 +60,22 @@ public class DTOVehicleModel {
         this.modelName = modelName;
     }
     
+    public String getBrand() {
+        return brand;
+    }
+
+    public void setBrand(String brand) {
+        this.brand = brand;
+    }
+
+    public int getYear() {
+        return year;
+    }
+
+    public void setYear(int year) {
+        this.year = year;
+    }
+
     public BigDecimal getBasePrice() {
         return basePrice;
     }
@@ -59,6 +84,14 @@ public class DTOVehicleModel {
         this.basePrice = basePrice;
     }
     
+    public byte[] getModelImage() {
+        return modelImage;
+    }
+
+    public void setModelImage(byte[] modelImage) {
+        this.modelImage = modelImage;
+    }
+
     public int getEvmID() {
         return evmID;
     }
