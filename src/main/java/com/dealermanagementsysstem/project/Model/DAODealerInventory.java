@@ -61,24 +61,19 @@ public class DAODealerInventory {
         System.out.println("   ColorID: " + colorID);
         System.out.println("   Quantity: " + quantity);
 
-        // ✅ VALIDATION: Kiểm tra ModelID và ColorID tồn tại
-        if (!validateModelAndColor(modelID, colorID)) {
-            System.out.println("   ❌ VALIDATION FAILED: ModelID hoặc ColorID không tồn tại!");
-            return false;
-        }
+        // ✅ Lấy xe có sẵn từ EVM_Vehicle (Status='InStock')
+        String sqlGetAvailableVehicles = "SELECT TOP (?) VIN FROM EVM_Vehicle " +
+                                         "WHERE ModelID = ? AND ColorID = ? AND Status = 'InStock' " +
+                                         "ORDER BY ManufactureDate";
 
-        // Lấy VersionID mặc định (giả sử VersionID = 3 là standard version)
-        int versionID = 3;
-
-        // Insert theo thứ tự: EVM_Vehicle → Vehicle → DealerInventory
-        String sqlInsertEVMVehicle = "INSERT INTO EVM_Vehicle (VIN, ModelID, ColorID, VersionID, Status) VALUES (?, ?, ?, ?, 'InStock')";
-        String sqlInsertVehicle = "INSERT INTO Vehicle (VIN, ModelID, ColorID, ManufactureYear) VALUES (?, ?, ?, YEAR(GETDATE()))";
-        String sqlInsertInventory = "INSERT INTO DealerInventory (DealerID, VIN, ReceivedDate, Status, Amount) VALUES (?, ?, GETDATE(), 'IN_STOCK', 0)";
+        // ✅ Chỉ INSERT vào DealerInventory (không tạo xe mới)
+        String sqlInsertInventory = "INSERT INTO DealerInventory (DealerID, VIN, ReceivedDate, Status, Amount) " +
+                                   "VALUES (?, ?, GETDATE(), 'IN_STOCK', 1)";
 
         Connection conn = null;
-        PreparedStatement psEVMVehicle = null;
-        PreparedStatement psVehicle = null;
-        PreparedStatement psInventory = null;
+        PreparedStatement psGetVehicles = null;
+        PreparedStatement psInsertInventory = null;
+        ResultSet rs = null;
 
         try {
             conn = DBUtils.getConnection();
@@ -86,40 +81,44 @@ public class DAODealerInventory {
             conn.setAutoCommit(false);
             System.out.println("   ✅ Transaction started");
 
-            psEVMVehicle = conn.prepareStatement(sqlInsertEVMVehicle);
-            psVehicle = conn.prepareStatement(sqlInsertVehicle);
-            psInventory = conn.prepareStatement(sqlInsertInventory);
+            // 1️⃣ Lấy danh sách VIN có sẵn từ EVM_Vehicle
+            psGetVehicles = conn.prepareStatement(sqlGetAvailableVehicles);
+            psGetVehicles.setInt(1, quantity);
+            psGetVehicles.setInt(2, modelID);
+            psGetVehicles.setInt(3, colorID);
+            rs = psGetVehicles.executeQuery();
+
+            List<String> availableVINs = new ArrayList<>();
+            while (rs.next()) {
+                availableVINs.add(rs.getString("VIN"));
+            }
+
+            System.out.println("   🔍 Found " + availableVINs.size() + " available vehicles in EVM stock");
+
+            if (availableVINs.size() < quantity) {
+                System.out.println("   ⚠️  WARNING: Not enough vehicles in stock!");
+                System.out.println("   📦 Required: " + quantity + ", Available: " + availableVINs.size());
+                conn.rollback();
+                return false;
+            }
+
+            // 2️⃣ Thêm các xe vào DealerInventory
+            psInsertInventory = conn.prepareStatement(sqlInsertInventory);
 
             for (int i = 0; i < quantity; i++) {
-                // Tạo VIN unique (dùng timestamp + random)
-                String vin = generateVIN(modelID, colorID);
-                System.out.println("   🔑 Generated VIN #" + (i+1) + ": " + vin);
+                String vin = availableVINs.get(i);
+                System.out.println("   🚗 Adding vehicle #" + (i+1) + ": " + vin);
 
-                // 1. Insert vào EVM_Vehicle (PHẢI TRƯỚC)
-                psEVMVehicle.setString(1, vin);
-                psEVMVehicle.setInt(2, modelID);
-                psEVMVehicle.setInt(3, colorID);
-                psEVMVehicle.setInt(4, versionID);
-                int rowsEVM = psEVMVehicle.executeUpdate();
-                System.out.println("      ➤ Insert EVM_Vehicle: " + (rowsEVM > 0 ? "SUCCESS" : "FAILED"));
+                psInsertInventory.setInt(1, dealerID);
+                psInsertInventory.setString(2, vin);
 
-                // 2. Insert vào Vehicle
-                psVehicle.setString(1, vin);
-                psVehicle.setInt(2, modelID);
-                psVehicle.setInt(3, colorID);
-                int rowsVehicle = psVehicle.executeUpdate();
-                System.out.println("      ➤ Insert Vehicle: " + (rowsVehicle > 0 ? "SUCCESS" : "FAILED"));
-
-                // 3. Insert vào DealerInventory
-                psInventory.setInt(1, dealerID);
-                psInventory.setString(2, vin);
-                int rowsInventory = psInventory.executeUpdate();
-                System.out.println("      ➤ Insert Inventory: " + (rowsInventory > 0 ? "SUCCESS" : "FAILED"));
+                int rowsInserted = psInsertInventory.executeUpdate();
+                System.out.println("      ➤ Insert DealerInventory: " + (rowsInserted > 0 ? "✅ SUCCESS" : "❌ FAILED"));
             }
 
             conn.commit();
             System.out.println("   ✅ Transaction committed successfully!");
-            System.out.println("   🎉 Added " + quantity + " vehicles to inventory");
+            System.out.println("   🎉 Added " + quantity + " vehicles to dealer inventory");
             return true;
 
         } catch (SQLException e) {
@@ -140,61 +139,14 @@ public class DAODealerInventory {
             return false;
         } finally {
             try {
-                if (psEVMVehicle != null) psEVMVehicle.close();
-                if (psVehicle != null) psVehicle.close();
-                if (psInventory != null) psInventory.close();
+                if (rs != null) rs.close();
+                if (psGetVehicles != null) psGetVehicles.close();
+                if (psInsertInventory != null) psInsertInventory.close();
                 if (conn != null) conn.close();
                 System.out.println("   🔒 Resources closed");
             } catch (SQLException e) {
                 e.printStackTrace();
             }
         }
-    }
-
-    // ✅ Validate ModelID và ColorID tồn tại trong database
-    private boolean validateModelAndColor(int modelID, int colorID) {
-        String sqlCheckModel = "SELECT COUNT(*) FROM VehicleModel WHERE ModelID = ?";
-        String sqlCheckColor = "SELECT COUNT(*) FROM VehicleColor WHERE ColorID = ?";
-
-        try (Connection conn = DBUtils.getConnection()) {
-            // Kiểm tra ModelID
-            try (PreparedStatement ps = conn.prepareStatement(sqlCheckModel)) {
-                ps.setInt(1, modelID);
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next() && rs.getInt(1) == 0) {
-                        System.out.println("   ❌ ModelID " + modelID + " không tồn tại trong VehicleModel");
-                        return false;
-                    }
-                }
-            }
-
-            // Kiểm tra ColorID
-            try (PreparedStatement ps = conn.prepareStatement(sqlCheckColor)) {
-                ps.setInt(1, colorID);
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next() && rs.getInt(1) == 0) {
-                        System.out.println("   ❌ ColorID " + colorID + " không tồn tại trong VehicleColor");
-                        return false;
-                    }
-                }
-            }
-
-            System.out.println("   ✅ Validation passed - ModelID và ColorID hợp lệ");
-            return true;
-
-        } catch (SQLException e) {
-            System.out.println("   ❌ Lỗi khi validate ModelID/ColorID:");
-            e.printStackTrace();
-            return false;
-        }
-    }
-
-
-    // ✅ Tạo VIN unique theo format: VINM{ModelID}C{ColorID}-{timestamp}
-    private String generateVIN(int modelID, int colorID) {
-        long timestamp = System.currentTimeMillis();
-        // Thêm số ngẫu nhiên để đảm bảo unique khi tạo nhiều VIN cùng lúc
-        int random = (int)(Math.random() * 1000);
-        return String.format("VINM%dC%d-%d%03d", modelID, colorID, timestamp % 100000000, random);
     }
 }

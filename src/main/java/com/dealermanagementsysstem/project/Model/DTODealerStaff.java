@@ -1,5 +1,4 @@
 package com.dealermanagementsysstem.project.Model;
-
 public class DTODealerStaff {
     private int staffID;
     private String fullName;
