@@ -1,11 +1,6 @@
 package com.dealermanagementsysstem.project.controller;
 
-import com.dealermanagementsysstem.project.Model.DAOPurchaseOrder;
-import com.dealermanagementsysstem.project.Model.DAOEVMOrderProcessing;
-import com.dealermanagementsysstem.project.Model.DAODealerInventory;
-import com.dealermanagementsysstem.project.Model.DTOPurchaseOrder;
-import com.dealermanagementsysstem.project.Model.DTOEVMOrderProcessing;
-import com.dealermanagementsysstem.project.Model.DTOPurchaseOrderDetail;
+import com.dealermanagementsysstem.project.Model.*;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -18,7 +13,7 @@ import java.util.List;
 public class EVMOrderController {
 
     private final DAOPurchaseOrder purchaseOrderDAO = new DAOPurchaseOrder();
-    private final DAOEVMOrderProcessing processDAO = new DAOEVMOrderProcessing();
+    //private final DAOEVMOrderProcessing processDAO = new DAOEVMOrderProcessing();
 
     // 🔹 Hiển thị toàn bộ danh sách đơn hàng (EVM xem)
     @GetMapping("/evmOrderList")
@@ -57,9 +52,9 @@ public class EVMOrderController {
 
         System.out.println("🔍 Processing order ID: " + id);
 
-        process.setPurchaseOrderId(id);
-        process.setEvmStaffId(1); // demo
-        processDAO.addProcessing(process);
+        //process.setPurchaseOrderId(id);
+        //process.setEvmStaffId(1); // demo
+        //processDAO.addProcessing(process);
 
         String newStatus = process.getActionType().equalsIgnoreCase("Approve") ? "Approved" : "Rejected";
 
@@ -73,10 +68,10 @@ public class EVMOrderController {
             return "redirect:/evm/orders/evmOrderList";
         }
 
-        System.out.println("📦 Order found - DealerID: " + order.getDealerId() + ", Status: " + order.getStatus());
+        System.out.println("📦 Order found - DealerID: " + order.getDealer().getDealerID() + ", Status: " + order.getStatus());
 
         // Update status
-        order.setStatus(newStatus);
+        order.setStatus(PurchaseOrderStatus.valueOf(newStatus));
         purchaseOrderDAO.updatePurchaseOrderStatus(order.getPurchaseOrderId(), order.getStatus());
         System.out.println("✅ Updated status to: " + newStatus);
 
@@ -93,14 +88,14 @@ public class EVMOrderController {
 
                 int successCount = 0;
                 for (DTOPurchaseOrderDetail detail : order.getOrderDetails()) {
-                    System.out.println("  ➤ Thêm xe: ModelID=" + detail.getModelId()
-                        + ", ColorID=" + detail.getColorId()
+                    System.out.println("  ➤ Thêm xe: ModelID=" + detail.getVersion().getModel()
+                        + ", ColorID=" + detail.getColor().getColorID()
                         + ", Quantity=" + detail.getQuantity());
 
                     boolean added = inventoryDAO.addVehiclesToInventory(
-                        order.getDealerId(),
-                        detail.getModelId(),
-                        detail.getColorId(),
+                        order.getDealer().getDealerID(),
+                        detail.getVersion().getModel().getModelID(),
+                        detail.getColor().getColorID(),
                         detail.getQuantity()
                     );
 

@@ -1,29 +1,53 @@
 package com.dealermanagementsysstem.project.Model;
 
+import jakarta.persistence.*;
 import java.time.LocalDate;
 
+@Entity
+@Table(name = "DealerPriceAdjustment")
 public class DTODealerPriceAdjustment {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "AdjustmentID")
     private int adjustmentID;
-    private int dealerID;
-    private int modelID;
+    
+    @ManyToOne
+    @JoinColumn(name = "DealerID", referencedColumnName = "DealerID")
+    private DTODealer dealer;
+    
+    @ManyToOne
+    @JoinColumn(name = "ModelID", referencedColumnName = "ModelID")
+    private DTOVehicleModel vehicleModel;
+    
+    @Column(name = "DiscountAmount")
     private Double discountAmount;
+    
+    @Column(name = "DiscountPercent")
     private Double discountPercent;
+    
+    @Column(name = "StartDate")
     private LocalDate startDate;
+    
+    @Column(name = "EndDate")
     private LocalDate endDate;
+    
+    @Column(name = "Notes")
     private String notes;
+    
+    @Column(name = "PromotionName")
     private String promotionName;
 
 
     public DTODealerPriceAdjustment() {}
 
-    public DTODealerPriceAdjustment(int adjustmentID, int dealerID, int modelID,
+    public DTODealerPriceAdjustment(int adjustmentID, DTODealer dealer, DTOVehicleModel vehicleModel,
                                     Double discountAmount, Double discountPercent,
                                     LocalDate startDate, LocalDate endDate,
                                     String notes, String promotionName) {
         this.adjustmentID = adjustmentID;
-        this.dealerID = dealerID;
-        this.modelID = modelID;
+        this.dealer = dealer;
+        this.vehicleModel = vehicleModel;
         this.discountAmount = discountAmount;
         this.discountPercent = discountPercent;
         this.startDate = startDate;
@@ -40,20 +64,20 @@ public class DTODealerPriceAdjustment {
         this.adjustmentID = adjustmentID;
     }
 
-    public int getDealerID() {
-        return dealerID;
+    public DTODealer getDealer() {
+        return dealer;
     }
 
-    public void setDealerID(int dealerID) {
-        this.dealerID = dealerID;
+    public void setDealer(DTODealer dealer) {
+        this.dealer = dealer;
     }
 
-    public int getModelID() {
-        return modelID;
+    public DTOVehicleModel getVehicleModel() {
+        return vehicleModel;
     }
 
-    public void setModelID(int modelID) {
-        this.modelID = modelID;
+    public void setVehicleModel(DTOVehicleModel vehicleModel) {
+        this.vehicleModel = vehicleModel;
     }
 
     public Double getDiscountAmount() {

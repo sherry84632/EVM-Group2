@@ -52,7 +52,7 @@ public class DealerInventoryController {
                 System.out.println("   📋 Listing vehicles:");
                 for (int i = 0; i < Math.min(5, vehicles.size()); i++) {
                     DTODealerInventory v = vehicles.get(i);
-                    System.out.println("      " + (i+1) + ". VIN: " + v.getVin() +
+                    System.out.println("      " + (i+1) + ". VIN: " + v.getVehicle().getVIN() +
                                      ", Status: " + v.getStatus() +
                                      ", ReceivedDate: " + v.getReceivedDate());
                 }

@@ -23,7 +23,7 @@ public class UserTestController {
                 return String.format("User found: %s, Role: %s, Status: %s, Password: %s", 
                     account.getUsername(), 
                     account.getRole(), 
-                    account.isStatus(),
+                    account.isActive(),
                     account.getPassword().substring(0, Math.min(10, account.getPassword().length())) + "..."
                 );
             } else {

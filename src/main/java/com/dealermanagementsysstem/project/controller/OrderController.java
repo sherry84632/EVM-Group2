@@ -43,19 +43,16 @@ public class OrderController {
         DAOAccount daoAccount = new DAOAccount();
         DTOAccount account = daoAccount.findAccountByEmail(email);
 
-        if (account == null || account.getDealerId() == null) {
+        if (account == null || account.getDealerStaff() == null) {
             model.addAttribute("error", "Bạn cần đăng nhập bằng tài khoản dealer!");
             return "redirect:/login";
         }
 
         // ✅ Lấy danh sách quotation đã duyệt cho dealer này
         DAOQuotation quotationDAO = new DAOQuotation();
-        List<DTOQuotation> approvedQuotations = quotationDAO.getQuotationsByDealer(account.getDealerId())
+        List<DTOQuotation> approvedQuotations = quotationDAO.getQuotationsByDealer(account.getDealerStaff().getDealer().getDealerID())
                 .stream()
-                .filter(q -> {
-                    String s = q.getStatus();
-                    return s != null && (s.equalsIgnoreCase("Approved") || s.equalsIgnoreCase("Accepted"));
-                })
+                .filter(q -> q.getStatus() == QuotationStatus.APPROVED)
                 .toList();
 
         if (approvedQuotations.isEmpty()) {
@@ -88,17 +85,17 @@ public class OrderController {
         DAOAccount daoAccount = new DAOAccount();
         DTOAccount account = daoAccount.findAccountByEmail(email);
 
-        if (account == null || account.getDealerId() == null) {
+        if (account == null || account.getDealerStaff()== null) {
             model.addAttribute("error", "Tài khoản hiện tại không hợp lệ hoặc chưa đăng nhập!");
             return "redirect:/login";
         }
 
-        Integer dealerID = account.getDealerId();
+        int dealerID = account.getDealerStaff().getDealer().getDealerID();
 
         // ✅ Lấy quotation được chọn
         DAOQuotation quotationDAO = new DAOQuotation();
         DTOQuotation quotation = quotationDAO.getQuotationById(quotationID);
-        if (quotation == null || !("Approved".equalsIgnoreCase(quotation.getStatus()) || "Accepted".equalsIgnoreCase(quotation.getStatus()))) {
+        if (quotation == null || quotation.getStatus() != QuotationStatus.APPROVED) {
             model.addAttribute("error", "Quotation không hợp lệ hoặc chưa được duyệt!");
             return "redirect:/quotation/list";
         }
@@ -112,15 +109,25 @@ public class OrderController {
 
         DTODealer dealer = new DTODealer();
         dealer.setDealerID(dealerID);
-        dealer.setPolicyID(quotation.getDealer().getPolicyID());
         order.setDealer(dealer);
 
         DTODealerStaff staff = new DTODealerStaff();
         staff.setStaffID(staffID);
         order.setStaff(staff);
 
+        // Set quotation relationship
+        DTOQuotation quotationRef = new DTOQuotation();
+        quotationRef.setQuotationID(quotationID);
+        order.setQuotation(quotationRef);
+
         order.setCreatedAt(Timestamp.valueOf(LocalDateTime.now()));
-        order.setStatus(status);
+        order.setStatus(SaleOrderStatus.valueOf(status.toUpperCase()));
+        order.setTotalQuantity(quantity);
+
+        // Calculate total amount from quotation
+        BigDecimal totalAmount = quotation.getTotalPrice() > 0 ? 
+            BigDecimal.valueOf(quotation.getTotalPrice()) : BigDecimal.ZERO;
+        order.setTotalAmount(totalAmount);
 
         // === Build chi tiết đơn hàng (SaleOrderDetail) ===
         DTOVehicle vehicle = new DTOVehicle();
@@ -134,8 +141,13 @@ public class OrderController {
             unitPrice = quotation.getQuotationDetails().get(0).getUnitPrice();
         }
         detail.setPrice(unitPrice);
-        detail.setQuantity(quantity);
-        detail.setQuotationID(quotationID);
+
+        // Set discount policy if available
+        if (quotation.getDealer() != null && quotation.getDealer().getPolicyID() > 0) {
+            DTODiscountPolicy discountPolicy = new DTODiscountPolicy();
+            discountPolicy.setPolicyID(quotation.getDealer().getPolicyID());
+            detail.setDiscountPolicy(discountPolicy);
+        }
 
         List<DTOSaleOrderDetail> details = new ArrayList<>();
         details.add(detail);
@@ -187,10 +199,10 @@ public class OrderController {
             @RequestParam("status") String status,
             Model model
     ) {
-        boolean success = dao.updateSaleOrderStatus(saleOrderID, status);
+        boolean success = dao.updateSaleOrderStatus(saleOrderID, String.valueOf(SaleOrderStatus.valueOf(status.toUpperCase())));
         if (success) {
-            // ✅ Nếu trạng thái là "Confirmed", xóa xe khỏi inventory
-            if ("Confirmed".equalsIgnoreCase(status)) {
+            // ✅ Nếu trạng thái là "COMPLETED", xóa xe khỏi inventory
+            if (SaleOrderStatus.valueOf(status.toUpperCase()) == SaleOrderStatus.COMPLETED) {
                 DTOSaleOrder order = dao.getSaleOrderById(saleOrderID);
                 if (order != null && order.getDetail() != null) {
                     DAODealerInventory inventoryDAO = new DAODealerInventory();

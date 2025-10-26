@@ -1,29 +1,53 @@
 package com.dealermanagementsysstem.project.Model;
 
+import jakarta.persistence.*;
 import java.util.Date;
 import java.util.List;
 
+@Entity
+@Table(name = "PurchaseOrder")
 public class DTOPurchaseOrder {
-    private int purchaseOrderId;   // Tự sinh từ DB (IDENTITY)
-    private int dealerId;          // Lấy tự động từ Account / Dealer
-    private int staffId;           // Nhân viên EVM tạo / duyệt
-    private String dealerName;     // Tên dealer
-    private String staffName;      // Tên staff
-    private String status;         // Pending / Approved / Rejected
-    private Date createdAt;        // Ngày tạo (DB default GETDATE())
-
-    // Danh sách chi tiết xe (nếu có)
+    
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "PurchaseOrderID")
+    private int purchaseOrderId;
+    
+    @ManyToOne
+    @JoinColumn(name = "DealerID", referencedColumnName = "DealerID")
+    private DTODealer dealer;
+    
+    @ManyToOne
+    @JoinColumn(name = "StaffID", referencedColumnName = "StaffID")
+    private DTODealerStaff staff;
+    
+    @Column(name = "CreatedAt")
+    private Date createdAt;
+    
+    @Column(name = "Status")
+    @Enumerated(EnumType.STRING)
+    private PurchaseOrderStatus status;
+    
+    @Column(name = "TotalAmount")
+    private java.math.BigDecimal totalAmount;
+    
+    @Column(name = "EvmID")
+    private int evmID;
+    
+    @OneToMany(mappedBy = "purchaseOrder", cascade = CascadeType.ALL)
     private List<DTOPurchaseOrderDetail> orderDetails;
 
     public DTOPurchaseOrder() {}
 
-    // Constructor đầy đủ
-    public DTOPurchaseOrder(int purchaseOrderId, int dealerId, int staffId, String status, Date createdAt) {
+    public DTOPurchaseOrder(int purchaseOrderId, DTODealer dealer, DTODealerStaff staff, 
+                            PurchaseOrderStatus status, Date createdAt, java.math.BigDecimal totalAmount, int evmID) {
         this.purchaseOrderId = purchaseOrderId;
-        this.dealerId = dealerId;
-        this.staffId = staffId;
+        this.dealer = dealer;
+        this.staff = staff;
         this.status = status;
         this.createdAt = createdAt;
+        this.totalAmount = totalAmount;
+        this.evmID = evmID;
     }
 
     // --- GETTER & SETTER ---
@@ -35,28 +59,36 @@ public class DTOPurchaseOrder {
         this.purchaseOrderId = purchaseOrderId;
     }
 
-    public int getDealerId() {
-        return dealerId;
+    public DTODealer getDealer() {
+        return dealer;
     }
 
-    public void setDealerId(int dealerId) {
-        this.dealerId = dealerId;
+    public void setDealer(DTODealer dealer) {
+        this.dealer = dealer;
     }
 
-    public int getStaffId() {
-        return staffId;
+    public DTODealerStaff getStaff() {
+        return staff;
     }
 
-    public void setStaffId(int staffId) {
-        this.staffId = staffId;
+    public void setStaff(DTODealerStaff staff) {
+        this.staff = staff;
     }
 
-    public String getStatus() {
+    public PurchaseOrderStatus getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(PurchaseOrderStatus status) {
         this.status = status;
+    }
+    
+    public java.math.BigDecimal getTotalAmount() {
+        return totalAmount;
+    }
+
+    public void setTotalAmount(java.math.BigDecimal totalAmount) {
+        this.totalAmount = totalAmount;
     }
 
     public Date getCreatedAt() {
@@ -75,32 +107,23 @@ public class DTOPurchaseOrder {
         this.orderDetails = orderDetails;
     }
 
-    public String getDealerName() {
-        return dealerName;
+    public int getEvmID() {
+        return evmID;
     }
 
-    public void setDealerName(String dealerName) {
-        this.dealerName = dealerName;
-    }
-
-    public String getStaffName() {
-        return staffName;
-    }
-
-    public void setStaffName(String staffName) {
-        this.staffName = staffName;
+    public void setEvmID(int evmID) {
+        this.evmID = evmID;
     }
 
     @Override
     public String toString() {
         return "DTOPurchaseOrder{" +
                 "purchaseOrderId=" + purchaseOrderId +
-                ", dealerId=" + dealerId +
-                ", staffId=" + staffId +
-                ", dealerName='" + dealerName + '\'' +
-                ", staffName='" + staffName + '\'' +
+                ", dealer=" + dealer +
+                ", staff=" + staff +
                 ", status='" + status + '\'' +
                 ", createdAt=" + createdAt +
+                ", evmID=" + evmID +
                 ", orderDetails=" + orderDetails +
                 '}';
     }

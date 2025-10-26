@@ -1,12 +1,16 @@
 package com.dealermanagementsysstem.project.controller;
 
+import com.dealermanagementsysstem.project.Model.DAODealer;
 import com.dealermanagementsysstem.project.Model.DAODiscountPolicy;
 import com.dealermanagementsysstem.project.Model.DTODiscountPolicy;
+import com.dealermanagementsysstem.project.Model.DiscountPolicyStatus;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -48,14 +52,17 @@ public class DealerDiscountPolicyController {
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             Model model
-    ) {
+    ) throws SQLException {
+
+        DAODealer daoDealer = new DAODealer();
+
         DTODiscountPolicy dto = new DTODiscountPolicy();
-        dto.setDealerID(dealerId);
+        dto.setDealer(daoDealer.getDealerById(dealerId));
         dto.setPolicyName(policyName);
         dto.setDescription(description);
-        dto.setHangPercent(hangPercent);
-        dto.setDailyPercent(dailyPercent);
-        dto.setStatus(status);
+        dto.setHangPercent(BigDecimal.valueOf(hangPercent));
+        dto.setDailyPercent(BigDecimal.valueOf(dailyPercent));
+        dto.setStatus(DiscountPolicyStatus.valueOf(status));
         dto.setStartDate(startDate);
         dto.setEndDate(endDate);
 

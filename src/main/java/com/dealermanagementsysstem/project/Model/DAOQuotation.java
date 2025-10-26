@@ -19,12 +19,21 @@ public class DAOQuotation {
     // ✅ Lấy thông tin xe theo VIN (JOIN Vehicle + VehicleModel)
     public DTOVehicle getVehicleByVIN(String vin) {
         DTOVehicle vehicle = null;
-    log.debug("getVehicleByVIN VIN={}", vin);
+        log.debug("getVehicleByVIN VIN={}", vin);
 
         String sql = """
-                    SELECT v.VIN, v.ManufactureYear, v.ColorID, vm.ModelName, vm.BasePrice
+                    SELECT v.VIN, v.ManufactureYear, v.EngineNumber, v.Status, v.CreatedAt, v.UpdatedAt,
+                           vc.ColorID, vc.ColorName,
+                           vv.VersionID, vv.VersionName,
+                           vm.ModelID, vm.ModelName, vm.BasePrice,
+                           c.CustomerID, c.FullName AS CustomerName,
+                           d.DealerID, d.DealerName
                     FROM Vehicle v
-                    JOIN VehicleModel vm ON v.ModelID = vm.ModelID
+                    LEFT JOIN VehicleColor vc ON v.ColorID = vc.ColorID
+                    LEFT JOIN VehicleVersion vv ON v.VersionID = vv.VersionID
+                    LEFT JOIN VehicleModel vm ON vv.ModelID = vm.ModelID
+                    LEFT JOIN Customer c ON v.OwnerID = c.CustomerID
+                    LEFT JOIN Dealer d ON v.CurrentDealerID = d.DealerID
                     WHERE v.VIN = ?
                 """;
 
@@ -38,11 +47,45 @@ public class DAOQuotation {
                 if (rs.next()) {
                     vehicle = new DTOVehicle();
                     vehicle.setVIN(rs.getString("VIN"));
-                    vehicle.setModelName(rs.getString("ModelName"));
                     vehicle.setManufactureYear(rs.getInt("ManufactureYear"));
-                    vehicle.setBasePrice(rs.getBigDecimal("BasePrice"));
-                    vehicle.setColorID(rs.getInt("ColorID"));
-                    log.debug("Vehicle found model={} colorId={}", vehicle.getModelName(), vehicle.getColorID());
+                    vehicle.setEngineNumber(rs.getString("EngineNumber"));
+                    vehicle.setStatus(VehicleStatus.valueOf(rs.getString("Status")));
+                    vehicle.setCreatedAt(rs.getTimestamp("CreatedAt"));
+                    vehicle.setUpdatedAt(rs.getTimestamp("UpdatedAt"));
+
+                    // Set color relationship
+                    if (rs.getString("ColorName") != null) {
+                        DTOVehicleColor color = new DTOVehicleColor();
+                        color.setColorID(rs.getInt("ColorID"));
+                        color.setColorName(rs.getString("ColorName"));
+                        vehicle.setColor(color);
+                    }
+
+                    // Set version relationship
+                    if (rs.getString("VersionName") != null) {
+                        DTOVehicleVersion version = new DTOVehicleVersion();
+                        version.setVersionID(rs.getInt("VersionID"));
+                        version.setVersionName(rs.getString("VersionName"));
+                        vehicle.setVersion(version);
+                    }
+
+                    // Set owner relationship
+                    if (rs.getString("CustomerName") != null) {
+                        DTOCustomer owner = new DTOCustomer();
+                        owner.setCustomerID(rs.getInt("CustomerID"));
+                        owner.setFullName(rs.getString("CustomerName"));
+                        vehicle.setOwner(owner);
+                    }
+
+                    // Set current dealer relationship
+                    if (rs.getString("DealerName") != null) {
+                        DTODealer currentDealer = new DTODealer();
+                        currentDealer.setDealerID(rs.getInt("DealerID"));
+                        currentDealer.setDealerName(rs.getString("DealerName"));
+                        vehicle.setCurrentDealer(currentDealer);
+                    }
+
+                    log.debug("Vehicle found VIN={}", vehicle.getVIN());
                 } else {
                     log.warn("No vehicle found VIN={}", vin);
                 }
@@ -89,41 +132,24 @@ public class DAOQuotation {
     // 🔥 CORE FLOW STEP 1: Insert new quotation with price calculation
     public int insertQuotation(DTOQuotation quotation) {
         String insertQuotationSQL = """
-                    INSERT INTO Quotation (CustomerID, StaffID, DealerID, CreatedAt, Status, LevelID)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                """;
-
-        String insertDetailSQL = """
-                    INSERT INTO QuotationDetail (QuotationID, VIN, UnitPrice, Quantity, ColorID)
-                    VALUES (?, ?, ?, ?, ?)
+                    INSERT INTO Quotation (CustomerID, StaffID, DealerID, CreatedAt, Status, TotalAmount, Quantity, LevelID)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
         try (Connection conn = DBUtils.getConnection()) {
             conn.setAutoCommit(false);
 
             try {
-                // 1. Calculate final price using the formula
-        BigDecimal baseFinalPrice = calculateFinalPrice(
-            quotation.getVehicle().getVIN(),
-            quotation.getDealer().getDealerID()
-        );
-
-        // Apply optional extra discount percent (e.g., promotional) if provided
-        BigDecimal finalPrice = baseFinalPrice;
-        if (quotation.getExtraDiscountPercent() != null && quotation.getExtraDiscountPercent() > 0) {
-            BigDecimal extra = BigDecimal.valueOf(quotation.getExtraDiscountPercent()).divide(BigDecimal.valueOf(100));
-            finalPrice = finalPrice.multiply(BigDecimal.ONE.subtract(extra));
-        }
-
-                // 2. Insert main Quotation
+                // 1. Insert main Quotation
                 try (PreparedStatement ps = conn.prepareStatement(insertQuotationSQL, Statement.RETURN_GENERATED_KEYS)) {
                     ps.setInt(1, quotation.getCustomer().getCustomerID());
-                    int staffId = quotation.getStaff() != null ? quotation.getStaff().getStaffID() : quotation.getDealer().getDealerID(); // fallback old behavior
-                    ps.setInt(2, staffId);
+                    ps.setInt(2, quotation.getStaff() != null ? quotation.getStaff().getStaffID() : 0);
                     ps.setInt(3, quotation.getDealer().getDealerID());
                     ps.setTimestamp(4, quotation.getCreatedAt());
-                    ps.setString(5, quotation.getStatus() != null ? quotation.getStatus() : "Pending");
-                    ps.setInt(6, quotation.getDealer().getLevelID() > 0 ? quotation.getDealer().getLevelID() : 1);
+                    ps.setString(5, quotation.getStatus() != null ? quotation.getStatus().toString() : "CREATED");
+                    ps.setDouble(6, quotation.getTotalPrice());
+                    ps.setInt(7, quotation.getQuantity());
+                    ps.setInt(8, quotation.getLevelID());
 
                     int affectedRows = ps.executeUpdate();
                     if (affectedRows == 0) {
@@ -138,20 +164,6 @@ public class DAOQuotation {
                         } else {
                             throw new SQLException("Failed to retrieve QuotationID.");
                         }
-                    }
-
-                    // 3. Insert QuotationDetail with calculated price
-                    try (PreparedStatement psDetail = conn.prepareStatement(insertDetailSQL)) {
-                        psDetail.setInt(1, quotationID);
-                        psDetail.setString(2, quotation.getVehicle().getVIN());
-                        psDetail.setBigDecimal(3, finalPrice);
-                        psDetail.setInt(4, Math.max(1, quotation.getQuantity()));
-                        psDetail.setInt(5, quotation.getVehicle().getColorID());
-
-                        log.trace("Insert QuotationDetail colorId={}", quotation.getVehicle().getColorID());
-                        psDetail.executeUpdate();
-
-                        log.debug("QuotationDetail price={} qty={} extraDiscount={} basePrice={} staffId={}", finalPrice, quotation.getQuantity(), quotation.getExtraDiscountPercent(), baseFinalPrice, staffId);
                     }
 
                     conn.commit();
@@ -175,18 +187,14 @@ public class DAOQuotation {
         DTOQuotation quotation = null;
 
         String sql = """
-                    SELECT q.QuotationID, q.CreatedAt, q.Status, q.LevelID,
+                    SELECT q.QuotationID, q.CreatedAt, q.Status, q.TotalAmount, q.Quantity, q.LevelID,
                            c.CustomerID, c.FullName AS CustomerName, c.Email AS CustomerEmail, c.Phone AS CustomerPhone,
                            d.DealerID, d.DealerName, d.Email AS DealerEmail, d.Phone AS DealerPhone,
-                           qd.VIN, qd.UnitPrice, qd.Quantity, qd.ColorID,
-                           vc.ColorName, vm.ModelName, vm.BasePrice, v.ManufactureYear
+                           ds.StaffID, ds.FullName AS StaffName, ds.Email AS StaffEmail, ds.Phone AS StaffPhone
                     FROM Quotation q
                     JOIN Customer c ON q.CustomerID = c.CustomerID
                     JOIN Dealer d ON q.DealerID = d.DealerID
-                    LEFT JOIN QuotationDetail qd ON q.QuotationID = qd.QuotationID
-                    LEFT JOIN VehicleColor vc ON qd.ColorID = vc.ColorID
-                    LEFT JOIN Vehicle v ON qd.VIN = v.VIN
-                    LEFT JOIN VehicleModel vm ON v.ModelID = vm.ModelID
+                    LEFT JOIN DealerStaff ds ON q.StaffID = ds.StaffID
                     WHERE q.QuotationID = ?
                 """;
 
@@ -200,7 +208,10 @@ public class DAOQuotation {
                     quotation = new DTOQuotation();
                     quotation.setQuotationID(rs.getInt("QuotationID"));
                     quotation.setCreatedAt(rs.getTimestamp("CreatedAt"));
-                    quotation.setStatus(rs.getString("Status"));
+                    quotation.setStatus(QuotationStatus.valueOf(rs.getString("Status")));
+                    quotation.setTotalPrice(rs.getDouble("TotalAmount"));
+                    quotation.setQuantity(rs.getInt("Quantity"));
+                    quotation.setLevelID(rs.getInt("LevelID"));
 
                     // Customer info
                     DTOCustomer customer = new DTOCustomer();
@@ -218,17 +229,19 @@ public class DAOQuotation {
                     dealer.setPhone(rs.getString("DealerPhone"));
                     quotation.setDealer(dealer);
 
-                    // Vehicle info (if available)
-                    if (rs.getString("VIN") != null) {
-                        DTOVehicle vehicle = new DTOVehicle();
-                        vehicle.setVIN(rs.getString("VIN"));
-                        vehicle.setModelName(rs.getString("ModelName"));
-                        vehicle.setManufactureYear(rs.getInt("ManufactureYear"));
-                        vehicle.setBasePrice(rs.getBigDecimal("BasePrice"));
-                        vehicle.setColorName(rs.getString("ColorName"));
-                        vehicle.setColorID(rs.getInt("ColorID"));
-                        quotation.setVehicle(vehicle);
+                    // Staff info (if available)
+                    if (rs.getString("StaffName") != null) {
+                        DTODealerStaff staff = new DTODealerStaff();
+                        staff.setStaffID(rs.getInt("StaffID"));
+                        staff.setFullName(rs.getString("StaffName"));
+                        staff.setEmail(rs.getString("StaffEmail"));
+                        staff.setPhone(rs.getString("StaffPhone"));
+                        quotation.setStaff(staff);
                     }
+
+                    // Load quotation details
+                    List<DTOQuotationDetail> details = getQuotationDetails(quotationID);
+                    quotation.setQuotationDetails(details);
                 }
             }
         } catch (SQLException e) {
@@ -243,17 +256,14 @@ public class DAOQuotation {
         List<DTOQuotation> quotations = new ArrayList<>();
 
         String sql = """
-                    SELECT q.QuotationID, q.CreatedAt, q.Status, q.LevelID,
+                    SELECT q.QuotationID, q.CreatedAt, q.Status, q.TotalAmount, q.Quantity, q.LevelID,
                            c.CustomerID, c.FullName AS CustomerName, c.Email AS CustomerEmail, c.Phone AS CustomerPhone,
                            d.DealerID, d.DealerName, d.Email AS DealerEmail, d.Phone AS DealerPhone,
-                           qd.VIN, qd.UnitPrice, qd.Quantity, vc.ColorName, vm.ModelName
+                           ds.StaffID, ds.FullName AS StaffName, ds.Email AS StaffEmail, ds.Phone AS StaffPhone
                     FROM Quotation q
                     JOIN Customer c ON q.CustomerID = c.CustomerID
                     JOIN Dealer d ON q.DealerID = d.DealerID
-                    LEFT JOIN QuotationDetail qd ON q.QuotationID = qd.QuotationID
-                    LEFT JOIN VehicleColor vc ON qd.ColorID = vc.ColorID
-                    LEFT JOIN Vehicle v ON qd.VIN = v.VIN
-                    LEFT JOIN VehicleModel vm ON v.ModelID = vm.ModelID
+                    LEFT JOIN DealerStaff ds ON q.StaffID = ds.StaffID
                     ORDER BY q.CreatedAt DESC
                 """;
 
@@ -261,55 +271,46 @@ public class DAOQuotation {
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
 
-            int lastQuotationId = -1;
-
             while (rs.next()) {
-                int quotationId = rs.getInt("QuotationID");
+                DTOQuotation quotation = new DTOQuotation();
+                quotation.setQuotationID(rs.getInt("QuotationID"));
+                quotation.setCreatedAt(rs.getTimestamp("CreatedAt"));
+                quotation.setStatus(QuotationStatus.valueOf(rs.getString("Status")));
+                quotation.setTotalPrice(rs.getDouble("TotalAmount"));
+                quotation.setQuantity(rs.getInt("Quantity"));
+                quotation.setLevelID(rs.getInt("LevelID"));
 
-                // If new quotation, create new object
-                if (quotationId != lastQuotationId) {
-                    DTOQuotation quotation = new DTOQuotation();
-                    quotation.setQuotationID(quotationId);
-                    quotation.setCreatedAt(rs.getTimestamp("CreatedAt"));
-                    quotation.setStatus(rs.getString("Status"));
+                // Customer info
+                DTOCustomer customer = new DTOCustomer();
+                customer.setCustomerID(rs.getInt("CustomerID"));
+                customer.setFullName(rs.getString("CustomerName"));
+                customer.setEmail(rs.getString("CustomerEmail"));
+                customer.setPhone(rs.getString("CustomerPhone"));
+                quotation.setCustomer(customer);
 
-                    // Customer info
-                    DTOCustomer customer = new DTOCustomer();
-                    customer.setCustomerID(rs.getInt("CustomerID"));
-                    customer.setFullName(rs.getString("CustomerName"));
-                    customer.setEmail(rs.getString("CustomerEmail"));
-                    customer.setPhone(rs.getString("CustomerPhone"));
-                    quotation.setCustomer(customer);
+                // Dealer info
+                DTODealer dealer = new DTODealer();
+                dealer.setDealerID(rs.getInt("DealerID"));
+                dealer.setDealerName(rs.getString("DealerName"));
+                dealer.setEmail(rs.getString("DealerEmail"));
+                dealer.setPhone(rs.getString("DealerPhone"));
+                quotation.setDealer(dealer);
 
-                    // Dealer info
-                    DTODealer dealer = new DTODealer();
-                    dealer.setDealerID(rs.getInt("DealerID"));
-                    dealer.setDealerName(rs.getString("DealerName"));
-                    dealer.setEmail(rs.getString("DealerEmail"));
-                    dealer.setPhone(rs.getString("DealerPhone"));
-                    quotation.setDealer(dealer);
-
-                    quotations.add(quotation);
-                    lastQuotationId = quotationId;
+                // Staff info (if available)
+                if (rs.getString("StaffName") != null) {
+                    DTODealerStaff staff = new DTODealerStaff();
+                    staff.setStaffID(rs.getInt("StaffID"));
+                    staff.setFullName(rs.getString("StaffName"));
+                    staff.setEmail(rs.getString("StaffEmail"));
+                    staff.setPhone(rs.getString("StaffPhone"));
+                    quotation.setStaff(staff);
                 }
 
-                // Add price information if available
-                if (rs.getString("VIN") != null) {
-                    DTOQuotation quotation = quotations.get(quotations.size() - 1);
+                // Load quotation details
+                List<DTOQuotationDetail> details = getQuotationDetails(quotation.getQuotationID());
+                quotation.setQuotationDetails(details);
 
-                    // Calculate total price (UnitPrice * Quantity)
-                    BigDecimal unitPrice = rs.getBigDecimal("UnitPrice");
-                    int quantity = rs.getInt("Quantity");
-                    double totalPrice = unitPrice.doubleValue() * quantity;
-                    quotation.setTotalPrice(totalPrice);
-
-                    // Set vehicle info
-                    DTOVehicle vehicle = new DTOVehicle();
-                    vehicle.setVIN(rs.getString("VIN"));
-                    vehicle.setModelName(rs.getString("ModelName"));
-                    vehicle.setColorName(rs.getString("ColorName"));
-                    quotation.setVehicle(vehicle);
-                }
+                quotations.add(quotation);
             }
 
         } catch (SQLException e) {
@@ -320,14 +321,14 @@ public class DAOQuotation {
     }
 
     // 🔥 CORE FLOW STEP 4: Update quotation status (Approve/Reject)
-    public boolean updateQuotationStatus(int quotationID, String newStatus) {
+    public boolean updateQuotationStatus(int quotationID, QuotationStatus newStatus) {
         String sql = "UPDATE Quotation SET Status = ? WHERE QuotationID = ?";
-    log.debug("updateQuotationStatus id={} status={}", quotationID, newStatus);
+        log.debug("updateQuotationStatus id={} status={}", quotationID, newStatus);
 
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            ps.setString(1, newStatus);
+            ps.setString(1, newStatus.toString());
             ps.setInt(2, quotationID);
 
             log.trace("Executing status update id={} status={}", quotationID, newStatus);
@@ -361,7 +362,7 @@ public class DAOQuotation {
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     String status = rs.getString("Status");
-                    return "Accepted".equalsIgnoreCase(status) || "Approved".equalsIgnoreCase(status);
+                    return "APPROVED".equalsIgnoreCase(status);
                 }
             }
         } catch (SQLException e) {
@@ -376,17 +377,14 @@ public class DAOQuotation {
         List<DTOQuotation> quotations = new ArrayList<>();
 
         String sql = """
-                    SELECT q.QuotationID, q.CreatedAt, q.Status, q.LevelID,
+                    SELECT q.QuotationID, q.CreatedAt, q.Status, q.TotalAmount, q.Quantity, q.LevelID,
                            c.CustomerID, c.FullName AS CustomerName, c.Email AS CustomerEmail, c.Phone AS CustomerPhone,
                            d.DealerID, d.DealerName, d.Email AS DealerEmail, d.Phone AS DealerPhone,
-                           qd.VIN, qd.UnitPrice, qd.Quantity, vc.ColorName, vm.ModelName, vm.BasePrice, v.ManufactureYear
+                           ds.StaffID, ds.FullName AS StaffName, ds.Email AS StaffEmail, ds.Phone AS StaffPhone
                     FROM Quotation q
                     JOIN Customer c ON q.CustomerID = c.CustomerID
                     JOIN Dealer d ON q.DealerID = d.DealerID
-                    LEFT JOIN QuotationDetail qd ON q.QuotationID = qd.QuotationID
-                    LEFT JOIN VehicleColor vc ON qd.ColorID = vc.ColorID
-                    LEFT JOIN Vehicle v ON qd.VIN = v.VIN
-                    LEFT JOIN VehicleModel vm ON v.ModelID = vm.ModelID
+                    LEFT JOIN DealerStaff ds ON q.StaffID = ds.StaffID
                     WHERE q.DealerID = ?
                     ORDER BY q.CreatedAt DESC
                 """;
@@ -397,78 +395,46 @@ public class DAOQuotation {
             ps.setInt(1, dealerID);
 
             try (ResultSet rs = ps.executeQuery()) {
-                int lastQuotationId = -1;
-
                 while (rs.next()) {
-                    int quotationId = rs.getInt("QuotationID");
+                    DTOQuotation quotation = new DTOQuotation();
+                    quotation.setQuotationID(rs.getInt("QuotationID"));
+                    quotation.setCreatedAt(rs.getTimestamp("CreatedAt"));
+                    quotation.setStatus(QuotationStatus.valueOf(rs.getString("Status")));
+                    quotation.setTotalPrice(rs.getDouble("TotalAmount"));
+                    quotation.setQuantity(rs.getInt("Quantity"));
+                    quotation.setLevelID(rs.getInt("LevelID"));
 
-                    // If new quotation, create new object
-                    if (quotationId != lastQuotationId) {
-                        DTOQuotation quotation = new DTOQuotation();
-                        quotation.setQuotationID(quotationId);
-                        quotation.setCreatedAt(rs.getTimestamp("CreatedAt"));
-                        quotation.setStatus(rs.getString("Status"));
+                    // Customer info
+                    DTOCustomer customer = new DTOCustomer();
+                    customer.setCustomerID(rs.getInt("CustomerID"));
+                    customer.setFullName(rs.getString("CustomerName"));
+                    customer.setEmail(rs.getString("CustomerEmail"));
+                    customer.setPhone(rs.getString("CustomerPhone"));
+                    quotation.setCustomer(customer);
 
-                        // Customer info
-                        DTOCustomer customer = new DTOCustomer();
-                        customer.setCustomerID(rs.getInt("CustomerID"));
-                        customer.setFullName(rs.getString("CustomerName"));
-                        customer.setEmail(rs.getString("CustomerEmail"));
-                        customer.setPhone(rs.getString("CustomerPhone"));
-                        quotation.setCustomer(customer);
+                    // Dealer info
+                    DTODealer dealer = new DTODealer();
+                    dealer.setDealerID(rs.getInt("DealerID"));
+                    dealer.setDealerName(rs.getString("DealerName"));
+                    dealer.setEmail(rs.getString("DealerEmail"));
+                    dealer.setPhone(rs.getString("DealerPhone"));
+                    quotation.setDealer(dealer);
 
-                        // Dealer info
-                        DTODealer dealer = new DTODealer();
-                        dealer.setDealerID(rs.getInt("DealerID"));
-                        dealer.setDealerName(rs.getString("DealerName"));
-                        dealer.setEmail(rs.getString("DealerEmail"));
-                        dealer.setPhone(rs.getString("DealerPhone"));
-                        quotation.setDealer(dealer);
-
-                        // ✅ Initialize quotationDetails list
-                        quotation.setQuotationDetails(new ArrayList<>());
-
-                        quotations.add(quotation);
-                        lastQuotationId = quotationId;
+                    // Staff info (if available)
+                    if (rs.getString("StaffName") != null) {
+                        DTODealerStaff staff = new DTODealerStaff();
+                        staff.setStaffID(rs.getInt("StaffID"));
+                        staff.setFullName(rs.getString("StaffName"));
+                        staff.setEmail(rs.getString("StaffEmail"));
+                        staff.setPhone(rs.getString("StaffPhone"));
+                        quotation.setStaff(staff);
                     }
 
-                    // Add vehicle and price information if available
-                    if (rs.getString("VIN") != null) {
-                        DTOQuotation quotation = quotations.get(quotations.size() - 1);
+                    // Load quotation details
+                    List<DTOQuotationDetail> details = getQuotationDetails(quotation.getQuotationID());
+                    quotation.setQuotationDetails(details);
 
-                        // Calculate total price (UnitPrice * Quantity)
-                        BigDecimal unitPrice = rs.getBigDecimal("UnitPrice");
-                        int quantity = rs.getInt("Quantity");
-                        double totalPrice = unitPrice.doubleValue() * quantity;
-                        quotation.setTotalPrice(totalPrice);
-
-                        // Set vehicle info
-                        DTOVehicle vehicle = new DTOVehicle();
-                        vehicle.setVIN(rs.getString("VIN"));
-                        vehicle.setModelName(rs.getString("ModelName"));
-                        vehicle.setColorName(rs.getString("ColorName"));
-                        vehicle.setManufactureYear(rs.getInt("ManufactureYear"));
-                        vehicle.setBasePrice(rs.getBigDecimal("BasePrice"));
-                        quotation.setVehicle(vehicle);
-
-                        // ✅ Add QuotationDetail to list
-                        DTOQuotationDetail detail = new DTOQuotationDetail();
-                        detail.setVIN(rs.getString("VIN"));
-                        detail.setUnitPrice(unitPrice);
-                        detail.setQuantity(quantity);
-                        detail.setColorName(rs.getString("ColorName"));
-                        detail.setModelName(rs.getString("ModelName"));
-                        quotation.getQuotationDetails().add(detail);
-                    } else {
-                        // ✅ If no QuotationDetail, create empty vehicle object
-                        DTOQuotation quotation = quotations.get(quotations.size() - 1);
-                        if (quotation.getVehicle() == null) {
-                            DTOVehicle emptyVehicle = new DTOVehicle();
-                            emptyVehicle.setVIN("N/A");
-                            emptyVehicle.setModelName("N/A");
-                            quotation.setVehicle(emptyVehicle);
-                        }
-                    }
+                    quotations.add(quotation);
                 }
             }
         } catch (SQLException e) {
@@ -478,96 +444,150 @@ public class DAOQuotation {
         return quotations;
     }
 
-    // 🔥 PRICE CALCULATION: FinalPrice = BasePrice × (1 - ManufacturerDiscount) × (1 - DealerDiscount)
-    public BigDecimal calculateFinalPrice(String vin, int dealerID) {
+    // ✅ Get quotations by customer
+    public List<DTOQuotation> getQuotationsByCustomer(int customerID) {
+        List<DTOQuotation> quotations = new ArrayList<>();
+
         String sql = """
-                    SELECT vm.BasePrice,
-                           ISNULL(dlp.BaseDiscountPercent, 0) as BaseDiscountPercent,
-                           ISNULL(dlp.BonusDiscountPercent, 0) as BonusDiscountPercent,
-                           ISNULL(dpa.DiscountPercent, 0) as DealerDiscountPercent
-                    FROM Vehicle v
-                    JOIN VehicleModel vm ON v.ModelID = vm.ModelID
-                    JOIN Dealer d ON d.DealerID = ?
-                    LEFT JOIN DealerLevelPolicy dlp ON d.LevelID = dlp.LevelID
-                    LEFT JOIN DealerPriceAdjustment dpa ON d.DealerID = dpa.DealerID AND v.ModelID = dpa.ModelID
-                    WHERE v.VIN = ?
+                    SELECT q.QuotationID, q.CreatedAt, q.Status, q.TotalAmount, q.Quantity, q.LevelID,
+                           c.CustomerID, c.FullName AS CustomerName, c.Email AS CustomerEmail, c.Phone AS CustomerPhone,
+                           d.DealerID, d.DealerName, d.Email AS DealerEmail, d.Phone AS DealerPhone,
+                           ds.StaffID, ds.FullName AS StaffName, ds.Email AS StaffEmail, ds.Phone AS StaffPhone
+                    FROM Quotation q
+                    JOIN Customer c ON q.CustomerID = c.CustomerID
+                    JOIN Dealer d ON q.DealerID = d.DealerID
+                    LEFT JOIN DealerStaff ds ON q.StaffID = ds.StaffID
+                    WHERE q.CustomerID = ?
+                    ORDER BY q.CreatedAt DESC
                 """;
 
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            ps.setInt(1, dealerID);
-            ps.setString(2, vin);
+            ps.setInt(1, customerID);
 
             try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    BigDecimal basePrice = rs.getBigDecimal("BasePrice");
-                    BigDecimal baseDiscount = rs.getBigDecimal("BaseDiscountPercent");
-                    BigDecimal bonusDiscount = rs.getBigDecimal("BonusDiscountPercent");
-                    BigDecimal dealerDiscount = rs.getBigDecimal("DealerDiscountPercent");
+                while (rs.next()) {
+                    DTOQuotation quotation = new DTOQuotation();
+                    quotation.setQuotationID(rs.getInt("QuotationID"));
+                    quotation.setCreatedAt(rs.getTimestamp("CreatedAt"));
+                    quotation.setStatus(QuotationStatus.valueOf(rs.getString("Status")));
+                    quotation.setTotalPrice(rs.getDouble("TotalAmount"));
+                    quotation.setQuantity(rs.getInt("Quantity"));
+                    quotation.setLevelID(rs.getInt("LevelID"));
 
-                    // Calculate manufacturer discount (BaseDiscount + BonusDiscount)
-                    BigDecimal manufacturerDiscount = baseDiscount.add(bonusDiscount);
+                    // Customer info
+                    DTOCustomer customer = new DTOCustomer();
+                    customer.setCustomerID(rs.getInt("CustomerID"));
+                    customer.setFullName(rs.getString("CustomerName"));
+                    customer.setEmail(rs.getString("CustomerEmail"));
+                    customer.setPhone(rs.getString("CustomerPhone"));
+                    quotation.setCustomer(customer);
 
-                    // Apply formula: BasePrice × (1 - ManufacturerDiscount) × (1 - DealerDiscount)
-                    BigDecimal finalPrice = basePrice
-                            .multiply(BigDecimal.ONE.subtract(manufacturerDiscount.divide(new BigDecimal(100))))
-                            .multiply(BigDecimal.ONE.subtract(dealerDiscount.divide(new BigDecimal(100))));
+                    // Dealer info
+                    DTODealer dealer = new DTODealer();
+                    dealer.setDealerID(rs.getInt("DealerID"));
+                    dealer.setDealerName(rs.getString("DealerName"));
+                    dealer.setEmail(rs.getString("DealerEmail"));
+                    dealer.setPhone(rs.getString("DealerPhone"));
+                    quotation.setDealer(dealer);
 
-                    log.debug("Price calc VIN={} base={} manufacturerDiscount={} dealerDiscount={} final={}", vin, basePrice, manufacturerDiscount, dealerDiscount, finalPrice);
+                    // Staff info (if available)
+                    if (rs.getString("StaffName") != null) {
+                        DTODealerStaff staff = new DTODealerStaff();
+                        staff.setStaffID(rs.getInt("StaffID"));
+                        staff.setFullName(rs.getString("StaffName"));
+                        staff.setEmail(rs.getString("StaffEmail"));
+                        staff.setPhone(rs.getString("StaffPhone"));
+                        quotation.setStaff(staff);
+                    }
 
-                    return finalPrice;
+                    // Load quotation details
+                    List<DTOQuotationDetail> details = getQuotationDetails(quotation.getQuotationID());
+                    quotation.setQuotationDetails(details);
+
+                    quotations.add(quotation);
                 }
             }
         } catch (SQLException e) {
-            log.error("Error calculating final price vin={} dealerID={}", vin, dealerID, e);
+            log.error("Error fetching quotations by customer customerID={}", customerID, e);
         }
 
-        return BigDecimal.ZERO;
+        return quotations;
     }
 
-    // 🔥 QUOTATION DETAIL MANAGEMENT: Insert QuotationDetail
-    public boolean insertQuotationDetail(int quotationID, String vin, BigDecimal unitPrice, int quantity, int colorID) {
-        String sql = """
-                    INSERT INTO QuotationDetail (QuotationID, VIN, UnitPrice, Quantity, ColorID)
-                    VALUES (?, ?, ?, ?, ?)
-                """;
+    // ✅ Update quotation total amount
+    public boolean updateQuotationTotalAmount(int quotationID, double totalAmount) {
+        String sql = "UPDATE Quotation SET TotalAmount = ? WHERE QuotationID = ?";
+        log.debug("updateQuotationTotalAmount id={} totalAmount={}", quotationID, totalAmount);
 
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            ps.setInt(1, quotationID);
-            ps.setString(2, vin);
-            ps.setBigDecimal(3, unitPrice);
-            ps.setInt(4, quantity);
-            ps.setInt(5, colorID);
+            ps.setDouble(1, totalAmount);
+            ps.setInt(2, quotationID);
 
             int affectedRows = ps.executeUpdate();
             if (affectedRows > 0) {
-                log.info("QuotationDetail inserted quotationID={} vin={}", quotationID, vin);
+                log.info("Quotation total amount updated id={} -> {}", quotationID, totalAmount);
                 return true;
             } else {
-                log.warn("No QuotationDetail inserted quotationID={} vin={}", quotationID, vin);
+                log.warn("No quotation updated id={} totalAmount={}", quotationID, totalAmount);
                 return false;
             }
 
         } catch (SQLException e) {
-            log.error("Failed to insert QuotationDetail quotationID={} vin={}", quotationID, vin, e);
+            log.error("Failed updating quotation total amount id={} totalAmount={}", quotationID, totalAmount, e);
             return false;
         }
     }
 
-    // 🔥 QUOTATION DETAIL MANAGEMENT: Get QuotationDetails by QuotationID
+    // ✅ Insert QuotationDetail
+    public boolean insertQuotationDetail(DTOQuotationDetail detail) {
+        String sql = """
+                    INSERT INTO QuotationDetail (QuotationID, VersionID, ColorID, UnitPrice)
+                    VALUES (?, ?, ?, ?)
+                """;
+
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, detail.getQuotation().getQuotationID());
+            ps.setInt(2, detail.getVersion().getVersionID());
+            ps.setInt(3, detail.getColor().getColorID());
+            ps.setBigDecimal(4, detail.getUnitPrice());
+
+            int affectedRows = ps.executeUpdate();
+            if (affectedRows > 0) {
+                log.info("QuotationDetail inserted quotationID={} versionID={} colorID={}", 
+                        detail.getQuotation().getQuotationID(), 
+                        detail.getVersion().getVersionID(), 
+                        detail.getColor().getColorID());
+                return true;
+            } else {
+                log.warn("No QuotationDetail inserted quotationID={}", detail.getQuotation().getQuotationID());
+                return false;
+            }
+
+        } catch (SQLException e) {
+            log.error("Failed to insert QuotationDetail quotationID={}", detail.getQuotation().getQuotationID(), e);
+            return false;
+        }
+    }
+
+    // ✅ Get QuotationDetails by QuotationID
     public List<DTOQuotationDetail> getQuotationDetails(int quotationID) {
         List<DTOQuotationDetail> details = new ArrayList<>();
 
         String sql = """
-                    SELECT qd.QuotationDetailID, qd.QuotationID, qd.VIN, qd.UnitPrice, qd.Quantity, qd.ColorID,
-                           vc.ColorName, vm.ModelName
+                    SELECT qd.QuotationDetailID, qd.QuotationID, qd.VersionID, qd.ColorID, qd.UnitPrice,
+                           vv.VersionName,
+                           vc.ColorName,
+                           vm.ModelID, vm.ModelName
                     FROM QuotationDetail qd
+                    LEFT JOIN VehicleVersion vv ON qd.VersionID = vv.VersionID
                     LEFT JOIN VehicleColor vc ON qd.ColorID = vc.ColorID
-                    LEFT JOIN Vehicle v ON qd.VIN = v.VIN
-                    LEFT JOIN VehicleModel vm ON v.ModelID = vm.ModelID
+                    LEFT JOIN VehicleModel vm ON vv.ModelID = vm.ModelID
                     WHERE qd.QuotationID = ?
                 """;
 
@@ -580,13 +600,29 @@ public class DAOQuotation {
                 while (rs.next()) {
                     DTOQuotationDetail detail = new DTOQuotationDetail();
                     detail.setQuotationDetailID(rs.getInt("QuotationDetailID"));
-                    detail.setQuotationID(rs.getInt("QuotationID"));
-                    detail.setVIN(rs.getString("VIN"));
                     detail.setUnitPrice(rs.getBigDecimal("UnitPrice"));
-                    detail.setQuantity(rs.getInt("Quantity"));
-                    detail.setColorID(rs.getInt("ColorID"));
-                    detail.setColorName(rs.getString("ColorName"));
-                    detail.setModelName(rs.getString("ModelName"));
+
+                    // Set quotation relationship
+                    DTOQuotation quotation = new DTOQuotation();
+                    quotation.setQuotationID(rs.getInt("QuotationID"));
+                    detail.setQuotation(quotation);
+
+                    // Set version relationship
+                    if (rs.getString("VersionName") != null) {
+                        DTOVehicleVersion version = new DTOVehicleVersion();
+                        version.setVersionID(rs.getInt("VersionID"));
+                        version.setVersionName(rs.getString("VersionName"));
+                        detail.setVersion(version);
+                    }
+
+                    // Set color relationship
+                    if (rs.getString("ColorName") != null) {
+                        DTOVehicleColor color = new DTOVehicleColor();
+                        color.setColorID(rs.getInt("ColorID"));
+                        color.setColorName(rs.getString("ColorName"));
+                        detail.setColor(color);
+                    }
+
                     details.add(detail);
                 }
             }
@@ -595,5 +631,60 @@ public class DAOQuotation {
         }
 
         return details;
+    }
+
+    // ✅ Update QuotationDetail
+    public boolean updateQuotationDetail(DTOQuotationDetail detail) {
+        String sql = """
+                    UPDATE QuotationDetail 
+                    SET VersionID = ?, ColorID = ?, UnitPrice = ?
+                    WHERE QuotationDetailID = ?
+                """;
+
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, detail.getVersion().getVersionID());
+            ps.setInt(2, detail.getColor().getColorID());
+            ps.setBigDecimal(3, detail.getUnitPrice());
+            ps.setInt(4, detail.getQuotationDetailID());
+
+            int affectedRows = ps.executeUpdate();
+            if (affectedRows > 0) {
+                log.info("QuotationDetail updated id={}", detail.getQuotationDetailID());
+                return true;
+            } else {
+                log.warn("No QuotationDetail updated id={}", detail.getQuotationDetailID());
+                return false;
+            }
+
+        } catch (SQLException e) {
+            log.error("Failed to update QuotationDetail id={}", detail.getQuotationDetailID(), e);
+            return false;
+        }
+    }
+
+    // ✅ Delete QuotationDetail
+    public boolean deleteQuotationDetail(int quotationDetailID) {
+        String sql = "DELETE FROM QuotationDetail WHERE QuotationDetailID = ?";
+
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, quotationDetailID);
+
+            int affectedRows = ps.executeUpdate();
+            if (affectedRows > 0) {
+                log.info("QuotationDetail deleted id={}", quotationDetailID);
+                return true;
+            } else {
+                log.warn("No QuotationDetail deleted id={}", quotationDetailID);
+                return false;
+            }
+
+        } catch (SQLException e) {
+            log.error("Failed to delete QuotationDetail id={}", quotationDetailID, e);
+            return false;
+        }
     }
 }

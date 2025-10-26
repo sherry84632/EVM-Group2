@@ -1,36 +1,62 @@
 package com.dealermanagementsysstem.project.Model;
 
+import jakarta.persistence.*;
 import java.math.BigDecimal;
 
+@Entity
+@Table(name = "Vehicle")
 public class DTOVehicle {
 
+    @Id
+    @Column(name = "VIN")
     private String VIN;
+    
+    @ManyToOne
+    @JoinColumn(name = "ColorID", referencedColumnName = "ColorID")
+    private DTOVehicleColor color;
+    
+    @ManyToOne
+    @JoinColumn(name = "VersionID", referencedColumnName = "VersionID")
+    private DTOVehicleVersion version;
+    
+    @Column(name = "ManufactureYear")
     private int manufactureYear;
-    private int colorID;
+    
+    @Column(name = "EngineNumber")
     private String engineNumber;
-    private String currentOwner;
-    private String status;
-    private int modelID;
-    private String modelName;
-    private BigDecimal basePrice;
-    private String colorName;
+    
+    @ManyToOne
+    @JoinColumn(name = "OwnerID", referencedColumnName = "CustomerID")
+    private DTOCustomer owner;
+    
+    @ManyToOne
+    @JoinColumn(name = "CurrentDealerID", referencedColumnName = "DealerID")
+    private DTODealer currentDealer;
+    
+    @Column(name = "Status")
+    @Enumerated(EnumType.STRING)
+    private VehicleStatus status;
+    
+    @Column(name = "CreatedAt")
+    private java.sql.Timestamp createdAt;
+    
+    @Column(name = "UpdatedAt")
+    private java.sql.Timestamp updatedAt;
 
     public DTOVehicle() {
     }
 
-    public DTOVehicle(String VIN, int manufactureYear, int colorID, String engineNumber,
-                      String currentOwner, String status, int modelID, String modelName,
-                      BigDecimal basePrice, String colorName) {
+    public DTOVehicle(String VIN, DTOVehicleColor color, DTOVehicleVersion version,
+                      int manufactureYear, String engineNumber, DTOCustomer owner, 
+                      DTODealer currentDealer, VehicleStatus status) {
         this.VIN = VIN;
+        this.color = color;
+        this.version = version;
         this.manufactureYear = manufactureYear;
-        this.colorID = colorID;
         this.engineNumber = engineNumber;
-        this.currentOwner = currentOwner;
+        this.owner = owner;
+        this.currentDealer = currentDealer;
         this.status = status;
-        this.modelID = modelID;
-        this.modelName = modelName;
-        this.basePrice = basePrice;
-        this.colorName = colorName;
     }
 
     public String getVIN() {
@@ -49,12 +75,12 @@ public class DTOVehicle {
         this.manufactureYear = manufactureYear;
     }
 
-    public int getColorID() {
-        return colorID;
+    public DTOVehicleColor getColor() {
+        return color;
     }
 
-    public void setColorID(int colorID) {
-        this.colorID = colorID;
+    public void setColor(DTOVehicleColor color) {
+        this.color = color;
     }
 
     public String getEngineNumber() {
@@ -65,51 +91,85 @@ public class DTOVehicle {
         this.engineNumber = engineNumber;
     }
 
-    public String getCurrentOwner() {
-        return currentOwner;
+    public DTOCustomer getOwner() {
+        return owner;
     }
 
-    public void setCurrentOwner(String currentOwner) {
-        this.currentOwner = currentOwner;
+    public void setOwner(DTOCustomer owner) {
+        this.owner = owner;
     }
 
-    public String getStatus() {
+    public VehicleStatus getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(VehicleStatus status) {
         this.status = status;
     }
 
-    public int getModelID() {
-        return modelID;
+    public DTOVehicleVersion getVersion() {
+        return version;
     }
 
-    public void setModelID(int modelID) {
-        this.modelID = modelID;
+    public void setVersion(DTOVehicleVersion version) {
+        this.version = version;
     }
 
+    public DTODealer getCurrentDealer() {
+        return currentDealer;
+    }
+
+    public void setCurrentDealer(DTODealer currentDealer) {
+        this.currentDealer = currentDealer;
+    }
+    
+    public java.sql.Timestamp getCreatedAt() {
+        return createdAt;
+    }
+    
+    public void setCreatedAt(java.sql.Timestamp createdAt) {
+        this.createdAt = createdAt;
+    }
+    
+    public java.sql.Timestamp getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(java.sql.Timestamp updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    // === CONVENIENCE METHODS FOR THYMELEAF TEMPLATES ===
+    
+    /**
+     * Convenience method to access model through version relationship
+     * Usage in Thymeleaf: ${vehicle.model} instead of ${vehicle.version.model}
+     */
+    public DTOVehicleModel getModel() {
+        return version != null ? version.getModel() : null;
+    }
+    
+    /**
+     * Convenience method to access model name
+     * Usage in Thymeleaf: ${vehicle.modelName}
+     */
     public String getModelName() {
-        return modelName;
+        return version != null && version.getModel() != null ? version.getModel().getModelName() : null;
     }
-
-    public void setModelName(String modelName) {
-        this.modelName = modelName;
-    }
-
-    public BigDecimal getBasePrice() {
-        return basePrice;
-    }
-
-    public void setBasePrice(BigDecimal basePrice) {
-        this.basePrice = basePrice;
-    }
-
+    
+    /**
+     * Convenience method to access color name
+     * Usage in Thymeleaf: ${vehicle.colorName}
+     */
     public String getColorName() {
-        return colorName;
+        return color != null ? color.getColorName() : null;
     }
-
-    public void setColorName(String colorName) {
-        this.colorName = colorName;
+    
+    /**
+     * Convenience method to access version name
+     * Usage in Thymeleaf: ${vehicle.versionName}
+     */
+    public String getVersionName() {
+        return version != null ? version.getVersionName() : null;
     }
 }

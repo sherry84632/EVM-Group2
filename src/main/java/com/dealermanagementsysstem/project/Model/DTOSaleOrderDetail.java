@@ -1,39 +1,49 @@
 package com.dealermanagementsysstem.project.Model;
 
+import jakarta.persistence.*;
 import java.math.BigDecimal;
 
+@Entity
+@Table(name = "SaleOrderDetail")
 public class DTOSaleOrderDetail {
+    
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "SODetailID")
     private int soDetailID;
-    private int saleOrderID;
+    
+    @ManyToOne
+    @JoinColumn(name = "SaleOrderID", referencedColumnName = "SaleOrderID")
+    private DTOSaleOrder saleOrder;
+    
+    @ManyToOne
+    @JoinColumn(name = "VIN", referencedColumnName = "VIN")
     private DTOVehicle vehicle;
+    
+    @Column(name = "Price")
     private BigDecimal price;
-    private int quantity;
-    private int quotationID;
+    
+    @ManyToOne
+    @JoinColumn(name = "PolicyID", referencedColumnName = "PolicyID")
+    private DTODiscountPolicy discountPolicy;
     public DTOSaleOrderDetail() {
     }
 
-    public DTOSaleOrderDetail(int soDetailID, int saleOrderID, DTOVehicle vehicle, BigDecimal price, int quantity) {
+    public DTOSaleOrderDetail(int soDetailID, DTOSaleOrder saleOrder, DTOVehicle vehicle, BigDecimal price, 
+                              DTODiscountPolicy discountPolicy) {
         this.soDetailID = soDetailID;
-        this.saleOrderID = saleOrderID;
+        this.saleOrder = saleOrder;
         this.vehicle = vehicle;
         this.price = price;
-        this.quantity = quantity;
+        this.discountPolicy = discountPolicy;
     }
 
-    public int getQuotationID() {
-        return quotationID;
+    public DTOSaleOrder getSaleOrder() {
+        return saleOrder;
     }
 
-    public void setQuotationID(int quotationID) {
-        this.quotationID = quotationID;
-    }
-
-    public int getQuantity() {
-        return quantity;
-    }
-
-    public void setQuantity(int quantity) {
-        this.quantity = quantity;
+    public void setSaleOrder(DTOSaleOrder saleOrder) {
+        this.saleOrder = saleOrder;
     }
 
     public int getSoDetailID() {
@@ -44,13 +54,14 @@ public class DTOSaleOrderDetail {
         this.soDetailID = soDetailID;
     }
 
-    public int getSaleOrderID() {
-        return saleOrderID;
+    public DTODiscountPolicy getDiscountPolicy() {
+        return discountPolicy;
     }
 
-    public void setSaleOrderID(int saleOrderID) {
-        this.saleOrderID = saleOrderID;
+    public void setDiscountPolicy(DTODiscountPolicy discountPolicy) {
+        this.discountPolicy = discountPolicy;
     }
+
 
     public DTOVehicle getVehicle() {
         return vehicle;

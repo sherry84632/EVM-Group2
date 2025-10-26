@@ -52,7 +52,13 @@ public class LoginController {
             if (account != null) {
                 // ✅ Lưu account vào session
                 session.setAttribute("loggedInAccount", account);
-                System.out.println("✅ [LOGIN SUCCESS] " + email + " (DealerID=" + account.getDealerId() + ")");
+                
+                // ✅ Safe logging with null checks
+                if (account.getDealerStaff() != null) {
+                    System.out.println("✅ [LOGIN SUCCESS] " + email + " (StaffID=" + account.getDealerStaff().getStaffID() + ")");
+                } else {
+                    System.out.println("✅ [LOGIN SUCCESS] " + email + " (Role=" + account.getRole() + ")");
+                }
             } else {
                 System.out.println("⚠️ Không tìm thấy account cho email: " + email);
             }

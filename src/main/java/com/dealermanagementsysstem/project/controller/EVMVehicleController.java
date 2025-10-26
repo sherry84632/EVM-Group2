@@ -23,20 +23,20 @@ import jakarta.servlet.http.HttpServletRequest;
 @RequestMapping("/evm/vehicle")
 public class EVMVehicleController {
 
-    private final DAOEVMVehicle dao = new DAOEVMVehicle();
+    private final DAOVehicle dao = new DAOVehicle();
 
     // ===========================
     // 1️⃣ Danh sách xe
     // ===========================
     @GetMapping("/list")
     public String listVehicles(@RequestParam(value = "keyword", required = false) String keyword, Model model) {
-        List<DTOEVMVehicle> vehicles;
+        List<DTOVehicle> vehicles;
 
         if (keyword != null && !keyword.trim().isEmpty()) {
             vehicles = dao.searchVehiclesByModelName(keyword);
             model.addAttribute("keyword", keyword);
         } else {
-            vehicles = dao.getAllVehicles();
+            vehicles = dao.getVehicles();
         }
 
         model.addAttribute("vehicles", vehicles);
@@ -62,7 +62,7 @@ public class EVMVehicleController {
     // ===========================
     @GetMapping("/detail/{vin}")
     public String vehicleDetail(@PathVariable("vin") String vin, Model model) {
-        DTOEVMVehicle vehicle = dao.getVehicleByVIN(vin);
+        DTOVehicle vehicle = dao.getVehicleByVIN(vin);
         if (vehicle == null) {
             model.addAttribute("error", "Vehicle not found for VIN: " + vin);
             return "evmPage/vehicleList";
@@ -93,20 +93,66 @@ public class EVMVehicleController {
     }
 
     // ===========================
-// ✅ Trả ảnh model theo VIN
-// ===========================
+    // ✅ Trả ảnh vehicle theo VIN (từ file system)
+    // ===========================
     @GetMapping("/showImage/{vin}")
     @ResponseBody
     public ResponseEntity<byte[]> showVehicleImage(@PathVariable("vin") String vin) {
-        DTOEVMVehicle vehicle = dao.getVehicleByVIN(vin);
-        if (vehicle == null || vehicle.getModel() == null || vehicle.getModel().getModelImage() == null) {
+        try {
+            // Look for image file in uploads directory
+            String uploadDir = "src/main/resources/static/uploads/vehicle/";
+            Path uploadPath = Paths.get(uploadDir);
+            
+            if (Files.exists(uploadPath)) {
+                // Search for files that might contain the VIN in the name
+                Files.list(uploadPath)
+                    .filter(path -> path.getFileName().toString().contains(vin))
+                    .findFirst()
+                    .ifPresent(imagePath -> {
+                        try {
+                            byte[] imageBytes = Files.readAllBytes(imagePath);
+                            ResponseEntity.ok()
+                                .header("Content-Type", "image/jpeg")
+                                .body(imageBytes);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    });
+            }
+            
+            // If no specific image found, return a default image or 404
+            return ResponseEntity.notFound().build();
+            
+        } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.notFound().build();
         }
-        byte[] imageBytes = vehicle.getModel().getModelImage();
-        return ResponseEntity
-                .ok()
-                .header("Content-Type", "image/jpeg")
-                .body(imageBytes);
+    }
+
+    // ===========================
+    // ✅ Trả ảnh vehicle theo filename
+    // ===========================
+    @GetMapping("/image/{filename}")
+    @ResponseBody
+    public ResponseEntity<byte[]> getVehicleImage(@PathVariable("filename") String filename) {
+        try {
+            String uploadDir = "src/main/resources/static/uploads/vehicle/";
+            Path imagePath = Paths.get(uploadDir, filename);
+            
+            if (Files.exists(imagePath)) {
+                byte[] imageBytes = Files.readAllBytes(imagePath);
+                return ResponseEntity
+                    .ok()
+                    .header("Content-Type", "image/jpeg")
+                    .body(imageBytes);
+            }
+            
+            return ResponseEntity.notFound().build();
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.notFound().build();
+        }
     }
 
     // ===========================
@@ -123,31 +169,57 @@ public class EVMVehicleController {
     @PostMapping("/create")
     public String createVehicle(
             @RequestParam("vin") String vin,
-            @RequestParam("modelName") String modelName,
-            @RequestParam("brand") String brand,
-            @RequestParam("bodyType") String bodyType,
-            @RequestParam("year") int year,
-            @RequestParam("description") String description,
-            @RequestParam("basePrice") BigDecimal basePrice,
-            @RequestParam("versionName") String versionName,
-            @RequestParam("engine") String engine,
-            @RequestParam("transmission") String transmission,
             @RequestParam("colorName") String colorName,
-            @RequestParam("manufactureDate") @DateTimeFormat(pattern = "yyyy-MM-dd") Date manufactureDate,
+            @RequestParam("modelName") String modelName,
+            @RequestParam("manufactureYear") int manufactureYear,
+            @RequestParam("engineNumber") String engineNumber,
+            @RequestParam("ownerID") int ownerID,
+            @RequestParam("currentDealerID") int currentDealerID,
+            @RequestParam("versionID") int versionID,
             @RequestParam("status") String status,
-            @RequestParam("evmID") int evmID,
             @RequestParam(value = "thumbnail", required = false) MultipartFile thumbnail,
             Model model
     ) {
         System.out.println("🔍 [DEBUG] EVMVehicleController.createVehicle called");
         System.out.println("🔍 [DEBUG] VIN: " + vin);
-        System.out.println("🔍 [DEBUG] Model: " + modelName);
         System.out.println("🔍 [DEBUG] Status: " + status);
         System.out.println("🔍 [DEBUG] Request reached controller successfully - CSRF disabled for testing");
         
         try {
-            // === Upload thumbnail (nếu có) ===
-            byte[] thumbnailBytes = null;
+            // === Create DTOVehicle object ===
+            DTOVehicle vehicle = new DTOVehicle();
+            vehicle.setVIN(vin);
+            vehicle.setManufactureYear(manufactureYear);
+            vehicle.setEngineNumber(engineNumber);
+            vehicle.setStatus(VehicleStatus.valueOf(status));
+            vehicle.setCreatedAt(new java.sql.Timestamp(System.currentTimeMillis()));
+            vehicle.setUpdatedAt(new java.sql.Timestamp(System.currentTimeMillis()));
+
+            // === Set relationships (simplified for now) ===
+            // Note: In a real implementation, you would fetch these entities from their respective DAOs
+            // For now, we'll create minimal objects with just the IDs
+            
+            // Set color relationship
+            DTOVehicleColor color = new DTOVehicleColor();
+            color.setColorName(colorName);
+            vehicle.setColor(color);
+
+            // Set version relationship
+            DTOVehicleVersion version = new DTOVehicleVersion();
+            version.setVersionID(versionID);
+            vehicle.setVersion(version);
+
+            // Set owner relationship
+            DTOCustomer owner = new DTOCustomer();
+            owner.setCustomerID(ownerID);
+            vehicle.setOwner(owner);
+
+            // Set current dealer relationship
+            DTODealer currentDealer = new DTODealer();
+            currentDealer.setDealerID(currentDealerID);
+            vehicle.setCurrentDealer(currentDealer);
+
+            // === Handle image upload ===
             if (thumbnail != null && !thumbnail.isEmpty()) {
                 String uploadDir = "src/main/resources/static/uploads/vehicle/";
                 String fileName = System.currentTimeMillis() + "_" + thumbnail.getOriginalFilename();
@@ -159,24 +231,17 @@ public class EVMVehicleController {
 
                 Path filePath = uploadPath.resolve(fileName);
                 Files.copy(thumbnail.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-
-                // ✅ Đọc file thành byte[]
-                thumbnailBytes = Files.readAllBytes(filePath);
+                
+                // Store image path in a field or handle as needed
+                // For now, we'll just log the successful upload
+                System.out.println("✅ [SUCCESS] Image uploaded: " + fileName);
             }
 
-            // === Gọi DAO xử lý thêm mới ===
-            boolean created = dao.createVehicle(
-                    vin, modelName, brand, bodyType, year,
-                    description, basePrice, versionName,
-                    engine, transmission, colorName,
-                    manufactureDate, status, evmID, thumbnailBytes
-            );
+            // === Call DAO to insert vehicle ===
+            dao.insertVehicle(vehicle);
 
-            if (!created) {
-                model.addAttribute("success", false);
-                model.addAttribute("message", "❌ Failed to create vehicle. Please try again.");
-                return "evmPage/createANewVehicleToList";
-            }
+            model.addAttribute("success", true);
+            model.addAttribute("message", "✅ Vehicle created successfully!");
 
         } catch (IOException e) {
             model.addAttribute("success", false);
@@ -200,7 +265,7 @@ public class EVMVehicleController {
     public String showEditForm(@PathVariable("vin") String vin, Model model) {
         System.out.println("🔍 [DEBUG] EVMVehicleController.showEditForm called with VIN: " + vin);
         
-        DTOEVMVehicle vehicle = dao.getVehicleByVIN(vin);
+        DTOVehicle vehicle = dao.getVehicleByVIN(vin);
         if (vehicle == null) {
             System.out.println("❌ [ERROR] Vehicle not found for VIN: " + vin);
             model.addAttribute("error", "Vehicle not found for VIN: " + vin);
@@ -208,7 +273,7 @@ public class EVMVehicleController {
             return "evmPage/editVehicle";
         }
         
-        System.out.println("✅ [SUCCESS] Vehicle found: " + vehicle.getModel().getModelName());
+        System.out.println("✅ [SUCCESS] Vehicle found: " + (vehicle.getVersion() != null && vehicle.getVersion().getModel() != null ? vehicle.getVersion().getModel().getModelName() : "Unknown"));
         model.addAttribute("vehicle", vehicle);
         return "evmPage/editVehicle";
     }
@@ -219,27 +284,55 @@ public class EVMVehicleController {
     @PostMapping("/edit/{vin}")
     public String updateVehicle(
             @PathVariable("vin") String vin,
-            @RequestParam("modelName") String modelName,
-            @RequestParam("brand") String brand,
-            @RequestParam("bodyType") String bodyType,
-            @RequestParam("year") int year,
-            @RequestParam("description") String description,
-            @RequestParam("basePrice") BigDecimal basePrice,
-            @RequestParam("versionName") String versionName,
-            @RequestParam("engine") String engine,
-            @RequestParam("transmission") String transmission,
             @RequestParam("colorName") String colorName,
-            @RequestParam("manufactureDate") @DateTimeFormat(pattern = "yyyy-MM-dd") Date manufactureDate,
+            @RequestParam("modelName") String modelName,
+            @RequestParam("manufactureYear") int manufactureYear,
+            @RequestParam("engineNumber") String engineNumber,
+            @RequestParam("ownerID") int ownerID,
+            @RequestParam("currentDealerID") int currentDealerID,
+            @RequestParam("versionID") int versionID,
             @RequestParam("status") String status,
-            @RequestParam("evmID") int evmID,
             @RequestParam(value = "thumbnail", required = false) MultipartFile thumbnail,
             Model model
     ) {
         System.out.println("🔍 [DEBUG] EVMVehicleController.updateVehicle called with VIN: " + vin);
         System.out.println("🔍 [DEBUG] Status value: " + status);
         try {
-            // === Upload thumbnail (nếu có) ===
-            byte[] thumbnailBytes = null;
+            // === Get existing vehicle ===
+            DTOVehicle existingVehicle = dao.getVehicleByVIN(vin);
+            if (existingVehicle == null) {
+                model.addAttribute("error", "❌ Vehicle not found.");
+                return "evmPage/editVehicle";
+            }
+
+            // === Update vehicle properties ===
+            existingVehicle.setManufactureYear(manufactureYear);
+            existingVehicle.setEngineNumber(engineNumber);
+            existingVehicle.setStatus(VehicleStatus.valueOf(status));
+            existingVehicle.setUpdatedAt(new java.sql.Timestamp(System.currentTimeMillis()));
+
+            // === Update relationships ===
+            // Set color relationship
+            DTOVehicleColor color = new DTOVehicleColor();
+            color.setColorName(colorName);
+            existingVehicle.setColor(color);
+
+            // Set version relationship
+            DTOVehicleVersion version = new DTOVehicleVersion();
+            version.setVersionID(versionID);
+            existingVehicle.setVersion(version);
+
+            // Set owner relationship
+            DTOCustomer owner = new DTOCustomer();
+            owner.setCustomerID(ownerID);
+            existingVehicle.setOwner(owner);
+
+            // Set current dealer relationship
+            DTODealer currentDealer = new DTODealer();
+            currentDealer.setDealerID(currentDealerID);
+            existingVehicle.setCurrentDealer(currentDealer);
+
+            // === Handle image upload ===
             if (thumbnail != null && !thumbnail.isEmpty()) {
                 String uploadDir = "src/main/resources/static/uploads/vehicle/";
                 String fileName = System.currentTimeMillis() + "_" + thumbnail.getOriginalFilename();
@@ -251,29 +344,20 @@ public class EVMVehicleController {
 
                 Path filePath = uploadPath.resolve(fileName);
                 Files.copy(thumbnail.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-
-                // ✅ Đọc file thành byte[]
-                thumbnailBytes = Files.readAllBytes(filePath);
-            } else {
-                // Nếu không có thumbnail mới, giữ nguyên thumbnail cũ
-                DTOEVMVehicle existingVehicle = dao.getVehicleByVIN(vin);
-                if (existingVehicle != null && existingVehicle.getModel() != null) {
-                    thumbnailBytes = existingVehicle.getModel().getModelImage();
-                }
+                
+                System.out.println("✅ [SUCCESS] Image updated: " + fileName);
             }
 
-            // === Gọi DAO xử lý cập nhật ===
-            boolean updated = dao.updateVehicle(
-                    vin, modelName, brand, bodyType, year,
-                    description, basePrice, versionName,
-                    engine, transmission, colorName,
-                    new java.sql.Date(manufactureDate.getTime()), status, evmID, thumbnailBytes
-            );
+            // === Call DAO to update vehicle ===
+            boolean updated = dao.updateVehicle(existingVehicle);
 
             if (!updated) {
                 model.addAttribute("error", "❌ Failed to update vehicle. Please try again.");
                 return "evmPage/editVehicle";
             }
+
+            model.addAttribute("success", true);
+            model.addAttribute("message", "✅ Vehicle updated successfully!");
 
         } catch (IOException e) {
             model.addAttribute("error", "⚠️ Error uploading thumbnail: " + e.getMessage());
@@ -305,7 +389,7 @@ public class EVMVehicleController {
         
         try {
             // Check if vehicle exists before attempting deletion
-            DTOEVMVehicle existingVehicle = dao.getVehicleByVIN(vin);
+            DTOVehicle existingVehicle = dao.getVehicleByVIN(vin);
             if (existingVehicle == null) {
                 System.out.println("❌ [ERROR] Vehicle not found: " + vin);
                 model.addAttribute("error", "❌ Vehicle not found.");
@@ -317,7 +401,9 @@ public class EVMVehicleController {
             
             if (deleted) {
                 System.out.println("✅ [SUCCESS] Vehicle deleted successfully: " + vin);
-                model.addAttribute("message", "✅ Vehicle '" + existingVehicle.getModel().getModelName() + "' deleted successfully!");
+                String vehicleName = (existingVehicle.getVersion() != null && existingVehicle.getVersion().getModel() != null) 
+                    ? existingVehicle.getVersion().getModel().getModelName() : "Unknown";
+                model.addAttribute("message", "✅ Vehicle '" + vehicleName + "' deleted successfully!");
             } else {
                 System.out.println("❌ [FAILED] Failed to delete vehicle: " + vin);
                 model.addAttribute("error", "❌ Failed to delete vehicle. Please try again.");

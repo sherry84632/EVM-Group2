@@ -47,8 +47,8 @@ public class DAOCustomer {
 
                 c.setNote(rs.getString("Note"));
 
-                Timestamp ts = rs.getTimestamp("TestDriveSchedule");
-                c.setTestDriveSchedule(ts != null ? ts.toLocalDateTime() : null);
+                Timestamp updatedAt = rs.getTimestamp("UpdatedAt");
+                c.setUpdatedAt(updatedAt != null ? updatedAt.toLocalDateTime() : null);
 
                 c.setVehicleInterest(rs.getString("VehicleInterest"));
                 list.add(c);
@@ -63,25 +63,26 @@ public class DAOCustomer {
     // ✅ Thêm mới Customer
     public boolean insertCustomer(DTOCustomer c) {
         String sql = """
-            INSERT INTO Customer (FullName, Phone, Email, Address, CreatedAt, BirthDate, Note, TestDriveSchedule, VehicleInterest)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO Customer (DealerID, FullName, Phone, Email, Address, CreatedAt, UpdatedAt, BirthDate, Note, VehicleInterest)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """;
 
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            ps.setString(1, c.getFullName());
-            ps.setString(2, c.getPhone());
-            ps.setString(3, c.getEmail());
-            ps.setString(4, c.getAddress());
+            ps.setInt(1, c.getDealer() != null ? c.getDealer().getDealerID() : 1); // Default dealer if null
+            ps.setString(2, c.getFullName());
+            ps.setString(3, c.getPhone());
+            ps.setString(4, c.getEmail());
+            ps.setString(5, c.getAddress());
 
             // ✅ LocalDateTime -> Timestamp
-            ps.setTimestamp(5, c.getCreatedAt() != null ? Timestamp.valueOf(c.getCreatedAt()) : null);
+            ps.setTimestamp(6, c.getCreatedAt() != null ? Timestamp.valueOf(c.getCreatedAt()) : null);
+            ps.setTimestamp(7, c.getUpdatedAt() != null ? Timestamp.valueOf(c.getUpdatedAt()) : null);
 
-            ps.setDate(6, c.getBirthDate() != null ? java.sql.Date.valueOf(c.getBirthDate()) : null);
-            ps.setString(7, c.getNote());
-            ps.setTimestamp(8, c.getTestDriveSchedule() != null ? Timestamp.valueOf(c.getTestDriveSchedule()) : null);
-            ps.setString(9, c.getVehicleInterest());
+            ps.setDate(8, c.getBirthDate() != null ? java.sql.Date.valueOf(c.getBirthDate()) : null);
+            ps.setString(9, c.getNote());
+            ps.setString(10, c.getVehicleInterest());
 
             int rows = ps.executeUpdate();
             if (rows > 0) {
@@ -100,23 +101,24 @@ public class DAOCustomer {
     public boolean updateCustomer(DTOCustomer c) {
         String sql = """
             UPDATE Customer 
-            SET FullName=?, Phone=?, Email=?, Address=?, CreatedAt=?, BirthDate=?, Note=?, TestDriveSchedule=?, VehicleInterest=? 
+            SET DealerID=?, FullName=?, Phone=?, Email=?, Address=?, CreatedAt=?, UpdatedAt=?, BirthDate=?, Note=?, VehicleInterest=? 
             WHERE CustomerID=?
         """;
 
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            ps.setString(1, c.getFullName());
-            ps.setString(2, c.getPhone());
-            ps.setString(3, c.getEmail());
-            ps.setString(4, c.getAddress());
-            ps.setTimestamp(5, c.getCreatedAt() != null ? Timestamp.valueOf(c.getCreatedAt()) : null);
-            ps.setDate(6, c.getBirthDate() != null ? java.sql.Date.valueOf(c.getBirthDate()) : null);
-            ps.setString(7, c.getNote());
-            ps.setTimestamp(8, c.getTestDriveSchedule() != null ? Timestamp.valueOf(c.getTestDriveSchedule()) : null);
-            ps.setString(9, c.getVehicleInterest());
-            ps.setInt(10, c.getCustomerID());
+            ps.setInt(1, c.getDealer() != null ? c.getDealer().getDealerID() : 1); // Default dealer if null
+            ps.setString(2, c.getFullName());
+            ps.setString(3, c.getPhone());
+            ps.setString(4, c.getEmail());
+            ps.setString(5, c.getAddress());
+            ps.setTimestamp(6, c.getCreatedAt() != null ? Timestamp.valueOf(c.getCreatedAt()) : null);
+            ps.setTimestamp(7, c.getUpdatedAt() != null ? Timestamp.valueOf(c.getUpdatedAt()) : null);
+            ps.setDate(8, c.getBirthDate() != null ? java.sql.Date.valueOf(c.getBirthDate()) : null);
+            ps.setString(9, c.getNote());
+            ps.setString(10, c.getVehicleInterest());
+            ps.setInt(11, c.getCustomerID());
 
             int updated = ps.executeUpdate();
             if (updated > 0) {
@@ -178,8 +180,8 @@ public class DAOCustomer {
 
                     c.setNote(rs.getString("Note"));
 
-                    Timestamp ts = rs.getTimestamp("TestDriveSchedule");
-                    c.setTestDriveSchedule(ts != null ? ts.toLocalDateTime() : null);
+                    Timestamp updatedAt = rs.getTimestamp("UpdatedAt");
+                    c.setUpdatedAt(updatedAt != null ? updatedAt.toLocalDateTime() : null);
 
                     c.setVehicleInterest(rs.getString("VehicleInterest"));
                     list.add(c);
@@ -218,8 +220,8 @@ public class DAOCustomer {
 
                     c.setNote(rs.getString("Note"));
 
-                    Timestamp ts = rs.getTimestamp("TestDriveSchedule");
-                    c.setTestDriveSchedule(ts != null ? ts.toLocalDateTime() : null);
+                    Timestamp updatedAt = rs.getTimestamp("UpdatedAt");
+                    c.setUpdatedAt(updatedAt != null ? updatedAt.toLocalDateTime() : null);
 
                     c.setVehicleInterest(rs.getString("VehicleInterest"));
                 }
@@ -230,4 +232,6 @@ public class DAOCustomer {
         }
         return c;
     }
+
+    // ✅ Lấy Customer theo ID (for CreateController)
 }

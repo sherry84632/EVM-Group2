@@ -14,8 +14,8 @@ public class DAODealerPriceAdjustment {
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            ps.setInt(1, dto.getDealerID());
-            ps.setInt(2, dto.getModelID());
+            ps.setInt(1, dto.getDealer().getDealerID());
+            ps.setInt(2, dto.getVehicleModel().getModelID());
             ps.setObject(3, dto.getDiscountAmount());
             ps.setObject(4, dto.getDiscountPercent());
             ps.setDate(5, Date.valueOf(dto.getStartDate()));
@@ -42,8 +42,8 @@ public class DAODealerPriceAdjustment {
             while (rs.next()) {
                 DTODealerPriceAdjustment dto = new DTODealerPriceAdjustment(
                         rs.getInt("AdjustmentID"),
-                        rs.getInt("DealerID"),
-                        rs.getInt("ModelID"),
+                        rs.getObject("DealerID",DTODealer.class),
+                        rs.getObject("ModelID",DTOVehicleModel.class),
                         rs.getObject("DiscountAmount", Double.class),
                         rs.getObject("DiscountPercent", Double.class),
                         rs.getDate("StartDate").toLocalDate(),
@@ -72,8 +72,8 @@ public class DAODealerPriceAdjustment {
             while (rs.next()) {
                 DTODealerPriceAdjustment dto = new DTODealerPriceAdjustment(
                         rs.getInt("AdjustmentID"),
-                        rs.getInt("DealerID"),
-                        rs.getInt("ModelID"),
+                        rs.getObject("DealerID",DTODealer.class),
+                        rs.getObject("ModelID",DTOVehicleModel.class),
                         rs.getObject("DiscountAmount", Double.class),
                         rs.getObject("DiscountPercent", Double.class),
                         rs.getDate("StartDate").toLocalDate(),

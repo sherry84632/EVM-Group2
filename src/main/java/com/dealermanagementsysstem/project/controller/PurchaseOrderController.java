@@ -1,8 +1,6 @@
 package com.dealermanagementsysstem.project.controller;
 
-import com.dealermanagementsysstem.project.Model.DAOPurchaseOrder;
-import com.dealermanagementsysstem.project.Model.DAOPurchaseOrderDetail;
-import com.dealermanagementsysstem.project.Model.DTOPurchaseOrder;
+import com.dealermanagementsysstem.project.Model.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
@@ -106,15 +104,48 @@ public class PurchaseOrderController {
 
             //Tạo đơn hàng mới
             DTOPurchaseOrder order = new DTOPurchaseOrder();
-            order.setDealerId(dealerId);
-            order.setStaffId(staffId);
-            order.setStatus(status != null ? status : "Pending");
+            
+            // Set dealer relationship
+            DTODealer dealer = new DTODealer();
+            dealer.setDealerID(dealerId);
+            order.setDealer(dealer);
+            
+            // Set staff relationship
+            DTODealerStaff staff = new DTODealerStaff();
+            staff.setStaffID(staffId);
+            order.setStaff(staff);
+            
+            order.setStatus(PurchaseOrderStatus.valueOf(status != null ? status.toUpperCase() : "REQUESTED"));
             order.setCreatedAt(new Timestamp(System.currentTimeMillis()));
+            order.setTotalAmount(java.math.BigDecimal.ZERO); // Will be calculated from details
+            order.setEvmID(1); // Default EVM ID
 
             // ✅ Ghi vào DB
             int newOrderId = daoPurchaseOrder.insertPurchaseOrder(order);
 
             if (newOrderId > 0) {
+                // Create purchase order detail with proper entity relationships
+                DTOPurchaseOrderDetail detail = new DTOPurchaseOrderDetail();
+                
+                // Set purchase order relationship
+                DTOPurchaseOrder purchaseOrder = new DTOPurchaseOrder();
+                purchaseOrder.setPurchaseOrderId(newOrderId);
+                detail.setPurchaseOrder(purchaseOrder);
+                
+                // Set color relationship
+                DTOVehicleColor color = new DTOVehicleColor();
+                color.setColorID(colorId);
+                detail.setColor(color);
+                
+                // Set version relationship
+                DTOVehicleVersion versionObj = new DTOVehicleVersion();
+                versionObj.setVersionID(Integer.parseInt(version)); // Assuming version is ID
+                detail.setVersion(versionObj);
+                
+                detail.setUnitPrice(java.math.BigDecimal.ZERO); // Will be set by business logic
+                detail.setQuantity(quantity);
+                detail.setSubtotal(java.math.BigDecimal.ZERO); // Will be calculated
+                
                 boolean added = daoPurchaseOrderDetail.insertOrderDetail(
                         newOrderId, modelId, colorId, quantity, version
                 );
@@ -168,7 +199,7 @@ public class PurchaseOrderController {
     @ResponseBody
     @PutMapping("/api/{id}/status")
     public String updateStatus(@PathVariable int id, @RequestParam String status) {
-        boolean updated = daoPurchaseOrder.updatePurchaseOrderStatus(id, status);
+        boolean updated = daoPurchaseOrder.updatePurchaseOrderStatus(id, PurchaseOrderStatus.valueOf(status.toUpperCase()));
         return updated ? "Updated successfully" : "Update failed";
     }
 

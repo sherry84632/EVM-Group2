@@ -1,41 +1,69 @@
 package com.dealermanagementsysstem.project.Model;
 
+import jakarta.persistence.*;
+import java.math.BigDecimal;
+
+@Entity
+@Table(name = "PurchaseOrderDetail")
 public class DTOPurchaseOrderDetail {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "PODetailID")
     private int poDetailId;
-    private int purchaseOrderId;
-    private int colorId;
+    
+    @ManyToOne
+    @JoinColumn(name = "PurchaseOrderID", referencedColumnName = "PurchaseOrderID")
+    private DTOPurchaseOrder purchaseOrder;
+    
+    @ManyToOne
+    @JoinColumn(name = "ColorID", referencedColumnName = "ColorID")
+    private DTOVehicleColor color;
+    
+    @ManyToOne
+    @JoinColumn(name = "VersionID", referencedColumnName = "VersionID")
+    private DTOVehicleVersion version;
+    
+    @Column(name = "UnitPrice")
+    private BigDecimal unitPrice;
+    
+    @Column(name = "Quantity")
     private int quantity;
-    private int modelId;
-    private String version;
-    // thêm để hiển thị tên model / color nếu cần
-    private String modelName;
-    private String colorName;
+    
+    @Column(name = "Subtotal")
+    private java.math.BigDecimal subtotal;
 
     public DTOPurchaseOrderDetail() {}
 
-    // getters / setters - ví dụ:
+    public DTOPurchaseOrderDetail(int poDetailId, DTOPurchaseOrder purchaseOrder, DTOVehicleColor color, 
+                                  DTOVehicleVersion version, BigDecimal unitPrice, int quantity, java.math.BigDecimal subtotal) {
+        this.poDetailId = poDetailId;
+        this.purchaseOrder = purchaseOrder;
+        this.color = color;
+        this.version = version;
+        this.unitPrice = unitPrice;
+        this.quantity = quantity;
+        this.subtotal = subtotal;
+    }
+
     public int getPoDetailId() { return poDetailId; }
     public void setPoDetailId(int poDetailId) { this.poDetailId = poDetailId; }
 
-    public int getPurchaseOrderId() { return purchaseOrderId; }
-    public void setPurchaseOrderId(int purchaseOrderId) { this.purchaseOrderId = purchaseOrderId; }
+    public DTOPurchaseOrder getPurchaseOrder() { return purchaseOrder; }
+    public void setPurchaseOrder(DTOPurchaseOrder purchaseOrder) { this.purchaseOrder = purchaseOrder; }
 
-    public int getColorId() { return colorId; }
-    public void setColorId(int colorId) { this.colorId = colorId; }
+    public DTOVehicleColor getColor() { return color; }
+    public void setColor(DTOVehicleColor color) { this.color = color; }
+
+    public DTOVehicleVersion getVersion() { return version; }
+    public void setVersion(DTOVehicleVersion version) { this.version = version; }
+
+    public BigDecimal getUnitPrice() { return unitPrice; }
+    public void setUnitPrice(BigDecimal unitPrice) { this.unitPrice = unitPrice; }
 
     public int getQuantity() { return quantity; }
     public void setQuantity(int quantity) { this.quantity = quantity; }
-
-    public int getModelId() { return modelId; }
-    public void setModelId(int modelId) { this.modelId = modelId; }
-
-    public String getVersion() { return version; }
-    public void setVersion(String version) { this.version = version; }
-
-    public String getModelName() { return modelName; }
-    public void setModelName(String modelName) { this.modelName = modelName; }
-
-    public String getColorName() { return colorName; }
-    public void setColorName(String colorName) { this.colorName = colorName; }
+    
+    public java.math.BigDecimal getSubtotal() { return subtotal; }
+    public void setSubtotal(java.math.BigDecimal subtotal) { this.subtotal = subtotal; }
 }

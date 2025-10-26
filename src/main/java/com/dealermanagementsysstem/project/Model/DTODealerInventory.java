@@ -1,38 +1,65 @@
 package com.dealermanagementsysstem.project.Model;
 
+import jakarta.persistence.*;
 import java.util.Date;
 
+@Entity
+@Table(name = "DealerInventory")
 public class DTODealerInventory {
-    private int dealerId;
-    private String vin;
+    
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "DealerInventoryID")
+    private int dealerInventoryID;
+    
+    @ManyToOne
+    @JoinColumn(name = "DealerID", referencedColumnName = "DealerID")
+    private DTODealer dealer;
+    
+    @ManyToOne
+    @JoinColumn(name = "VIN", referencedColumnName = "VIN")
+    private DTOVehicle vehicle;
+    
+    @Column(name = "ReceivedDate")
     private Date receivedDate;
-    private String status;
-    private double amount; // 💰 mới thêm
+    
+    @Column(name = "Status")
+    @Enumerated(EnumType.STRING)
+    private DealerInventoryStatus status;
 
     public DTODealerInventory() {}
 
-    public DTODealerInventory(int dealerId, String vin, Date receivedDate, String status, double amount) {
-        this.dealerId = dealerId;
-        this.vin = vin;
+    public DTODealerInventory(int dealerInventoryID, DTODealer dealer, DTOVehicle vehicle, 
+                              Date receivedDate, DealerInventoryStatus status) {
+        this.dealerInventoryID = dealerInventoryID;
+        this.dealer = dealer;
+        this.vehicle = vehicle;
         this.receivedDate = receivedDate;
         this.status = status;
-        this.amount = amount;
     }
 
-    public int getDealerId() {
-        return dealerId;
+    public int getDealerInventoryID() {
+        return dealerInventoryID;
     }
 
-    public void setDealerId(int dealerId) {
-        this.dealerId = dealerId;
+    public void setDealerInventoryID(int dealerInventoryID) {
+        this.dealerInventoryID = dealerInventoryID;
     }
 
-    public String getVin() {
-        return vin;
+    public DTODealer getDealer() {
+        return dealer;
     }
 
-    public void setVin(String vin) {
-        this.vin = vin;
+    public void setDealer(DTODealer dealer) {
+        this.dealer = dealer;
+    }
+
+    public DTOVehicle getVehicle() {
+        return vehicle;
+    }
+
+    public void setVehicle(DTOVehicle vehicle) {
+        this.vehicle = vehicle;
     }
 
     public Date getReceivedDate() {
@@ -43,19 +70,11 @@ public class DTODealerInventory {
         this.receivedDate = receivedDate;
     }
 
-    public String getStatus() {
+    public DealerInventoryStatus getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(DealerInventoryStatus status) {
         this.status = status;
-    }
-
-    public double getAmount() {
-        return amount;
-    }
-
-    public void setAmount(double amount) {
-        this.amount = amount;
     }
 }
