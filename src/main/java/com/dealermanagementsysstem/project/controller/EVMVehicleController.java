@@ -13,6 +13,8 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.util.ArrayList;
 import java.util.List;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 
 @Controller
 @RequestMapping("/evm/vehicle")
@@ -78,22 +80,21 @@ public class EVMVehicleController {
         try {
             Path uploadPath = Paths.get(UPLOAD_DIR);
             if (Files.exists(uploadPath)) {
-                return Files.list(uploadPath)
-                        .filter(path -> path.getFileName().toString().contains(vin))
-                        .findFirst()
-                        .map(path -> {
-                            try {
-                                byte[] bytes = Files.readAllBytes(path);
-                                return ResponseEntity.ok().header("Content-Type", "image/jpeg").body(bytes);
-                            } catch (IOException e) {
-                                return ResponseEntity.notFound().build();
-                            }
-                        })
-                        .orElseGet(() -> ResponseEntity.notFound().build());
+                try (var stream = Files.list(uploadPath)) {
+                    Path found = stream.filter(path -> path.getFileName().toString().contains(vin)).findFirst().orElse(null);
+                    if (found != null) {
+                        byte[] bytes = Files.readAllBytes(found);
+                        return ResponseEntity
+                                .ok()
+                                .contentType(MediaType.IMAGE_JPEG)
+                                .body(bytes);
+                    }
+                }
             }
-            return ResponseEntity.notFound().build();
+            // Return 404 with explicit byte[] body type
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
         } catch (Exception e) {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
 
@@ -106,13 +107,12 @@ public class EVMVehicleController {
         try {
             Path imagePath = Paths.get(UPLOAD_DIR, filename);
             if (Files.exists(imagePath)) {
-                return ResponseEntity.ok()
-                        .header("Content-Type", "image/jpeg")
-                        .body(Files.readAllBytes(imagePath));
+                byte[] imageBytes = Files.readAllBytes(imagePath);
+                return ResponseEntity.ok().contentType(MediaType.IMAGE_JPEG).body(imageBytes);
             }
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
         } catch (Exception e) {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
 
