@@ -17,7 +17,7 @@ public class DTODealerInventory {
     private DTODealer dealer;
     
     @ManyToOne
-    @JoinColumn(name = "VIN", referencedColumnName = "VIN")
+    @JoinColumn(name = "VehicleID", referencedColumnName = "VehicleID")
     private DTOVehicle vehicle;
     
     @Column(name = "ReceivedDate")

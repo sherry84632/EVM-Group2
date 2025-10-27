@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Controller
-@RequestMapping("/saleorder")
+@RequestMapping("/order")
 public class OrderController {
 
     private final DAOSaleOrder dao = new DAOSaleOrder();
@@ -73,7 +73,7 @@ public class OrderController {
             @RequestParam("quantity") int quantity,
             @RequestParam("customerID") int customerID,
             @RequestParam("staffID") int staffID,
-            @RequestParam("vin") String vin,
+            @RequestParam("vehicleId") Integer vehicleId,
             @RequestParam("quotationID") int quotationID,
             @RequestParam(value = "status", required = false, defaultValue = "Pending") String status,
             Model model
@@ -125,13 +125,13 @@ public class OrderController {
         order.setTotalQuantity(quantity);
 
         // Calculate total amount from quotation
-        BigDecimal totalAmount = quotation.getTotalPrice() > 0 ? 
+        BigDecimal totalAmount = quotation.getTotalPrice() > 0 ?
             BigDecimal.valueOf(quotation.getTotalPrice()) : BigDecimal.ZERO;
         order.setTotalAmount(totalAmount);
 
         // === Build chi tiết đơn hàng (SaleOrderDetail) ===
         DTOVehicle vehicle = new DTOVehicle();
-        vehicle.setVIN(vin);
+        vehicle.setVehicleID(vehicleId);
 
         DTOSaleOrderDetail detail = new DTOSaleOrderDetail();
         detail.setVehicle(vehicle);
@@ -180,7 +180,7 @@ public class OrderController {
     }
 
     // ======================================================
-    // 5️⃣  LẤY CHI TIẾT 1 SALE ORDER DETAIL (DỰA VÀO VIN)
+    // 5️⃣  LẤY CHI TIẾT 1 SALE ORDER DETAIL (DỰA VÀO VehicleID)
     // ======================================================
     @GetMapping("/detail/item/{detailId}")
     @ResponseBody
@@ -191,8 +191,8 @@ public class OrderController {
     }
 
     // ======================================================
-// 🟢 UPDATE STATUS ĐƠN HÀNG
-// ======================================================
+    // 🟢 UPDATE STATUS ĐƠN HÀNG
+    // ======================================================
     @PostMapping("/updateStatus")
     public String updateStatus(
             @RequestParam("saleOrderID") int saleOrderID,
@@ -207,10 +207,10 @@ public class OrderController {
                 if (order != null && order.getDetail() != null) {
                     DAODealerInventory inventoryDAO = new DAODealerInventory();
                     for (DTOSaleOrderDetail detail : order.getDetail()) {
-                        String vin = detail.getVehicle().getVIN();
-                        boolean removed = inventoryDAO.removeVehicleByVIN(vin);
+                        Integer vehicleId = detail.getVehicle().getVehicleID();
+                        boolean removed = inventoryDAO.removeVehicleByID(vehicleId);
                         if (!removed) {
-                            System.out.println("⚠️ Không thể xóa VIN " + vin + " khỏi inventory");
+                            System.out.println("⚠️ Không thể xóa VehicleID " + vehicleId + " khỏi inventory");
                         }
                     }
                 }
@@ -226,3 +226,4 @@ public class OrderController {
     }
 
 }
+

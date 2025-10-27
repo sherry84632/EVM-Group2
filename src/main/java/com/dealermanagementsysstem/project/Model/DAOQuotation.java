@@ -16,37 +16,33 @@ public class DAOQuotation {
 
     private static final Logger log = LoggerFactory.getLogger(DAOQuotation.class);
 
-    // ✅ Lấy thông tin xe theo VIN (JOIN Vehicle + VehicleModel)
-    public DTOVehicle getVehicleByVIN(String vin) {
+    // ✅ Lấy thông tin xe theo VehicleID
+    public DTOVehicle getVehicleById(Integer vehicleId) {
         DTOVehicle vehicle = null;
-        log.debug("getVehicleByVIN VIN={}", vin);
+        log.debug("getVehicleById ID={}", vehicleId);
 
         String sql = """
-                    SELECT v.VIN, v.ManufactureYear, v.EngineNumber, v.Status, v.CreatedAt, v.UpdatedAt,
+                    SELECT v.VehicleID, v.ManufactureYear, v.EngineNumber, v.Status, v.CreatedAt, v.UpdatedAt,
                            vc.ColorID, vc.ColorName,
                            vv.VersionID, vv.VersionName,
-                           vm.ModelID, vm.ModelName, vm.BasePrice,
-                           c.CustomerID, c.FullName AS CustomerName,
-                           d.DealerID, d.DealerName
+                           vm.ModelID, vm.ModelName, vm.BasePrice
                     FROM Vehicle v
                     LEFT JOIN VehicleColor vc ON v.ColorID = vc.ColorID
                     LEFT JOIN VehicleVersion vv ON v.VersionID = vv.VersionID
                     LEFT JOIN VehicleModel vm ON vv.ModelID = vm.ModelID
-                    LEFT JOIN Customer c ON v.OwnerID = c.CustomerID
-                    LEFT JOIN Dealer d ON v.CurrentDealerID = d.DealerID
-                    WHERE v.VIN = ?
+                    WHERE v.VehicleID = ?
                 """;
 
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            ps.setString(1, vin);
-            log.trace("Executing query for VIN={}", vin);
+            ps.setInt(1, vehicleId);
+            log.trace("Executing query for VehicleID={}", vehicleId);
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     vehicle = new DTOVehicle();
-                    vehicle.setVIN(rs.getString("VIN"));
+                    vehicle.setVehicleID(rs.getInt("VehicleID"));
                     vehicle.setManufactureYear(rs.getInt("ManufactureYear"));
                     vehicle.setEngineNumber(rs.getString("EngineNumber"));
                     vehicle.setStatus(VehicleStatus.valueOf(rs.getString("Status")));
@@ -69,29 +65,13 @@ public class DAOQuotation {
                         vehicle.setVersion(version);
                     }
 
-                    // Set owner relationship
-                    if (rs.getString("CustomerName") != null) {
-                        DTOCustomer owner = new DTOCustomer();
-                        owner.setCustomerID(rs.getInt("CustomerID"));
-                        owner.setFullName(rs.getString("CustomerName"));
-                        vehicle.setOwner(owner);
-                    }
-
-                    // Set current dealer relationship
-                    if (rs.getString("DealerName") != null) {
-                        DTODealer currentDealer = new DTODealer();
-                        currentDealer.setDealerID(rs.getInt("DealerID"));
-                        currentDealer.setDealerName(rs.getString("DealerName"));
-                        vehicle.setCurrentDealer(currentDealer);
-                    }
-
-                    log.debug("Vehicle found VIN={}", vehicle.getVIN());
+                    log.debug("Vehicle found ID={}", vehicle.getVehicleID());
                 } else {
-                    log.warn("No vehicle found VIN={}", vin);
+                    log.warn("No vehicle found ID={}", vehicleId);
                 }
             }
         } catch (SQLException e) {
-            log.error("SQL error fetching vehicle VIN={}", vin, e);
+            log.error("SQL error fetching vehicle ID={}", vehicleId, e);
         }
 
         return vehicle;

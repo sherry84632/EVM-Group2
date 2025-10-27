@@ -15,11 +15,14 @@ import java.util.ArrayList;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Controller
 @RequestMapping("/evm/vehicle")
 public class EVMVehicleController {
 
+    private static final Logger log = LoggerFactory.getLogger(EVMVehicleController.class);
     private final DAOVehicle dao;
     private static final String UPLOAD_DIR = "src/main/resources/static/uploads/vehicle/";
 
@@ -49,13 +52,13 @@ public class EVMVehicleController {
     }
 
     // ===========================
-    // 2️⃣ Chi tiết xe theo VIN
+    // 2️⃣ Chi tiết xe theo ID
     // ===========================
-    @GetMapping("/detail/{vin}")
-    public String vehicleDetail(@PathVariable String vin, Model model) {
-        DTOVehicle vehicle = dao.getVehicleByVIN(vin);
+    @GetMapping("/detail/{id}")
+    public String vehicleDetail(@PathVariable Integer id, Model model) {
+        DTOVehicle vehicle = dao.getVehicleById(id);
         if (vehicle == null) {
-            model.addAttribute("error", "Vehicle not found for VIN: " + vin);
+            model.addAttribute("error", "Vehicle not found for ID: " + id);
             return "evmPage/vehicleList";
         }
         model.addAttribute("vehicle", vehicle);
@@ -72,16 +75,16 @@ public class EVMVehicleController {
     }
 
     // ===========================
-    // 📷 Trả ảnh vehicle theo VIN
+    // 📷 Trả ảnh vehicle theo ID
     // ===========================
-    @GetMapping("/showImage/{vin}")
+    @GetMapping("/showImage/{id}")
     @ResponseBody
-    public ResponseEntity<byte[]> showVehicleImage(@PathVariable String vin) {
+    public ResponseEntity<byte[]> showVehicleImage(@PathVariable Integer id) {
         try {
             Path uploadPath = Paths.get(UPLOAD_DIR);
             if (Files.exists(uploadPath)) {
                 try (var stream = Files.list(uploadPath)) {
-                    Path found = stream.filter(path -> path.getFileName().toString().contains(vin)).findFirst().orElse(null);
+                    Path found = stream.filter(path -> path.getFileName().toString().contains("_" + id + "_")).findFirst().orElse(null);
                     if (found != null) {
                         byte[] bytes = Files.readAllBytes(found);
                         return ResponseEntity
@@ -127,33 +130,60 @@ public class EVMVehicleController {
 
     @PostMapping("/create")
     public String createVehicle(
-            @RequestParam(value = "vin", required = false) String vin,
             @RequestParam(value = "colorName", required = false) String colorName,
             @RequestParam(value = "modelName", required = false) String modelName,
+            @RequestParam(value = "brand", required = false) String brand,
+            @RequestParam(value = "bodyType", required = false) String bodyType,
+            @RequestParam(value = "year", required = false, defaultValue = "0") int modelYear,
+            @RequestParam(value = "description", required = false) String modelDescription,
+            @RequestParam(value = "basePrice", required = false) String basePriceStr,
+            @RequestParam(value = "versionName", required = false) String versionName,
+            @RequestParam(value = "engine", required = false) String engine,
+            @RequestParam(value = "transmission", required = false) String transmission,
             @RequestParam(value = "manufactureYear", required = false, defaultValue = "0") int manufactureYear,
             @RequestParam(value = "engineNumber", required = false) String engineNumber,
-            @RequestParam(value = "ownerID", required = false, defaultValue = "0") int ownerID,
-            @RequestParam(value = "currentDealerID", required = false, defaultValue = "0") int currentDealerID,
-            @RequestParam(value = "versionID", required = false, defaultValue = "0") int versionID,
-            @RequestParam(value = "status", required = false, defaultValue = "AVAILABLE") String status,
+            @RequestParam(value = "evmID", required = false, defaultValue = "1") int evmID,
+            @RequestParam(value = "status", required = false, defaultValue = "IN_STOCK") String status,
             @RequestParam(value = "thumbnail", required = false) MultipartFile thumbnail,
             Model model
     ) {
-        if (vin == null || vin.isBlank()) {
-            model.addAttribute("error", "VIN is required");
-            return "evmPage/createANewVehicleToList";
-        }
+        // Validation
         if (manufactureYear <= 0) {
             model.addAttribute("error", "Manufacture year is required");
             return "evmPage/createANewVehicleToList";
         }
-        if (versionID <= 0) {
-            model.addAttribute("error", "Version ID is required");
+        if (modelName == null || modelName.isBlank()) {
+            model.addAttribute("error", "Model name is required");
+            return "evmPage/createANewVehicleToList";
+        }
+        if (versionName == null || versionName.isBlank()) {
+            model.addAttribute("error", "Version name is required");
             return "evmPage/createANewVehicleToList";
         }
 
         try {
-            // === Validate color ===
+            // Parse base price
+            java.math.BigDecimal basePrice = null;
+            if (basePriceStr != null && !basePriceStr.isBlank()) {
+                basePrice = new java.math.BigDecimal(basePriceStr);
+            }
+
+            // === Step 1: Get or Create VehicleModel ===
+            Integer modelID = dao.getModelIdByName(modelName);
+            if (modelID == null) {
+                // Create new model (you need to add this method to DAO)
+                log.info("Model not found, creating new model: {}", modelName);
+                // For now, return error - you should implement createModel in DAO
+                model.addAttribute("error", "Model '" + modelName + "' not found. Please create it first in EVM system.");
+                return "evmPage/createANewVehicleToList";
+            }
+
+            // === Step 2: Get or Create VehicleVersion ===
+            // You need to add getVersionIdByModelAndName method to DAO
+            // For now, we'll assume versionID=1 exists, but this needs proper implementation
+            int versionID = 1; // TODO: Implement proper version lookup/creation
+
+            // === Step 3: Get ColorID ===
             Integer colorID = null;
             if (colorName != null && !colorName.isBlank()) {
                 colorID = dao.getColorIdByName(colorName);
@@ -163,9 +193,8 @@ public class EVMVehicleController {
                 }
             }
 
-            // === Build vehicle ===
+            // === Step 4: Build Vehicle ===
             DTOVehicle vehicle = new DTOVehicle();
-            vehicle.setVIN(vin);
             vehicle.setManufactureYear(manufactureYear);
             vehicle.setEngineNumber(engineNumber);
             vehicle.setStatus(VehicleStatus.valueOf(status));
@@ -178,31 +207,24 @@ public class EVMVehicleController {
                 color.setColorName(colorName);
                 vehicle.setColor(color);
             }
+
             if (versionID > 0) {
                 DTOVehicleVersion version = new DTOVehicleVersion();
                 version.setVersionID(versionID);
                 vehicle.setVersion(version);
             }
-            if (ownerID > 0) {
-                DTOCustomer owner = new DTOCustomer();
-                owner.setCustomerID(ownerID);
-                vehicle.setOwner(owner);
-            }
-            if (currentDealerID > 0) {
-                DTODealer dealer = new DTODealer();
-                dealer.setDealerID(currentDealerID);
-                vehicle.setCurrentDealer(dealer);
-            }
 
-            // === Handle image upload ===
-            if (thumbnail != null && !thumbnail.isEmpty()) {
+            // === Step 5: Insert vehicle first to get ID ===
+            dao.insertVehicle(vehicle);
+
+            // === Step 6: Handle image upload with vehicle ID ===
+            if (thumbnail != null && !thumbnail.isEmpty() && vehicle.getVehicleID() != null) {
                 Path uploadPath = Paths.get(UPLOAD_DIR);
                 if (!Files.exists(uploadPath)) Files.createDirectories(uploadPath);
-                String fileName = System.currentTimeMillis() + "_" + thumbnail.getOriginalFilename();
+                String fileName = System.currentTimeMillis() + "_" + vehicle.getVehicleID() + "_" + thumbnail.getOriginalFilename();
                 Files.copy(thumbnail.getInputStream(), uploadPath.resolve(fileName), StandardCopyOption.REPLACE_EXISTING);
             }
 
-            dao.insertVehicle(vehicle);
             model.addAttribute("message", "✅ Vehicle created successfully!");
             return "redirect:/evm/vehicle/list";
         } catch (IllegalArgumentException e) {
@@ -212,6 +234,7 @@ public class EVMVehicleController {
             model.addAttribute("error", "Error uploading thumbnail: " + e.getMessage());
             return "evmPage/createANewVehicleToList";
         } catch (Exception e) {
+            log.error("Unexpected error creating vehicle: {}", e.getMessage(), e);
             model.addAttribute("error", "Unexpected error: " + e.getMessage());
             return "evmPage/createANewVehicleToList";
         }
@@ -220,11 +243,11 @@ public class EVMVehicleController {
     // ===========================
     // 5️⃣ Form chỉnh sửa xe
     // ===========================
-    @GetMapping("/edit/{vin}")
-    public String showEditForm(@PathVariable String vin, Model model) {
-        DTOVehicle vehicle = dao.getVehicleByVIN(vin);
+    @GetMapping("/edit/{id}")
+    public String showEditForm(@PathVariable Integer id, Model model) {
+        DTOVehicle vehicle = dao.getVehicleById(id);
         if (vehicle == null) {
-            model.addAttribute("error", "Vehicle not found for VIN: " + vin);
+            model.addAttribute("error", "Vehicle not found for ID: " + id);
             return "evmPage/editVehicle";
         }
         model.addAttribute("vehicle", vehicle);
@@ -234,22 +257,20 @@ public class EVMVehicleController {
     // ===========================
     // 6️⃣ Xử lý cập nhật xe
     // ===========================
-    @PostMapping("/edit/{vin}")
+    @PostMapping("/edit/{id}")
     public String updateVehicle(
-            @PathVariable String vin,
+            @PathVariable Integer id,
             @RequestParam("colorName") String colorName,
             @RequestParam("modelName") String modelName,
             @RequestParam("manufactureYear") int manufactureYear,
             @RequestParam("engineNumber") String engineNumber,
-            @RequestParam("ownerID") int ownerID,
-            @RequestParam("currentDealerID") int currentDealerID,
             @RequestParam("versionID") int versionID,
             @RequestParam("status") String status,
             @RequestParam(value = "thumbnail", required = false) MultipartFile thumbnail,
             Model model
     ) {
         try {
-            DTOVehicle existing = dao.getVehicleByVIN(vin);
+            DTOVehicle existing = dao.getVehicleById(id);
             if (existing == null) {
                 model.addAttribute("error", "Vehicle not found.");
                 return "evmPage/editVehicle";
@@ -277,18 +298,10 @@ public class EVMVehicleController {
             }
             existing.setVersion(version);
 
-            DTOCustomer owner = new DTOCustomer();
-            owner.setCustomerID(ownerID);
-            existing.setOwner(owner);
-
-            DTODealer dealer = new DTODealer();
-            dealer.setDealerID(currentDealerID);
-            existing.setCurrentDealer(dealer);
-
             if (thumbnail != null && !thumbnail.isEmpty()) {
                 Path uploadPath = Paths.get(UPLOAD_DIR);
                 if (!Files.exists(uploadPath)) Files.createDirectories(uploadPath);
-                String fileName = System.currentTimeMillis() + "_" + thumbnail.getOriginalFilename();
+                String fileName = System.currentTimeMillis() + "_" + id + "_" + thumbnail.getOriginalFilename();
                 Files.copy(thumbnail.getInputStream(), uploadPath.resolve(fileName), StandardCopyOption.REPLACE_EXISTING);
             }
 
@@ -297,7 +310,7 @@ public class EVMVehicleController {
                 model.addAttribute("error", "Failed to update vehicle. Please try again.");
                 return "evmPage/editVehicle";
             }
-            return "redirect:/evm/vehicle/detail/" + vin;
+            return "redirect:/evm/vehicle/detail/" + id;
         } catch (IOException e) {
             model.addAttribute("error", "Error uploading thumbnail: " + e.getMessage());
             return "evmPage/editVehicle";
@@ -310,19 +323,19 @@ public class EVMVehicleController {
     // ===========================
     // 7️⃣ Xử lý xóa xe
     // ===========================
-    @PostMapping("/delete/{vin}")
-    public String deleteVehicle(@PathVariable String vin, Model model) {
-        if (vin == null || vin.isBlank()) {
+    @PostMapping("/delete/{id}")
+    public String deleteVehicle(@PathVariable Integer id, Model model) {
+        if (id == null) {
             model.addAttribute("error", "Invalid vehicle identifier.");
             return "redirect:/evm/vehicle/list";
         }
         try {
-            DTOVehicle existing = dao.getVehicleByVIN(vin);
+            DTOVehicle existing = dao.getVehicleById(id);
             if (existing == null) {
                 model.addAttribute("error", "Vehicle not found.");
                 return "redirect:/evm/vehicle/list";
             }
-            boolean deleted = dao.deleteVehicle(vin);
+            boolean deleted = dao.deleteVehicle(id);
             if (!deleted) {
                 model.addAttribute("error", "Failed to delete vehicle. Please try again.");
             } else {

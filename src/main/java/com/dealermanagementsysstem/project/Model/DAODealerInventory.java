@@ -45,7 +45,7 @@ public class DAODealerInventory {
                     dto.setDealer(dealer);
 
                     DTOVehicle vehicle = new DTOVehicle();
-                    vehicle.setVIN(rs.getString("VIN"));
+                    vehicle.setVehicleID(rs.getInt("VehicleID"));
                     vehicle.setManufactureYear(rs.getInt("ManufactureYear"));
                     vehicle.setEngineNumber(rs.getString("EngineNumber"));
                     vehicle.setStatus(VehicleStatus.valueOf(rs.getString("VehicleStatus")));
@@ -72,7 +72,8 @@ public class DAODealerInventory {
         return list;
     }
 
-    // ✅ Xóa xe khỏi Inventory theo VIN (khi SaleOrder được Confirmed)
+    // ✅ Xóa xe khỏi Inventory theo VIN (khi SaleOrder được Confirmed) - DEPRECATED
+    @Deprecated
     public boolean removeVehicleByVIN(String vin) {
         String sql = "DELETE FROM DealerInventory WHERE VIN = ?";
         try (Connection conn = DBUtils.getConnection();
@@ -87,6 +88,25 @@ public class DAODealerInventory {
             return ok;
         } catch (SQLException e) {
             log.error("Error removing vehicle from inventory VIN={}", vin, e);
+            return false;
+        }
+    }
+
+    // ✅ Xóa xe khỏi Inventory theo VehicleID (khi SaleOrder được Confirmed)
+    public boolean removeVehicleByID(Integer vehicleID) {
+        String sql = "DELETE FROM DealerInventory WHERE VehicleID = ?";
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, vehicleID);
+            boolean ok = ps.executeUpdate() > 0;
+            if (ok) {
+                log.info("Removed vehicle from inventory VehicleID={}", vehicleID);
+            } else {
+                log.warn("No inventory record removed VehicleID={}", vehicleID);
+            }
+            return ok;
+        } catch (SQLException e) {
+            log.error("Error removing vehicle from inventory VehicleID={}", vehicleID, e);
             return false;
         }
     }

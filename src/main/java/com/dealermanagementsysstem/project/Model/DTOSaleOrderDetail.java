@@ -17,7 +17,7 @@ public class DTOSaleOrderDetail {
     private DTOSaleOrder saleOrder;
     
     @ManyToOne
-    @JoinColumn(name = "VIN", referencedColumnName = "VIN")
+    @JoinColumn(name = "VehicleID", referencedColumnName = "VehicleID")
     private DTOVehicle vehicle;
     
     @Column(name = "Price")

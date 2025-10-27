@@ -19,6 +19,12 @@ public class DTOVehicleVersion {
     @Column(name = "VersionName")
     private String versionName;
     
+    @Column(name = "Engine")
+    private String engine;
+
+    @Column(name = "Transmission")
+    private String transmission;
+
     @OneToMany(mappedBy = "version")
     private List<DTOVehicle> vehicles;
     
@@ -58,6 +64,22 @@ public class DTOVehicleVersion {
         this.versionName = versionName;
     }
     
+    public String getEngine() {
+        return engine;
+    }
+
+    public void setEngine(String engine) {
+        this.engine = engine;
+    }
+
+    public String getTransmission() {
+        return transmission;
+    }
+
+    public void setTransmission(String transmission) {
+        this.transmission = transmission;
+    }
+
     public List<DTOVehicle> getVehicles() {
         return vehicles;
     }

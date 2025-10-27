@@ -13,17 +13,18 @@ public class DAOTestDrive {
     public List<DTOTestDrive> getAllTestDrives() {
         List<DTOTestDrive> list = new ArrayList<>();
         String sql = """
-            SELECT td.TestDriveID, td.CustomerID, td.VIN, td.DealerID, td.StaffID, td.TestDate, td.Feedback,
+            SELECT td.TestDriveID, td.CustomerID, td.VehicleID, td.DealerID, td.StaffID, td.TestDate, td.Feedback,
                    c.CustomerID, c.FullName AS CustomerName, c.Phone AS CustomerPhone,
                    d.DealerID, d.DealerName,
                    ds.StaffID, ds.FullName AS StaffName,
-                   v.VIN, vm.ModelName, vc.ColorName
+                   v.VehicleID, vm.ModelName, vc.ColorName
             FROM TestDrive td
             JOIN Customer c ON td.CustomerID = c.CustomerID
             JOIN Dealer d ON td.DealerID = d.DealerID
             JOIN DealerStaff ds ON td.StaffID = ds.StaffID
-            JOIN Vehicle v ON td.VIN = v.VIN
-            LEFT JOIN VehicleModel vm ON v.ModelID = vm.ModelID
+            JOIN Vehicle v ON td.VehicleID = v.VehicleID
+            LEFT JOIN VehicleVersion vv ON v.VersionID = vv.VersionID
+            LEFT JOIN VehicleModel vm ON vv.ModelID = vm.ModelID
             LEFT JOIN VehicleColor vc ON v.ColorID = vc.ColorID
             ORDER BY td.TestDate DESC
         """;
@@ -60,7 +61,7 @@ public class DAOTestDrive {
 
                 // Vehicle info
                 DTOVehicle vehicle = new DTOVehicle();
-                vehicle.setVIN(rs.getString("VIN"));
+                vehicle.setVehicleID(rs.getInt("VehicleID"));
                 testDrive.setVehicle(vehicle);
 
                 list.add(testDrive);
@@ -75,17 +76,18 @@ public class DAOTestDrive {
     // ✅ Lấy TestDrive theo ID
     public DTOTestDrive getTestDriveById(int testDriveID) {
         String sql = """
-            SELECT td.TestDriveID, td.CustomerID, td.VIN, td.DealerID, td.StaffID, td.TestDate, td.Feedback,
+            SELECT td.TestDriveID, td.CustomerID, td.VehicleID, td.DealerID, td.StaffID, td.TestDate, td.Feedback,
                    c.CustomerID, c.FullName AS CustomerName, c.Phone AS CustomerPhone,
                    d.DealerID, d.DealerName,
                    ds.StaffID, ds.FullName AS StaffName,
-                   v.VIN, vm.ModelName, vc.ColorName
+                   v.VehicleID, vm.ModelName, vc.ColorName
             FROM TestDrive td
             JOIN Customer c ON td.CustomerID = c.CustomerID
             JOIN Dealer d ON td.DealerID = d.DealerID
             JOIN DealerStaff ds ON td.StaffID = ds.StaffID
-            JOIN Vehicle v ON td.VIN = v.VIN
-            LEFT JOIN VehicleModel vm ON v.ModelID = vm.ModelID
+            JOIN Vehicle v ON td.VehicleID = v.VehicleID
+            LEFT JOIN VehicleVersion vv ON v.VersionID = vv.VersionID
+            LEFT JOIN VehicleModel vm ON vv.ModelID = vm.ModelID
             LEFT JOIN VehicleColor vc ON v.ColorID = vc.ColorID
             WHERE td.TestDriveID = ?
         """;
@@ -99,7 +101,7 @@ public class DAOTestDrive {
                     DTOTestDrive testDrive = new DTOTestDrive();
                     testDrive.setTestDriveID(rs.getInt("TestDriveID"));
                     java.sql.Date testDate = rs.getDate("TestDate");
-                testDrive.setTestDate(testDate != null ? new java.util.Date(testDate.getTime()) : null);
+                    testDrive.setTestDate(testDate != null ? new java.util.Date(testDate.getTime()) : null);
                     testDrive.setFeedback(rs.getString("Feedback"));
 
                     // Customer info
@@ -123,7 +125,7 @@ public class DAOTestDrive {
 
                     // Vehicle info
                     DTOVehicle vehicle = new DTOVehicle();
-                    vehicle.setVIN(rs.getString("VIN"));
+                    vehicle.setVehicleID(rs.getInt("VehicleID"));
                     testDrive.setVehicle(vehicle);
 
                     return testDrive;
@@ -138,13 +140,13 @@ public class DAOTestDrive {
 
     // ✅ Tạo TestDrive mới
     public boolean createTestDrive(DTOTestDrive testDrive) {
-        String sql = "INSERT INTO TestDrive (CustomerID, VIN, DealerID, StaffID, TestDate, Feedback) VALUES (?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO TestDrive (CustomerID, VehicleID, DealerID, StaffID, TestDate, Feedback) VALUES (?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, testDrive.getCustomer().getCustomerID());
-            ps.setString(2, testDrive.getVehicle().getVIN());
+            ps.setInt(2, testDrive.getVehicle().getVehicleID());
             ps.setInt(3, testDrive.getDealer().getDealerID());
             ps.setInt(4, testDrive.getStaff().getStaffID());
             ps.setDate(5, new java.sql.Date(testDrive.getTestDate().getTime()));
@@ -161,13 +163,13 @@ public class DAOTestDrive {
 
     // ✅ Cập nhật TestDrive
     public boolean updateTestDrive(DTOTestDrive testDrive) {
-        String sql = "UPDATE TestDrive SET CustomerID=?, VIN=?, DealerID=?, StaffID=?, TestDate=?, Feedback=? WHERE TestDriveID=?";
+        String sql = "UPDATE TestDrive SET CustomerID=?, VehicleID=?, DealerID=?, StaffID=?, TestDate=?, Feedback=? WHERE TestDriveID=?";
 
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, testDrive.getCustomer().getCustomerID());
-            ps.setString(2, testDrive.getVehicle().getVIN());
+            ps.setInt(2, testDrive.getVehicle().getVehicleID());
             ps.setInt(3, testDrive.getDealer().getDealerID());
             ps.setInt(4, testDrive.getStaff().getStaffID());
             ps.setDate(5, new java.sql.Date(testDrive.getTestDate().getTime()));
@@ -201,3 +203,4 @@ public class DAOTestDrive {
         return false;
     }
 }
+
