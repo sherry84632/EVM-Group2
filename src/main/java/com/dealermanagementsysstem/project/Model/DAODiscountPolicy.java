@@ -79,7 +79,7 @@ public class DAODiscountPolicy {
                 dto.setEndDate(rs.getDate("EndDate").toLocalDate());
                 dto.setHangPercent(rs.getBigDecimal("HangPercent"));
                 dto.setDailyPercent(rs.getBigDecimal("DailyPercent"));
-                dto.setStatus(DiscountPolicyStatus.valueOf(rs.getString("Status")));
+                dto.setStatus(DiscountPolicyStatus.valueOf(rs.getString("Status").toUpperCase()));
                 dto.setCreationDate(rs.getDate("CreatedAt")); // ✅ đúng tên cột
                 dto.setLevelID(rs.getInt("LevelID"));
                 list.add(dto);
@@ -114,7 +114,7 @@ public class DAODiscountPolicy {
                 dto.setEndDate(rs.getDate("EndDate").toLocalDate());
                 dto.setHangPercent(rs.getBigDecimal("HangPercent"));
                 dto.setDailyPercent(rs.getBigDecimal("DailyPercent"));
-                dto.setStatus(DiscountPolicyStatus.valueOf(rs.getString("Status")));
+                dto.setStatus(DiscountPolicyStatus.valueOf(rs.getString("Status").toUpperCase()));
                 dto.setCreationDate(rs.getDate("CreatedAt"));
                 dto.setLevelID(rs.getInt("LevelID"));
                 list.add(dto);

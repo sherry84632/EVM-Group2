@@ -62,7 +62,7 @@ public class DealerDiscountPolicyController {
         dto.setDescription(description);
         dto.setHangPercent(BigDecimal.valueOf(hangPercent));
         dto.setDailyPercent(BigDecimal.valueOf(dailyPercent));
-        dto.setStatus(DiscountPolicyStatus.valueOf(status));
+        dto.setStatus(DiscountPolicyStatus.valueOf(status.toUpperCase()));
         dto.setStartDate(startDate);
         dto.setEndDate(endDate);
 

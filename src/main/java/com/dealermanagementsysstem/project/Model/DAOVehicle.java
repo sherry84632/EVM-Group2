@@ -124,21 +124,54 @@ public class DAOVehicle {
 
     public boolean updateVehicle(DTOVehicle v) {
         String sql = "UPDATE Vehicle SET ColorID=?, VersionID=?, ManufactureYear=?, EngineNumber=?, Status=?, Description=?, UpdatedAt=? WHERE VehicleID=?";
+
+        log.debug("Updating vehicle ID={} with ColorID={}, VersionID={}, Year={}, Status={}",
+                v.getVehicleID(),
+                v.getColor() != null ? v.getColor().getColorID() : "null",
+                v.getVersion() != null ? v.getVersion().getVersionID() : "null",
+                v.getManufactureYear(),
+                v.getStatus());
+
         try (Connection con = DBUtils.getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
-            if (v.getColor() != null && v.getColor().getColorID() > 0) ps.setInt(1, v.getColor().getColorID()); else ps.setNull(1, Types.INTEGER);
-            if (v.getVersion() != null && v.getVersion().getVersionID() > 0) ps.setInt(2, v.getVersion().getVersionID()); else ps.setNull(2, Types.INTEGER);
+            // ColorID
+            if (v.getColor() != null && v.getColor().getColorID() > 0) {
+                ps.setInt(1, v.getColor().getColorID());
+                log.debug("Setting ColorID={}", v.getColor().getColorID());
+            } else {
+                ps.setNull(1, Types.INTEGER);
+                log.debug("Setting ColorID=NULL");
+            }
+
+            // VersionID
+            if (v.getVersion() != null && v.getVersion().getVersionID() > 0) {
+                ps.setInt(2, v.getVersion().getVersionID());
+                log.debug("Setting VersionID={}", v.getVersion().getVersionID());
+            } else {
+                ps.setNull(2, Types.INTEGER);
+                log.debug("Setting VersionID=NULL");
+            }
+
+            // Other fields
             ps.setInt(3, v.getManufactureYear());
             ps.setString(4, v.getEngineNumber());
             ps.setString(5, v.getStatus().toString());
             ps.setString(6, v.getDescription());
             ps.setTimestamp(7, v.getUpdatedAt());
             ps.setInt(8, v.getVehicleID());
-            boolean ok = ps.executeUpdate() > 0;
-            if (ok) log.info("Vehicle updated ID={}", v.getVehicleID());
-            else log.warn("Vehicle update affected 0 rows ID={}", v.getVehicleID());
+
+            log.debug("Executing SQL: {}", sql);
+            int rowsAffected = ps.executeUpdate();
+            log.info("Update affected {} rows for VehicleID={}", rowsAffected, v.getVehicleID());
+
+            boolean ok = rowsAffected > 0;
+            if (ok) {
+                log.info("✅ Vehicle updated successfully ID={}", v.getVehicleID());
+            } else {
+                log.warn("⚠️ Vehicle update affected 0 rows ID={} - vehicle may not exist", v.getVehicleID());
+            }
             return ok;
         } catch (SQLException e) {
-            log.error("Error updating vehicle ID={}", v.getVehicleID(), e);
+            log.error("❌ Error updating vehicle ID={}: {}", v.getVehicleID(), e.getMessage(), e);
         }
         return false;
     }
@@ -216,5 +249,202 @@ public class DAOVehicle {
             v.setVersion(version);
         }
         return v;
+    }
+
+    // =====================
+    // Auto-Create Methods
+    // =====================
+
+    /**
+     * Get or Create VehicleModel
+     * Returns existing ModelID or creates new one
+     */
+    public Integer getOrCreateModel(String modelName, String brand, String bodyType,
+                                    int year, java.math.BigDecimal basePrice, String description) {
+        // Check if exists
+        Integer modelID = getModelIdByName(modelName);
+        if (modelID != null) {
+            log.info("Model already exists: {} (ID={})", modelName, modelID);
+            return modelID;
+        }
+
+        // Create new
+        String sql = "INSERT INTO VehicleModel (ModelName, Brand, BodyType, Year, BasePrice, Description) " +
+                    "VALUES (?, ?, ?, ?, ?, ?)";
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            ps.setString(1, modelName);
+            ps.setString(2, brand);
+            ps.setString(3, bodyType);
+            ps.setInt(4, year);
+            ps.setBigDecimal(5, basePrice);
+            ps.setString(6, description);
+
+            int rows = ps.executeUpdate();
+            if (rows > 0) {
+                try (ResultSet rs = ps.getGeneratedKeys()) {
+                    if (rs.next()) {
+                        modelID = rs.getInt(1);
+                        log.info("Created new VehicleModel: {} (ID={})", modelName, modelID);
+                        return modelID;
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            log.error("Error creating VehicleModel: {}", modelName, e);
+        }
+        return null;
+    }
+
+    /**
+     * Get or Create VehicleVersion
+     * Returns existing VersionID or creates new one
+     */
+    public Integer getOrCreateVersion(Integer modelID, String versionName,
+                                      String engine, String transmission) {
+        if (modelID == null) {
+            log.warn("Cannot create version without modelID");
+            return null;
+        }
+
+        // Check if exists
+        String checkSql = "SELECT VersionID FROM VehicleVersion WHERE ModelID = ? AND VersionName = ?";
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(checkSql)) {
+            ps.setInt(1, modelID);
+            ps.setString(2, versionName);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    Integer versionID = rs.getInt("VersionID");
+                    log.info("Version already exists: {} (ID={})", versionName, versionID);
+                    return versionID;
+                }
+            }
+        } catch (SQLException e) {
+            log.error("Error checking version existence", e);
+        }
+
+        // Create new
+        String insertSql = "INSERT INTO VehicleVersion (ModelID, VersionName, Engine, Transmission) " +
+                          "VALUES (?, ?, ?, ?)";
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS)) {
+            ps.setInt(1, modelID);
+            ps.setString(2, versionName);
+            ps.setString(3, engine);
+            ps.setString(4, transmission);
+
+            int rows = ps.executeUpdate();
+            if (rows > 0) {
+                try (ResultSet rs = ps.getGeneratedKeys()) {
+                    if (rs.next()) {
+                        Integer versionID = rs.getInt(1);
+                        log.info("Created new VehicleVersion: {} (ID={})", versionName, versionID);
+                        return versionID;
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            log.error("Error creating VehicleVersion: {}", versionName, e);
+        }
+        return null;
+    }
+
+    /**
+     * Get or Create VehicleColor
+     * Returns existing ColorID or creates new one
+     */
+    public Integer getOrCreateColor(String colorName) {
+        // Check if exists
+        Integer colorID = getColorIdByName(colorName);
+        if (colorID != null) {
+            log.info("Color already exists: {} (ID={})", colorName, colorID);
+            return colorID;
+        }
+
+        // Create new
+        String sql = "INSERT INTO VehicleColor (ColorName) VALUES (?)";
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            ps.setString(1, colorName);
+
+            int rows = ps.executeUpdate();
+            if (rows > 0) {
+                try (ResultSet rs = ps.getGeneratedKeys()) {
+                    if (rs.next()) {
+                        colorID = rs.getInt(1);
+                        log.info("Created new VehicleColor: {} (ID={})", colorName, colorID);
+                        return colorID;
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            log.error("Error creating VehicleColor: {}", colorName, e);
+        }
+        return null;
+    }
+
+    /**
+     * Update VehicleModel fields (brand, bodyType, year, basePrice, description)
+     */
+    public boolean updateModel(Integer modelID, String brand, String bodyType,
+                               int year, java.math.BigDecimal basePrice, String description) {
+        if (modelID == null || modelID <= 0) {
+            log.warn("Cannot update model with invalid modelID");
+            return false;
+        }
+
+        String sql = "UPDATE VehicleModel SET Brand=?, BodyType=?, Year=?, BasePrice=?, Description=? WHERE ModelID=?";
+
+        log.debug("Updating VehicleModel ID={} with Brand={}, BodyType={}, Year={}, BasePrice={}",
+                modelID, brand, bodyType, year, basePrice);
+
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, brand);
+            ps.setString(2, bodyType);
+            ps.setInt(3, year);
+            ps.setBigDecimal(4, basePrice);
+            ps.setString(5, description);
+            ps.setInt(6, modelID);
+
+            int rowsAffected = ps.executeUpdate();
+            log.info("Update VehicleModel affected {} rows for ModelID={}", rowsAffected, modelID);
+
+            return rowsAffected > 0;
+        } catch (SQLException e) {
+            log.error("Error updating VehicleModel ID={}: {}", modelID, e.getMessage(), e);
+        }
+        return false;
+    }
+
+    /**
+     * Update VehicleVersion fields (engine, transmission)
+     */
+    public boolean updateVersion(Integer versionID, String engine, String transmission) {
+        if (versionID == null || versionID <= 0) {
+            log.warn("Cannot update version with invalid versionID");
+            return false;
+        }
+
+        String sql = "UPDATE VehicleVersion SET Engine=?, Transmission=? WHERE VersionID=?";
+
+        log.debug("Updating VehicleVersion ID={} with Engine={}, Transmission={}",
+                versionID, engine, transmission);
+
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, engine);
+            ps.setString(2, transmission);
+            ps.setInt(3, versionID);
+
+            int rowsAffected = ps.executeUpdate();
+            log.info("Update VehicleVersion affected {} rows for VersionID={}", rowsAffected, versionID);
+
+            return rowsAffected > 0;
+        } catch (SQLException e) {
+            log.error("Error updating VehicleVersion ID={}: {}", versionID, e.getMessage(), e);
+        }
+        return false;
     }
 }
