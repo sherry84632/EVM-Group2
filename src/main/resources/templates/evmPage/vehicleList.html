@@ -118,11 +118,16 @@
                         <a th:href="@{/evm/vehicle/detail/{id}(id=${vehicle.vehicleID})}" style="text-decoration: none;">
                             <div class="item-button">
                                 <div class="image-placeholder">
-                                    <img th:if="${vehicle.model != null and vehicle.model.modelImage != null}"
-                                         th:src="@{/evm/vehicle/showImage/{id}(id=${vehicle.vehicleID})}"
+                                    <!-- Hiển thị ảnh từ database nếu có -->
+                                    <img th:if="${vehicle.version != null and vehicle.version.model != null and vehicle.version.model.modelID != null}"
+                                         th:src="@{/evm/vehicle/modelImage/{modelId}(modelId=${vehicle.version.model.modelID})}"
                                          alt="Model Image"
-                                         class="vehicle-image"/>
-                                    <span th:if="${vehicle.model == null or vehicle.model.modelImage == null}">🚗</span>
+                                         class="vehicle-image"
+                                         style="object-fit: cover; width: 100%; height: 100%;"
+                                         onload="this.nextElementSibling.style.display='none';"
+                                         onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"/>
+                                    <!-- Icon placeholder chỉ hiển thị khi không có ảnh -->
+                                    <span style="font-size: 48px;">🚗</span>
                                 </div>
                                 <div class="item-info">
                                     <div class="model-name">

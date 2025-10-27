@@ -120,6 +120,34 @@ public class EVMVehicleController {
     }
 
     // ===========================
+    // 📷 Trả ảnh model từ database theo ModelID
+    // ===========================
+    @GetMapping("/modelImage/{modelId}")
+    @ResponseBody
+    public ResponseEntity<byte[]> getModelImageFromDatabase(@PathVariable Integer modelId) {
+        try {
+            log.info("Fetching model image from database for ModelID={}", modelId);
+
+            byte[] imageBytes = dao.getModelImage(modelId);
+
+            if (imageBytes != null && imageBytes.length > 0) {
+                log.info("✅ Returning model image, size={} bytes", imageBytes.length);
+                return ResponseEntity
+                        .ok()
+                        .contentType(MediaType.IMAGE_JPEG)
+                        .body(imageBytes);
+            }
+
+            log.warn("⚠️ No image found in database for ModelID={}", modelId);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+
+        } catch (Exception e) {
+            log.error("❌ Error fetching model image for ModelID={}: {}", modelId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
+    // ===========================
     // 4️⃣ Xử lý tạo xe mới
     // ===========================
     @ExceptionHandler(MaxUploadSizeExceededException.class)
@@ -247,9 +275,10 @@ public class EVMVehicleController {
             }
             log.info("✅ Vehicle inserted with ID={}", vehicle.getVehicleID());
 
-            // ========== STEP 6: UPLOAD THUMBNAIL ==========
+            // ========== STEP 6: UPLOAD THUMBNAIL & SAVE TO DATABASE ==========
             if (thumbnail != null && !thumbnail.isEmpty()) {
                 try {
+                    // 1. Upload file to disk
                     Path uploadPath = Paths.get(UPLOAD_DIR);
                     if (!Files.exists(uploadPath)) {
                         Files.createDirectories(uploadPath);
@@ -264,11 +293,27 @@ public class EVMVehicleController {
                         uploadPath.resolve(fileName),
                         StandardCopyOption.REPLACE_EXISTING
                     );
-                    log.info("✅ Thumbnail uploaded: {}", fileName);
+                    log.info("✅ Thumbnail uploaded to disk: {}", fileName);
+
+                    // 2. Save image to database (VehicleModel.ModelImage)
+                    try {
+                        byte[] imageBytes = thumbnail.getBytes();
+                        boolean imageSaved = dao.updateModelImage(modelID, imageBytes);
+                        if (imageSaved) {
+                            log.info("✅ Model image saved to database for ModelID={}", modelID);
+                        } else {
+                            log.warn("⚠️ Failed to save model image to database for ModelID={}", modelID);
+                        }
+                    } catch (IOException e) {
+                        log.error("⚠️ Error reading image bytes: {}", e.getMessage());
+                    }
+
                 } catch (IOException e) {
                     log.error("⚠️ Error uploading thumbnail: {}", e.getMessage());
                     // Don't fail the whole operation, just log the error
                 }
+            } else {
+                log.info("ℹ️ No thumbnail uploaded for vehicle ID={}", vehicle.getVehicleID());
             }
 
             // ========== SUCCESS ==========

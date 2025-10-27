@@ -156,11 +156,16 @@
                 <div class="right-column">
 
                     <div class="image-container">
-                        <img th:if="${vehicle.model.modelImage != null}"
-                             th:src="@{/evm/vehicle/showImage/{id}(id=${vehicle.vehicleID})}"
+                        <!-- Hiển thị ảnh từ database nếu có -->
+                        <img th:if="${vehicle.version != null and vehicle.version.model != null and vehicle.version.model.modelID != null}"
+                             th:src="@{/evm/vehicle/modelImage/{modelId}(modelId=${vehicle.version.model.modelID})}"
                              alt="Model Image"
-                             class="vehicle-image">
-                        <span th:if="${vehicle.model.modelImage == null}">🚗</span>
+                             class="vehicle-image"
+                             style="object-fit: contain; width: 100%; max-height: 400px;"
+                             onload="this.nextElementSibling.style.display='none';"
+                             onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                        <!-- Icon placeholder chỉ hiển thị khi không có ảnh -->
+                        <span style="font-size: 64px;">🚗</span>
                     </div>
 
                     <div class="actions-container">
