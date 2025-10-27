@@ -482,4 +482,78 @@ public class DAOVehicle {
         }
         return false;
     }
+
+    /**
+     * Update ModelImage cho VehicleModel
+     * @param modelID ID của model
+     * @param imageBytes Byte array của ảnh
+     * @return true nếu update thành công
+     */
+    public boolean updateModelImage(Integer modelID, byte[] imageBytes) {
+        if (modelID == null || modelID <= 0) {
+            log.warn("Cannot update model image with invalid modelID");
+            return false;
+        }
+
+        String sql = "UPDATE VehicleModel SET ModelImage=? WHERE ModelID=?";
+
+        log.debug("Updating ModelImage for ModelID={}", modelID);
+
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            
+            if (imageBytes != null && imageBytes.length > 0) {
+                ps.setBytes(1, imageBytes);
+            } else {
+                ps.setNull(1, java.sql.Types.VARBINARY);
+            }
+            ps.setInt(2, modelID);
+
+            int rowsAffected = ps.executeUpdate();
+            log.info("✅ Updated ModelImage for ModelID={}, affected {} rows", modelID, rowsAffected);
+
+            return rowsAffected > 0;
+        } catch (SQLException e) {
+            log.error("❌ Error updating ModelImage for ModelID={}: {}", modelID, e.getMessage(), e);
+        }
+        return false;
+    }
+
+    /**
+     * Lấy ModelImage từ database theo ModelID
+     * @param modelID ID của model
+     * @return byte array của ảnh, hoặc null nếu không có
+     */
+    public byte[] getModelImage(Integer modelID) {
+        if (modelID == null || modelID <= 0) {
+            log.warn("Cannot get model image with invalid modelID");
+            return null;
+        }
+
+        String sql = "SELECT ModelImage FROM VehicleModel WHERE ModelID=?";
+
+        log.debug("Getting ModelImage for ModelID={}", modelID);
+
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            
+            ps.setInt(1, modelID);
+            
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    byte[] imageBytes = rs.getBytes("ModelImage");
+                    if (imageBytes != null) {
+                        log.info("✅ Retrieved ModelImage for ModelID={}, size={} bytes", modelID, imageBytes.length);
+                        return imageBytes;
+                    } else {
+                        log.info("ℹ️ No image found for ModelID={}", modelID);
+                        return null;
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            log.error("❌ Error getting ModelImage for ModelID={}: {}", modelID, e.getMessage(), e);
+        }
+        return null;
+    }
 }
