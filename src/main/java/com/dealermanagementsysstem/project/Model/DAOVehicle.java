@@ -109,6 +109,41 @@ public class DAOVehicle {
         return null;
     }
 
+    /**
+     * Tìm VehicleID available theo tên model (để dùng cho test drive)
+     * Trả về VehicleID đầu tiên tìm thấy có status Available
+     */
+    public Integer findAvailableVehicleByModelName(String modelName) {
+        if (modelName == null || modelName.trim().isEmpty()) {
+            return null;
+        }
+
+        String sql = """
+            SELECT TOP 1 v.VehicleID 
+            FROM Vehicle v
+            INNER JOIN VehicleVersion vv ON v.VersionID = vv.VersionID
+            INNER JOIN VehicleModel vm ON vv.ModelID = vm.ModelID
+            WHERE vm.ModelName LIKE ? AND v.Status = 'Available'
+            ORDER BY v.CreatedAt DESC
+        """;
+
+        try (Connection con = DBUtils.getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, "%" + modelName.trim() + "%");
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    int vehicleID = rs.getInt("VehicleID");
+                    log.info("Found available vehicle ID={} for model name: {}", vehicleID, modelName);
+                    return vehicleID;
+                }
+            }
+        } catch (SQLException e) {
+            log.error("Error finding available vehicle by model name: {}", modelName, e);
+        }
+
+        log.warn("No available vehicle found for model name: {}", modelName);
+        return null;
+    }
+
     public DTOVehicle getVehicleById(Integer id) {
         String sql = BASE_SELECT + " WHERE v.VehicleID = ?";
         try (Connection con = DBUtils.getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
