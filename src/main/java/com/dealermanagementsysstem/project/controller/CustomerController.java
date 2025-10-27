@@ -168,11 +168,21 @@ public class CustomerController {
 
     // ✅ Tìm kiếm Customer
     @GetMapping("/customer/search")
-    public String searchCustomer(@RequestParam("keyword") String keyword, Model model) {
-        List<DTOCustomer> customerList = daoCustomer.searchCustomer(keyword);
+    public String searchCustomer(@RequestParam(value = "keyword", required = false, defaultValue = "") String keyword, Model model) {
+        List<DTOCustomer> customerList;
+
+        // Nếu keyword trống hoặc null → Hiển thị full list
+        if (keyword == null || keyword.trim().isEmpty()) {
+            customerList = daoCustomer.getAllCustomers();
+            System.out.println("ℹ️ Search with empty keyword → Returning all customers (" + customerList.size() + " found)");
+        } else {
+            customerList = daoCustomer.searchCustomer(keyword.trim());
+            System.out.println("🔍 Search for: '" + keyword + "' → Found " + customerList.size() + " customers");
+        }
+
         model.addAttribute("customers", customerList);
         model.addAttribute("keyword", keyword);
-        return "dealerPage/betterCustomerList";
+        return "dealerPage/customerList";
     }
     // ✅ Hiển thị chi tiết khách hàng
     @GetMapping("/customer/detail/{id}")
