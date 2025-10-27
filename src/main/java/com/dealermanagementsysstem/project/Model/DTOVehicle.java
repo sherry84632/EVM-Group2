@@ -8,9 +8,10 @@ import java.math.BigDecimal;
 public class DTOVehicle {
 
     @Id
-    @Column(name = "VIN")
-    private String VIN;
-    
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "VehicleID")
+    private Integer vehicleID;
+
     @ManyToOne
     @JoinColumn(name = "ColorID", referencedColumnName = "ColorID")
     private DTOVehicleColor color;
@@ -25,18 +26,13 @@ public class DTOVehicle {
     @Column(name = "EngineNumber")
     private String engineNumber;
     
-    @ManyToOne
-    @JoinColumn(name = "OwnerID", referencedColumnName = "CustomerID")
-    private DTOCustomer owner;
-    
-    @ManyToOne
-    @JoinColumn(name = "CurrentDealerID", referencedColumnName = "DealerID")
-    private DTODealer currentDealer;
-    
     @Column(name = "Status")
     @Enumerated(EnumType.STRING)
     private VehicleStatus status;
     
+    @Column(name = "Description", columnDefinition = "NVARCHAR(MAX)")
+    private String description;
+
     @Column(name = "CreatedAt")
     private java.sql.Timestamp createdAt;
     
@@ -46,25 +42,22 @@ public class DTOVehicle {
     public DTOVehicle() {
     }
 
-    public DTOVehicle(String VIN, DTOVehicleColor color, DTOVehicleVersion version,
-                      int manufactureYear, String engineNumber, DTOCustomer owner, 
-                      DTODealer currentDealer, VehicleStatus status) {
-        this.VIN = VIN;
+    public DTOVehicle(Integer vehicleID, DTOVehicleColor color, DTOVehicleVersion version,
+                      int manufactureYear, String engineNumber, VehicleStatus status) {
+        this.vehicleID = vehicleID;
         this.color = color;
         this.version = version;
         this.manufactureYear = manufactureYear;
         this.engineNumber = engineNumber;
-        this.owner = owner;
-        this.currentDealer = currentDealer;
         this.status = status;
     }
 
-    public String getVIN() {
-        return VIN;
+    public Integer getVehicleID() {
+        return vehicleID;
     }
 
-    public void setVIN(String VIN) {
-        this.VIN = VIN;
+    public void setVehicleID(Integer vehicleID) {
+        this.vehicleID = vehicleID;
     }
 
     public int getManufactureYear() {
@@ -91,13 +84,6 @@ public class DTOVehicle {
         this.engineNumber = engineNumber;
     }
 
-    public DTOCustomer getOwner() {
-        return owner;
-    }
-
-    public void setOwner(DTOCustomer owner) {
-        this.owner = owner;
-    }
 
     public VehicleStatus getStatus() {
         return status;
@@ -115,14 +101,6 @@ public class DTOVehicle {
         this.version = version;
     }
 
-    public DTODealer getCurrentDealer() {
-        return currentDealer;
-    }
-
-    public void setCurrentDealer(DTODealer currentDealer) {
-        this.currentDealer = currentDealer;
-    }
-    
     public java.sql.Timestamp getCreatedAt() {
         return createdAt;
     }
@@ -137,6 +115,14 @@ public class DTOVehicle {
 
     public void setUpdatedAt(java.sql.Timestamp updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     // === CONVENIENCE METHODS FOR THYMELEAF TEMPLATES ===
@@ -171,5 +157,21 @@ public class DTOVehicle {
      */
     public String getVersionName() {
         return version != null ? version.getVersionName() : null;
+    }
+
+    /**
+     * Convenience method to access model ID
+     * Usage in Thymeleaf: ${vehicle.modelID}
+     */
+    public Integer getModelID() {
+        return version != null && version.getModel() != null ? version.getModel().getModelID() : null;
+    }
+
+    /**
+     * Convenience method to access color ID
+     * Usage in Thymeleaf: ${vehicle.colorID}
+     */
+    public Integer getColorID() {
+        return color != null ? color.getColorID() : null;
     }
 }

@@ -115,11 +115,11 @@
 
                     <!-- Item -->
                     <div th:each="vehicle : ${vehicles}">
-                        <a th:href="@{/evm/vehicle/detail/{vin}(vin=${vehicle.VIN})}" style="text-decoration: none;">
+                        <a th:href="@{/evm/vehicle/detail/{id}(id=${vehicle.vehicleID})}" style="text-decoration: none;">
                             <div class="item-button">
                                 <div class="image-placeholder">
                                     <img th:if="${vehicle.model != null and vehicle.model.modelImage != null}"
-                                         th:src="@{/evm/vehicle/showImage/{vin}(vin=${vehicle.VIN})}"
+                                         th:src="@{/evm/vehicle/showImage/{id}(id=${vehicle.vehicleID})}"
                                          alt="Model Image"
                                          class="vehicle-image"/>
                                     <span th:if="${vehicle.model == null or vehicle.model.modelImage == null}">🚗</span>
@@ -144,8 +144,8 @@
                                             <span class="info-value" th:text="${vehicle.version != null ? vehicle.version.versionName : 'N/A'}">Version</span>
                                         </div>
                                         <div class="info-item">
-                                            <span class="info-label">VIN:</span>
-                                            <span class="info-value" th:text="${vehicle.VIN != null ? vehicle.VIN : 'N/A'}">VIN</span>
+                                            <span class="info-label">Status:</span>
+                                            <span class="info-value" th:text="${vehicle.status != null ? vehicle.status : 'N/A'}">Status</span>
                                         </div>
                                     </div>
                                 </div>

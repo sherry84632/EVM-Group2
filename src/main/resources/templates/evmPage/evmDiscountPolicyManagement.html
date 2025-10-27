@@ -90,11 +90,11 @@
 
                 <h1>Discount Policy Management</h1>
 
-                <form id="searchDiscountForm" action="/discount">
+                <form id="searchDiscountForm" action="/discount-policy" method="get">
                     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
                     <div class="form-group">
-                        <label for="promoName">Search by policy name:</label>
-                        <input type="text" id="promoName" name="keyword" placeholder="Enter promotion name" required th:value="${keyword}">
+                        <label for="searchKeyword">Search by policy name:</label>
+                        <input type="text" id="searchKeyword" name="keyword" placeholder="Enter policy name" th:value="${keyword}">
                     </div>
 
                     <button type="submit" class="submit-btn">Search</button>

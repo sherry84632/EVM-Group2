@@ -16,7 +16,7 @@ public class SearchController {
     public String searchVehicle(@RequestParam("keyword") String keyword, Model model) {
         DAOVehicle daoVehicle = new DAOVehicle();
         List<DTOVehicle> vehicles = daoVehicle.searchVehiclesByModelName(keyword);
-        model.addAttribute("vehicleList", vehicles);
+        model.addAttribute("vehicles", vehicles);  // ✅ Changed from 'vehicleList' to 'vehicles'
         model.addAttribute("keyword", keyword);
         return "evmPage/vehicleList";
     }

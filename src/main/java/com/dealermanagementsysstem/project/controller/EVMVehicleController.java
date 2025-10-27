@@ -15,11 +15,14 @@ import java.util.ArrayList;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Controller
 @RequestMapping("/evm/vehicle")
 public class EVMVehicleController {
 
+    private static final Logger log = LoggerFactory.getLogger(EVMVehicleController.class);
     private final DAOVehicle dao;
     private static final String UPLOAD_DIR = "src/main/resources/static/uploads/vehicle/";
 
@@ -49,13 +52,13 @@ public class EVMVehicleController {
     }
 
     // ===========================
-    // 2️⃣ Chi tiết xe theo VIN
+    // 2️⃣ Chi tiết xe theo ID
     // ===========================
-    @GetMapping("/detail/{vin}")
-    public String vehicleDetail(@PathVariable String vin, Model model) {
-        DTOVehicle vehicle = dao.getVehicleByVIN(vin);
+    @GetMapping("/detail/{id}")
+    public String vehicleDetail(@PathVariable Integer id, Model model) {
+        DTOVehicle vehicle = dao.getVehicleById(id);
         if (vehicle == null) {
-            model.addAttribute("error", "Vehicle not found for VIN: " + vin);
+            model.addAttribute("error", "Vehicle not found for ID: " + id);
             return "evmPage/vehicleList";
         }
         model.addAttribute("vehicle", vehicle);
@@ -72,16 +75,16 @@ public class EVMVehicleController {
     }
 
     // ===========================
-    // 📷 Trả ảnh vehicle theo VIN
+    // 📷 Trả ảnh vehicle theo ID
     // ===========================
-    @GetMapping("/showImage/{vin}")
+    @GetMapping("/showImage/{id}")
     @ResponseBody
-    public ResponseEntity<byte[]> showVehicleImage(@PathVariable String vin) {
+    public ResponseEntity<byte[]> showVehicleImage(@PathVariable Integer id) {
         try {
             Path uploadPath = Paths.get(UPLOAD_DIR);
             if (Files.exists(uploadPath)) {
                 try (var stream = Files.list(uploadPath)) {
-                    Path found = stream.filter(path -> path.getFileName().toString().contains(vin)).findFirst().orElse(null);
+                    Path found = stream.filter(path -> path.getFileName().toString().contains("_" + id + "_")).findFirst().orElse(null);
                     if (found != null) {
                         byte[] bytes = Files.readAllBytes(found);
                         return ResponseEntity
@@ -127,92 +130,161 @@ public class EVMVehicleController {
 
     @PostMapping("/create")
     public String createVehicle(
-            @RequestParam(value = "vin", required = false) String vin,
             @RequestParam(value = "colorName", required = false) String colorName,
             @RequestParam(value = "modelName", required = false) String modelName,
+            @RequestParam(value = "brand", required = false) String brand,
+            @RequestParam(value = "bodyType", required = false) String bodyType,
+            @RequestParam(value = "year", required = false, defaultValue = "0") int modelYear,
+            @RequestParam(value = "description", required = false) String modelDescription,
+            @RequestParam(value = "basePrice", required = false) String basePriceStr,
+            @RequestParam(value = "versionName", required = false) String versionName,
+            @RequestParam(value = "engine", required = false) String engine,
+            @RequestParam(value = "transmission", required = false) String transmission,
             @RequestParam(value = "manufactureYear", required = false, defaultValue = "0") int manufactureYear,
             @RequestParam(value = "engineNumber", required = false) String engineNumber,
-            @RequestParam(value = "ownerID", required = false, defaultValue = "0") int ownerID,
-            @RequestParam(value = "currentDealerID", required = false, defaultValue = "0") int currentDealerID,
-            @RequestParam(value = "versionID", required = false, defaultValue = "0") int versionID,
-            @RequestParam(value = "status", required = false, defaultValue = "AVAILABLE") String status,
+            @RequestParam(value = "status", required = false, defaultValue = "IN_STOCK") String status,
             @RequestParam(value = "thumbnail", required = false) MultipartFile thumbnail,
             Model model
     ) {
-        if (vin == null || vin.isBlank()) {
-            model.addAttribute("error", "VIN is required");
-            return "evmPage/createANewVehicleToList";
-        }
+        log.info("Creating vehicle: model={}, version={}, color={}", modelName, versionName, colorName);
+
+        // ========== VALIDATION ==========
         if (manufactureYear <= 0) {
-            model.addAttribute("error", "Manufacture year is required");
+            model.addAttribute("error", "❌ Manufacture year is required");
             return "evmPage/createANewVehicleToList";
         }
-        if (versionID <= 0) {
-            model.addAttribute("error", "Version ID is required");
+        if (modelName == null || modelName.isBlank()) {
+            model.addAttribute("error", "❌ Model name is required");
+            return "evmPage/createANewVehicleToList";
+        }
+        if (versionName == null || versionName.isBlank()) {
+            model.addAttribute("error", "❌ Version name is required");
+            return "evmPage/createANewVehicleToList";
+        }
+        if (colorName == null || colorName.isBlank()) {
+            model.addAttribute("error", "❌ Color name is required");
             return "evmPage/createANewVehicleToList";
         }
 
         try {
-            // === Validate color ===
-            Integer colorID = null;
-            if (colorName != null && !colorName.isBlank()) {
-                colorID = dao.getColorIdByName(colorName);
-                if (colorID == null) {
-                    model.addAttribute("error", "Color not found: " + colorName);
+            // ========== PARSE BASE PRICE ==========
+            java.math.BigDecimal basePrice = java.math.BigDecimal.ZERO;
+            if (basePriceStr != null && !basePriceStr.isBlank()) {
+                try {
+                    basePrice = new java.math.BigDecimal(basePriceStr);
+                } catch (NumberFormatException e) {
+                    model.addAttribute("error", "❌ Invalid base price format");
                     return "evmPage/createANewVehicleToList";
                 }
             }
 
-            // === Build vehicle ===
+            // ========== STEP 1: GET OR CREATE MODEL ==========
+            Integer modelID = dao.getOrCreateModel(
+                modelName,
+                brand != null ? brand : "Unknown",
+                bodyType != null ? bodyType : "Unknown",
+                modelYear > 0 ? modelYear : manufactureYear,
+                basePrice,
+                modelDescription != null ? modelDescription : ""
+            );
+
+            if (modelID == null) {
+                model.addAttribute("error", "❌ Failed to create/get model: " + modelName);
+                return "evmPage/createANewVehicleToList";
+            }
+            log.info("✅ Model ready: {} (ID={})", modelName, modelID);
+
+            // ========== STEP 2: GET OR CREATE VERSION ==========
+            Integer versionID = dao.getOrCreateVersion(
+                modelID,
+                versionName,
+                engine != null ? engine : "Unknown",
+                transmission != null ? transmission : "Unknown"
+            );
+
+            if (versionID == null) {
+                model.addAttribute("error", "❌ Failed to create/get version: " + versionName);
+                return "evmPage/createANewVehicleToList";
+            }
+            log.info("✅ Version ready: {} (ID={})", versionName, versionID);
+
+            // ========== STEP 3: GET OR CREATE COLOR ==========
+            Integer colorID = dao.getOrCreateColor(colorName);
+
+            if (colorID == null) {
+                model.addAttribute("error", "❌ Failed to create/get color: " + colorName);
+                return "evmPage/createANewVehicleToList";
+            }
+            log.info("✅ Color ready: {} (ID={})", colorName, colorID);
+
+            // ========== STEP 4: BUILD VEHICLE OBJECT ==========
             DTOVehicle vehicle = new DTOVehicle();
-            vehicle.setVIN(vin);
             vehicle.setManufactureYear(manufactureYear);
-            vehicle.setEngineNumber(engineNumber);
+            vehicle.setEngineNumber(engineNumber != null ? engineNumber : "ENG" + System.currentTimeMillis());
             vehicle.setStatus(VehicleStatus.valueOf(status));
+            vehicle.setDescription(modelDescription); // Save model description to vehicle
             vehicle.setCreatedAt(new java.sql.Timestamp(System.currentTimeMillis()));
             vehicle.setUpdatedAt(new java.sql.Timestamp(System.currentTimeMillis()));
 
-            if (colorID != null) {
-                DTOVehicleColor color = new DTOVehicleColor();
-                color.setColorID(colorID);
-                color.setColorName(colorName);
-                vehicle.setColor(color);
-            }
-            if (versionID > 0) {
-                DTOVehicleVersion version = new DTOVehicleVersion();
-                version.setVersionID(versionID);
-                vehicle.setVersion(version);
-            }
-            if (ownerID > 0) {
-                DTOCustomer owner = new DTOCustomer();
-                owner.setCustomerID(ownerID);
-                vehicle.setOwner(owner);
-            }
-            if (currentDealerID > 0) {
-                DTODealer dealer = new DTODealer();
-                dealer.setDealerID(currentDealerID);
-                vehicle.setCurrentDealer(dealer);
-            }
+            // Set Color
+            DTOVehicleColor color = new DTOVehicleColor();
+            color.setColorID(colorID);
+            color.setColorName(colorName);
+            vehicle.setColor(color);
 
-            // === Handle image upload ===
-            if (thumbnail != null && !thumbnail.isEmpty()) {
-                Path uploadPath = Paths.get(UPLOAD_DIR);
-                if (!Files.exists(uploadPath)) Files.createDirectories(uploadPath);
-                String fileName = System.currentTimeMillis() + "_" + thumbnail.getOriginalFilename();
-                Files.copy(thumbnail.getInputStream(), uploadPath.resolve(fileName), StandardCopyOption.REPLACE_EXISTING);
-            }
+            // Set Version
+            DTOVehicleVersion version = new DTOVehicleVersion();
+            version.setVersionID(versionID);
+            version.setVersionName(versionName);
+            vehicle.setVersion(version);
 
+            // ========== STEP 5: INSERT VEHICLE ==========
             dao.insertVehicle(vehicle);
-            model.addAttribute("message", "✅ Vehicle created successfully!");
+
+            if (vehicle.getVehicleID() == null || vehicle.getVehicleID() <= 0) {
+                model.addAttribute("error", "❌ Failed to insert vehicle into database");
+                return "evmPage/createANewVehicleToList";
+            }
+            log.info("✅ Vehicle inserted with ID={}", vehicle.getVehicleID());
+
+            // ========== STEP 6: UPLOAD THUMBNAIL ==========
+            if (thumbnail != null && !thumbnail.isEmpty()) {
+                try {
+                    Path uploadPath = Paths.get(UPLOAD_DIR);
+                    if (!Files.exists(uploadPath)) {
+                        Files.createDirectories(uploadPath);
+                    }
+
+                    String fileName = System.currentTimeMillis() + "_"
+                                    + vehicle.getVehicleID() + "_"
+                                    + thumbnail.getOriginalFilename();
+
+                    Files.copy(
+                        thumbnail.getInputStream(),
+                        uploadPath.resolve(fileName),
+                        StandardCopyOption.REPLACE_EXISTING
+                    );
+                    log.info("✅ Thumbnail uploaded: {}", fileName);
+                } catch (IOException e) {
+                    log.error("⚠️ Error uploading thumbnail: {}", e.getMessage());
+                    // Don't fail the whole operation, just log the error
+                }
+            }
+
+            // ========== SUCCESS ==========
+            log.info("🎉 Vehicle created successfully! ID={}, Model={}, Version={}, Color={}",
+                    vehicle.getVehicleID(), modelName, versionName, colorName);
+
+            model.addAttribute("message", "✅ Vehicle created successfully! ID: " + vehicle.getVehicleID());
             return "redirect:/evm/vehicle/list";
+
         } catch (IllegalArgumentException e) {
-            model.addAttribute("error", "Invalid status: " + status);
-            return "evmPage/createANewVehicleToList";
-        } catch (IOException e) {
-            model.addAttribute("error", "Error uploading thumbnail: " + e.getMessage());
+            log.error("Invalid status value: {}", status, e);
+            model.addAttribute("error", "❌ Invalid status: " + status);
             return "evmPage/createANewVehicleToList";
         } catch (Exception e) {
-            model.addAttribute("error", "Unexpected error: " + e.getMessage());
+            log.error("❌ Unexpected error creating vehicle", e);
+            model.addAttribute("error", "❌ Unexpected error: " + e.getMessage());
             return "evmPage/createANewVehicleToList";
         }
     }
@@ -220,11 +292,11 @@ public class EVMVehicleController {
     // ===========================
     // 5️⃣ Form chỉnh sửa xe
     // ===========================
-    @GetMapping("/edit/{vin}")
-    public String showEditForm(@PathVariable String vin, Model model) {
-        DTOVehicle vehicle = dao.getVehicleByVIN(vin);
+    @GetMapping("/edit/{id}")
+    public String showEditForm(@PathVariable Integer id, Model model) {
+        DTOVehicle vehicle = dao.getVehicleById(id);
         if (vehicle == null) {
-            model.addAttribute("error", "Vehicle not found for VIN: " + vin);
+            model.addAttribute("error", "Vehicle not found for ID: " + id);
             return "evmPage/editVehicle";
         }
         model.addAttribute("vehicle", vehicle);
@@ -234,75 +306,229 @@ public class EVMVehicleController {
     // ===========================
     // 6️⃣ Xử lý cập nhật xe
     // ===========================
-    @PostMapping("/edit/{vin}")
+    @PostMapping("/edit/{id}")
     public String updateVehicle(
-            @PathVariable String vin,
-            @RequestParam("colorName") String colorName,
-            @RequestParam("modelName") String modelName,
-            @RequestParam("manufactureYear") int manufactureYear,
-            @RequestParam("engineNumber") String engineNumber,
-            @RequestParam("ownerID") int ownerID,
-            @RequestParam("currentDealerID") int currentDealerID,
-            @RequestParam("versionID") int versionID,
-            @RequestParam("status") String status,
+            @PathVariable Integer id,
+            @RequestParam(value = "colorName", required = false) String colorName,
+            @RequestParam(value = "modelName", required = false) String modelName,
+            @RequestParam(value = "brand", required = false) String brand,
+            @RequestParam(value = "bodyType", required = false) String bodyType,
+            @RequestParam(value = "year", required = false, defaultValue = "0") int modelYear,
+            @RequestParam(value = "description", required = false) String modelDescription,
+            @RequestParam(value = "basePrice", required = false) String basePriceStr,
+            @RequestParam(value = "versionName", required = false) String versionName,
+            @RequestParam(value = "engine", required = false) String engine,
+            @RequestParam(value = "transmission", required = false) String transmission,
+            @RequestParam(value = "manufactureYear", required = false, defaultValue = "0") int manufactureYear,
+            @RequestParam(value = "engineNumber", required = false) String engineNumber,
+            @RequestParam(value = "status", required = false) String status,
             @RequestParam(value = "thumbnail", required = false) MultipartFile thumbnail,
             Model model
     ) {
+        log.info("Updating vehicle ID={}: model={}, version={}, color={}", id, modelName, versionName, colorName);
+
         try {
-            DTOVehicle existing = dao.getVehicleByVIN(vin);
+            // Get existing vehicle
+            DTOVehicle existing = dao.getVehicleById(id);
             if (existing == null) {
-                model.addAttribute("error", "Vehicle not found.");
+                model.addAttribute("error", "❌ Vehicle not found.");
                 return "evmPage/editVehicle";
             }
-            existing.setManufactureYear(manufactureYear);
-            existing.setEngineNumber(engineNumber);
-            existing.setStatus(VehicleStatus.valueOf(status));
+
+            // Parse base price - use existing if not provided
+            java.math.BigDecimal basePrice = null;
+            if (basePriceStr != null && !basePriceStr.isBlank()) {
+                try {
+                    basePrice = new java.math.BigDecimal(basePriceStr);
+                } catch (NumberFormatException e) {
+                    model.addAttribute("error", "❌ Invalid base price format");
+                    model.addAttribute("vehicle", existing);
+                    return "evmPage/editVehicle";
+                }
+            } else if (existing.getVersion() != null && existing.getVersion().getModel() != null) {
+                basePrice = existing.getVersion().getModel().getBasePrice();
+            }
+            if (basePrice == null) {
+                basePrice = java.math.BigDecimal.ZERO;
+            }
+
+            // Get existing values for fallback
+            String existingModelName = existing.getVersion() != null && existing.getVersion().getModel() != null
+                ? existing.getVersion().getModel().getModelName() : null;
+            String existingBrand = existing.getVersion() != null && existing.getVersion().getModel() != null
+                ? existing.getVersion().getModel().getBrand() : "Unknown";
+            String existingBodyType = existing.getVersion() != null && existing.getVersion().getModel() != null
+                ? existing.getVersion().getModel().getBodyType() : "Unknown";
+            String existingVersionName = existing.getVersion() != null
+                ? existing.getVersion().getVersionName() : null;
+            String existingEngine = existing.getVersion() != null
+                ? existing.getVersion().getEngine() : "Unknown";
+            String existingTransmission = existing.getVersion() != null
+                ? existing.getVersion().getTransmission() : "Unknown";
+            String existingColorName = existing.getColor() != null
+                ? existing.getColor().getColorName() : null;
+
+            // Get or Create Model - use existing values as fallback
+            Integer modelID = null;
+            String finalModelName = (modelName != null && !modelName.isBlank()) ? modelName : existingModelName;
+            String finalBrand = (brand != null && !brand.isBlank()) ? brand : existingBrand;
+            String finalBodyType = (bodyType != null && !bodyType.isBlank()) ? bodyType : existingBodyType;
+            int finalYear = modelYear > 0 ? modelYear : (manufactureYear > 0 ? manufactureYear : existing.getManufactureYear());
+            String finalDescription = (modelDescription != null && !modelDescription.isBlank()) ? modelDescription : "";
+
+            if (finalModelName != null && !finalModelName.isBlank()) {
+                modelID = dao.getOrCreateModel(
+                    finalModelName,
+                    finalBrand,
+                    finalBodyType,
+                    finalYear,
+                    basePrice,
+                    finalDescription
+                );
+                log.debug("Model: {} → ID={}", finalModelName, modelID);
+            }
+
+            // Get or Create Version - use existing values as fallback
+            Integer versionID = null;
+            String finalVersionName = (versionName != null && !versionName.isBlank()) ? versionName : existingVersionName;
+            String finalEngine = (engine != null && !engine.isBlank()) ? engine : existingEngine;
+            String finalTransmission = (transmission != null && !transmission.isBlank()) ? transmission : existingTransmission;
+
+            if (finalVersionName != null && !finalVersionName.isBlank() && modelID != null) {
+                versionID = dao.getOrCreateVersion(
+                    modelID,
+                    finalVersionName,
+                    finalEngine,
+                    finalTransmission
+                );
+                log.debug("Version: {} → ID={}", finalVersionName, versionID);
+            }
+
+            // Get or Create Color - use existing value as fallback
+            Integer colorID = null;
+            String finalColorName = (colorName != null && !colorName.isBlank()) ? colorName : existingColorName;
+
+            if (finalColorName != null && !finalColorName.isBlank()) {
+                colorID = dao.getOrCreateColor(finalColorName);
+                log.debug("Color: {} → ID={}", finalColorName, colorID);
+            }
+
+            // Update vehicle fields
+            if (manufactureYear > 0) {
+                existing.setManufactureYear(manufactureYear);
+                log.debug("Updated manufactureYear: {}", manufactureYear);
+            }
+            if (engineNumber != null && !engineNumber.isBlank()) {
+                existing.setEngineNumber(engineNumber);
+                log.debug("Updated engineNumber: {}", engineNumber);
+            }
+            if (status != null && !status.isBlank()) {
+                existing.setStatus(VehicleStatus.valueOf(status));
+                log.debug("Updated status: {}", status);
+            }
+            if (modelDescription != null) {
+                existing.setDescription(modelDescription);
+                log.debug("Updated description");
+            }
             existing.setUpdatedAt(new java.sql.Timestamp(System.currentTimeMillis()));
 
-            DTOVehicleColor color = new DTOVehicleColor();
-            color.setColorName(colorName);
-            existing.setColor(color);
+            // Update color - ALWAYS set if colorID obtained
+            if (colorID != null && colorID > 0) {
+                DTOVehicleColor color = new DTOVehicleColor();
+                color.setColorID(colorID);
+                color.setColorName(colorName);
+                existing.setColor(color);
+                log.debug("Updated color: {} (ID={})", colorName, colorID);
+            } else {
+                log.warn("ColorID is null or invalid, keeping existing color");
+            }
 
-            DTOVehicleVersion version = new DTOVehicleVersion();
-            version.setVersionID(versionID);
-            // Attempt to resolve model by name if provided
-            if (modelName != null && !modelName.isBlank()) {
-                Integer modelId = dao.getModelIdByName(modelName);
-                if (modelId != null) {
-                    DTOVehicleModel m = new DTOVehicleModel();
-                    m.setModelID(modelId);
-                    m.setModelName(modelName);
-                    version.setModel(m);
+            // Update version - ALWAYS set if versionID obtained
+            if (versionID != null && versionID > 0) {
+                DTOVehicleVersion version = new DTOVehicleVersion();
+                version.setVersionID(versionID);
+                existing.setVersion(version);
+                log.debug("Updated version: {} (ID={})", versionName, versionID);
+            } else {
+                log.warn("VersionID is null or invalid, keeping existing version");
+            }
+
+            log.info("Prepared vehicle for update: ID={}, ColorID={}, VersionID={}, Year={}, Status={}",
+                    id,
+                    existing.getColor() != null ? existing.getColor().getColorID() : "null",
+                    existing.getVersion() != null ? existing.getVersion().getVersionID() : "null",
+                    existing.getManufactureYear(),
+                    existing.getStatus());
+
+            // Handle thumbnail upload
+            if (thumbnail != null && !thumbnail.isEmpty()) {
+                try {
+                    Path uploadPath = Paths.get(UPLOAD_DIR);
+                    if (!Files.exists(uploadPath)) {
+                        Files.createDirectories(uploadPath);
+                    }
+                    String fileName = System.currentTimeMillis() + "_" + id + "_" + thumbnail.getOriginalFilename();
+                    Files.copy(thumbnail.getInputStream(), uploadPath.resolve(fileName), StandardCopyOption.REPLACE_EXISTING);
+                    log.info("✅ Thumbnail updated: {}", fileName);
+                } catch (IOException e) {
+                    log.error("⚠️ Error uploading thumbnail: {}", e.getMessage());
                 }
             }
-            existing.setVersion(version);
 
-            DTOCustomer owner = new DTOCustomer();
-            owner.setCustomerID(ownerID);
-            existing.setOwner(owner);
-
-            DTODealer dealer = new DTODealer();
-            dealer.setDealerID(currentDealerID);
-            existing.setCurrentDealer(dealer);
-
-            if (thumbnail != null && !thumbnail.isEmpty()) {
-                Path uploadPath = Paths.get(UPLOAD_DIR);
-                if (!Files.exists(uploadPath)) Files.createDirectories(uploadPath);
-                String fileName = System.currentTimeMillis() + "_" + thumbnail.getOriginalFilename();
-                Files.copy(thumbnail.getInputStream(), uploadPath.resolve(fileName), StandardCopyOption.REPLACE_EXISTING);
-            }
-
+            // Save to database - Vehicle table
             boolean updated = dao.updateVehicle(existing);
             if (!updated) {
-                model.addAttribute("error", "Failed to update vehicle. Please try again.");
+                model.addAttribute("error", "❌ Failed to update vehicle. Please try again.");
+                model.addAttribute("vehicle", existing);
                 return "evmPage/editVehicle";
             }
-            return "redirect:/evm/vehicle/detail/" + vin;
-        } catch (IOException e) {
-            model.addAttribute("error", "Error uploading thumbnail: " + e.getMessage());
+
+            // Update VehicleModel table (brand, bodyType, year, basePrice, description)
+            if (modelID != null && modelID > 0) {
+                boolean modelUpdated = dao.updateModel(
+                    modelID,
+                    finalBrand,
+                    finalBodyType,
+                    finalYear,
+                    basePrice,
+                    finalDescription
+                );
+                if (modelUpdated) {
+                    log.info("✅ VehicleModel updated: ID={}, BasePrice={}", modelID, basePrice);
+                } else {
+                    log.warn("⚠️ VehicleModel update failed for ID={}", modelID);
+                }
+            }
+
+            // Update VehicleVersion table (engine, transmission)
+            if (versionID != null && versionID > 0) {
+                boolean versionUpdated = dao.updateVersion(
+                    versionID,
+                    finalEngine,
+                    finalTransmission
+                );
+                if (versionUpdated) {
+                    log.info("✅ VehicleVersion updated: ID={}, Engine={}, Transmission={}", versionID, finalEngine, finalTransmission);
+                } else {
+                    log.warn("⚠️ VehicleVersion update failed for ID={}", versionID);
+                }
+            }
+
+            log.info("✅ Vehicle updated successfully! ID={}", id);
+            model.addAttribute("message", "✅ Vehicle updated successfully!");
+            return "redirect:/evm/vehicle/detail/" + id;
+
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid status value: {}", status, e);
+            model.addAttribute("error", "❌ Invalid status: " + status);
+            DTOVehicle existing = dao.getVehicleById(id);
+            model.addAttribute("vehicle", existing);
             return "evmPage/editVehicle";
         } catch (Exception e) {
-            model.addAttribute("error", "Error: " + e.getMessage());
+            log.error("❌ Error updating vehicle ID={}", id, e);
+            model.addAttribute("error", "❌ Error: " + e.getMessage());
+            DTOVehicle existing = dao.getVehicleById(id);
+            model.addAttribute("vehicle", existing);
             return "evmPage/editVehicle";
         }
     }
@@ -310,19 +536,19 @@ public class EVMVehicleController {
     // ===========================
     // 7️⃣ Xử lý xóa xe
     // ===========================
-    @PostMapping("/delete/{vin}")
-    public String deleteVehicle(@PathVariable String vin, Model model) {
-        if (vin == null || vin.isBlank()) {
+    @PostMapping("/delete/{id}")
+    public String deleteVehicle(@PathVariable Integer id, Model model) {
+        if (id == null) {
             model.addAttribute("error", "Invalid vehicle identifier.");
             return "redirect:/evm/vehicle/list";
         }
         try {
-            DTOVehicle existing = dao.getVehicleByVIN(vin);
+            DTOVehicle existing = dao.getVehicleById(id);
             if (existing == null) {
                 model.addAttribute("error", "Vehicle not found.");
                 return "redirect:/evm/vehicle/list";
             }
-            boolean deleted = dao.deleteVehicle(vin);
+            boolean deleted = dao.deleteVehicle(id);
             if (!deleted) {
                 model.addAttribute("error", "Failed to delete vehicle. Please try again.");
             } else {

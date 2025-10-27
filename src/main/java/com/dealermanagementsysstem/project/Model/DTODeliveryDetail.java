@@ -16,7 +16,7 @@ public class DTODeliveryDetail {
     private DTODelivery delivery;
     
     @ManyToOne
-    @JoinColumn(name = "VIN", referencedColumnName = "VIN")
+    @JoinColumn(name = "VehicleID", referencedColumnName = "VehicleID")
     private DTOVehicle vehicle;
     
     public DTODeliveryDetail() {

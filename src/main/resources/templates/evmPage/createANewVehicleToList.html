@@ -108,34 +108,31 @@
 
                 <!-- CSRF token temporarily disabled for testing -->
 
-                <div class="form-group">
-                    <label for="vin">VIN:</label>
-                    <input type="text" id="vin" name="vin" placeholder="Enter vehicle VIN" required />
-                </div>
 
                 <div class="form-group">
-                    <label for="manufactureDate">Manufacture date:</label>
-                    <input type="date" id="manufactureDate" name="manufactureDate" required />
+                    <label for="manufactureYear">Manufacture Year:</label>
+                    <input type="number" id="manufactureYear" name="manufactureYear" placeholder="Enter year (e.g., 2024)" min="1900" max="2099" required />
                 </div>
 
                 <div class="form-group">
                     <label for="status">Status:</label>
                     <select id="status" name="status" required>
                         <option value="">Select vehicle status</option>
-                        <option value="InStock">In Stock</option>
-                        <option value="InProduction">In Production</option>
-                        <option value="Sold">Sold</option>
+                        <option value="IN_STOCK" selected>In Stock</option>
+                        <option value="ALLOCATED">Allocated</option>
+                        <option value="SOLD">Sold</option>
+                        <option value="TRANSFERRED">Transferred</option>
                     </select>
                 </div>
 
                 <div class="form-group">
-                    <label for="evmID">EVM ID:</label>
-                    <input type="number" id="evmID" name="evmID" placeholder="Enter EVM ID" required />
+                    <label for="engineNumber">Engine Number (Optional):</label>
+                    <input type="text" id="engineNumber" name="engineNumber" placeholder="Leave blank to auto-generate" />
                 </div>
 
                 <div class="form-group">
                     <label for="colorName">Color name:</label>
-                    <input type="text" id="colorName" name="colorName" placeholder="Enter color name" required />
+                    <input type="text" id="colorName" name="colorName" placeholder="Enter color name (e.g., Pearl White)" required />
                 </div>
 
                 <div class="form-group">

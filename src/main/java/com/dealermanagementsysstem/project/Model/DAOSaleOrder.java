@@ -19,7 +19,7 @@ public class DAOSaleOrder {
     public boolean createSaleOrder(DTOSaleOrder saleOrder) {
         String sqlOrder = "INSERT INTO SaleOrder (customer_customer_id, dealer_dealer_id, staff_staff_id, CreatedAt, Status, Quantity, TotalAmount) "
                 + "VALUES (?, ?, ?, GETDATE(), ?, ?, ?)";
-        String sqlDetail = "INSERT INTO SaleOrderDetail (SaleOrderID, VIN, Price, PolicyID) "
+        String sqlDetail = "INSERT INTO SaleOrderDetail (SaleOrderID, VehicleID, Price, PolicyID) "
                 + "VALUES (?, ?, ?, ?)";
 
         Connection conn = null;
@@ -62,11 +62,11 @@ public class DAOSaleOrder {
             psDetail = conn.prepareStatement(sqlDetail);
             for (DTOSaleOrderDetail detail : saleOrder.getDetail()) {
                 psDetail.setInt(1, saleOrderID);
-                psDetail.setString(2, detail.getVehicle().getVIN());
+                psDetail.setInt(2, detail.getVehicle().getVehicleID());
                 psDetail.setBigDecimal(3, detail.getPrice());
                 psDetail.setInt(4, detail.getDiscountPolicy().getPolicyID());
                 psDetail.addBatch();
-                log.trace("Queued SaleOrderDetail VIN={} price={}", detail.getVehicle().getVIN(), detail.getPrice());
+                log.trace("Queued SaleOrderDetail VehicleID={} price={}", detail.getVehicle().getVehicleID(), detail.getPrice());
             }
             psDetail.executeBatch();
             log.debug("Inserted {} SaleOrderDetail rows", saleOrder.getDetail().size());
@@ -217,13 +217,13 @@ public class DAOSaleOrder {
         List<DTOSaleOrderDetail> details = new ArrayList<>();
 
         String sql = """
-                    SELECT sod.SODetailID, sod.SaleOrderID, sod.VIN, sod.Price, sod.PolicyID,
+                    SELECT sod.SODetailID, sod.SaleOrderID, sod.VehicleID, sod.Price, sod.PolicyID,
                            v.ManufactureYear, v.Status,
                            vc.ColorID, vc.ColorName,
                            vv.VersionID, vv.VersionName,
                            dp.PolicyID, dp.PolicyName
                     FROM SaleOrderDetail sod
-                    JOIN Vehicle v ON sod.VIN = v.VIN
+                    JOIN Vehicle v ON sod.VehicleID = v.VehicleID
                     LEFT JOIN VehicleColor vc ON v.ColorID = vc.ColorID
                     LEFT JOIN VehicleVersion vv ON v.VersionID = vv.VersionID
                     LEFT JOIN DiscountPolicy dp ON sod.PolicyID = dp.PolicyID
@@ -239,7 +239,7 @@ public class DAOSaleOrder {
             while (rs.next()) {
                 // Vehicle info
                 DTOVehicle vehicle = new DTOVehicle();
-                vehicle.setVIN(rs.getString("VIN"));
+                vehicle.setVehicleID(rs.getInt("VehicleID"));
                 vehicle.setManufactureYear(rs.getInt("ManufactureYear"));
                 vehicle.setStatus(VehicleStatus.valueOf(rs.getString("Status")));
 
@@ -283,18 +283,18 @@ public class DAOSaleOrder {
     }
 
     // ======================================================
-// 5️⃣  LẤY 1 CHI TIẾT SALE ORDER DETAIL THEO ID
-// ======================================================
+    // 5️⃣  LẤY 1 CHI TIẾT SALE ORDER DETAIL THEO ID
+    // ======================================================
     public DTOSaleOrderDetail getDetailById(int detailId) {
         DTOSaleOrderDetail detail = null;
         String sql = """
-                    SELECT sod.SODetailID, sod.SaleOrderID, sod.VIN, sod.Price, sod.PolicyID,
+                    SELECT sod.SODetailID, sod.SaleOrderID, sod.VehicleID, sod.Price, sod.PolicyID,
                            v.ManufactureYear, v.Status,
                            vc.ColorID, vc.ColorName,
                            vv.VersionID, vv.VersionName,
                            dp.PolicyID, dp.PolicyName
                     FROM SaleOrderDetail sod
-                    JOIN Vehicle v ON sod.VIN = v.VIN
+                    JOIN Vehicle v ON sod.VehicleID = v.VehicleID
                     LEFT JOIN VehicleColor vc ON v.ColorID = vc.ColorID
                     LEFT JOIN VehicleVersion vv ON v.VersionID = vv.VersionID
                     LEFT JOIN DiscountPolicy dp ON sod.PolicyID = dp.PolicyID
@@ -309,7 +309,7 @@ public class DAOSaleOrder {
                 if (rs.next()) {
                     // === Vehicle Info ===
                     DTOVehicle vehicle = new DTOVehicle();
-                    vehicle.setVIN(rs.getString("VIN"));
+                    vehicle.setVehicleID(rs.getInt("VehicleID"));
                     vehicle.setManufactureYear(rs.getInt("ManufactureYear"));
                     vehicle.setStatus(VehicleStatus.valueOf(rs.getString("Status")));
 
@@ -354,8 +354,8 @@ public class DAOSaleOrder {
     }
 
     // ======================================================
-// 🟢 UPDATE CHỈ STATUS CỦA SALE ORDER
-// ======================================================
+    // 🟢 UPDATE CHỈ STATUS CỦA SALE ORDER
+    // ======================================================
     public boolean updateSaleOrderStatus(int saleOrderID, String status) {
         String sql = "UPDATE SaleOrder SET Status = ? WHERE SaleOrderID = ?";
         try (Connection conn = DBUtils.getConnection();
@@ -372,3 +372,4 @@ public class DAOSaleOrder {
     }
 
 }
+

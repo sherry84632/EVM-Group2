@@ -93,14 +93,10 @@
                     <div class="detail-container">
                         <div class="title">Vehicle Specifications</div>
 
-                        <div class="info-group">
-                            <span class="label">VIN</span>
-                            <span class="value vehicle-id" th:text="${vehicle.VIN}"></span>
-                        </div>
 
                         <div class="info-group">
-                            <span class="label">Manufacture Date</span>
-                            <span class="value" th:text="${vehicle.manufactureDate}"></span>
+                            <span class="label">Manufacture Year</span>
+                            <span class="value" th:text="${vehicle.manufactureYear}"></span>
                         </div>
 
                         <div class="info-group">
@@ -161,7 +157,7 @@
 
                     <div class="image-container">
                         <img th:if="${vehicle.model.modelImage != null}"
-                             th:src="@{/evm/vehicle/showImage/{vin}(vin=${vehicle.VIN})}"
+                             th:src="@{/evm/vehicle/showImage/{id}(id=${vehicle.vehicleID})}"
                              alt="Model Image"
                              class="vehicle-image">
                         <span th:if="${vehicle.model.modelImage == null}">🚗</span>
@@ -172,7 +168,7 @@
                         <div class="button-group">
 
                             <div th:if="${actionRole == 'DEALER'}">
-                                <a th:href="@{/quotation/new(vin=${vehicle.VIN})}" style="text-decoration: none;">
+                                <a th:href="@{/quotation/new(vehicleId=${vehicle.vehicleID})}" style="text-decoration: none;">
                                     <button class="rounded-btn action-btn update-btn">
                                         <i class="fas fa-file-invoice-dollar"></i>Quotation
                                     </button>
@@ -190,13 +186,22 @@
                             </div>
 
                             <div th:if="${actionRole == 'EVM'}">
-                                <button class="rounded-btn action-btn update-btn">
-                                    <i class="fas fa-edit"></i>Update
-                                </button>
+                                <!-- Update Button -->
+                                <a th:href="@{/evm/vehicle/edit/{id}(id=${vehicle.vehicleID})}" style="text-decoration: none;">
+                                    <button class="rounded-btn action-btn update-btn">
+                                        <i class="fas fa-edit"></i>Update
+                                    </button>
+                                </a>
 
-                                <button class="rounded-btn action-btn delete-btn">
-                                    <i class="fas fa-trash"></i>Delete
-                                </button>
+                                <!-- Delete Button with Confirmation -->
+                                <form th:action="@{/evm/vehicle/delete/{id}(id=${vehicle.vehicleID})}"
+                                      method="post"
+                                      onsubmit="return confirm('Are you sure you want to delete this vehicle?');"
+                                      style="display: inline;">
+                                    <button type="submit" class="rounded-btn action-btn delete-btn">
+                                        <i class="fas fa-trash"></i>Delete
+                                    </button>
+                                </form>
                             </div>
 
                         </div>

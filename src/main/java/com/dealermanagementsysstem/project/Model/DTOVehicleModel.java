@@ -25,6 +25,12 @@ public class DTOVehicleModel {
     @Column(name = "BasePrice")
     private BigDecimal basePrice;
     
+    @Column(name = "BodyType")
+    private String bodyType;
+
+    @Column(name = "Description", columnDefinition = "NVARCHAR(MAX)")
+    private String description;
+
     @Column(name = "ModelImage")
     private byte[] modelImage;
 
@@ -90,6 +96,22 @@ public class DTOVehicleModel {
 
     public void setModelImage(byte[] modelImage) {
         this.modelImage = modelImage;
+    }
+
+    public String getBodyType() {
+        return bodyType;
+    }
+
+    public void setBodyType(String bodyType) {
+        this.bodyType = bodyType;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public int getEvmID() {

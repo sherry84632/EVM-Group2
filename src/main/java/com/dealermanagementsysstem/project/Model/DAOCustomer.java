@@ -60,15 +60,15 @@ public class DAOCustomer {
         return list;
     }
 
-    // ✅ Thêm mới Customer
-    public boolean insertCustomer(DTOCustomer c) {
+    // ✅ Thêm mới Customer - trả về customerID
+    public int insertCustomer(DTOCustomer c) {
         String sql = """
             INSERT INTO Customer (DealerID, FullName, Phone, Email, Address, CreatedAt, UpdatedAt, BirthDate, Note, VehicleInterest)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """;
 
         try (Connection conn = DBUtils.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+             PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             ps.setInt(1, c.getDealer() != null ? c.getDealer().getDealerID() : 1); // Default dealer if null
             ps.setString(2, c.getFullName());
@@ -86,15 +86,21 @@ public class DAOCustomer {
 
             int rows = ps.executeUpdate();
             if (rows > 0) {
-                System.out.println("✅ Customer inserted successfully: " + c.getFullName());
-                return true;
+                // ✅ Lấy customerID vừa tạo
+                try (ResultSet generatedKeys = ps.getGeneratedKeys()) {
+                    if (generatedKeys.next()) {
+                        int newCustomerID = generatedKeys.getInt(1);
+                        System.out.println("✅ Customer inserted successfully: " + c.getFullName() + " (ID: " + newCustomerID + ")");
+                        return newCustomerID;
+                    }
+                }
             }
 
         } catch (SQLException e) {
             System.out.println("❌ Failed to insert customer!");
             e.printStackTrace();
         }
-        return false;
+        return -1; // ✅ Trả về -1 nếu thất bại
     }
 
     // ✅ Cập nhật Customer
@@ -133,23 +139,58 @@ public class DAOCustomer {
         return false;
     }
 
-    // ✅ Xóa Customer
+    // ✅ Xóa Customer (xóa cascade TestDrive trước)
     public boolean deleteCustomer(int id) {
-        String sql = "DELETE FROM Customer WHERE CustomerID=?";
-        try (Connection conn = DBUtils.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        Connection conn = null;
+        try {
+            conn = DBUtils.getConnection();
+            conn.setAutoCommit(false); // Bắt đầu transaction
 
-            ps.setInt(1, id);
-            int deleted = ps.executeUpdate();
-            if (deleted > 0) {
-                System.out.println("🗑️ Customer deleted successfully (ID: " + id + ")");
-                return true;
+            // 1. Xóa TestDrive liên quan trước
+            String deleteTestDriveSQL = "DELETE FROM TestDrive WHERE CustomerID = ?";
+            try (PreparedStatement ps1 = conn.prepareStatement(deleteTestDriveSQL)) {
+                ps1.setInt(1, id);
+                int testDrivesDeleted = ps1.executeUpdate();
+                System.out.println("🗑️ Deleted " + testDrivesDeleted + " test drive(s) for Customer ID: " + id);
             }
+
+            // 2. Xóa Customer
+            String deleteCustomerSQL = "DELETE FROM Customer WHERE CustomerID = ?";
+            try (PreparedStatement ps2 = conn.prepareStatement(deleteCustomerSQL)) {
+                ps2.setInt(1, id);
+                int deleted = ps2.executeUpdate();
+                if (deleted > 0) {
+                    conn.commit(); // Commit transaction
+                    System.out.println("🗑️ Customer deleted successfully (ID: " + id + ")");
+                    return true;
+                } else {
+                    conn.rollback();
+                    System.out.println("⚠️ Customer not found (ID: " + id + ")");
+                    return false;
+                }
+            }
+
         } catch (SQLException e) {
             System.out.println("❌ Failed to delete customer!");
             e.printStackTrace();
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                }
+            }
+            return false;
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
         }
-        return false;
     }
 
     // ✅ Tìm kiếm Customer

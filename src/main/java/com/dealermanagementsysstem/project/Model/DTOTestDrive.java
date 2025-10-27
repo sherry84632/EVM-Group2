@@ -17,7 +17,7 @@ public class DTOTestDrive {
     private DTOCustomer customer;
     
     @ManyToOne
-    @JoinColumn(name = "VIN", referencedColumnName = "VIN")
+    @JoinColumn(name = "VehicleID", referencedColumnName = "VehicleID")
     private DTOVehicle vehicle;
     
     @ManyToOne
