@@ -70,15 +70,19 @@
                                             <span class="info-label">Created date:</span>
                                             <span class="info-value" th:text="${order.orderDate}"></span>
                                         </div>
-                                        <div class="info-item" th:each="detail : ${order.detail}">
+                                        <div class="info-item">
                                             <span class="info-label">Quantity:</span>
-                                            <span class="info-value" th:text="${detail.quantity}"></span>
+                                            <span class="info-value" th:text="${order.totalQuantity}"></span>
                                         </div>
                                     </div>
                                     <div class="info-row">
                                         <div class="info-item">
                                             <span class="info-label">Status:</span>
                                             <span class="info-value" th:text="${order.status}"></span>
+                                        </div>
+                                        <div class="info-item">
+                                            <span class="info-label">Total:</span>
+                                            <span class="info-value" th:text="${order.totalAmount}"></span>
                                         </div>
                                     </div>
                                 </div>

@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Controller
-@RequestMapping("/order")
+@RequestMapping({"/order","/saleorder"})
 public class OrderController {
 
     private final DAOSaleOrder dao = new DAOSaleOrder();
@@ -73,9 +73,9 @@ public class OrderController {
             @RequestParam("quantity") int quantity,
             @RequestParam("customerID") int customerID,
             @RequestParam("staffID") int staffID,
-            @RequestParam("vehicleId") Integer vehicleId,
+            @RequestParam(value = "vehicleId", required = false) Integer vehicleId,
             @RequestParam("quotationID") int quotationID,
-            @RequestParam(value = "status", required = false, defaultValue = "Pending") String status,
+            @RequestParam(value = "status", required = false, defaultValue = "CREATED") String status,
             Model model
     ) {
         // ✅ Lấy thông tin tài khoản hiện tại
@@ -96,8 +96,17 @@ public class OrderController {
         DAOQuotation quotationDAO = new DAOQuotation();
         DTOQuotation quotation = quotationDAO.getQuotationById(quotationID);
         if (quotation == null || quotation.getStatus() != QuotationStatus.APPROVED) {
-            model.addAttribute("error", "Quotation không hợp lệ hoặc chưa được duyệt!");
+            model.addAttribute("error", "Quotation không hợp lệ hoặc chưa đư���c duyệt!");
             return "redirect:/quotation/list";
+        }
+
+        // Normalize status input (ui might send Pending/Delivered etc.)
+        String normalized = status.trim().toUpperCase();
+        switch (normalized) {
+            case "PENDING" -> normalized = "CREATED";
+            case "DELIVERED" -> normalized = "COMPLETED";
+            case "PROCESSING", "SHIPPED", "COMPLETED", "CANCELLED", "CREATED", "CONTRACT_SIGNED" -> {}
+            default -> normalized = "CREATED";
         }
 
         // === Build DTO chính ===
@@ -121,37 +130,64 @@ public class OrderController {
         order.setQuotation(quotationRef);
 
         order.setCreatedAt(Timestamp.valueOf(LocalDateTime.now()));
-        order.setStatus(SaleOrderStatus.valueOf(status.toUpperCase()));
-        order.setTotalQuantity(quantity);
-
-        // Calculate total amount from quotation
-        BigDecimal totalAmount = quotation.getTotalPrice() > 0 ?
-            BigDecimal.valueOf(quotation.getTotalPrice()) : BigDecimal.ZERO;
-        order.setTotalAmount(totalAmount);
 
         // === Build chi tiết đơn hàng (SaleOrderDetail) ===
-        DTOVehicle vehicle = new DTOVehicle();
-        vehicle.setVehicleID(vehicleId);
-
-        DTOSaleOrderDetail detail = new DTOSaleOrderDetail();
-        detail.setVehicle(vehicle);
-
-        BigDecimal unitPrice = BigDecimal.ZERO;
-        if (quotation.getQuotationDetails() != null && !quotation.getQuotationDetails().isEmpty()) {
-            unitPrice = quotation.getQuotationDetails().get(0).getUnitPrice();
-        }
-        detail.setPrice(unitPrice);
-
-        // Set discount policy if available
-        if (quotation.getDealer() != null && quotation.getDealer().getPolicyID() > 0) {
-            DTODiscountPolicy discountPolicy = new DTODiscountPolicy();
-            discountPolicy.setPolicyID(quotation.getDealer().getPolicyID());
-            detail.setDiscountPolicy(discountPolicy);
-        }
-
         List<DTOSaleOrderDetail> details = new ArrayList<>();
-        details.add(detail);
+        int computedTotalQty = 0;
+        java.math.BigDecimal computedTotalAmount = java.math.BigDecimal.ZERO;
+        DAOVehicle vehicleDAO = new DAOVehicle();
+        if (quotation.getQuotationDetails() != null && !quotation.getQuotationDetails().isEmpty()) {
+            for (DTOQuotationDetail qd : quotation.getQuotationDetails()) {
+                int lineQty = qd.getQuantity();
+                Integer versionId = qd.getVersion()!=null? qd.getVersion().getVersionID(): null;
+                Integer colorId = qd.getColor()!=null? qd.getColor().getColorID(): null;
+                List<Integer> vehicleIds = new ArrayList<>();
+                if (versionId != null && colorId != null) {
+                    vehicleIds = vehicleDAO.findAvailableVehicleIdsByVersionAndColor(versionId, colorId, lineQty);
+                    if (vehicleIds.size() < lineQty) {
+                        // fallback any status
+                        vehicleIds = vehicleDAO.findVehicleIdsByVersionAndColorAllStatuses(versionId, colorId, lineQty);
+                    }
+                }
+                if (vehicleIds.size() < lineQty) {
+                    model.addAttribute("error", "Không đủ xe (Version="+versionId+", Color="+colorId+") để tạo đơn. Cần " + lineQty + ", chỉ có " + vehicleIds.size());
+                    return "redirect:/quotation/detail/" + quotationID;
+                }
+                for (int i=0;i<lineQty;i++) {
+                    DTOSaleOrderDetail sod = new DTOSaleOrderDetail();
+                    sod.setSaleOrder(order);
+                    DTOVehicle veh = new DTOVehicle();
+                    veh.setVehicleID(vehicleIds.get(i));
+                    sod.setVehicle(veh);
+                    sod.setPrice(qd.getUnitPrice()!=null?qd.getUnitPrice():java.math.BigDecimal.ZERO);
+                    sod.setQuantity(1); // each detail represents 1 physical vehicle
+                    if (quotation.getDealer()!=null && quotation.getDealer().getPolicyID() > 0) {
+                        DTODiscountPolicy policy = new DTODiscountPolicy(); policy.setPolicyID(quotation.getDealer().getPolicyID()); sod.setDiscountPolicy(policy);
+                    }
+                    details.add(sod);
+                    computedTotalQty += 1;
+                    computedTotalAmount = computedTotalAmount.add(sod.getPrice());
+                }
+            }
+        } else {
+            // fallback single line if no quotation details
+            DTOSaleOrderDetail sod = new DTOSaleOrderDetail();
+            if (vehicleId != null) {
+                DTOVehicle veh = new DTOVehicle(); veh.setVehicleID(vehicleId); sod.setVehicle(veh);
+            }
+            sod.setPrice(java.math.BigDecimal.valueOf(quotation.getTotalPrice()));
+            sod.setQuantity(quantity);
+            if (quotation.getDealer()!=null && quotation.getDealer().getPolicyID()>0) {
+                DTODiscountPolicy policy = new DTODiscountPolicy(); policy.setPolicyID(quotation.getDealer().getPolicyID()); sod.setDiscountPolicy(policy);
+            }
+            details.add(sod);
+            computedTotalQty = quantity;
+            computedTotalAmount = java.math.BigDecimal.valueOf(quotation.getTotalPrice());
+        }
+        order.setTotalQuantity(computedTotalQty);
+        order.setTotalAmount(computedTotalAmount);
         order.setDetail(details);
+        order.setStatus(SaleOrderStatus.valueOf(normalized));
 
         // === Gọi DAO để insert ===
         boolean success = dao.createSaleOrder(order);
@@ -226,4 +262,3 @@ public class OrderController {
     }
 
 }
-

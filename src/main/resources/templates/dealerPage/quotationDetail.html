@@ -54,48 +54,47 @@
         .info-value {
             color: #333;
         }
+        .promo-select-wrapper { max-height:160px; overflow-y:auto; }
+        .promo-badge { padding:6px 10px; border-radius:12px; font-size:12px; font-weight:600; background:#ffe8cc; color:#d9480f; }
+        .final-total-box { background:#e7f5ff; border:1px solid #a5d8ff; border-radius:12px; padding:12px 18px; }
+        .hide-when-promo { display:block; }
+        .promotion-active .hide-when-promo { display:none !important; }
+        .line-discounted { background: #fff9e6; }
+        .line-discounted td { border-top: 2px solid #ffd8a8; }
     </style>
 </head>
-
-<body class="bg-light">
+<body class="bg-light" th:classappend="${promotionApplied} ? 'promotion-active' : ''">
 <div class="d-flex">
     <div th:replace="~{mainPage/navBarFragment :: navBar}"></div>
-
     <div class="mainContent flex-grow-1 p-3" style="overflow: hidden">
-
         <div style="overflow-y: auto; overflow-x: hidden; height: 95vh;">
-
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2><i class="fas fa-file-invoice-dollar me-2"></i>Quotation Details</h2>
                 <a href="/quotation/list" class="btn btn-outline-secondary">
                     <i class="fas fa-arrow-left me-2"></i>Back to List
                 </a>
             </div>
-
             <!-- Success/Error Messages -->
             <div th:if="${message}" class="alert alert-success alert-dismissible fade show" role="alert">
                 <i class="fas fa-check-circle me-2"></i>
                 <span th:text="${message}"></span>
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
-
             <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
                 <i class="fas fa-exclamation-triangle me-2"></i>
                 <span th:text="${error}"></span>
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
-
             <!-- Quotation Details -->
             <div th:if="${quotation != null}">
                 <!-- Header Section -->
                 <div class="detail-card">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h4>Quotation #<span th:text="${quotation.quotationID}"></span></h4>
-                        <span th:classappend="${'status-' + quotation.status.toLowerCase()}"
-                              class="status-badge"
-                              th:text="${quotation.status}"></span>
+                        <span class="status-badge"
+                              th:classappend="${quotation.status.name() == 'CREATED' ? ' status-pending' : (quotation.status.name() == 'APPROVED' ? ' status-accepted' : (quotation.status.name() == 'REJECTED' ? ' status-rejected' : ' status-pending'))}"
+                              th:text="${quotation.status.name() == 'CREATED' ? 'PENDING' : quotation.status.name()}"></span>
                     </div>
-
                     <div class="row">
                         <div class="col-md-6">
                             <div class="info-row">
@@ -119,7 +118,6 @@
                         </div>
                     </div>
                 </div>
-
                 <!-- Customer Information -->
                 <div class="detail-card">
                     <h5><i class="fas fa-user me-2"></i>Customer Information</h5>
@@ -146,136 +144,154 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Vehicle Information -->
-                <div class="detail-card" th:if="${quotation.vehicle != null}">
-                    <h5><i class="fas fa-car me-2"></i>Vehicle Information</h5>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="info-row">
-                                <span class="info-label">VIN:</span>
-                                <span class="info-value" th:text="${quotation.vehicle.VIN}"></span>
-                            </div>
-                            <div class="info-row">
-                                <span class="info-label">Model:</span>
-                                <span class="info-value" th:text="${quotation.vehicle.modelName}"></span>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="info-row">
-                                <span class="info-label">Year:</span>
-                                <span class="info-value" th:text="${quotation.vehicle.manufactureYear}"></span>
-                            </div>
-                            <div class="info-row">
-                                <span class="info-label">Color:</span>
-                                <span class="info-value" th:text="${quotation.vehicle.colorName}"></span>
-                            </div>
-                        </div>
+                <!-- Line Items -->
+                <div class="detail-card" th:if="${details != null and !details.empty}">
+                    <h5><i class="fas fa-list me-2"></i>Line Items</h5>
+                    <div class="table-responsive">
+                        <table class="table table-striped align-middle">
+                            <thead>
+                            <tr>
+                                <th>Model</th>
+                                <th>Version</th>
+                                <th>Color</th>
+                                <th>Unit Price</th>
+                                <th>Quantity</th>
+                                <th>Subtotal</th>
+                                <th>Line Disc %</th>
+                                <th>Net After Line Disc</th>
+                                <th>Final Line Net</th>
+                                <th style="width:110px">Actions</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="detail : ${details}"
+                                th:classappend="${detail.appliedDealerDiscountPercent != null} ? 'line-discounted' : ''">
+                                <td>
+                                    <a th:href="@{'/quotation/detail/line/' + ${detail.quotationDetailID}}" class="text-decoration-none fw-semibold">
+                                        <span th:text="${detail.modelName ?: 'N/A'}"></span>
+                                    </a>
+                                </td>
+                                <td th:text="${detail.versionName ?: 'N/A'}"></td>
+                                <td th:text="${detail.colorName ?: 'N/A'}"></td>
+                                <td th:text="${'$' + #numbers.formatDecimal(detail.unitPrice,1,2)}"></td>
+                                <td>
+                                    <form th:action="@{/quotation/detail/quantity}" method="post" class="d-flex gap-1">
+                                        <input type="number" min="1" name="quantity" th:value="${detail.quantity}" class="form-control form-control-sm" style="width:70px">
+                                        <input type="hidden" name="quotationDetailID" th:value="${detail.quotationDetailID}" />
+                                        <input type="hidden" name="quotationID" th:value="${quotation.quotationID}" />
+                                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                                        <button type="submit" class="btn btn-outline-primary btn-sm" title="Save quantity"><i class="fas fa-save"></i></button>
+                                    </form>
+                                </td>
+                                <td th:text="${'$' + #numbers.formatDecimal(detail.subtotal,1,2)}"></td>
+                                <td th:text="${detail.appliedDealerDiscountPercent != null ? detail.appliedDealerDiscountPercent + '%' : '-'}"></td>
+                                <td th:text="${'$' + #numbers.formatDecimal(detail.netAfterLineDiscount,1,2)}"></td>
+                                <td th:text="${'$' + #numbers.formatDecimal(detail.finalNetAfterAll,1,2)}"></td>
+                                <td>
+                                    <form th:action="@{/quotation/detail/delete}" method="post" onsubmit="return confirm('Delete this line?')">
+                                        <input type="hidden" name="quotationDetailID" th:value="${detail.quotationDetailID}" />
+                                        <input type="hidden" name="quotationID" th:value="${quotation.quotationID}" />
+                                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                                        <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i></button>
+                                    </form>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-
-                <!-- No Vehicle Information -->
-                <div class="detail-card" th:if="${quotation.vehicle == null}">
-                    <h5><i class="fas fa-car me-2"></i>Vehicle Information</h5>
-                    <div class="alert alert-warning">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        No vehicle information available for this quotation.
-                    </div>
-                </div>
-
-                <!-- Price Information -->
+                <!-- Price Summary -->
                 <div class="detail-card">
-                    <h5><i class="fas fa-dollar-sign me-2"></i>Price Information</h5>
-                    <div class="price-section">
-                        <div class="text-center">
-                            <div class="price-highlight" th:text="${'$' + #numbers.formatDecimal(quotation.totalPrice, 1, 2)}"></div>
-                            <small class="text-muted">Final Price (after discounts)</small>
+                    <h5><i class="fas fa-dollar-sign me-2"></i>Price Summary</h5>
+                    <div class="row g-2 align-items-start mb-3">
+                        <div class="col-md-3">
+                            <form th:action="@{/quotation/discount/update}" method="post" class="d-flex flex-column gap-1">
+                                <label class="form-label mb-0">Base Discount (%)</label>
+                                <input type="number" step="0.1" min="0" max="80" name="discountPercent" class="form-control form-control-sm" th:value="${quotation.discountPercent}" placeholder="0">
+                                <input type="hidden" name="quotationID" th:value="${quotation.quotationID}">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                                <div class="d-flex gap-1 mt-1">
+                                    <button type="submit" class="btn btn-sm btn-primary">Update</button>
+                                    <form th:action="@{/quotation/discount/clear}" method="post">
+                                        <input type="hidden" name="quotationID" th:value="${quotation.quotationID}" />
+                                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary">Clear</button>
+                                    </form>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="col-md-5">
+                            <form method="get" th:action="@{'/quotation/detail/' + ${quotation.quotationID}}" class="d-flex flex-column gap-1">
+                                <label class="form-label mb-0">Dealer Promotion (Line-level)</label>
+                                <div class="promo-select-wrapper">
+                                    <select name="discountId" class="form-select form-select-sm" size="6">
+                                        <option value="0">-- Remove Promotion --</option>
+                                        <option th:if="${activeDiscounts == null || activeDiscounts.isEmpty()}" disabled>No active promotions</option>
+                                        <option th:each="d : ${activeDiscounts}" th:value="${d.adjustmentID}" th:text="${d.promotionName + ' | ' + (d.discountPercent!=null? d.discountPercent + '%' : (d.discountAmount!=null? d.discountAmount + ' VND':'0'))}"></option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-sm btn-outline-primary">Apply</button>
+                                <div class="small text-muted" th:if="${appliedDealerDiscount != null}">
+                                    Applied line discount: <span th:text="${appliedDealerDiscount.promotionName}"></span>
+                                    (<span th:text="${appliedDealerDiscount.discountPercent + '%'}"></span>)
+                                </div>
+                            </form>
+                        </div>
+                        <div class="col-md-4" th:if="${lineLevelNet != null}">
+                            <div class="alert alert-info py-2 mb-0">
+                                <div class="small">Line-level Net Total:</div>
+                                <strong th:text="${'$' + #numbers.formatDecimal(lineLevelNet,1,2)}">$0.00</strong>
+                                <div class="small text-muted">Gross: <span th:text="${'$' + #numbers.formatDecimal(lineLevelGross,1,2)}"></span> / Disc: <span th:text="${lineLevelDiscountPercent + '%'}"></span></div>
+                            </div>
                         </div>
                     </div>
-
-                    <!-- Quotation Details -->
-                    <div th:if="${details != null and !details.empty}">
-                        <h6 class="mt-3">Quotation Details:</h6>
-                        <div class="table-responsive">
-                            <table class="table table-striped">
-                                <thead>
-                                <tr>
-                                    <th>VIN</th>
-                                    <th>Model</th>
-                                    <th>Color</th>
-                                    <th>Quantity</th>
-                                    <th>Unit Price</th>
-                                    <th>Total</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                <tr th:each="detail : ${details}">
-                                    <td th:text="${detail.VIN}"></td>
-                                    <td th:text="${detail.modelName}"></td>
-                                    <td th:text="${detail.colorName}"></td>
-                                    <td th:text="${detail.quantity}"></td>
-                                    <td th:text="${'$' + #numbers.formatDecimal(detail.unitPrice, 1, 2)}"></td>
-                                    <td th:text="${'$' + #numbers.formatDecimal(detail.unitPrice * detail.quantity, 1, 2)}"></td>
-                                </tr>
-                                </tbody>
-                            </table>
-                        </div>
+                    <div class="price-section">
+                        <div class="info-row"><span class="info-label">Gross Total:</span><span class="info-value" th:text="${'$' + #numbers.formatDecimal(quotation.grossTotal,1,2)}">$0.00</span></div>
+                        <div class="info-row"><span class="info-label">Base Discount (%):</span><span class="info-value" th:text="${baseDiscountPercent != null ? baseDiscountPercent + '%' : '0%'}">0%</span></div>
+                        <div class="info-row"><span class="info-label">Base Discount Amount:</span><span class="info-value" th:text="${'$' + #numbers.formatDecimal(quotation.grossTotal * (baseDiscountPercent!=null?baseDiscountPercent:0)/100.0,1,2)}">$0.00</span></div>
+                        <div class="info-row" th:if="${promotionApplied}"><span class="info-label">Line-Level Discount (% Applied Lines):</span><span class="info-value" th:text="${lineLevelDiscountPercent + '%'}">0%</span></div>
+                        <div class="info-row" th:if="${promotionApplied}"><span class="info-label">Subtotal After Line Discount:</span><span class="info-value" th:text="${'$' + #numbers.formatDecimal(lineLevelNet,1,2)}">$0.00</span></div>
+                        <div class="info-row fw-bold text-primary"><span class="info-label">Final Net Total:</span><span class="info-value" th:text="${'$' + #numbers.formatDecimal(finalNetTotal,1,2)}">$0.00</span></div>
+                        <div class="info-row"><span class="info-label">Combined Effective Discount:</span><span class="info-value" th:text="${#numbers.formatDecimal(finalCombinedDiscountPercent,1,2) + '%'}">0%</span></div>
                     </div>
                 </div>
-
-                <!-- Action Buttons -->
+                <!-- Actions -->
                 <div class="detail-card">
                     <h5><i class="fas fa-cogs me-2"></i>Actions</h5>
-                    <div class="d-flex gap-3">
-                        <div th:if="${quotation.status == 'Pending'}">
-                            <form th:action="@{/quotation/approve/{id}(id=${quotation.quotationID})}"
-                                  method="post" style="display: inline;">
-                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                                <button type="submit" class="btn btn-success"
-                                        onclick="return confirm('Approve this quotation?')">
-                                    <i class="fas fa-check me-2"></i>Approve Quotation
+                    <div class="d-flex gap-3 flex-wrap">
+                        <div th:if="${quotation.status.name() == 'CREATED'}">
+                            <form th:action="@{/quotation/approve/{id}(id=${quotation.quotationID})}" method="post" class="d-inline">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                                <button type="submit" class="btn btn-success" onclick="return confirm('Approve this quotation?')">
+                                    <i class="fas fa-check me-2"></i>Approve
                                 </button>
                             </form>
-
-                            <form th:action="@{/quotation/reject/{id}(id=${quotation.quotationID})}"
-                                  method="post" style="display: inline;">
-                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                                <button type="submit" class="btn btn-danger"
-                                        onclick="return confirm('Reject this quotation?')">
-                                    <i class="fas fa-times me-2"></i>Reject Quotation
+                            <form th:action="@{/quotation/reject/{id}(id=${quotation.quotationID})}" method="post" class="d-inline">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                                <button type="submit" class="btn btn-danger" onclick="return confirm('Reject this quotation?')">
+                                    <i class="fas fa-times me-2"></i>Reject
                                 </button>
                             </form>
                         </div>
-
-                        <div th:if="${quotation.status == 'Accepted'}">
-
-                            <div th:each="detail : ${details}">
-
-                                <form th:action="@{/saleorder/insert}" method="post" style="display:inline;">
-                                    <input type="hidden" name="quotationID" th:value="${quotation.quotationID}" />
-                                    <input type="hidden" name="customerID" th:value="${quotation.customer.customerID}" />
-                                    <input type="hidden" name="staffID" value="1" />
-                                    <input type="hidden" name="vin" th:value="${quotation.vehicle.VIN}" />
-                                    <input type="hidden" name="quantity" th:value="${detail.quantity}" />
-                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-
-                                    <button type="submit" class="btn btn-primary btn-action"
-                                            onclick="return confirm('Create order from this quotation?')">
-                                        <i class="fas fa-shopping-cart me-1"></i>Create Sale Order
-                                    </button>
-                                </form>
-
-                            </div>
-
+                        <div th:if="${quotation.status.name() == 'APPROVED'}">
+                            <form th:action="@{/saleorder/insert}" method="post" class="d-inline">
+                                <input type="hidden" name="quotationID" th:value="${quotation.quotationID}" />
+                                <input type="hidden" name="customerID" th:value="${quotation.customer.customerID}" />
+                                <input type="hidden" name="staffID" value="1" />
+                                <!-- VIN placeholder intentionally omitted -->
+                                <input type="hidden" name="quantity" th:value="${quotation.quantity}" />
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                                <button type="submit" class="btn btn-primary" onclick="return confirm('Create sale order from this quotation?')">
+                                    <i class="fas fa-shopping-cart me-2"></i>Create Sale Order
+                                </button>
+                            </form>
                         </div>
-
                         <a th:href="@{/quotation/list}" class="btn btn-outline-secondary">
                             <i class="fas fa-list me-2"></i>Back to List
                         </a>
                     </div>
                 </div>
             </div>
-
             <!-- Quotation Not Found -->
             <div th:if="${quotation == null}" class="text-center py-5">
                 <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
@@ -285,12 +301,9 @@
                     <i class="fas fa-arrow-left me-2"></i>Back to Quotations
                 </a>
             </div>
-
         </div>
-
     </div>
 </div>
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="/scripts/navBarMenuProject.js"></script>
 </body>

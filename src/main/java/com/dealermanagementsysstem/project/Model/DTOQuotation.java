@@ -45,6 +45,9 @@ public class DTOQuotation {
     @JoinColumn(name = "StaffID", referencedColumnName = "StaffID")
     private DTODealerStaff staff; // staff who created the quotation
 
+    @Column(name = "DiscountPercent")
+    private Double discountPercent; // nullable discount applied to whole quotation
+
     public DTOQuotation() {
     }
 
@@ -143,5 +146,58 @@ public class DTOQuotation {
 
     public void setStaff(DTODealerStaff staff) {
         this.staff = staff;
+    }
+
+    public Double getDiscountPercent() {
+        return discountPercent;
+    }
+
+    public void setDiscountPercent(Double discountPercent) {
+        this.discountPercent = discountPercent;
+    }
+
+    @Transient
+    public DTOQuotationDetail getFirstDetail() {
+        return (quotationDetails != null && !quotationDetails.isEmpty()) ? quotationDetails.get(0) : null;
+    }
+    @Transient
+    public String getFirstModelName() {
+        DTOQuotationDetail d = getFirstDetail();
+        return d != null ? d.getModelName() : null;
+    }
+    @Transient
+    public String getFirstVersionName() {
+        DTOQuotationDetail d = getFirstDetail();
+        return d != null ? d.getVersionName() : null;
+    }
+    @Transient
+    public String getFirstColorName() {
+        DTOQuotationDetail d = getFirstDetail();
+        return d != null ? d.getColorName() : null;
+    }
+    @Transient
+    public java.math.BigDecimal getFirstUnitPrice() {
+        DTOQuotationDetail d = getFirstDetail();
+        return d != null ? d.getUnitPrice() : java.math.BigDecimal.ZERO;
+    }
+    @Transient
+    public double getCalculatedTotal() {
+        java.math.BigDecimal unit = getFirstUnitPrice();
+        return unit.doubleValue() * Math.max(1, quantity);
+    }
+    @Transient
+    public double getEffectiveDiscountPercent() {
+        return discountPercent != null ? discountPercent : 0.0;
+    }
+    @Transient
+    public double getGrossTotal() {
+        if (quotationDetails == null) return 0.0;
+        return quotationDetails.stream().mapToDouble(d -> d.getSubtotal().doubleValue()).sum();
+    }
+    @Transient
+    public double getNetTotal() {
+        double gross = getGrossTotal();
+        double dp = getEffectiveDiscountPercent();
+        return gross * (1 - dp / 100.0);
     }
 }

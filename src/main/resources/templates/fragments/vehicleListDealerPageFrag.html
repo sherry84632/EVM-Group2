@@ -1,27 +1,57 @@
 <div class="d-flex" th:fragment="fragVehicleListDealer">
 
     <div class="scroll-box">
-        <div class="items-container">
+        <div class="items-container dv-grid">
 
             <!-- Item  -->
-            <button class="item-button" th:each="vehicle : ${vehicleList}">
-                <div class="image-placeholder">🚗</div>
-                <div class="item-info">
-                    <div class="model-name"> Model name: <span th:text="${vehicle.modelName}"></span> </div>
-                    <div class="info-row">
-                        <div class="info-item">
-                            <span class="info-label">Manufacture year:</span>
-                            <span class="info-value" th:text="${vehicle.manufactureYear}"></span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Base price:</span>
-                            <span class="info-value" th:text="${vehicle.basePrice}"></span>
-                        </div>
+            <div class="dv-card" th:each="vehicle : ${vehicleList}">
+                <div class="dv-checkbox-wrapper">
+                    <input type="checkbox" class="form-check-input vehicle-select-checkbox" th:value="${vehicle.vehicleID}" />
+                </div>
+                <div class="dv-model-name">
+                    <i class="fas fa-car-side text-primary"></i>
+                    <span th:text="${vehicle.modelName}"></span>
+                    <span class="dv-badge" th:text="${vehicle.version != null ? vehicle.version.versionName : 'Version'}"></span>
+                </div>
+                <div class="dv-meta">
+                    <div class="dv-meta-row">
+                        <span class="dv-label">Year</span>
+                        <span class="dv-value"><span class="dv-year-tag" th:text="${vehicle.manufactureYear}"></span></span>
+                    </div>
+                    <div class="dv-meta-row">
+                        <span class="dv-label">Base Price</span>
+                        <span class="dv-value"><span class="dv-price-tag" th:text="${vehicle.basePrice}"></span></span>
+                    </div>
+                    <div class="dv-meta-row" th:if="${vehicle.color != null}">
+                        <span class="dv-label">Color</span>
+                        <span class="dv-value" th:text="${vehicle.color.colorName}"></span>
                     </div>
                 </div>
-            </button>
+                <div class="dv-actions">
+                    <form th:action="@{/quotation/addVehicle}" method="post" class="d-inline">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                        <input type="hidden" name="vehicleId" th:value="${vehicle.vehicleID}" />
+                        <input type="hidden" name="customerID" value="" class="single-add-customer" />
+                        <button type="submit" class="dv-btn-outline dv-btn-outline-primary" onclick="return attachSingleCustomer(this)">
+                            <i class="fas fa-plus"></i> Single
+                        </button>
+                    </form>
+                    <a th:href="@{'/quotation/new'(vehicleId=${vehicle.vehicleID})}" class="dv-btn-outline" style="text-decoration:none;">
+                        <i class="fas fa-file"></i> New Quotation
+                    </a>
+                </div>
+            </div>
 
         </div>
     </div>
 
 </div>
+<script>
+function attachSingleCustomer(btn){
+  const select = document.querySelector('select[name="customerID"]');
+  if(!select || !select.value){ alert('Select a customer above first.'); return false; }
+  const hidden = btn.closest('form').querySelector('.single-add-customer');
+  hidden.value = select.value;
+  return true;
+}
+</script>
