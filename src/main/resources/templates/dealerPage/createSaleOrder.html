@@ -95,15 +95,11 @@
                 
                 <div class="row">
                     <div th:each="quotation : ${quotations}" class="col-md-6 col-lg-4">
-                        <div class="quotation-card" th:onclick="selectQuotation([[${quotation.quotationID}]], [[${quotation.customer.customerID}]], [[${quotation.vehicle != null ? quotation.vehicle.VIN : 'N/A'}]], [[${quotation.totalPrice}]])">
+                        <div class="quotation-card" th:onclick="selectQuotation([[${quotation.quotationID}]], [[${quotation.customer.customerID}]], [[${quotation.totalPrice}]])">
                             <div class="quotation-info">
                                 <div class="quotation-details">
                                     <h6>Quotation #<span th:text="${quotation.quotationID}"></span></h6>
                                     <p class="mb-1"><strong>Customer:</strong> <span th:text="${quotation.customer.fullName}"></span></p>
-                                    <p class="mb-1" th:if="${quotation.vehicle != null}"><strong>Vehicle:</strong> <span th:text="${quotation.vehicle.modelName}"></span></p>
-                                    <p class="mb-1" th:if="${quotation.vehicle == null}"><strong>Vehicle:</strong> <span class="text-muted">No vehicle information</span></p>
-                                    <p class="mb-0" th:if="${quotation.vehicle != null}"><strong>VIN:</strong> <span th:text="${quotation.vehicle.VIN}"></span></p>
-                                    <p class="mb-0" th:if="${quotation.vehicle == null}"><strong>VIN:</strong> <span class="text-muted">N/A</span></p>
                                 </div>
                                 <div class="quotation-price">
                                     $<span th:text="${#numbers.formatDecimal(quotation.totalPrice, 1, 2)}"></span>
@@ -120,7 +116,7 @@
                     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
                     <input type="hidden" name="quotationID" id="quotationID" required>
                     <input type="hidden" name="customerID" id="customerID" required>
-                    <input type="hidden" name="vin" id="vin" required>
+                    <input type="hidden" name="quantity" value="1" />
 
                     <div class="form-section">
                         <h5><i class="fas fa-info-circle me-2"></i>Order Information</h5>
@@ -128,15 +124,16 @@
                             <div class="col-md-6">
                                 <label class="form-label">Staff ID:</label>
                                 <input name="staffID" type="number" class="form-control" required>
-                                <small class="form-text text-muted">Enter the staff member ID</small>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Order Status:</label>
                                 <select name="status" class="form-select">
-                                    <option value="Pending" selected>Pending</option>
-                                    <option value="Processing">Processing</option>
-                                    <option value="Shipped">Shipped</option>
-                                    <option value="Delivered">Delivered</option>
+                                    <option value="CREATED" selected>CREATED</option>
+                                    <option value="CONTRACT_SIGNED">CONTRACT_SIGNED</option>
+                                    <option value="PROCESSING">PROCESSING</option>
+                                    <option value="SHIPPED">SHIPPED</option>
+                                    <option value="COMPLETED">COMPLETED</option>
+                                    <option value="CANCELLED">CANCELLED</option>
                                 </select>
                             </div>
                         </div>
@@ -186,11 +183,9 @@
 <script>
     let selectedQuotation = null;
 
-    function selectQuotation(quotationID, customerID, vin, price) {
+    function selectQuotation(quotationID, customerID, price) {
         // Remove previous selection
-        document.querySelectorAll('.quotation-card').forEach(card => {
-            card.classList.remove('selected');
-        });
+        document.querySelectorAll('.quotation-card').forEach(c=>c.classList.remove('selected'));
 
         // Add selection to clicked card
         event.currentTarget.classList.add('selected');
@@ -198,26 +193,23 @@
         // Set form values
         document.getElementById('quotationID').value = quotationID;
         document.getElementById('customerID').value = customerID;
-        document.getElementById('vin').value = vin;
 
         // Update details display
         const detailsDiv = document.getElementById('selectedQuotationDetails');
         detailsDiv.innerHTML = `
-            <div class="row">
-                <div class="col-md-6">
-                    <strong>Quotation ID:</strong> ${quotationID}<br>
-                    <strong>Customer ID:</strong> ${customerID}<br>
-                    <strong>VIN:</strong> ${vin}
-                </div>
-                <div class="col-md-6">
-                    <strong>Price:</strong> $${parseFloat(price).toFixed(2)}
-                </div>
-            </div>
-        `;
+            <div class='row'>
+              <div class='col-md-6'>
+                <strong>Quotation ID:</strong> ${quotationID}<br>
+                <strong>Customer ID:</strong> ${customerID}
+              </div>
+              <div class='col-md-6'>
+                <strong>Price:</strong> $${parseFloat(price).toFixed(2)}
+              </div>
+            </div>`;
 
         // Enable submit button
         document.getElementById('submitBtn').disabled = false;
-        selectedQuotation = { quotationID, customerID, vin, price };
+        selectedQuotation = { quotationID, customerID, price };
     }
 
     // Form validation

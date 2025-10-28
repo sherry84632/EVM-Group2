@@ -14,16 +14,17 @@ public class DTOSaleOrder {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int saleOrderID;
     @ManyToOne
-    @JoinColumn(name = "CustomerID", referencedColumnName = "CustomerID")
+    @JoinColumn(name = "customer_customer_id", referencedColumnName = "CustomerID")
     private DTOCustomer customer;
     @ManyToOne
-    @JoinColumn(name = "DealerID", referencedColumnName = "DealerID")
+    @JoinColumn(name = "dealer_dealer_id", referencedColumnName = "DealerID")
     private DTODealer dealer;
     @ManyToOne
-    @JoinColumn(name = "StaffID", referencedColumnName = "StaffID")
+    @JoinColumn(name = "staff_staff_id", referencedColumnName = "StaffID")
     private DTODealerStaff staff;
+    // Keep quotation mapping (if column exists) else it will stay null
     @ManyToOne
-    @JoinColumn(name = "QuotationID", referencedColumnName = "QuotationID")
+    @JoinColumn(name = "QuotationID", referencedColumnName = "QuotationID", nullable = true)
     private DTOQuotation quotation;
     
     @Column(name = "CreatedAt")

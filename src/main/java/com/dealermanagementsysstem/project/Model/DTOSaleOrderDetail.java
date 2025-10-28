@@ -26,6 +26,9 @@ public class DTOSaleOrderDetail {
     @ManyToOne
     @JoinColumn(name = "PolicyID", referencedColumnName = "PolicyID")
     private DTODiscountPolicy discountPolicy;
+
+    @Column(name = "Quantity", nullable = true)
+    private Integer quantity; // optional per-line quantity
     public DTOSaleOrderDetail() {
     }
 
@@ -79,5 +82,6 @@ public class DTOSaleOrderDetail {
         this.price = price;
     }
 
-
+    public Integer getQuantity(){ return quantity!=null?quantity:1; }
+    public void setQuantity(Integer q){ this.quantity = q; }
 }

@@ -33,31 +33,41 @@
                 <h1>Basic Infos</h1>
                 <form id="promotionForm" action="/saleorder/updateStatus" method="post">
                     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                    <div class="form-group" th:each="detail : ${order.detail}">
-                        <label for="promoName">Sale order id</label>
-                        <input type="text" id="promoName" name="saleOrderID" placeholder="Enter policy name" th:value="${detail.saleOrderID}" readonly>
-                    </div>
-
                     <div class="form-group">
-                        <label for="promoName">Dealer id</label>
-                        <input type="text" id="promoName" name="dealerID" placeholder="Enter policy name" th:value="${order.dealer.dealerID}" readonly>
+                        <label>Sale order id</label>
+                        <input type="text" name="saleOrderID" th:value="${order.saleOrderID}" readonly>
                     </div>
-
                     <div class="form-group">
-                        <label for="promoName">Dealer staff id</label>
-                        <input type="text" id="promoName" name="staffID" placeholder="Enter policy name" th:value="${order.staff.staffID}" readonly>
+                        <label>Dealer id</label>
+                        <input type="text" name="dealerID" th:value="${order.dealer.dealerID}" readonly>
                     </div>
-
                     <div class="form-group">
-                        <label for="startDate">Created at</label>
-                        <input type="datetime-local" id="startDate" name="createdAt" th:value="${order.createdAt}" readonly>
+                        <label>Dealer staff id</label>
+                        <input type="text" name="staffID" th:value="${order.staff.staffID}" readonly>
                     </div>
-
                     <div class="form-group">
-                        <label for="promoName">Status</label>
-                        <input type="text" id="promoName" name="status" placeholder="Enter status" th:value="${order.status}" required>
+                        <label>Created at</label>
+                        <input type="text" name="createdAt" th:value="${order.createdAt}" readonly>
                     </div>
-
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select name="status" required>
+                            <option th:selected="${order.status.name()=='CREATED'}" value="CREATED">CREATED</option>
+                            <option th:selected="${order.status.name()=='CONTRACT_SIGNED'}" value="CONTRACT_SIGNED">CONTRACT_SIGNED</option>
+                            <option th:selected="${order.status.name()=='PROCESSING'}" value="PROCESSING">PROCESSING</option>
+                            <option th:selected="${order.status.name()=='SHIPPED'}" value="SHIPPED">SHIPPED</option>
+                            <option th:selected="${order.status.name()=='COMPLETED'}" value="COMPLETED">COMPLETED</option>
+                            <option th:selected="${order.status.name()=='CANCELLED'}" value="CANCELLED">CANCELLED</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Total Quantity</label>
+                        <input type="text" th:value="${order.totalQuantity}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Total Amount</label>
+                        <input type="text" th:value="${order.totalAmount}" readonly>
+                    </div>
                     <button type="submit" class="submit-btn">Update</button>
 
                 </form>
@@ -119,6 +129,37 @@
 
 
 
+            </div>
+
+            <div class="form-wrapper">
+                <h1>Vehicles</h1>
+                <div th:if="${order.detail != null and !order.detail.isEmpty()}">
+                    <table class="table table-sm table-striped">
+                        <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>VehicleID</th>
+                            <th>Model</th>
+                            <th>Version</th>
+                            <th>Color</th>
+                            <th>Price</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="d,stat : ${order.detail}">
+                            <td th:text="${stat.index+1}"></td>
+                            <td th:text="${d.vehicle != null ? d.vehicle.vehicleID : '-'}"></td>
+                            <td th:text="${d.vehicle?.version?.model?.modelName ?: '-'}"></td>
+                            <td th:text="${d.vehicle?.version?.versionName ?: '-'}"></td>
+                            <td th:text="${d.vehicle?.color?.colorName ?: '-'}"></td>
+                            <td th:text="${d.price}"></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div th:if="${order.detail == null or order.detail.isEmpty()}">
+                    <p class="text-muted">No vehicle details.</p>
+                </div>
             </div>
 
         </div>
