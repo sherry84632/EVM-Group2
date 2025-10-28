@@ -199,11 +199,11 @@ public class DAOPurchaseOrder {
         return -1;
     }
 
-    // ✅ Lấy DealerID theo email (tự động tạo nếu chưa có)
+    // Lấy DealerID theo email (tự động tạo nếu chưa có)
     public int getDealerIdByEmail(String email) {
         String selectSql = "SELECT DealerID FROM Dealer WHERE Email = ?";
-        String insertSql = "INSERT INTO Dealer (dealerName, address, phone, email, EvmID, AccountID, LevelID, PolicyID) " +
-                "VALUES (?, NULL, NULL, ?, NULL, NULL, 1, NULL)";
+        String insertSql = "INSERT INTO Dealer (dealerName, address, phone, email, EvmID, LevelID, PolicyID) " +
+                "VALUES (?, NULL, NULL, ?, NULL, 1, NULL)";
 
         try (Connection conn = DBUtils.getConnection()) {
             // 🔍 Tìm Dealer trước
