@@ -1,31 +1,42 @@
 package com.dealermanagementsysstem.project.Model;
 
+import jakarta.persistence.*;
 import java.math.BigDecimal;
 
+@Entity
+@Table(name = "QuotationDetail")
 public class DTOQuotationDetail {
+    
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "QuotationDetailID")
     private int quotationDetailID;
-    private int quotationID;
-    private String VIN;
+    
+    @ManyToOne
+    @JoinColumn(name = "QuotationID", referencedColumnName = "QuotationID")
+    private DTOQuotation quotation;
+    
+    @ManyToOne
+    @JoinColumn(name = "VersionID", referencedColumnName = "VersionID")
+    private DTOVehicleVersion version;
+    
+    @Column(name = "UnitPrice")
     private BigDecimal unitPrice;
-    private int quantity;
-    private int colorID;
-    private String colorName;
-    private String modelName;
+    
+    @ManyToOne
+    @JoinColumn(name = "ColorID", referencedColumnName = "ColorID")
+    private DTOVehicleColor color;
 
     public DTOQuotationDetail() {
     }
 
-    public DTOQuotationDetail(int quotationDetailID, int quotationID, String VIN, 
-                             BigDecimal unitPrice, int quantity, int colorID, 
-                             String colorName, String modelName) {
+    public DTOQuotationDetail(int quotationDetailID, DTOQuotation quotation, DTOVehicleVersion version, 
+                             BigDecimal unitPrice, DTOVehicleColor color) {
         this.quotationDetailID = quotationDetailID;
-        this.quotationID = quotationID;
-        this.VIN = VIN;
+        this.quotation = quotation;
+        this.version = version;
         this.unitPrice = unitPrice;
-        this.quantity = quantity;
-        this.colorID = colorID;
-        this.colorName = colorName;
-        this.modelName = modelName;
+        this.color = color;
     }
 
     public int getQuotationDetailID() {
@@ -36,20 +47,20 @@ public class DTOQuotationDetail {
         this.quotationDetailID = quotationDetailID;
     }
 
-    public int getQuotationID() {
-        return quotationID;
+    public DTOQuotation getQuotation() {
+        return quotation;
     }
 
-    public void setQuotationID(int quotationID) {
-        this.quotationID = quotationID;
+    public void setQuotation(DTOQuotation quotation) {
+        this.quotation = quotation;
     }
 
-    public String getVIN() {
-        return VIN;
+    public DTOVehicleVersion getVersion() {
+        return version;
     }
 
-    public void setVIN(String VIN) {
-        this.VIN = VIN;
+    public void setVersion(DTOVehicleVersion version) {
+        this.version = version;
     }
 
     public BigDecimal getUnitPrice() {
@@ -60,35 +71,11 @@ public class DTOQuotationDetail {
         this.unitPrice = unitPrice;
     }
 
-    public int getQuantity() {
-        return quantity;
+    public DTOVehicleColor getColor() {
+        return color;
     }
 
-    public void setQuantity(int quantity) {
-        this.quantity = quantity;
-    }
-
-    public int getColorID() {
-        return colorID;
-    }
-
-    public void setColorID(int colorID) {
-        this.colorID = colorID;
-    }
-
-    public String getColorName() {
-        return colorName;
-    }
-
-    public void setColorName(String colorName) {
-        this.colorName = colorName;
-    }
-
-    public String getModelName() {
-        return modelName;
-    }
-
-    public void setModelName(String modelName) {
-        this.modelName = modelName;
+    public void setColor(DTOVehicleColor color) {
+        this.color = color;
     }
 }

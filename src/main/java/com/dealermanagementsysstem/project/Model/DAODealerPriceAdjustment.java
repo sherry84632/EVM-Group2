@@ -14,8 +14,8 @@ public class DAODealerPriceAdjustment {
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            ps.setInt(1, dto.getDealerID());
-            ps.setInt(2, dto.getModelID());
+            ps.setInt(1, dto.getDealer().getDealerID());
+            ps.setInt(2, dto.getVehicleModel().getModelID());
             ps.setObject(3, dto.getDiscountAmount());
             ps.setObject(4, dto.getDiscountPercent());
             ps.setDate(5, Date.valueOf(dto.getStartDate()));
@@ -40,10 +40,18 @@ public class DAODealerPriceAdjustment {
             ResultSet rs = ps.executeQuery();
 
             while (rs.next()) {
+                // Create Dealer object
+                DTODealer dealer = new DTODealer();
+                dealer.setDealerID(rs.getInt("DealerID"));
+
+                // Create VehicleModel object
+                DTOVehicleModel vehicleModel = new DTOVehicleModel();
+                vehicleModel.setModelID(rs.getInt("ModelID"));
+
                 DTODealerPriceAdjustment dto = new DTODealerPriceAdjustment(
                         rs.getInt("AdjustmentID"),
-                        rs.getInt("DealerID"),
-                        rs.getInt("ModelID"),
+                        dealer,
+                        vehicleModel,
                         rs.getObject("DiscountAmount", Double.class),
                         rs.getObject("DiscountPercent", Double.class),
                         rs.getDate("StartDate").toLocalDate(),
@@ -70,10 +78,18 @@ public class DAODealerPriceAdjustment {
             ResultSet rs = ps.executeQuery();
 
             while (rs.next()) {
+                // Create Dealer object
+                DTODealer dealer = new DTODealer();
+                dealer.setDealerID(rs.getInt("DealerID"));
+
+                // Create VehicleModel object
+                DTOVehicleModel vehicleModel = new DTOVehicleModel();
+                vehicleModel.setModelID(rs.getInt("ModelID"));
+
                 DTODealerPriceAdjustment dto = new DTODealerPriceAdjustment(
                         rs.getInt("AdjustmentID"),
-                        rs.getInt("DealerID"),
-                        rs.getInt("ModelID"),
+                        dealer,
+                        vehicleModel,
                         rs.getObject("DiscountAmount", Double.class),
                         rs.getObject("DiscountPercent", Double.class),
                         rs.getDate("StartDate").toLocalDate(),

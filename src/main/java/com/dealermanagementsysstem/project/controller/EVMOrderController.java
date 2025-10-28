@@ -1,11 +1,7 @@
 package com.dealermanagementsysstem.project.controller;
 
-import com.dealermanagementsysstem.project.Model.DAOPurchaseOrder;
-import com.dealermanagementsysstem.project.Model.DAOEVMOrderProcessing;
-import com.dealermanagementsysstem.project.Model.DAODealerInventory;
-import com.dealermanagementsysstem.project.Model.DTOPurchaseOrder;
-import com.dealermanagementsysstem.project.Model.DTOEVMOrderProcessing;
-import com.dealermanagementsysstem.project.Model.DTOPurchaseOrderDetail;
+import com.dealermanagementsysstem.project.Model.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -17,11 +13,11 @@ import java.util.List;
 @RequestMapping("/evm/orders")
 public class EVMOrderController {
 
-    private final DAOPurchaseOrder purchaseOrderDAO = new DAOPurchaseOrder();
-    private final DAOEVMOrderProcessing processDAO = new DAOEVMOrderProcessing();
+    @Autowired
+    private DAOPurchaseOrder purchaseOrderDAO; // Use Spring-managed bean with enriched logic
 
     // 🔹 Hiển thị toàn bộ danh sách đơn hàng (EVM xem)
-    @GetMapping("/evmOrderList")
+    @GetMapping("/list") // changed from /evmOrderList to /list under /evm/orders
     public String showAllOrders(Model model,
                                 @ModelAttribute("message") String message,
                                 @ModelAttribute("statusType") String statusType) {
@@ -34,7 +30,44 @@ public class EVMOrderController {
             model.addAttribute("statusType", statusType);
         }
 
-        return "evmPage/evmOrderList";
+        return "evmPage/evmOrderList"; // keep same template name
+    }
+
+    // 🔹 Hiển thị lịch sử đơn hàng (chỉ các đơn đã xử lý)
+    @GetMapping("/history")
+    public String showOrderHistory(Model model,
+                                   @RequestParam(required = false) String keyword,
+                                   @ModelAttribute("message") String message,
+                                   @ModelAttribute("statusType") String statusType) {
+
+        List<DTOPurchaseOrder> allOrders = purchaseOrderDAO.getAllPurchaseOrders();
+
+        // Filter only processed orders (not REQUESTED)
+        List<DTOPurchaseOrder> historyOrders = allOrders.stream()
+            .filter(order -> order.getStatus() != PurchaseOrderStatus.REQUESTED)
+            .toList();
+
+        // Apply keyword search if provided
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            String searchKeyword = keyword.toLowerCase().trim();
+            historyOrders = historyOrders.stream()
+                .filter(order -> {
+                    String dealerName = order.getDealerName() != null ? order.getDealerName().toLowerCase() : "";
+                    String status = order.getStatus() != null ? order.getStatus().toString().toLowerCase() : "";
+                    return dealerName.contains(searchKeyword) || status.contains(searchKeyword);
+                })
+                .toList();
+        }
+
+        model.addAttribute("orders", historyOrders);
+        model.addAttribute("keyword", keyword);
+
+        if (message != null && !message.isEmpty()) {
+            model.addAttribute("message", message);
+            model.addAttribute("statusType", statusType);
+        }
+
+        return "evmPage/evmOrderHistory";
     }
 
     // 🔹 Hiển thị chi tiết đơn hàng
@@ -45,23 +78,31 @@ public class EVMOrderController {
             model.addAttribute("order", order);
             return "evmPage/orderDetail";
         } else {
-            return "redirect:/evm/orders/evmOrderList?error=Order not found";
+            return "redirect:/evm/orders/list?error=Order not found";
         }
     }
 
     // 🔹 Xử lý đơn hàng (phê duyệt / từ chối)
     @PostMapping("/process/{id}")
     public String processOrder(@PathVariable int id,
-                               @ModelAttribute("process") DTOEVMOrderProcessing process,
+                               @RequestParam("actionType") String actionType,
                                RedirectAttributes redirectAttributes) {
 
         System.out.println("🔍 Processing order ID: " + id);
+        System.out.println("📋 Action Type: " + actionType);
 
-        process.setPurchaseOrderId(id);
-        process.setEvmStaffId(1); // demo
-        processDAO.addProcessing(process);
-
-        String newStatus = process.getActionType().equalsIgnoreCase("Approve") ? "Approved" : "Rejected";
+        // ✅ Map action type to correct enum value (case insensitive)
+        PurchaseOrderStatus newStatus;
+        if (actionType.equalsIgnoreCase("Approve") || actionType.equalsIgnoreCase("APPROVED")) {
+            newStatus = PurchaseOrderStatus.APPROVED;
+        } else if (actionType.equalsIgnoreCase("Reject") || actionType.equalsIgnoreCase("REJECTED") || actionType.equalsIgnoreCase("Cancel")) {
+            newStatus = PurchaseOrderStatus.CANCELLED;
+        } else {
+            System.out.println("❌ Invalid action type: " + actionType);
+            redirectAttributes.addFlashAttribute("message", "❌ Invalid action!");
+            redirectAttributes.addFlashAttribute("statusType", "error");
+            return "redirect:/evm/orders/list";
+        }
 
         // ✅ Lấy chi tiết đơn hàng TRƯỚC KHI update status
         DTOPurchaseOrder order = purchaseOrderDAO.getPurchaseOrderById(id);
@@ -70,18 +111,18 @@ public class EVMOrderController {
             System.out.println("❌ Không tìm thấy đơn hàng với ID: " + id);
             redirectAttributes.addFlashAttribute("message", "❌ Order not found!");
             redirectAttributes.addFlashAttribute("statusType", "error");
-            return "redirect:/evm/orders/evmOrderList";
+            return "redirect:/evm/orders/list";
         }
 
-        System.out.println("📦 Order found - DealerID: " + order.getDealerId() + ", Status: " + order.getStatus());
+        System.out.println("📦 Order found - DealerID: " + order.getDealer().getDealerID() + ", Status: " + order.getStatus());
 
         // Update status
         order.setStatus(newStatus);
-        purchaseOrderDAO.updatePurchaseOrderStatus(order.getPurchaseOrderId(), order.getStatus());
+        purchaseOrderDAO.updatePurchaseOrderStatus(order.getPurchaseOrderId(), newStatus);
         System.out.println("✅ Updated status to: " + newStatus);
 
         // ✅ Nếu đơn hàng được Approved, thêm xe vào inventory của dealer
-        if ("Approved".equals(newStatus)) {
+        if (newStatus == PurchaseOrderStatus.APPROVED) {
             System.out.println("🚗 Bắt đầu thêm xe vào inventory...");
             DAODealerInventory inventoryDAO = new DAODealerInventory();
 
@@ -93,14 +134,30 @@ public class EVMOrderController {
 
                 int successCount = 0;
                 for (DTOPurchaseOrderDetail detail : order.getOrderDetails()) {
-                    System.out.println("  ➤ Thêm xe: ModelID=" + detail.getModelId()
-                        + ", ColorID=" + detail.getColorId()
+                    // ✅ Check for null values before accessing nested properties
+                    if (detail.getVersion() == null) {
+                        System.out.println("  ⚠️ CẢNH BÁO: Version is NULL for detail ID " + detail.getPoDetailId());
+                        continue;
+                    }
+
+                    if (detail.getVersion().getModel() == null) {
+                        System.out.println("  ⚠️ CẢNH BÁO: Model is NULL for version ID " + detail.getVersion().getVersionID());
+                        continue;
+                    }
+
+                    if (detail.getColor() == null) {
+                        System.out.println("  ⚠️ CẢNH BÁO: Color is NULL for detail ID " + detail.getPoDetailId());
+                        continue;
+                    }
+
+                    System.out.println("  ➤ Thêm xe: ModelID=" + detail.getVersion().getModel().getModelID()
+                        + ", ColorID=" + detail.getColor().getColorID()
                         + ", Quantity=" + detail.getQuantity());
 
                     boolean added = inventoryDAO.addVehiclesToInventory(
-                        order.getDealerId(),
-                        detail.getModelId(),
-                        detail.getColorId(),
+                        order.getDealer().getDealerID(),
+                        detail.getColor().getColorID(),
+                        detail.getVersion().getVersionID(),
                         detail.getQuantity()
                     );
 
@@ -116,12 +173,12 @@ public class EVMOrderController {
         }
 
         // 🔹 Gửi flash message về lại evmOrderList
-        String msg = newStatus.equals("Approved")
+        String msg = (newStatus == PurchaseOrderStatus.APPROVED)
                 ? "✅ The order has been approved successfully!"
                 : "❌ The order has been rejected!";
         redirectAttributes.addFlashAttribute("message", msg);
-        redirectAttributes.addFlashAttribute("statusType", newStatus);
+        redirectAttributes.addFlashAttribute("statusType", newStatus.name());
 
-        return "redirect:/evm/orders/evmOrderList";
+        return "redirect:/evm/orders/list";
     }
 }

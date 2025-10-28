@@ -12,9 +12,9 @@ public class UpdateVehicleController {
 
     // ✅ Hiển thị form update
     @GetMapping("/updateVehicle")
-    public String showUpdateForm(@RequestParam("vin") String vin, Model model) {
+    public String showUpdateForm(@RequestParam("id") Integer id, Model model) {
         DAOVehicle daoVehicle = new DAOVehicle();
-        DTOVehicle vehicle = daoVehicle.getVehicleByVIN(vin);
+        DTOVehicle vehicle = daoVehicle.getVehicleById(id);
         model.addAttribute("vehicle", vehicle);
         return "evmPage/updateVehicle"; // HTML hiển thị form
     }

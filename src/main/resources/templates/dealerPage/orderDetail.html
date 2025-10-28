@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Detail</title>
+
+    <!-- Bootstrap -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/mainPageStyle.css">
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"
+          crossorigin="anonymous" referrerpolicy="no-referrer"/>
+
+    <style>
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f8f9fa;
+            margin: 0;
+            padding: 0;
+        }
+
+        .mainContent {
+            padding: 40px 40px 40px 280px;
+            background: #ffffff;
+            min-height: 100vh;
+        }
+
+        .order-detail-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .detail-card {
+            background: #ffffff;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            padding: 30px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+        }
+
+        .detail-card:hover {
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+            transform: translateY(-2px);
+        }
+
+        .detail-card h3 {
+            color: #000;
+            font-weight: 700;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .detail-card h3 i {
+            color: #6c757d;
+        }
+
+        .info-row {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .info-value {
+            color: #212529;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+        }
+
+        .status-requested {
+            background: rgba(255, 193, 7, 0.2);
+            color: #856404;
+            border: 2px solid rgba(255, 193, 7, 0.5);
+        }
+
+        .status-approved {
+            background: rgba(40, 167, 69, 0.2);
+            color: #155724;
+            border: 2px solid rgba(40, 167, 69, 0.5);
+        }
+
+        .status-in_process {
+            background: rgba(0, 123, 255, 0.2);
+            color: #004085;
+            border: 2px solid rgba(0, 123, 255, 0.5);
+        }
+
+        .status-delivered {
+            background: rgba(23, 162, 184, 0.2);
+            color: #0c5460;
+            border: 2px solid rgba(23, 162, 184, 0.5);
+        }
+
+        .status-cancelled {
+            background: rgba(220, 53, 69, 0.2);
+            color: #721c24;
+            border: 2px solid rgba(220, 53, 69, 0.5);
+        }
+
+        .table-modern {
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .table-modern thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .table-modern thead th {
+            padding: 15px;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+        }
+
+        .table-modern tbody td {
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
+            vertical-align: middle;
+        }
+
+        .table-modern tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .btn-back {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-back:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+            color: white;
+        }
+
+        .total-amount {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #28a745;
+            text-align: right;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+<div class="d-flex">
+    <!-- Sidebar -->
+    <div th:replace="~{mainPage/navBarFragment :: navBar}"></div>
+
+    <!-- Main content -->
+    <div class="mainContent flex-grow-1">
+        <div class="order-detail-container">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fa-solid fa-file-invoice me-2"></i>Order Details #<span th:text="${order.purchaseOrderId}"></span></h2>
+                <a href="/orderdealer" class="btn-back">
+                    <i class="fa-solid fa-arrow-left"></i> Back to Orders
+                </a>
+            </div>
+
+            <!-- Order Information -->
+            <div class="detail-card">
+                <h3><i class="fa-solid fa-info-circle"></i> Order Information</h3>
+                <div class="info-row">
+                    <div class="info-label">Order ID:</div>
+                    <div class="info-value" th:text="${order.purchaseOrderId}"></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Status:</div>
+                    <div class="info-value">
+                        <span class="status-badge"
+                              th:classappend="'status-' + ${#strings.toLowerCase(order.status.name())}"
+                              th:text="${order.status}"></span>
+                    </div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Created At:</div>
+                    <div class="info-value" th:text="${#dates.format(order.createdAt, 'dd/MM/yyyy HH:mm:ss')}"></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Total Amount:</div>
+                    <div class="info-value">
+                        <strong th:text="${order.totalAmount != null ? #numbers.formatCurrency(order.totalAmount) : '$0.00'}"></strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dealer Information -->
+            <div class="detail-card">
+                <h3><i class="fa-solid fa-building"></i> Dealer Information</h3>
+                <div class="info-row">
+                    <div class="info-label">Dealer ID:</div>
+                    <div class="info-value" th:text="${order.dealer?.dealerID ?: 'N/A'}"></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Dealer Name:</div>
+                    <div class="info-value" th:text="${order.dealer?.dealerName ?: 'N/A'}"></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Dealer Level:</div>
+                    <div class="info-value" th:text="${order.dealerLevelName ?: 'N/A'}"></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Address:</div>
+                    <div class="info-value" th:text="${order.dealer?.address ?: 'N/A'}"></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Phone:</div>
+                    <div class="info-value" th:text="${order.dealer?.phone ?: 'N/A'}"></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Email:</div>
+                    <div class="info-value" th:text="${order.dealer?.email ?: 'N/A'}"></div>
+                </div>
+                <div class="info-row" th:if="${order.policyName != null}">
+                    <div class="info-label">Discount Policy:</div>
+                    <div class="info-value" th:text="${order.policyName}"></div>
+                </div>
+                <div class="info-row" th:if="${order.policyDiscountPercent != null and order.policyDiscountPercent > 0}">
+                    <div class="info-label">Policy Discount:</div>
+                    <div class="info-value" th:text="${order.policyDiscountPercent + '%'}"></div>
+                </div>
+            </div>
+
+            <!-- Staff Information -->
+            <div class="detail-card">
+                <h3><i class="fa-solid fa-user-tie"></i> Staff Information</h3>
+                <div class="info-row">
+                    <div class="info-label">Staff ID:</div>
+                    <div class="info-value" th:text="${order.staff?.staffID ?: 'N/A'}"></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Staff Name:</div>
+                    <div class="info-value" th:text="${order.staff?.fullName ?: 'N/A'}"></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Position:</div>
+                    <div class="info-value" th:text="${order.staff?.position ?: 'N/A'}"></div>
+                </div>
+                <div class="info-row" th:if="${order.approvedByStaffName != null}">
+                    <div class="info-label">Approved By:</div>
+                    <div class="info-value" th:text="${order.approvedByStaffName}"></div>
+                </div>
+            </div>
+
+            <!-- Order Details -->
+            <div class="detail-card" th:if="${order.orderDetails != null and !#lists.isEmpty(order.orderDetails)}">
+                <h3><i class="fa-solid fa-list"></i> Order Items</h3>
+                <table class="table-modern">
+                    <thead>
+                        <tr>
+                            <th>Item #</th>
+                            <th>Color</th>
+                            <th>Version</th>
+                            <th>Unit Price</th>
+                            <th>Quantity</th>
+                            <th>Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="detail, iterStat : ${order.orderDetails}">
+                            <td th:text="${iterStat.count}"></td>
+                            <td th:text="${detail.color?.colorName ?: 'N/A'}"></td>
+                            <td th:text="${detail.version?.versionName ?: 'N/A'}"></td>
+                            <td th:text="${detail.unitPrice != null ? #numbers.formatCurrency(detail.unitPrice) : '$0.00'}"></td>
+                            <td th:text="${detail.quantity}"></td>
+                            <td th:text="${detail.subtotal != null ? #numbers.formatCurrency(detail.subtotal) : '$0.00'}"></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="total-amount">
+                    Total: <span th:text="${order.totalAmount != null ? #numbers.formatCurrency(order.totalAmount) : '$0.00'}"></span>
+                </div>
+            </div>
+
+            <div class="detail-card" th:if="${order.orderDetails == null or #lists.isEmpty(order.orderDetails)}">
+                <div class="text-center text-muted py-4">
+                    <i class="fa-solid fa-box-open fa-3x mb-3"></i>
+                    <p>No order details available.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+

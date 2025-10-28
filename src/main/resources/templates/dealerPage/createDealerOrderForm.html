@@ -9,7 +9,7 @@
 <body class="bg-gradient2-custom">
 
 <div class="d-flex wrap">
-    <div th:replace="mainPage/navBarFragment :: navBar"></div>
+    <div th:replace="~{mainPage/navBarFragment :: navBar}"></div>
 
     <div class="mainContent flex-grow-1 p-5">
         <h2 class="mb-4 text-center">Create an Order</h2>
@@ -36,12 +36,13 @@
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label fw-semibold">Version</label>
-                    <select name="version" class="form-select" required>
-                        <option value="" disabled selected>-- Choose Version --</option>
-                        <option value="Standard">Standard</option>
-                        <option value="Plus">Plus</option>
-                        <option value="Premium">Premium</option>
+                    <label for="version">Chọn phiên bản:</label>
+                    <select id="version" name="version" class="form-select" required>
+                        <option value="">-- Chọn phiên bản --</option>
+                        <option value="1">Standard</option>
+                        <option value="2">Premium</option>
+                        <option value="7">Luxury</option>
+                        <option value="8">Ultimate</option>
                     </select>
                 </div>
 

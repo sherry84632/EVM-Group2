@@ -5,6 +5,10 @@ import java.sql.*;
 /**
  * DBUtils - đọc thông tin kết nối từ System properties hoặc environment variables.
  * Fallback: dùng mặc định localhost, CarDealerDBI, sa, 12345.
+ *
+ * NOTE: ĐÃ LOẠI BỎ createPreparedStatement VÌ GÂY RÒ RỈ KẾT NỐI (Connection không được đóng).
+ * Sử dụng mẫu try-with-resources chuẩn:
+ * try (Connection con = DBUtils.getConnection(); PreparedStatement ps = con.prepareStatement(sql)) { ... }
  */
 public class DBUtils {
 
@@ -40,14 +44,6 @@ public class DBUtils {
             System.err.println("❌ Failed to connect to DB: " + e.getMessage());
         }
         return conn;
-    }
-
-    // ======================================================
-    // CREATE PREPARED STATEMENT
-    // ======================================================
-    public static PreparedStatement createPreparedStatement(String sql) throws SQLException {
-        Connection conn = getConnection();
-        return conn.prepareStatement(sql);
     }
 
     // ======================================================

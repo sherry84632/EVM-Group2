@@ -3,6 +3,7 @@ package com.dealermanagementsysstem.project.Model;
 import org.springframework.stereotype.Repository;
 import utils.DBUtils;
 
+import java.math.BigDecimal;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -14,11 +15,23 @@ public class DAOPurchaseOrder {
     public List<DTOPurchaseOrder> getAllPurchaseOrders() {
         List<DTOPurchaseOrder> list = new ArrayList<>();
         String sql = """
-                SELECT po.PurchaseOrderID, po.DealerID, po.StaffID, po.CreatedAt, po.Status,
-                       d.DealerName, ds.FullName AS StaffName
+                SELECT po.PurchaseOrderID, po.DealerID, po.StaffID, po.CreatedAt, po.Status, po.TotalAmount, po.EvmID,
+                       d.DealerID, d.DealerName, d.LevelID,
+                       dl.LevelName,
+                       ds.StaffID, ds.FullName AS StaffName,
+                       promo.DiscountPercent AS PolicyDiscountPercent, promo.PromotionName AS PolicyName
                 FROM PurchaseOrder po
                 LEFT JOIN Dealer d ON po.DealerID = d.DealerID
                 LEFT JOIN DealerStaff ds ON po.StaffID = ds.StaffID
+                LEFT JOIN DealerLevel dl ON d.LevelID = dl.LevelID
+                OUTER APPLY (
+                   SELECT TOP 1 DiscountPercent, PromotionName
+                   FROM DealerPriceAdjustment p
+                   WHERE p.DealerID = d.DealerID
+                     AND p.StartDate <= GETDATE()
+                     AND (p.EndDate IS NULL OR p.EndDate >= GETDATE())
+                   ORDER BY p.StartDate DESC
+                ) promo
                 ORDER BY po.PurchaseOrderID DESC
                 """;
 
@@ -29,12 +42,39 @@ public class DAOPurchaseOrder {
             while (rs.next()) {
                 DTOPurchaseOrder dto = new DTOPurchaseOrder();
                 dto.setPurchaseOrderId(rs.getInt("PurchaseOrderID"));
-                dto.setDealerId(rs.getInt("DealerID"));
-                dto.setStaffId(rs.getInt("StaffID"));
-                dto.setDealerName(rs.getString("DealerName"));
-                dto.setStaffName(rs.getString("StaffName"));
                 dto.setCreatedAt(rs.getTimestamp("CreatedAt"));
-                dto.setStatus(rs.getString("Status"));
+                try {
+                    dto.setStatus(PurchaseOrderStatus.valueOf(rs.getString("Status").toUpperCase()));
+                } catch (IllegalArgumentException ex) {
+                    // Fallback to REQUESTED if invalid status string in DB
+                    dto.setStatus(PurchaseOrderStatus.REQUESTED);
+                }
+                dto.setTotalAmount(rs.getBigDecimal("TotalAmount"));
+                dto.setEvmID(rs.getInt("EvmID"));
+
+                // Dealer info
+                DTODealer dealer = new DTODealer();
+                dealer.setDealerID(rs.getInt("DealerID"));
+                dealer.setDealerName(rs.getString("DealerName"));
+                dto.setDealer(dealer);
+                dto.setDealerName(dealer.getDealerName());
+                dto.setDealerLevelName(rs.getString("LevelName"));
+
+                // Staff info
+                DTODealerStaff staff = new DTODealerStaff();
+                staff.setStaffID(rs.getInt("StaffID"));
+                staff.setFullName(rs.getString("StaffName"));
+                dto.setStaff(staff);
+
+                // Promotion / Policy info (from DealerPriceAdjustment as requested)
+                dto.setPolicyName(rs.getString("PolicyName"));
+                dto.setPolicyDiscountPercent(rs.getObject("PolicyDiscountPercent", Double.class));
+
+                // Approved by (simple logic: if status APPROVED show staff name)
+                if (dto.getStatus() == PurchaseOrderStatus.APPROVED) {
+                    dto.setApprovedByStaffName(staff.getFullName());
+                }
+
                 list.add(dto);
             }
 
@@ -47,21 +87,35 @@ public class DAOPurchaseOrder {
     // 🔹 Lấy 1 đơn hàng theo ID (kèm chi tiết)
     public DTOPurchaseOrder getPurchaseOrderById(int id) {
         String sqlOrder = """
-                SELECT po.PurchaseOrderID, po.DealerID, po.StaffID, po.CreatedAt, po.Status,
-                       d.DealerName, d.Address AS DealerAddress, d.Phone AS DealerPhone, d.Email AS DealerEmail,
-                       ds.FullName AS StaffName, ds.Position AS StaffPosition
+                SELECT po.PurchaseOrderID, po.DealerID, po.StaffID, po.CreatedAt, po.Status, po.TotalAmount, po.EvmID,
+                       d.DealerID, d.DealerName, d.Address AS DealerAddress, d.Phone AS DealerPhone, d.Email AS DealerEmail, d.LevelID,
+                       dl.LevelName,
+                       ds.StaffID, ds.FullName AS StaffName, ds.Position AS StaffPosition,
+                       promo.DiscountPercent AS PolicyDiscountPercent, promo.PromotionName AS PolicyName
                 FROM PurchaseOrder po
                 LEFT JOIN Dealer d ON po.DealerID = d.DealerID
                 LEFT JOIN DealerStaff ds ON po.StaffID = ds.StaffID
+                LEFT JOIN DealerLevel dl ON d.LevelID = dl.LevelID
+                OUTER APPLY (
+                   SELECT TOP 1 DiscountPercent, PromotionName
+                   FROM DealerPriceAdjustment p
+                   WHERE p.DealerID = d.DealerID
+                     AND p.StartDate <= GETDATE()
+                     AND (p.EndDate IS NULL OR p.EndDate >= GETDATE())
+                   ORDER BY p.StartDate DESC
+                ) promo
                 WHERE po.PurchaseOrderID = ?
                 """;
 
         String sqlDetail = """
-                SELECT pod.PODetailID, pod.PurchaseOrderID, pod.ColorID, pod.Quantity, pod.ModelID, pod.Version,
-                       vm.ModelName, vc.ColorName
+                SELECT pod.PODetailID, pod.PurchaseOrderID, pod.ColorID, pod.VersionID, pod.UnitPrice, pod.Quantity, pod.Subtotal,
+                       vc.ColorID AS DetailColorID, vc.ColorName,
+                       vv.VersionID AS DetailVersionID, vv.VersionName,
+                       vm.ModelID, vm.ModelName, vm.BasePrice
                 FROM PurchaseOrderDetail pod
-                LEFT JOIN VehicleModel vm ON pod.ModelID = vm.ModelID
                 LEFT JOIN VehicleColor vc ON pod.ColorID = vc.ColorID
+                LEFT JOIN VehicleVersion vv ON pod.VersionID = vv.VersionID
+                LEFT JOIN VehicleModel vm ON vv.ModelID = vm.ModelID
                 WHERE pod.PurchaseOrderID = ?
                 """;
 
@@ -73,14 +127,42 @@ public class DAOPurchaseOrder {
                 if (rs.next()) {
                     DTOPurchaseOrder dto = new DTOPurchaseOrder();
                     dto.setPurchaseOrderId(rs.getInt("PurchaseOrderID"));
-                    dto.setDealerId(rs.getInt("DealerID"));
-                    dto.setStaffId(rs.getInt("StaffID"));
-                    dto.setDealerName(rs.getString("DealerName"));
-                    dto.setStaffName(rs.getString("StaffName"));
                     dto.setCreatedAt(rs.getTimestamp("CreatedAt"));
-                    dto.setStatus(rs.getString("Status"));
+                    try {
+                        dto.setStatus(PurchaseOrderStatus.valueOf(rs.getString("Status").toUpperCase()));
+                    } catch (IllegalArgumentException ex) {
+                        dto.setStatus(PurchaseOrderStatus.REQUESTED);
+                    }
+                    dto.setTotalAmount(rs.getBigDecimal("TotalAmount"));
+                    dto.setEvmID(rs.getInt("EvmID"));
 
-                    // 🔹 Lấy danh sách chi tiết đơn hàng
+                    // Dealer info
+                    DTODealer dealer = new DTODealer();
+                    dealer.setDealerID(rs.getInt("DealerID"));
+                    dealer.setDealerName(rs.getString("DealerName"));
+                    dealer.setAddress(rs.getString("DealerAddress"));
+                    dealer.setPhone(rs.getString("DealerPhone"));
+                    dealer.setEmail(rs.getString("DealerEmail"));
+                    dto.setDealer(dealer);
+                    dto.setDealerName(dealer.getDealerName());
+                    dto.setDealerLevelName(rs.getString("LevelName"));
+
+                    // Staff info
+                    DTODealerStaff staff = new DTODealerStaff();
+                    staff.setStaffID(rs.getInt("StaffID"));
+                    staff.setFullName(rs.getString("StaffName"));
+                    staff.setPosition(rs.getString("StaffPosition"));
+                    dto.setStaff(staff);
+
+                    // Promotion / Policy info
+                    dto.setPolicyName(rs.getString("PolicyName"));
+                    dto.setPolicyDiscountPercent(rs.getObject("PolicyDiscountPercent", Double.class));
+
+                    if (dto.getStatus() == PurchaseOrderStatus.APPROVED) {
+                        dto.setApprovedByStaffName(staff.getFullName());
+                    }
+
+                    // Details
                     try (PreparedStatement psDetail = conn.prepareStatement(sqlDetail)) {
                         psDetail.setInt(1, id);
                         try (ResultSet drs = psDetail.executeQuery()) {
@@ -88,19 +170,40 @@ public class DAOPurchaseOrder {
                             while (drs.next()) {
                                 DTOPurchaseOrderDetail d = new DTOPurchaseOrderDetail();
                                 d.setPoDetailId(drs.getInt("PODetailID"));
-                                d.setPurchaseOrderId(drs.getInt("PurchaseOrderID"));
-                                d.setColorId(drs.getInt("ColorID"));
+                                d.setPurchaseOrder(dto);
+                                d.setUnitPrice(drs.getBigDecimal("UnitPrice"));
                                 d.setQuantity(drs.getInt("Quantity"));
-                                d.setModelId(drs.getInt("ModelID"));
-                                d.setVersion(drs.getString("Version"));
-                                d.setModelName(drs.getString("ModelName"));
-                                d.setColorName(drs.getString("ColorName"));
+                                d.setSubtotal(drs.getBigDecimal("Subtotal"));
+
+                                // Color
+                                if (drs.getString("ColorName") != null) {
+                                    DTOVehicleColor color = new DTOVehicleColor();
+                                    color.setColorID(drs.getInt("DetailColorID"));
+                                    color.setColorName(drs.getString("ColorName"));
+                                    d.setColor(color);
+                                    d.setColorName(color.getColorName());
+                                }
+                                // Version + Model
+                                if (drs.getString("VersionName") != null) {
+                                    DTOVehicleVersion version = new DTOVehicleVersion();
+                                    version.setVersionID(drs.getInt("DetailVersionID"));
+                                    version.setVersionName(drs.getString("VersionName"));
+                                    if (drs.getString("ModelName") != null) {
+                                        DTOVehicleModel model = new DTOVehicleModel();
+                                        model.setModelID(drs.getInt("ModelID"));
+                                        model.setModelName(drs.getString("ModelName"));
+                                        model.setBasePrice(drs.getBigDecimal("BasePrice"));
+                                        version.setModel(model);
+                                        d.setModelName(model.getModelName());
+                                    }
+                                    d.setVersion(version);
+                                    d.setVersionName(version.getVersionName());
+                                }
                                 details.add(d);
                             }
                             dto.setOrderDetails(details);
                         }
                     }
-
                     return dto;
                 }
             }
@@ -112,11 +215,11 @@ public class DAOPurchaseOrder {
     }
 
     // 🔹 Cập nhật trạng thái đơn hàng
-    public boolean updatePurchaseOrderStatus(int id, String newStatus) {
+    public boolean updatePurchaseOrderStatus(int id, PurchaseOrderStatus newStatus) {
         String sql = "UPDATE PurchaseOrder SET Status = ? WHERE PurchaseOrderID = ?";
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, newStatus);
+            ps.setString(1, newStatus.toString());
             ps.setInt(2, id);
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
@@ -140,14 +243,16 @@ public class DAOPurchaseOrder {
 
     // 🔹 Thêm đơn hàng mới và trả về ID
     public int insertPurchaseOrder(DTOPurchaseOrder order) {
-        String sql = "INSERT INTO PurchaseOrder (DealerID, StaffID, CreatedAt, Status) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO PurchaseOrder (DealerID, StaffID, CreatedAt, Status, TotalAmount, EvmID) VALUES (?, ?, ?, ?, ?, ?)";
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
-            ps.setInt(1, order.getDealerId());
-            ps.setInt(2, order.getStaffId());
+            ps.setInt(1, order.getDealer().getDealerID());
+            ps.setInt(2, order.getStaff().getStaffID());
             ps.setTimestamp(3, new Timestamp(System.currentTimeMillis()));
-            ps.setString(4, order.getStatus());
+            ps.setString(4, order.getStatus().toString());
+            ps.setBigDecimal(5, order.getTotalAmount());
+            ps.setInt(6, order.getEvmID());
             ps.executeUpdate();
 
             try (ResultSet rs = ps.getGeneratedKeys()) {
@@ -160,34 +265,26 @@ public class DAOPurchaseOrder {
         return -1;
     }
 
-    // ✅ Lấy DealerID theo email (tự động tạo nếu chưa có)
+    // Lấy DealerID theo email (tự động tạo nếu chưa có)
     public int getDealerIdByEmail(String email) {
         String selectSql = "SELECT DealerID FROM Dealer WHERE Email = ?";
-        String insertSql = "INSERT INTO Dealer (dealerName, address, phone, email, EvmID, AccountID, LevelID, PolicyID) " +
-                "VALUES (?, NULL, NULL, ?, NULL, NULL, 1, NULL)";
-
+        String insertSql = "INSERT INTO Dealer (dealerName, address, phone, email, EvmID, LevelID, PolicyID) VALUES (?, NULL, NULL, ?, NULL, 1, NULL)";
         try (Connection conn = DBUtils.getConnection()) {
-            // 🔍 Tìm Dealer trước
             try (PreparedStatement ps = conn.prepareStatement(selectSql)) {
                 ps.setString(1, email);
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) return rs.getInt("DealerID");
                 }
             }
-
-            // ⚙️ Nếu chưa có thì tạo mới Dealer
             try (PreparedStatement ps = conn.prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS)) {
-                ps.setString(1, email.split("@")[0]); // dealerName theo email
+                ps.setString(1, email.split("@")[0]);
                 ps.setString(2, email);
                 ps.executeUpdate();
                 try (ResultSet rs = ps.getGeneratedKeys()) {
                     if (rs.next()) return rs.getInt(1);
                 }
             }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        } catch (SQLException e) { e.printStackTrace(); }
         return -1;
     }
 
@@ -195,17 +292,13 @@ public class DAOPurchaseOrder {
     public int getStaffIdByEmail(String email) {
         String selectSql = "SELECT StaffID FROM DealerStaff WHERE Email = ?";
         String insertSql = "INSERT INTO DealerStaff (DealerID, FullName, Position, Email) VALUES (?, ?, ?, ?)";
-
         try (Connection conn = DBUtils.getConnection()) {
-            // 🔍 Tìm Staff trước
             try (PreparedStatement ps = conn.prepareStatement(selectSql)) {
                 ps.setString(1, email);
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) return rs.getInt("StaffID");
                 }
             }
-
-            // ⚙️ Nếu chưa có thì tạo Staff mới (gắn với Dealer tương ứng)
             int dealerId = getDealerIdByEmail(email);
             if (dealerId > 0) {
                 try (PreparedStatement ps = conn.prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS)) {
@@ -214,53 +307,72 @@ public class DAOPurchaseOrder {
                     ps.setString(3, "Sales");
                     ps.setString(4, email);
                     ps.executeUpdate();
-
-                    try (ResultSet rs = ps.getGeneratedKeys()) {
-                        if (rs.next()) return rs.getInt(1);
-                    }
+                    try (ResultSet rs = ps.getGeneratedKeys()) { if (rs.next()) return rs.getInt(1); }
                 }
             }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        } catch (SQLException e) { e.printStackTrace(); }
         return -1;
     }
     // 🔹 Lấy danh sách đơn hàng theo DealerID
     public List<DTOPurchaseOrder> getPurchaseOrdersByDealerId(int dealerId) {
         List<DTOPurchaseOrder> list = new ArrayList<>();
         String sql = """
-            SELECT po.PurchaseOrderID, po.DealerID, po.StaffID, po.CreatedAt, po.Status,
-                   d.DealerName, ds.FullName AS StaffName
+            SELECT po.PurchaseOrderID, po.DealerID, po.StaffID, po.CreatedAt, po.Status, po.TotalAmount, po.EvmID,
+                   d.DealerID, d.DealerName, dl.LevelName,
+                   ds.StaffID, ds.FullName AS StaffName,
+                   promo.DiscountPercent AS PolicyDiscountPercent, promo.PromotionName AS PolicyName
             FROM PurchaseOrder po
             LEFT JOIN Dealer d ON po.DealerID = d.DealerID
             LEFT JOIN DealerStaff ds ON po.StaffID = ds.StaffID
+            LEFT JOIN DealerLevel dl ON d.LevelID = dl.LevelID
+            OUTER APPLY (
+                   SELECT TOP 1 DiscountPercent, PromotionName
+                   FROM DealerPriceAdjustment p
+                   WHERE p.DealerID = d.DealerID
+                     AND p.StartDate <= GETDATE()
+                     AND (p.EndDate IS NULL OR p.EndDate >= GETDATE())
+                   ORDER BY p.StartDate DESC
+            ) promo
             WHERE po.DealerID = ?
             ORDER BY po.PurchaseOrderID DESC
             """;
-
-        try (Connection conn = DBUtils.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
+        try (Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, dealerId);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     DTOPurchaseOrder dto = new DTOPurchaseOrder();
                     dto.setPurchaseOrderId(rs.getInt("PurchaseOrderID"));
-                    dto.setDealerId(rs.getInt("DealerID"));
-                    dto.setStaffId(rs.getInt("StaffID"));
-                    dto.setDealerName(rs.getString("DealerName"));
-                    dto.setStaffName(rs.getString("StaffName"));
                     dto.setCreatedAt(rs.getTimestamp("CreatedAt"));
-                    dto.setStatus(rs.getString("Status"));
+                    try { dto.setStatus(PurchaseOrderStatus.valueOf(rs.getString("Status").toUpperCase())); } catch (IllegalArgumentException ex){ dto.setStatus(PurchaseOrderStatus.REQUESTED);}
+                    dto.setTotalAmount(rs.getBigDecimal("TotalAmount"));
+                    dto.setEvmID(rs.getInt("EvmID"));
+                    DTODealer dealer = new DTODealer();
+                    dealer.setDealerID(rs.getInt("DealerID"));
+                    dealer.setDealerName(rs.getString("DealerName"));
+                    dto.setDealer(dealer);
+                    dto.setDealerName(dealer.getDealerName());
+                    dto.setDealerLevelName(rs.getString("LevelName"));
+                    DTODealerStaff staff = new DTODealerStaff();
+                    staff.setStaffID(rs.getInt("StaffID"));
+                    staff.setFullName(rs.getString("StaffName"));
+                    dto.setStaff(staff);
+                    dto.setPolicyName(rs.getString("PolicyName"));
+                    dto.setPolicyDiscountPercent(rs.getObject("PolicyDiscountPercent", Double.class));
+                    if (dto.getStatus() == PurchaseOrderStatus.APPROVED) dto.setApprovedByStaffName(staff.getFullName());
                     list.add(dto);
                 }
             }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        } catch (SQLException e) { e.printStackTrace(); }
         return list;
     }
 
+    public BigDecimal getBasePriceByModelId(int modelId) {
+        String sql = "SELECT BasePrice FROM VehicleModel WHERE ModelID = ?";
+        try (Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, modelId);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) return rs.getBigDecimal("BasePrice");
+        } catch (SQLException e) { e.printStackTrace(); }
+        return BigDecimal.ZERO;
+    }
 }

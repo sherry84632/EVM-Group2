@@ -108,4 +108,35 @@ public class DAODealer {
             ps.executeUpdate();
         }
     }
+
+    /**
+     * Lấy StaffID đầu tiên thuộc Dealer (để gán vào TestDrive)
+     * @param dealerID ID của dealer
+     * @return StaffID hoặc null nếu dealer không có staff
+     */
+    public Integer getFirstStaffIdByDealerId(int dealerID) {
+        String sql = "SELECT TOP 1 StaffID FROM DealerStaff WHERE DealerID = ? ORDER BY StaffID ASC";
+
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, dealerID);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    int staffID = rs.getInt("StaffID");
+                    System.out.println("✅ Found StaffID=" + staffID + " for DealerID=" + dealerID);
+                    return staffID;
+                } else {
+                    System.out.println("⚠️ No staff found for DealerID=" + dealerID);
+                    return null;
+                }
+            }
+
+        } catch (SQLException e) {
+            System.out.println("❌ Error getting staff for DealerID=" + dealerID);
+            e.printStackTrace();
+            return null;
+        }
+    }
 }

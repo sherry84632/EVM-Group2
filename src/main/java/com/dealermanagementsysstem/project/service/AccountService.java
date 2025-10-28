@@ -21,7 +21,7 @@ public class AccountService {
     public DTOAccount authenticateUser(String email, String password) {
         DTOAccount account = daoAccount.findAccountByEmail(email);
         
-        if (account == null || !account.isStatus()) {
+        if (account == null || !account.isActive()) {
             return null;
         }
 

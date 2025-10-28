@@ -1,27 +1,50 @@
 package com.dealermanagementsysstem.project.Model;
 
+import jakarta.persistence.*;
 import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+@Entity
+@Table(name = "Customer")
 public class DTOCustomer {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int customerID;
+
+    @ManyToOne
+    @JoinColumn(name = "DealerID", referencedColumnName = "DealerID")
+    private DTODealer dealer;
+
+    @Column(name = "FullName")
     private String fullName;
+
+    @Column(name = "Phone")
     private String phone;
+
+    @Column(name = "Email")
     private String email;
+
+    @Column(name = "Address")
     private String address;
 
-    @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    @Column(name = "CreatedAt")
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createdAt;
+    
+    @Column(name = "UpdatedAt")
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime updatedAt;
 
+    @Column(name = "BirthDate")
     @DateTimeFormat(pattern = "yyyy-MM-dd")
     private LocalDate birthDate;
 
+    @Column(name = "Note")
     private String note;
 
-    @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm")
-    private LocalDateTime testDriveSchedule;
-
+    @Column(name = "VehicleInterest")
     private String vehicleInterest;
 
     // === GETTER / SETTER ===
@@ -43,6 +66,9 @@ public class DTOCustomer {
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 
     public LocalDate getBirthDate() { return birthDate; }
     public void setBirthDate(LocalDate birthDate) { this.birthDate = birthDate; }
@@ -50,9 +76,9 @@ public class DTOCustomer {
     public String getNote() { return note; }
     public void setNote(String note) { this.note = note; }
 
-    public LocalDateTime getTestDriveSchedule() { return testDriveSchedule; }
-    public void setTestDriveSchedule(LocalDateTime testDriveSchedule) { this.testDriveSchedule = testDriveSchedule; }
-
     public String getVehicleInterest() { return vehicleInterest; }
     public void setVehicleInterest(String vehicleInterest) { this.vehicleInterest = vehicleInterest; }
+
+    public DTODealer getDealer() { return dealer; }
+    public void setDealer(DTODealer dealer) { this.dealer = dealer; }
 }

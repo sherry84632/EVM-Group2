@@ -1,28 +1,58 @@
 package com.dealermanagementsysstem.project.Model;
 
+import jakarta.persistence.*;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Date;
 
+@Entity
+@Table(name = "DiscountPolicy")
 public class DTODiscountPolicy {
+    
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "PolicyID")
     private int policyID;
-    private int dealerID;
+    
+    @ManyToOne
+    @JoinColumn(name = "DealerID", referencedColumnName = "DealerID")
+    private DTODealer dealer;
+    
+    @Column(name = "PolicyName")
     private String policyName;
+    
+    @Column(name = "Description")
     private String description;
-    private double hangPercent;
-    private double dailyPercent;
+    
+    @Column(name = "HangPercent")
+    private BigDecimal hangPercent;
+    
+    @Column(name = "DailyPercent")
+    private BigDecimal dailyPercent;
+    
+    @Column(name = "StartDate")
     private LocalDate startDate;
+    
+    @Column(name = "EndDate")
     private LocalDate endDate;
-    private String status; // Active / Expired
+    
+    @Column(name = "Status")
+    @Enumerated(EnumType.STRING)
+    private DiscountPolicyStatus status;
+    
+    @Column(name = "CreatedAt")
     private Date creationDate;
+    
+    @Column(name = "LevelID")
     private int levelID;
-    // Thêm thuộc tính tùy chọn dùng khi liên kết đơn hàng
-    private int appliedOrderDetailID; // nếu có áp dụng vào SaleOrderDetail
 
     public DTODiscountPolicy() {}
 
-    public DTODiscountPolicy(int policyID, int dealerID, String policyName, String description, double hangPercent, double dailyPercent, LocalDate startDate, LocalDate endDate, String status, Date creationDate, int levelID, int appliedOrderDetailID) {
+    public DTODiscountPolicy(int policyID, DTODealer dealer, String policyName, String description, 
+                              BigDecimal hangPercent, BigDecimal dailyPercent, LocalDate startDate, 
+                              LocalDate endDate, DiscountPolicyStatus status, Date creationDate, int levelID) {
         this.policyID = policyID;
-        this.dealerID = dealerID;
+        this.dealer = dealer;
         this.policyName = policyName;
         this.description = description;
         this.hangPercent = hangPercent;
@@ -32,7 +62,6 @@ public class DTODiscountPolicy {
         this.status = status;
         this.creationDate = creationDate;
         this.levelID = levelID;
-        this.appliedOrderDetailID = appliedOrderDetailID;
     }
 
     public Date getCreationDate() {
@@ -55,8 +84,8 @@ public class DTODiscountPolicy {
     public int getPolicyID() { return policyID; }
     public void setPolicyID(int policyID) { this.policyID = policyID; }
 
-    public int getDealerID() { return dealerID; }
-    public void setDealerID(int dealerID) { this.dealerID = dealerID; }
+    public DTODealer getDealer() { return dealer; }
+    public void setDealer(DTODealer dealer) { this.dealer = dealer; }
 
     public String getPolicyName() { return policyName; }
     public void setPolicyName(String policyName) { this.policyName = policyName; }
@@ -64,11 +93,11 @@ public class DTODiscountPolicy {
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
 
-    public double getHangPercent() { return hangPercent; }
-    public void setHangPercent(double hangPercent) { this.hangPercent = hangPercent; }
+    public BigDecimal getHangPercent() { return hangPercent; }
+    public void setHangPercent(BigDecimal hangPercent) { this.hangPercent = hangPercent; }
 
-    public double getDailyPercent() { return dailyPercent; }
-    public void setDailyPercent(double dailyPercent) { this.dailyPercent = dailyPercent; }
+    public BigDecimal getDailyPercent() { return dailyPercent; }
+    public void setDailyPercent(BigDecimal dailyPercent) { this.dailyPercent = dailyPercent; }
 
     public LocalDate getStartDate() { return startDate; }
     public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
@@ -76,9 +105,7 @@ public class DTODiscountPolicy {
     public LocalDate getEndDate() { return endDate; }
     public void setEndDate(LocalDate endDate) { this.endDate = endDate; }
 
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
+    public DiscountPolicyStatus getStatus() { return status; }
+    public void setStatus(DiscountPolicyStatus status) { this.status = status; }
 
-    public int getAppliedOrderDetailID() { return appliedOrderDetailID; }
-    public void setAppliedOrderDetailID(int appliedOrderDetailID) { this.appliedOrderDetailID = appliedOrderDetailID; }
 }

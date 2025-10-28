@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 
 <head>
     <meta charset="UTF-8">
@@ -12,44 +12,7 @@
           integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw=="
           crossorigin="anonymous" referrerpolicy="no-referrer"/>
     <link rel="stylesheet" href="/css/inentoryScrollBox.css">
-    
-    <style>
-        .breadcrumb {
-            background: rgba(255, 255, 255, 0.9);
-            border-radius: 12px;
-            padding: 12px 20px;
-            margin-bottom: 24px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-            border: 1px solid rgba(0, 0, 0, 0.05);
-        }
-
-        .breadcrumb-item {
-            font-size: 14px;
-            font-weight: 500;
-        }
-
-        .breadcrumb-item a {
-            color: #6c757d;
-            text-decoration: none;
-            transition: color 0.2s ease;
-        }
-
-        .breadcrumb-item a:hover {
-            color: #007bff;
-        }
-
-        .breadcrumb-item.active {
-            color: #495057;
-            font-weight: 600;
-        }
-
-        .breadcrumb-item + .breadcrumb-item::before {
-            content: "›";
-            color: #adb5bd;
-            font-weight: bold;
-            margin: 0 8px;
-        }
-    </style>
+    <link rel="stylesheet" href="/css/breadScrumbNav.css">
 </head>
 
 <body class="bg-gradient2-custom" style="overflow: hidden;">
@@ -60,7 +23,7 @@
 
 <div class="d-flex">
 
-    <div th:replace="mainPage/navBarFragment :: navBar"></div>
+    <div th:replace="~{mainPage/navBarFragment :: navBar}"></div>
 
     <div class="mainContent flex-grow-1 p-3" style="overflow: hidden">
 
@@ -81,10 +44,6 @@
         </nav>
 
         <div class="d-flex wrap">
-
-            <span>
-                <h1>Vehicle List</h1>
-            </span>
 
             <form action="/searchVehicleListController" method="get">
                 <input name="keyword"
@@ -115,40 +74,46 @@
 
                     <!-- Item -->
                     <div th:each="vehicle : ${vehicles}">
-
-                        <a href="" style="text-decoration: none;" th:href="@{/evm/vehicle/detail/{vin}(vin=${vehicle.VIN})}">
-                            <button class="item-button" >
+                        <a th:href="@{/evm/vehicle/detail/{id}(id=${vehicle.vehicleID})}" style="text-decoration: none;">
+                            <div class="item-button">
                                 <div class="image-placeholder">
-                                    <img th:if="${vehicle.model.modelImage != null}"
-                                         th:src="@{/evm/vehicle/showImage/{vin}(vin=${vehicle.VIN})}"
+                                    <!-- Hiển thị ảnh từ database nếu có -->
+                                    <img th:if="${vehicle.version != null and vehicle.version.model != null and vehicle.version.model.modelID != null}"
+                                         th:src="@{/evm/vehicle/modelImage/{modelId}(modelId=${vehicle.version.model.modelID})}"
                                          alt="Model Image"
-                                         class="vehicle-image">
-                                    <span th:if="${vehicle.model.modelImage == null}">🚗</span>
+                                         class="vehicle-image"
+                                         style="object-fit: cover; width: 100%; height: 100%;"
+                                         onload="this.nextElementSibling.style.display='none';"
+                                         onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"/>
+                                    <!-- Icon placeholder chỉ hiển thị khi không có ảnh -->
+                                    <span style="font-size: 48px;">🚗</span>
                                 </div>
                                 <div class="item-info">
-                                    <div class="model-name"> <span th:text="${vehicle.model.modelName}"></span> </div>
+                                    <div class="model-name">
+                                        <span th:text="${vehicle.model != null ? vehicle.model.modelName : 'N/A'}">Model Name</span>
+                                    </div>
                                     <div class="info-row">
                                         <div class="info-item">
                                             <span class="info-label">Brand:</span>
-                                            <span class="info-value"><span th:text="${vehicle.model.brand}"></span></span>
+                                            <span class="info-value" th:text="${vehicle.model != null ? vehicle.model.brand : 'N/A'}">Brand</span>
                                         </div>
                                         <div class="info-item">
                                             <span class="info-label">Year:</span>
-                                            <span class="info-value"><span th:text="${vehicle.model.year}"></span></span>
+                                            <span class="info-value" th:text="${vehicle.model != null ? vehicle.model.year : 'N/A'}">Year</span>
                                         </div>
                                     </div>
                                     <div class="info-row">
                                         <div class="info-item">
                                             <span class="info-label">Version:</span>
-                                            <span class="info-value"><span th:text="${vehicle.version.versionName}"></span></span>
+                                            <span class="info-value" th:text="${vehicle.version != null ? vehicle.version.versionName : 'N/A'}">Version</span>
                                         </div>
                                         <div class="info-item">
-                                            <span class="info-label">Engine:</span>
-                                            <span class="info-value"><span th:text="${vehicle.version.engine}"></span></span>
+                                            <span class="info-label">Status:</span>
+                                            <span class="info-value" th:text="${vehicle.status != null ? vehicle.status : 'N/A'}">Status</span>
                                         </div>
                                     </div>
                                 </div>
-                            </button>
+                            </div>
                         </a>
 
                     </div>
