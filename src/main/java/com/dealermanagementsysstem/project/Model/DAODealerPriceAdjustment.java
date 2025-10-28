@@ -40,10 +40,18 @@ public class DAODealerPriceAdjustment {
             ResultSet rs = ps.executeQuery();
 
             while (rs.next()) {
+                // Create Dealer object
+                DTODealer dealer = new DTODealer();
+                dealer.setDealerID(rs.getInt("DealerID"));
+
+                // Create VehicleModel object
+                DTOVehicleModel vehicleModel = new DTOVehicleModel();
+                vehicleModel.setModelID(rs.getInt("ModelID"));
+
                 DTODealerPriceAdjustment dto = new DTODealerPriceAdjustment(
                         rs.getInt("AdjustmentID"),
-                        rs.getObject("DealerID",DTODealer.class),
-                        rs.getObject("ModelID",DTOVehicleModel.class),
+                        dealer,
+                        vehicleModel,
                         rs.getObject("DiscountAmount", Double.class),
                         rs.getObject("DiscountPercent", Double.class),
                         rs.getDate("StartDate").toLocalDate(),
@@ -70,10 +78,18 @@ public class DAODealerPriceAdjustment {
             ResultSet rs = ps.executeQuery();
 
             while (rs.next()) {
+                // Create Dealer object
+                DTODealer dealer = new DTODealer();
+                dealer.setDealerID(rs.getInt("DealerID"));
+
+                // Create VehicleModel object
+                DTOVehicleModel vehicleModel = new DTOVehicleModel();
+                vehicleModel.setModelID(rs.getInt("ModelID"));
+
                 DTODealerPriceAdjustment dto = new DTODealerPriceAdjustment(
                         rs.getInt("AdjustmentID"),
-                        rs.getObject("DealerID",DTODealer.class),
-                        rs.getObject("ModelID",DTOVehicleModel.class),
+                        dealer,
+                        vehicleModel,
                         rs.getObject("DiscountAmount", Double.class),
                         rs.getObject("DiscountPercent", Double.class),
                         rs.getDate("StartDate").toLocalDate(),
