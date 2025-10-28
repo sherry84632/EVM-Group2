@@ -53,6 +53,9 @@ public class DTOPurchaseOrder {
     @Transient
     private String approvedByStaffName;
 
+    @Transient
+    private Integer totalQuantity; // computed sum of detail quantities
+
     public DTOPurchaseOrder() {}
 
     public DTOPurchaseOrder(int purchaseOrderId, DTODealer dealer, DTODealerStaff staff, 
@@ -170,6 +173,9 @@ public class DTOPurchaseOrder {
     public void setApprovedByStaffName(String approvedByStaffName) {
         this.approvedByStaffName = approvedByStaffName;
     }
+
+    public Integer getTotalQuantity() { return totalQuantity; }
+    public void setTotalQuantity(Integer totalQuantity) { this.totalQuantity = totalQuantity; }
 
     @Override
     public String toString() {
