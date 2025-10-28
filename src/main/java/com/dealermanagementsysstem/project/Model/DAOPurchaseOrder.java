@@ -70,10 +70,13 @@ public class DAOPurchaseOrder {
 
         String sqlDetail = """
                 SELECT pod.PODetailID, pod.PurchaseOrderID, pod.ColorID, pod.VersionID, pod.UnitPrice, pod.Quantity, pod.Subtotal,
-                       vc.ColorID, vc.ColorName, vv.VersionID, vv.VersionName
+                       vc.ColorID, vc.ColorName, 
+                       vv.VersionID, vv.VersionName, vv.ModelID,
+                       vm.ModelID, vm.ModelName
                 FROM PurchaseOrderDetail pod
                 LEFT JOIN VehicleColor vc ON pod.ColorID = vc.ColorID
                 LEFT JOIN VehicleVersion vv ON pod.VersionID = vv.VersionID
+                LEFT JOIN VehicleModel vm ON vv.ModelID = vm.ModelID
                 WHERE pod.PurchaseOrderID = ?
                 """;
 
@@ -123,11 +126,19 @@ public class DAOPurchaseOrder {
                                     d.setColor(color);
                                 }
                                 
-                                // Set version relationship if available
+                                // Set version relationship with model if available
                                 if (drs.getString("VersionName") != null) {
+                                    // Create VehicleModel first
+                                    DTOVehicleModel model = new DTOVehicleModel();
+                                    model.setModelID(drs.getInt("ModelID"));
+                                    model.setModelName(drs.getString("ModelName"));
+
+                                    // Create VehicleVersion with model
                                     DTOVehicleVersion version = new DTOVehicleVersion();
                                     version.setVersionID(drs.getInt("VersionID"));
                                     version.setVersionName(drs.getString("VersionName"));
+                                    version.setModel(model);
+
                                     d.setVersion(version);
                                 }
                                 
