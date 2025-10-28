@@ -263,7 +263,19 @@
 
 .search-vehicle-list-input-control {
     width: 500px !important;
-    margin-left: 125px !important;
+    margin-left: 0px !important;
+}
+
+.create-vehicle-form-container {
+    display: inline-flex;
+    background-color: white;
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    padding: 20px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    width: auto; /* optional: fix width for neat layout */
+    height: auto;
 }
 
 .create-vehicle-form-input {

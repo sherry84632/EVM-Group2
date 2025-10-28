@@ -12,7 +12,44 @@
           integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw=="
           crossorigin="anonymous" referrerpolicy="no-referrer"/>
     <link rel="stylesheet" href="/css/inentoryScrollBox.css">
-    <link rel="stylesheet" href="/css/breadScrumbNav.css">
+    
+    <style>
+        .breadcrumb {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            padding: 12px 20px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .breadcrumb-item {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .breadcrumb-item a {
+            color: #6c757d;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .breadcrumb-item a:hover {
+            color: #007bff;
+        }
+
+        .breadcrumb-item.active {
+            color: #495057;
+            font-weight: 600;
+        }
+
+        .breadcrumb-item + .breadcrumb-item::before {
+            content: "›";
+            color: #adb5bd;
+            font-weight: bold;
+            margin: 0 8px;
+        }
+    </style>
 </head>
 
 <body class="bg-gradient2-custom" style="overflow: hidden;">
@@ -45,25 +82,19 @@
 
         <div class="d-flex wrap">
 
-            <form action="/searchVehicleListController" method="get">
+            <span>
+                <h1>Customer List</h1>
+            </span>
+
+            <form action="/customer/search" method="get">
                 <input name="keyword"
                        type="text"
                        class="search-vehicle-list-input-control search-vehicle-list-input mb-1"
-                       placeholder="Search by model name"
+                       placeholder="Search by customer name"
                        th:value="${keyword}"
                         style="margin-top: 12px;">
                 <button type="submit" class="btn btn-dark rounded-pill">Search</button>
             </form>
-
-            <div th:if="${actionRole == 'EVM'}">
-                <a href="/evmCreateANewVehicleToList" style="text-decoration: none">
-                    <button class="createNewVehicleButton">
-                    <span>
-                        Create new vehicle
-                    </span>
-                    </button>
-                </a>
-            </div>
 
         </div>
 
@@ -73,43 +104,30 @@
                 <div class="items-container">
 
                     <!-- Item -->
-                    <div th:each="vehicle : ${vehicles}">
-                        <a th:href="@{/evm/vehicle/detail/{id}(id=${vehicle.vehicleID})}" style="text-decoration: none;">
+                    <div th:each="customer : ${customers}">
+                        <a th:href="@{/customer/detail/{id}(id=${customer.customerID})}" style="text-decoration: none">
                             <div class="item-button">
                                 <div class="image-placeholder">
-                                    <!-- Hiển thị ảnh từ database nếu có -->
-                                    <img th:if="${vehicle.version != null and vehicle.version.model != null and vehicle.version.model.modelID != null}"
-                                         th:src="@{/evm/vehicle/modelImage/{modelId}(modelId=${vehicle.version.model.modelID})}"
-                                         alt="Model Image"
-                                         class="vehicle-image"
-                                         style="object-fit: cover; width: 100%; height: 100%;"
-                                         onload="this.nextElementSibling.style.display='none';"
-                                         onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"/>
-                                    <!-- Icon placeholder chỉ hiển thị khi không có ảnh -->
-                                    <span style="font-size: 48px;">🚗</span>
+                                    <i class="fa-solid fa-address-card"></i>
                                 </div>
                                 <div class="item-info">
                                     <div class="model-name">
-                                        <span th:text="${vehicle.model != null ? vehicle.model.modelName : 'N/A'}">Model Name</span>
+                                        <span th:text="${customer.fullName}"></span>
                                     </div>
                                     <div class="info-row">
                                         <div class="info-item">
-                                            <span class="info-label">Brand:</span>
-                                            <span class="info-value" th:text="${vehicle.model != null ? vehicle.model.brand : 'N/A'}">Brand</span>
+                                            <span class="info-label">Email:</span>
+                                            <span class="info-value" th:text="${customer.email}"></span>
                                         </div>
                                         <div class="info-item">
-                                            <span class="info-label">Year:</span>
-                                            <span class="info-value" th:text="${vehicle.model != null ? vehicle.model.year : 'N/A'}">Year</span>
+                                            <span class="info-label">Phone:</span>
+                                            <span class="info-value" th:text="${customer.phone}"></span>
                                         </div>
                                     </div>
                                     <div class="info-row">
                                         <div class="info-item">
-                                            <span class="info-label">Version:</span>
-                                            <span class="info-value" th:text="${vehicle.version != null ? vehicle.version.versionName : 'N/A'}">Version</span>
-                                        </div>
-                                        <div class="info-item">
-                                            <span class="info-label">Status:</span>
-                                            <span class="info-value" th:text="${vehicle.status != null ? vehicle.status : 'N/A'}">Status</span>
+                                            <span class="info-label">Date of birth:</span>
+                                            <span class="info-value" th:text="${customer.birthDate}"></span>
                                         </div>
                                     </div>
                                 </div>
