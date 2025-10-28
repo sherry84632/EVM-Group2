@@ -16,10 +16,12 @@ public class DAOPurchaseOrder {
         List<DTOPurchaseOrder> list = new ArrayList<>();
         String sql = """
                 SELECT po.PurchaseOrderID, po.DealerID, po.StaffID, po.CreatedAt, po.Status, po.TotalAmount, po.EvmID,
-                       d.DealerID, d.DealerName, d.LevelID,
+                       d.DealerID, d.DealerName, d.LevelID, d.Phone AS DealerPhone, d.Address AS DealerAddress, d.Email AS DealerEmail,
                        dl.LevelName,
-                       ds.StaffID, ds.FullName AS StaffName,
-                       promo.DiscountPercent AS PolicyDiscountPercent, promo.PromotionName AS PolicyName
+                       ds.StaffID, ds.FullName AS StaffName, ds.Position AS StaffPosition,
+                       adj.DiscountPercent AS AdjustmentDiscountPercent, adj.PromotionName AS AdjustmentPromotionName,
+                       pol.PolicyName, pol.HangPercent, pol.DailyPercent,
+                       dly.DeliveryDate AS LatestDeliveryDate, dly.DeliveryStatus AS LatestDeliveryStatus
                 FROM PurchaseOrder po
                 LEFT JOIN Dealer d ON po.DealerID = d.DealerID
                 LEFT JOIN DealerStaff ds ON po.StaffID = ds.StaffID
@@ -31,7 +33,19 @@ public class DAOPurchaseOrder {
                      AND p.StartDate <= GETDATE()
                      AND (p.EndDate IS NULL OR p.EndDate >= GETDATE())
                    ORDER BY p.StartDate DESC
-                ) promo
+                ) adj
+                OUTER APPLY (
+                   SELECT TOP 1 PolicyName, HangPercent, DailyPercent
+                   FROM DiscountPolicy dp
+                   WHERE dp.DealerID = d.DealerID
+                   ORDER BY dp.CreatedAt DESC
+                ) pol
+                OUTER APPLY (
+                   SELECT TOP 1 DeliveryDate, DeliveryStatus
+                   FROM Delivery dv
+                   WHERE dv.PurchaseOrderID = po.PurchaseOrderID
+                   ORDER BY dv.DeliveryID DESC
+                ) dly
                 ORDER BY po.PurchaseOrderID DESC
                 """;
 
@@ -43,44 +57,41 @@ public class DAOPurchaseOrder {
                 DTOPurchaseOrder dto = new DTOPurchaseOrder();
                 dto.setPurchaseOrderId(rs.getInt("PurchaseOrderID"));
                 dto.setCreatedAt(rs.getTimestamp("CreatedAt"));
-                try {
-                    dto.setStatus(PurchaseOrderStatus.valueOf(rs.getString("Status").toUpperCase()));
-                } catch (IllegalArgumentException ex) {
-                    // Fallback to REQUESTED if invalid status string in DB
-                    dto.setStatus(PurchaseOrderStatus.REQUESTED);
-                }
+                try { dto.setStatus(PurchaseOrderStatus.valueOf(rs.getString("Status").toUpperCase())); } catch (IllegalArgumentException ex) { dto.setStatus(PurchaseOrderStatus.REQUESTED); }
                 dto.setTotalAmount(rs.getBigDecimal("TotalAmount"));
                 dto.setEvmID(rs.getInt("EvmID"));
-
-                // Dealer info
                 DTODealer dealer = new DTODealer();
                 dealer.setDealerID(rs.getInt("DealerID"));
                 dealer.setDealerName(rs.getString("DealerName"));
+                dealer.setPhone(rs.getString("DealerPhone"));
+                dealer.setAddress(rs.getString("DealerAddress"));
+                dealer.setEmail(rs.getString("DealerEmail"));
                 dto.setDealer(dealer);
                 dto.setDealerName(dealer.getDealerName());
-                dto.setDealerLevelName(rs.getString("LevelName"));
-
-                // Staff info
+                String levelName = rs.getString("LevelName");
+                dto.setDealerLevelName(levelName != null ? levelName : ("Level " + rs.getInt("LevelID"))); // fallback
                 DTODealerStaff staff = new DTODealerStaff();
                 staff.setStaffID(rs.getInt("StaffID"));
                 staff.setFullName(rs.getString("StaffName"));
+                staff.setPosition(rs.getString("StaffPosition"));
                 dto.setStaff(staff);
-
-                // Promotion / Policy info (from DealerPriceAdjustment as requested)
+                // Policy from DiscountPolicy
                 dto.setPolicyName(rs.getString("PolicyName"));
-                dto.setPolicyDiscountPercent(rs.getObject("PolicyDiscountPercent", Double.class));
-
-                // Approved by (simple logic: if status APPROVED show staff name)
-                if (dto.getStatus() == PurchaseOrderStatus.APPROVED) {
-                    dto.setApprovedByStaffName(staff.getFullName());
-                }
-
+                // Use HangPercent if not null else DailyPercent else null for discount percent
+                Double policyPercent = null;
+                if (rs.getBigDecimal("HangPercent") != null) policyPercent = rs.getBigDecimal("HangPercent").doubleValue();
+                else if (rs.getBigDecimal("DailyPercent") != null) policyPercent = rs.getBigDecimal("DailyPercent").doubleValue();
+                dto.setPolicyDiscountPercent(policyPercent);
+                if (dto.getStatus() == PurchaseOrderStatus.APPROVED) dto.setApprovedByStaffName(staff.getFullName());
+                // hydrate delivery summary
+                Timestamp deliveryDate = rs.getTimestamp("LatestDeliveryDate");
+                if (deliveryDate != null) dto.setPlannedDeliveryDate(deliveryDate);
+                String delStatus = rs.getString("LatestDeliveryStatus");
+                if (delStatus != null) dto.setShippingStatus(delStatus);
                 list.add(dto);
             }
 
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        } catch (SQLException e) { e.printStackTrace(); }
         return list;
     }
 
@@ -91,7 +102,9 @@ public class DAOPurchaseOrder {
                        d.DealerID, d.DealerName, d.Address AS DealerAddress, d.Phone AS DealerPhone, d.Email AS DealerEmail, d.LevelID,
                        dl.LevelName,
                        ds.StaffID, ds.FullName AS StaffName, ds.Position AS StaffPosition,
-                       promo.DiscountPercent AS PolicyDiscountPercent, promo.PromotionName AS PolicyName
+                       adj.DiscountPercent AS AdjustmentDiscountPercent, adj.PromotionName AS AdjustmentPromotionName,
+                       pol.PolicyName, pol.HangPercent, pol.DailyPercent,
+                       dly.DeliveryDate AS LatestDeliveryDate, dly.DeliveryStatus AS LatestDeliveryStatus
                 FROM PurchaseOrder po
                 LEFT JOIN Dealer d ON po.DealerID = d.DealerID
                 LEFT JOIN DealerStaff ds ON po.StaffID = ds.StaffID
@@ -103,7 +116,19 @@ public class DAOPurchaseOrder {
                      AND p.StartDate <= GETDATE()
                      AND (p.EndDate IS NULL OR p.EndDate >= GETDATE())
                    ORDER BY p.StartDate DESC
-                ) promo
+                ) adj
+                OUTER APPLY (
+                   SELECT TOP 1 PolicyName, HangPercent, DailyPercent
+                   FROM DiscountPolicy dp
+                   WHERE dp.DealerID = d.DealerID
+                   ORDER BY dp.CreatedAt DESC
+                ) pol
+                OUTER APPLY (
+                   SELECT TOP 1 DeliveryDate, DeliveryStatus
+                   FROM Delivery dv
+                   WHERE dv.PurchaseOrderID = po.PurchaseOrderID
+                   ORDER BY dv.DeliveryID DESC
+                ) dly
                 WHERE po.PurchaseOrderID = ?
                 """;
 
@@ -117,10 +142,10 @@ public class DAOPurchaseOrder {
                 LEFT JOIN VehicleVersion vv ON pod.VersionID = vv.VersionID
                 LEFT JOIN VehicleModel vm ON vv.ModelID = vm.ModelID
                 WHERE pod.PurchaseOrderID = ?
+                ORDER BY pod.PODetailID ASC
                 """;
 
-        try (Connection conn = DBUtils.getConnection();
-             PreparedStatement psOrder = conn.prepareStatement(sqlOrder)) {
+        try (Connection conn = DBUtils.getConnection(); PreparedStatement psOrder = conn.prepareStatement(sqlOrder)) {
 
             psOrder.setInt(1, id);
             try (ResultSet rs = psOrder.executeQuery()) {
@@ -128,11 +153,7 @@ public class DAOPurchaseOrder {
                     DTOPurchaseOrder dto = new DTOPurchaseOrder();
                     dto.setPurchaseOrderId(rs.getInt("PurchaseOrderID"));
                     dto.setCreatedAt(rs.getTimestamp("CreatedAt"));
-                    try {
-                        dto.setStatus(PurchaseOrderStatus.valueOf(rs.getString("Status").toUpperCase()));
-                    } catch (IllegalArgumentException ex) {
-                        dto.setStatus(PurchaseOrderStatus.REQUESTED);
-                    }
+                    try { dto.setStatus(PurchaseOrderStatus.valueOf(rs.getString("Status").toUpperCase())); } catch (IllegalArgumentException ex){ dto.setStatus(PurchaseOrderStatus.REQUESTED);}
                     dto.setTotalAmount(rs.getBigDecimal("TotalAmount"));
                     dto.setEvmID(rs.getInt("EvmID"));
 
@@ -145,7 +166,8 @@ public class DAOPurchaseOrder {
                     dealer.setEmail(rs.getString("DealerEmail"));
                     dto.setDealer(dealer);
                     dto.setDealerName(dealer.getDealerName());
-                    dto.setDealerLevelName(rs.getString("LevelName"));
+                    String levelName = rs.getString("LevelName");
+                    dto.setDealerLevelName(levelName != null ? levelName : ("Level " + rs.getInt("LevelID"))); // fallback
 
                     // Staff info
                     DTODealerStaff staff = new DTODealerStaff();
@@ -156,11 +178,12 @@ public class DAOPurchaseOrder {
 
                     // Promotion / Policy info
                     dto.setPolicyName(rs.getString("PolicyName"));
-                    dto.setPolicyDiscountPercent(rs.getObject("PolicyDiscountPercent", Double.class));
+                    Double policyPercent = null;
+                    if (rs.getBigDecimal("HangPercent") != null) policyPercent = rs.getBigDecimal("HangPercent").doubleValue();
+                    else if (rs.getBigDecimal("DailyPercent") != null) policyPercent = rs.getBigDecimal("DailyPercent").doubleValue();
+                    dto.setPolicyDiscountPercent(policyPercent);
 
-                    if (dto.getStatus() == PurchaseOrderStatus.APPROVED) {
-                        dto.setApprovedByStaffName(staff.getFullName());
-                    }
+                    if (dto.getStatus() == PurchaseOrderStatus.APPROVED) dto.setApprovedByStaffName(staff.getFullName());
 
                     // Details
                     try (PreparedStatement psDetail = conn.prepareStatement(sqlDetail)) {
@@ -202,16 +225,84 @@ public class DAOPurchaseOrder {
                                 details.add(d);
                             }
                             dto.setOrderDetails(details);
+                            // Set total quantity
+                            int totalQty = details.stream().mapToInt(DTOPurchaseOrderDetail::getQuantity).sum();
+                            dto.setTotalQuantity(totalQty);
+                            // After setting details and totalQuantity, set primary detail fields:
+                            if (!details.isEmpty()) {
+                                DTOPurchaseOrderDetail firstDetail = details.get(0);
+                                dto.setPrimaryModelName(firstDetail.getModelName() != null ? firstDetail.getModelName() : (firstDetail.getVersion()!=null && firstDetail.getVersion().getModel()!=null ? firstDetail.getVersion().getModel().getModelName() : null));
+                                dto.setPrimaryVersionName(firstDetail.getVersionName()!=null ? firstDetail.getVersionName() : (firstDetail.getVersion()!=null ? firstDetail.getVersion().getVersionName() : null));
+                                dto.setPrimaryColorName(firstDetail.getColorName()!=null ? firstDetail.getColorName() : (firstDetail.getColor()!=null ? firstDetail.getColor().getColorName() : null));
+                                dto.setPrimaryUnitPrice(firstDetail.getUnitPrice());
+                                dto.setPrimarySubtotal(firstDetail.getSubtotal());
+                            }
+                            // Sync totalAmount with sum of subtotals if present
+                            BigDecimal sumSubtotal = details.stream()
+                                    .map(DTOPurchaseOrderDetail::getSubtotal)
+                                    .filter(s -> s != null)
+                                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+                            if (sumSubtotal.compareTo(BigDecimal.ZERO) > 0 && dto.getTotalAmount() != null && dto.getTotalAmount().compareTo(sumSubtotal) != 0) {
+                                dto.setTotalAmount(sumSubtotal); // authoritative discounted total
+                            }
                         }
+                    }
+                    // hydrate delivery info
+                    dto.setPlannedDeliveryDate(rs.getTimestamp("LatestDeliveryDate"));
+                    dto.setShippingStatus(rs.getString("LatestDeliveryStatus"));
+                    if ("DELIVERED".equals(rs.getString("LatestDeliveryStatus"))) {
+                        dto.setActualDeliveryDate(rs.getTimestamp("LatestDeliveryDate"));
+                        if (dto.getStatus() != PurchaseOrderStatus.CANCELLED) dto.setStatus(PurchaseOrderStatus.DELIVERED);
                     }
                     return dto;
                 }
             }
 
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        } catch (SQLException e) { e.printStackTrace(); }
         return null;
+    }
+
+    private BigDecimal recalcUnitPrice(DTOPurchaseOrderDetail det) {
+        if (det.getVersion() == null || det.getVersion().getVersionID() == 0) return BigDecimal.ZERO;
+        String sql = """
+            SELECT vm.BasePrice, adj.DiscountPercent
+            FROM VehicleVersion vv
+            JOIN VehicleModel vm ON vv.ModelID = vm.ModelID
+            OUTER APPLY (
+                SELECT TOP 1 DiscountPercent
+                FROM DealerPriceAdjustment adj
+                WHERE adj.ModelID = vm.ModelID
+                  AND adj.StartDate <= GETDATE()
+                  AND (adj.EndDate IS NULL OR adj.EndDate >= GETDATE())
+                ORDER BY adj.StartDate DESC
+            ) adj
+            WHERE vv.VersionID = ?
+        """;
+        try (Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, det.getVersion().getVersionID());
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    BigDecimal base = rs.getBigDecimal("BasePrice");
+                    Double disc = rs.getObject("DiscountPercent", Double.class);
+                    if (base == null) return BigDecimal.ZERO;
+                    if (disc != null && disc > 0) {
+                        return base.subtract(base.multiply(BigDecimal.valueOf(disc / 100.0)));
+                    }
+                    return base;
+                }
+            }
+        } catch (SQLException e) { e.printStackTrace(); }
+        return BigDecimal.ZERO;
+    }
+
+    private void updateDetailPrice(int detailId, BigDecimal unitPrice, BigDecimal subtotal) {
+        String sql = "UPDATE PurchaseOrderDetail SET UnitPrice = ?, Subtotal = ? WHERE PODetailID = ?";
+        try (Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setBigDecimal(1, unitPrice);
+            ps.setBigDecimal(2, subtotal);
+            ps.setInt(3, detailId);
+            ps.executeUpdate();
+        } catch (SQLException e) { e.printStackTrace(); }
     }
 
     // 🔹 Cập nhật trạng thái đơn hàng

@@ -296,16 +296,18 @@ public class DAOVehicle {
      */
     public Integer getOrCreateModel(String modelName, String brand, String bodyType,
                                     int year, java.math.BigDecimal basePrice, String description) {
-        // Check if exists
         Integer modelID = getModelIdByName(modelName);
         if (modelID != null) {
+            // ensure EvmID=1
+            String check = "SELECT EvmID FROM VehicleModel WHERE ModelID=?";
+            try (Connection c=DBUtils.getConnection(); PreparedStatement ps=c.prepareStatement(check)) {
+                ps.setInt(1, modelID);
+                try(ResultSet rs=ps.executeQuery()){ if(rs.next()){ int evm=rs.getInt(1); if(evm==0){ try(PreparedStatement ups=c.prepareStatement("UPDATE VehicleModel SET EvmID=1 WHERE ModelID=?")){ ups.setInt(1, modelID); ups.executeUpdate(); log.info("Patched EvmID=1 for existing modelID={}", modelID);} } } }
+            } catch(SQLException ex){ log.warn("Could not patch EvmID for modelID={}", modelID, ex); }
             log.info("Model already exists: {} (ID={})", modelName, modelID);
             return modelID;
         }
-
-        // Create new
-        String sql = "INSERT INTO VehicleModel (ModelName, Brand, BodyType, Year, BasePrice, Description) " +
-                    "VALUES (?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO VehicleModel (ModelName, Brand, BodyType, Year, BasePrice, Description, EvmID) VALUES (?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, modelName);
@@ -314,13 +316,13 @@ public class DAOVehicle {
             ps.setInt(4, year);
             ps.setBigDecimal(5, basePrice);
             ps.setString(6, description);
-
+            ps.setInt(7, 1); // force EvmID = 1
             int rows = ps.executeUpdate();
             if (rows > 0) {
                 try (ResultSet rs = ps.getGeneratedKeys()) {
                     if (rs.next()) {
                         modelID = rs.getInt(1);
-                        log.info("Created new VehicleModel: {} (ID={})", modelName, modelID);
+                        log.info("Created new VehicleModel with EvmID=1: {} (ID={})", modelName, modelID);
                         return modelID;
                     }
                 }

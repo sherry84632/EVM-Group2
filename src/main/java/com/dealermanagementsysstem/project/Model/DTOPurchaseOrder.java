@@ -53,6 +53,21 @@ public class DTOPurchaseOrder {
     @Transient
     private String approvedByStaffName;
 
+    @Transient
+    private Integer totalQuantity; // computed sum of detail quantities
+
+    @Transient private Date plannedDeliveryDate;
+    @Transient private Date actualDeliveryDate;
+    @Transient private String deliveryMethod;
+    @Transient private String shippingStatus;
+    @Transient private String logisticsNotes;
+
+    @Transient private String primaryModelName;
+    @Transient private String primaryVersionName;
+    @Transient private String primaryColorName;
+    @Transient private java.math.BigDecimal primaryUnitPrice;
+    @Transient private java.math.BigDecimal primarySubtotal;
+
     public DTOPurchaseOrder() {}
 
     public DTOPurchaseOrder(int purchaseOrderId, DTODealer dealer, DTODealerStaff staff, 
@@ -170,6 +185,31 @@ public class DTOPurchaseOrder {
     public void setApprovedByStaffName(String approvedByStaffName) {
         this.approvedByStaffName = approvedByStaffName;
     }
+
+    public Integer getTotalQuantity() { return totalQuantity; }
+    public void setTotalQuantity(Integer totalQuantity) { this.totalQuantity = totalQuantity; }
+
+    public Date getPlannedDeliveryDate() { return plannedDeliveryDate; }
+    public void setPlannedDeliveryDate(Date plannedDeliveryDate) { this.plannedDeliveryDate = plannedDeliveryDate; }
+    public Date getActualDeliveryDate() { return actualDeliveryDate; }
+    public void setActualDeliveryDate(Date actualDeliveryDate) { this.actualDeliveryDate = actualDeliveryDate; }
+    public String getDeliveryMethod() { return deliveryMethod; }
+    public void setDeliveryMethod(String deliveryMethod) { this.deliveryMethod = deliveryMethod; }
+    public String getShippingStatus() { return shippingStatus; }
+    public void setShippingStatus(String shippingStatus) { this.shippingStatus = shippingStatus; }
+    public String getLogisticsNotes() { return logisticsNotes; }
+    public void setLogisticsNotes(String logisticsNotes) { this.logisticsNotes = logisticsNotes; }
+
+    public String getPrimaryModelName(){return primaryModelName;}
+    public void setPrimaryModelName(String s){this.primaryModelName=s;}
+    public String getPrimaryVersionName(){return primaryVersionName;}
+    public void setPrimaryVersionName(String s){this.primaryVersionName=s;}
+    public String getPrimaryColorName(){return primaryColorName;}
+    public void setPrimaryColorName(String s){this.primaryColorName=s;}
+    public java.math.BigDecimal getPrimaryUnitPrice(){return primaryUnitPrice;}
+    public void setPrimaryUnitPrice(java.math.BigDecimal p){this.primaryUnitPrice=p;}
+    public java.math.BigDecimal getPrimarySubtotal(){return primarySubtotal;}
+    public void setPrimarySubtotal(java.math.BigDecimal p){this.primarySubtotal=p;}
 
     @Override
     public String toString() {

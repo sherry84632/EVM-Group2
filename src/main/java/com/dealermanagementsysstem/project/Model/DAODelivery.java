@@ -118,4 +118,62 @@ public class DAODelivery {
         }
         return false;
     }
+
+    // Kiểm tra tồn tại Delivery theo PurchaseOrderID
+    public boolean existsDelivery(int purchaseOrderId) {
+        String sql = "SELECT 1 FROM Delivery WHERE PurchaseOrderID = ?";
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, purchaseOrderId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    // Lấy Delivery mới nhất theo PurchaseOrderID
+    public DTODelivery getLatestByPurchaseOrderId(int purchaseOrderId) {
+        String sql = "SELECT TOP 1 DeliveryID, PurchaseOrderID, DeliveryDate, DeliveryStatus " +
+                     "FROM Delivery WHERE PurchaseOrderID=? ORDER BY DeliveryID DESC";
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, purchaseOrderId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    DTODelivery d = new DTODelivery();
+                    d.setDeliveryID(rs.getInt("DeliveryID"));
+                    DTOPurchaseOrder po = new DTOPurchaseOrder();
+                    po.setPurchaseOrderId(rs.getInt("PurchaseOrderID"));
+                    d.setPurchaseOrder(po);
+                    d.setDeliveryDate(rs.getDate("DeliveryDate"));
+                    d.setDeliveryStatus(DeliveryStatus.valueOf(rs.getString("DeliveryStatus")));
+                    return d;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    // Cập nhật trạng thái và ngày giao hàng theo PurchaseOrderID
+    public boolean updateDeliveryStatusByPurchaseOrderId(int purchaseOrderId, DeliveryStatus status, java.util.Date date) {
+        String sql = "UPDATE Delivery SET DeliveryStatus = ?, DeliveryDate = ? WHERE PurchaseOrderID = ?";
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, status.toString());
+            if (date != null)
+                ps.setTimestamp(2, new java.sql.Timestamp(date.getTime()));
+            else
+                ps.setTimestamp(2, null);
+            ps.setInt(3, purchaseOrderId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
 }

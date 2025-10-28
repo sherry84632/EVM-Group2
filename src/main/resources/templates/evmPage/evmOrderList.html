@@ -267,39 +267,37 @@
                     <div class="col-6">
                         <p class="mb-2"><strong>Dealer:</strong></p>
                         <p class="text-muted mb-0" th:text="${order.dealerName ?: order.dealer?.dealerName ?: 'N/A'}">-</p>
+                        <p class="small text-muted" th:text="${order.dealerLevelName ?: 'No Level'}"></p>
                     </div>
                     <div class="col-6">
                         <p class="mb-2"><strong>Staff:</strong></p>
                         <p class="text-muted mb-0" th:text="${order.staff?.fullName ?: 'N/A'}">-</p>
+                        <p class="small text-muted" th:text="${order.staff?.position ?: ''}"></p>
                     </div>
                 </div>
-
+                <div class="mb-2">
+                    <p class="mb-1"><strong>Phone:</strong> <span class="text-muted" th:text="${order.dealer?.phone ?: 'N/A'}">-</span></p>
+                    <p class="mb-1"><strong>Address:</strong> <span class="text-muted" th:text="${order.dealer?.address ?: 'N/A'}">-</span></p>
+                </div>
                 <p class="mb-0"><strong>Created:</strong>
                     <span class="text-muted" th:text="${#dates.format(order.createdAt, 'dd/MM/yyyy HH:mm')}">-</span>
                 </p>
-
-                <!-- 🔹 View Details Button -->
+                <p class="mb-0" th:if="${order.policyName}"><strong>Policy:</strong> <span class="text-muted" th:text="${order.policyName}">-</span></p>
+                <p class="mb-0" th:if="${order.policyDiscountPercent != null}"><strong>Policy %:</strong> <span class="text-muted" th:text="${order.policyDiscountPercent + '%'}">-</span></p>
+                <!-- View Details Button -->
                 <div class="order-actions mt-3 text-center">
-                    <a th:href="@{'/evm/orders/detail/' + ${order.purchaseOrderId}}" 
-                       class="btn btn-outline-primary btn-sm me-2">
-                        <i class="fas fa-eye me-1"></i>
-                        View Details
+                    <a th:href="@{'/evm/orders/detail/' + ${order.purchaseOrderId}}" class="btn btn-outline-primary btn-sm me-2">
+                        <i class="fas fa-eye me-1"></i>View Details
                     </a>
                 </div>
-
-                <!-- 🔹 Nút hành động -->
-                <div class="order-actions mt-3 text-center"
-                     th:if="${order.status.name() == 'REQUESTED'}">
-
-                    <form th:action="@{'/evm/orders/process/' + ${order.purchaseOrderId}}"
-                          method="post" style="display:inline;">
+                <!-- Action Buttons (include PENDING) -->
+                <div class="order-actions mt-3 text-center" th:if="${order.status.name() == 'REQUESTED' or order.status.name() == 'PENDING'}">
+                    <form th:action="@{'/evm/orders/process/' + ${order.purchaseOrderId}}" method="post" style="display:inline;">
                         <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
                         <input type="hidden" name="actionType" value="Approve"/>
                         <button type="submit" class="btn-approve">Approve</button>
                     </form>
-
-                    <form th:action="@{'/evm/orders/process/' + ${order.purchaseOrderId}}"
-                          method="post" style="display:inline;">
+                    <form th:action="@{'/evm/orders/process/' + ${order.purchaseOrderId}}" method="post" style="display:inline;">
                         <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
                         <input type="hidden" name="actionType" value="Reject"/>
                         <button type="submit" class="btn-reject">Reject</button>

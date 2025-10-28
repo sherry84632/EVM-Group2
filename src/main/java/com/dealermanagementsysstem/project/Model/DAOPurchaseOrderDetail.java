@@ -18,7 +18,7 @@ public class DAOPurchaseOrderDetail {
         // If unitPrice passed is ZERO, auto-calculate from VehicleModel base price via VersionID + optional discount
         BigDecimal finalUnitPrice = unitPrice;
         if (finalUnitPrice == null || finalUnitPrice.compareTo(BigDecimal.ZERO) == 0) {
-            finalUnitPrice = getCalculatedUnitPrice(versionId);
+            finalUnitPrice = computeUnitPrice(versionId, null); // no dealer filter
         }
         String sql = "INSERT INTO PurchaseOrderDetail (PurchaseOrderID, ColorID, VersionID, Quantity, UnitPrice, Subtotal) VALUES (?, ?, ?, ?, ?, ?)";
         try (Connection conn = DBUtils.getConnection();
@@ -43,12 +43,19 @@ public class DAOPurchaseOrderDetail {
     public boolean insertOrderDetail(int purchaseOrderId, int modelId, int colorId, int quantity, String version) {
         // Convert version string to version ID (assuming version is the ID)
         int versionId = Integer.parseInt(version);
-        BigDecimal autoPrice = getCalculatedUnitPrice(versionId);
+        BigDecimal autoPrice = computeUnitPrice(versionId, null);
         return insertOrderDetail(purchaseOrderId, colorId, versionId, quantity, autoPrice);
     }
 
-    // Helper to compute unit price using VehicleModel base price and active DealerPriceAdjustment percent
-    private BigDecimal getCalculatedUnitPrice(int versionId) {
+    // Consistent insertion with dealer-specific discount
+    public boolean insertOrderDetailConsistent(int purchaseOrderId, int colorId, int versionId, int quantity, Integer dealerId) {
+        BigDecimal unit = computeUnitPrice(versionId, dealerId);
+        if (unit == null || unit.compareTo(BigDecimal.ZERO) == 0) unit = fetchBasePriceFromVersion(versionId);
+        return insertOrderDetail(purchaseOrderId, colorId, versionId, quantity, unit);
+    }
+
+    // Dealer-aware unit price (DealerPriceAdjustment filtered by DealerID if provided)
+    public BigDecimal computeUnitPrice(int versionId, Integer dealerId) {
         String sql = """
             SELECT vm.BasePrice,
                    pa.DiscountPercent
@@ -58,6 +65,7 @@ public class DAOPurchaseOrderDetail {
                 SELECT TOP 1 DiscountPercent
                 FROM DealerPriceAdjustment pa
                 WHERE pa.ModelID = vm.ModelID
+                  AND (? IS NULL OR pa.DealerID = ?)
                   AND pa.StartDate <= GETDATE()
                   AND (pa.EndDate IS NULL OR pa.EndDate >= GETDATE())
                 ORDER BY pa.StartDate DESC
@@ -66,7 +74,9 @@ public class DAOPurchaseOrderDetail {
         """;
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, versionId);
+            if (dealerId == null) { ps.setNull(1, java.sql.Types.INTEGER); ps.setNull(2, java.sql.Types.INTEGER); }
+            else { ps.setInt(1, dealerId); ps.setInt(2, dealerId); }
+            ps.setInt(3, versionId);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     BigDecimal base = rs.getBigDecimal("BasePrice");
@@ -84,4 +94,16 @@ public class DAOPurchaseOrderDetail {
         }
         return BigDecimal.ZERO;
     }
+
+    private BigDecimal fetchBasePriceFromVersion(int versionId) {
+        String sql = "SELECT vm.BasePrice FROM VehicleVersion vv JOIN VehicleModel vm ON vv.ModelID = vm.ModelID WHERE vv.VersionID = ?";
+        try (Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, versionId);
+            try (ResultSet rs = ps.executeQuery()) { if (rs.next()) return rs.getBigDecimal("BasePrice"); }
+        } catch (SQLException e) { e.printStackTrace(); }
+        return BigDecimal.ZERO;
+    }
+
+    // Optionally expose list retrieval if needed (placeholder)
+    public List<DTOPurchaseOrderDetail> placeholder() { return new ArrayList<>(); }
 }

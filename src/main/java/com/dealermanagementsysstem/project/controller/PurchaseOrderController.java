@@ -8,7 +8,6 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
-import java.sql.Connection;
 import java.sql.Timestamp;
 import java.util.List;
 
@@ -21,6 +20,9 @@ public class PurchaseOrderController {
 
     @Autowired
     private DAOPurchaseOrderDetail daoPurchaseOrderDetail;
+
+    @Autowired
+    private DAOVehicleVersionLookup daoVehicleVersionLookup; // new lookup DAO
 
     /**
      * 🔹 Trang danh sách đơn hàng
@@ -68,15 +70,18 @@ public class PurchaseOrderController {
      * 🔹 Khi chọn xe → mở form nhập chi tiết đơn hàng
      */
     @GetMapping("/create")
-    public String showCreateForm(
-            @RequestParam(required = false) Integer modelId,
-            @RequestParam(required = false) Integer colorId,
-            @RequestParam(required = false) String modelName,
-            Model model) {
+    public String showCreateForm(@RequestParam(required = false) Integer modelId,
+                                 @RequestParam(required = false) Integer colorId,
+                                 @RequestParam(required = false) String modelName,
+                                 Model model) {
 
         model.addAttribute("modelId", modelId);
         model.addAttribute("colorId", colorId);
         model.addAttribute("modelName", modelName);
+        if(modelId != null){
+            List<DTOVehicleVersion> versions = daoVehicleVersionLookup.getVersionsByModelId(modelId);
+            model.addAttribute("versions", versions);
+        }
         model.addAttribute("order", new DTOPurchaseOrder());
         return "dealerPage/createDealerOrderForm"; // form nhập số lượng + version
     }
@@ -85,90 +90,46 @@ public class PurchaseOrderController {
      * 🔹 Xử lý form tạo đơn hàng
      */
     @PostMapping("/create")
-    public String createOrder(
-            @RequestParam Integer modelId,
-            @RequestParam Integer colorId,
-            @RequestParam Integer quantity,
-            @RequestParam String version,
-            @RequestParam(required = false) String status,
-            Model model) {
+    public String createOrder(@RequestParam Integer modelId,
+                              @RequestParam Integer colorId,
+                              @RequestParam Integer quantity,
+                              @RequestParam String version,
+                              @RequestParam(required = false) String status,
+                              Model model) {
 
         try {
-            // Lấy email người đang đăng nhập (Spring Security)
-            org.springframework.security.core.Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            org.springframework.security.core.userdetails.User user =
-                    (org.springframework.security.core.userdetails.User) auth.getPrincipal();
+            var auth = SecurityContextHolder.getContext().getAuthentication();
+            var user = (org.springframework.security.core.userdetails.User) auth.getPrincipal();
             String email = user.getUsername();
-
-            // Lấy DealerID & StaffID dựa theo email đăng nhập
             int dealerId = daoPurchaseOrder.getDealerIdByEmail(email);
             int staffId = daoPurchaseOrder.getStaffIdByEmail(email);
-
             if (dealerId <= 0 || staffId <= 0) {
-                model.addAttribute("message", "❌ Không tìm thấy Dealer hoặc Staff tương ứng với tài khoản đăng nhập (" + email + ")");
+                model.addAttribute("message", "❌ Không tìm thấy Dealer hoặc Staff tương ứng (" + email + ")");
                 return "dealerPage/success";
             }
+            int versionId = Integer.parseInt(version.trim());
+            Integer realModelId = daoVehicleVersionLookup.getModelIdByVersionId(versionId);
+            if(realModelId != null) modelId = realModelId;
+            // Dealer-aware unit price
+            BigDecimal unitPrice = daoPurchaseOrderDetail.computeUnitPrice(versionId, dealerId);
+            if (unitPrice == null) unitPrice = BigDecimal.ZERO;
+            BigDecimal totalAmount = unitPrice.multiply(BigDecimal.valueOf(quantity));
 
-            //Tạo đơn hàng mới
             DTOPurchaseOrder order = new DTOPurchaseOrder();
-            
-            // Set dealer relationship
-            DTODealer dealer = new DTODealer();
-            dealer.setDealerID(dealerId);
-            order.setDealer(dealer);
-            
-            // Set staff relationship
-            DTODealerStaff staff = new DTODealerStaff();
-            staff.setStaffID(staffId);
-            order.setStaff(staff);
-            
+            DTODealer dealer = new DTODealer(); dealer.setDealerID(dealerId); order.setDealer(dealer);
+            DTODealerStaff staff = new DTODealerStaff(); staff.setStaffID(staffId); order.setStaff(staff);
             order.setStatus(PurchaseOrderStatus.valueOf(status != null ? status.toUpperCase() : "REQUESTED"));
             order.setCreatedAt(new Timestamp(System.currentTimeMillis()));
-            BigDecimal basePrice = daoPurchaseOrder.getBasePriceByModelId(modelId);
-
-// 🔹 Tính tổng tiền = giá gốc × số lượng
-            BigDecimal totalAmount = basePrice.multiply(BigDecimal.valueOf(quantity));
-
-// 🔹 Gán vào đơn hàng
             order.setTotalAmount(totalAmount);
-            order.setEvmID(1); // Default EVM ID
+            order.setEvmID(1);
 
-            // ✅ Ghi vào DB
             int newOrderId = daoPurchaseOrder.insertPurchaseOrder(order);
-
             if (newOrderId > 0) {
-                // Create purchase order detail with proper entity relationships
-                DTOPurchaseOrderDetail detail = new DTOPurchaseOrderDetail();
-                
-                // Set purchase order relationship
-                DTOPurchaseOrder purchaseOrder = new DTOPurchaseOrder();
-                purchaseOrder.setPurchaseOrderId(newOrderId);
-                detail.setPurchaseOrder(purchaseOrder);
-                
-                // Set color relationship
-                DTOVehicleColor color = new DTOVehicleColor();
-                color.setColorID(colorId);
-                detail.setColor(color);
-                
-                // Set version relationship
-                DTOVehicleVersion versionObj = new DTOVehicleVersion();
-                versionObj.setVersionID(Integer.parseInt(version)); // Assuming version is ID
-                detail.setVersion(versionObj);
-                
-                detail.setUnitPrice(java.math.BigDecimal.ZERO); // Will be set by business logic
-                detail.setQuantity(quantity);
-                detail.setSubtotal(java.math.BigDecimal.ZERO); // Will be calculated
-                
-                boolean added = daoPurchaseOrderDetail.insertOrderDetail(
-                        newOrderId, modelId, colorId, quantity, version
-                );
-                model.addAttribute("message", added
-                        ? " Đặt xe thành công!"
-                        : "⚠Đơn đã tạo nhưng chưa ghi chi tiết!");
+                boolean added = daoPurchaseOrderDetail.insertOrderDetailConsistent(newOrderId, colorId, versionId, quantity, dealerId);
+                model.addAttribute("message", added ? " ✅ Đặt xe thành công!" : "⚠ Chi tiết chưa ghi!");
             } else {
-                model.addAttribute("message", " Không thể tạo đơn hàng!");
+                model.addAttribute("message", " ❌ Không thể tạo đơn hàng!");
             }
-
         } catch (Exception e) {
             e.printStackTrace();
             model.addAttribute("message", " Lỗi hệ thống: " + e.getMessage());

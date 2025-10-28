@@ -21,8 +21,6 @@
                 <!-- Hidden fields -->
                 <input type="hidden" name="modelId" th:value="${modelId}">
                 <input type="hidden" name="colorId" th:value="${colorId}">
-                <input type="hidden" name="dealerId" value="9">
-                <input type="hidden" name="staffId" value="11">
                 <input type="hidden" name="status" value="Pending">
 
                 <div class="mb-3">
@@ -36,13 +34,10 @@
                 </div>
 
                 <div class="mb-3">
-                    <label for="version">Chọn phiên bản:</label>
+                    <label for="version" class="form-label fw-semibold">Chọn phiên bản:</label>
                     <select id="version" name="version" class="form-select" required>
-                        <option value="">-- Chọn phiên bản --</option>
-                        <option value="1">Standard</option>
-                        <option value="2">Premium</option>
-                        <option value="7">Luxury</option>
-                        <option value="8">Ultimate</option>
+                        <option value="" th:if="${versions == null or versions.isEmpty()}">-- Không có phiên bản --</option>
+                        <option th:each="v : ${versions}" th:value="${v.versionID}" th:text="${v.versionName}"></option>
                     </select>
                 </div>
 
