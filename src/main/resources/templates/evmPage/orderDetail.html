@@ -440,13 +440,13 @@
                             <span class="price-label">Total Quantity:</span>
                             <span class="price-value" th:text="${order.totalQuantity != null ? order.totalQuantity : 0}">0</span>
                         </div>
-                        <div class="price-row" th:if="${order.orderDetails != null and !order.orderDetails.isEmpty()}">
+                        <div class="price-row" th:if="${order.primaryUnitPrice != null}">
                             <span class="price-label">First Unit Price:</span>
-                            <span class="price-value" th:text="${#numbers.formatDecimal(order.orderDetails[0].unitPrice,0,'COMMA',0,'POINT') + ' VND'}">0 VND</span>
+                            <span class="price-value" th:text="${#numbers.formatDecimal(order.primaryUnitPrice,0,'COMMA',0,'POINT') + ' VND'}">0 VND</span>
                         </div>
-                        <div class="price-row" th:if="${order.orderDetails != null and !order.orderDetails.isEmpty()}">
+                        <div class="price-row" th:if="${order.primarySubtotal != null}">
                             <span class="price-label">First Subtotal:</span>
-                            <span class="price-value" th:text="${#numbers.formatDecimal(order.orderDetails[0].subtotal,0,'COMMA',0,'POINT') + ' VND'}">0 VND</span>
+                            <span class="price-value" th:text="${#numbers.formatDecimal(order.primarySubtotal,0,'COMMA',0,'POINT') + ' VND'}">0 VND</span>
                         </div>
                         <div class="price-row total-price" th:if="${order.totalAmount != null}">
                             <span class="price-label">Order Total Price:</span>

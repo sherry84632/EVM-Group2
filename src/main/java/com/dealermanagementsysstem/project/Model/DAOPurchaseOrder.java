@@ -142,6 +142,7 @@ public class DAOPurchaseOrder {
                 LEFT JOIN VehicleVersion vv ON pod.VersionID = vv.VersionID
                 LEFT JOIN VehicleModel vm ON vv.ModelID = vm.ModelID
                 WHERE pod.PurchaseOrderID = ?
+                ORDER BY pod.PODetailID ASC
                 """;
 
         try (Connection conn = DBUtils.getConnection(); PreparedStatement psOrder = conn.prepareStatement(sqlOrder)) {
@@ -223,27 +224,27 @@ public class DAOPurchaseOrder {
                                 }
                                 details.add(d);
                             }
-                            // Patch zero prices if necessary
-                            for (DTOPurchaseOrderDetail det : details) {
-                                if (det.getUnitPrice() == null || det.getUnitPrice().compareTo(BigDecimal.ZERO) == 0) {
-                                    BigDecimal recalced = recalcUnitPrice(det);
-                                    det.setUnitPrice(recalced);
-                                    det.setSubtotal(recalced.multiply(BigDecimal.valueOf(det.getQuantity())));
-                                    updateDetailPrice(det.getPoDetailId(), recalced, det.getSubtotal());
-                                }
-                            }
-                            // Recalculate order total if null or zero
-                            if ((dto.getTotalAmount() == null || dto.getTotalAmount().compareTo(BigDecimal.ZERO) == 0) && !details.isEmpty()) {
-                                BigDecimal total = details.stream()
-                                        .map(DTOPurchaseOrderDetail::getSubtotal)
-                                        .filter(s -> s != null)
-                                        .reduce(BigDecimal.ZERO, BigDecimal::add);
-                                dto.setTotalAmount(total);
-                            }
                             dto.setOrderDetails(details);
                             // Set total quantity
                             int totalQty = details.stream().mapToInt(DTOPurchaseOrderDetail::getQuantity).sum();
                             dto.setTotalQuantity(totalQty);
+                            // After setting details and totalQuantity, set primary detail fields:
+                            if (!details.isEmpty()) {
+                                DTOPurchaseOrderDetail firstDetail = details.get(0);
+                                dto.setPrimaryModelName(firstDetail.getModelName() != null ? firstDetail.getModelName() : (firstDetail.getVersion()!=null && firstDetail.getVersion().getModel()!=null ? firstDetail.getVersion().getModel().getModelName() : null));
+                                dto.setPrimaryVersionName(firstDetail.getVersionName()!=null ? firstDetail.getVersionName() : (firstDetail.getVersion()!=null ? firstDetail.getVersion().getVersionName() : null));
+                                dto.setPrimaryColorName(firstDetail.getColorName()!=null ? firstDetail.getColorName() : (firstDetail.getColor()!=null ? firstDetail.getColor().getColorName() : null));
+                                dto.setPrimaryUnitPrice(firstDetail.getUnitPrice());
+                                dto.setPrimarySubtotal(firstDetail.getSubtotal());
+                            }
+                            // Sync totalAmount with sum of subtotals if present
+                            BigDecimal sumSubtotal = details.stream()
+                                    .map(DTOPurchaseOrderDetail::getSubtotal)
+                                    .filter(s -> s != null)
+                                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+                            if (sumSubtotal.compareTo(BigDecimal.ZERO) > 0 && dto.getTotalAmount() != null && dto.getTotalAmount().compareTo(sumSubtotal) != 0) {
+                                dto.setTotalAmount(sumSubtotal); // authoritative discounted total
+                            }
                         }
                     }
                     // hydrate delivery info
