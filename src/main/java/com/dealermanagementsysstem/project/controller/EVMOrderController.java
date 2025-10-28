@@ -1,6 +1,7 @@
 package com.dealermanagementsysstem.project.controller;
 
 import com.dealermanagementsysstem.project.Model.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -12,11 +13,11 @@ import java.util.List;
 @RequestMapping("/evm/orders")
 public class EVMOrderController {
 
-    private final DAOPurchaseOrder purchaseOrderDAO = new DAOPurchaseOrder();
-    //private final DAOEVMOrderProcessing processDAO = new DAOEVMOrderProcessing();
+    @Autowired
+    private DAOPurchaseOrder purchaseOrderDAO; // Use Spring-managed bean with enriched logic
 
     // 🔹 Hiển thị toàn bộ danh sách đơn hàng (EVM xem)
-    @GetMapping("/evmOrderList")
+    @GetMapping("/list") // changed from /evmOrderList to /list under /evm/orders
     public String showAllOrders(Model model,
                                 @ModelAttribute("message") String message,
                                 @ModelAttribute("statusType") String statusType) {
@@ -29,11 +30,11 @@ public class EVMOrderController {
             model.addAttribute("statusType", statusType);
         }
 
-        return "evmPage/evmOrderList";
+        return "evmPage/evmOrderList"; // keep same template name
     }
 
     // 🔹 Hiển thị lịch sử đơn hàng (chỉ các đơn đã xử lý)
-    @GetMapping("/evmOrderHistory")
+    @GetMapping("/history")
     public String showOrderHistory(Model model,
                                    @RequestParam(required = false) String keyword,
                                    @ModelAttribute("message") String message,
@@ -77,7 +78,7 @@ public class EVMOrderController {
             model.addAttribute("order", order);
             return "evmPage/orderDetail";
         } else {
-            return "redirect:/evm/orders/evmOrderList?error=Order not found";
+            return "redirect:/evm/orders/list?error=Order not found";
         }
     }
 
@@ -100,7 +101,7 @@ public class EVMOrderController {
             System.out.println("❌ Invalid action type: " + actionType);
             redirectAttributes.addFlashAttribute("message", "❌ Invalid action!");
             redirectAttributes.addFlashAttribute("statusType", "error");
-            return "redirect:/evm/orders/evmOrderList";
+            return "redirect:/evm/orders/list";
         }
 
         // ✅ Lấy chi tiết đơn hàng TRƯỚC KHI update status
@@ -110,7 +111,7 @@ public class EVMOrderController {
             System.out.println("❌ Không tìm thấy đơn hàng với ID: " + id);
             redirectAttributes.addFlashAttribute("message", "❌ Order not found!");
             redirectAttributes.addFlashAttribute("statusType", "error");
-            return "redirect:/evm/orders/evmOrderList";
+            return "redirect:/evm/orders/list";
         }
 
         System.out.println("📦 Order found - DealerID: " + order.getDealer().getDealerID() + ", Status: " + order.getStatus());
@@ -155,8 +156,8 @@ public class EVMOrderController {
 
                     boolean added = inventoryDAO.addVehiclesToInventory(
                         order.getDealer().getDealerID(),
-                        detail.getVersion().getModel().getModelID(),
                         detail.getColor().getColorID(),
+                        detail.getVersion().getVersionID(),
                         detail.getQuantity()
                     );
 
@@ -178,6 +179,6 @@ public class EVMOrderController {
         redirectAttributes.addFlashAttribute("message", msg);
         redirectAttributes.addFlashAttribute("statusType", newStatus.name());
 
-        return "redirect:/evm/orders/evmOrderList";
+        return "redirect:/evm/orders/list";
     }
 }
