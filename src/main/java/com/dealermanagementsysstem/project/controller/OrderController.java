@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Controller
-@RequestMapping("/order")
+@RequestMapping({"/order","/saleorder"})
 public class OrderController {
 
     private final DAOSaleOrder dao = new DAOSaleOrder();
@@ -73,7 +73,7 @@ public class OrderController {
             @RequestParam("quantity") int quantity,
             @RequestParam("customerID") int customerID,
             @RequestParam("staffID") int staffID,
-            @RequestParam("vehicleId") Integer vehicleId,
+            @RequestParam(value = "vehicleId", required = false) Integer vehicleId,
             @RequestParam("quotationID") int quotationID,
             @RequestParam(value = "status", required = false, defaultValue = "Pending") String status,
             Model model
@@ -96,7 +96,7 @@ public class OrderController {
         DAOQuotation quotationDAO = new DAOQuotation();
         DTOQuotation quotation = quotationDAO.getQuotationById(quotationID);
         if (quotation == null || quotation.getStatus() != QuotationStatus.APPROVED) {
-            model.addAttribute("error", "Quotation không hợp lệ hoặc chưa được duyệt!");
+            model.addAttribute("error", "Quotation không hợp lệ hoặc chưa đư���c duyệt!");
             return "redirect:/quotation/list";
         }
 
@@ -152,6 +152,17 @@ public class OrderController {
         List<DTOSaleOrderDetail> details = new ArrayList<>();
         details.add(detail);
         order.setDetail(details);
+
+        // If vehicleId not provided attempt to derive from first quotation detail (placeholder logic)
+        if (vehicleId == null) {
+            if (quotation != null && quotation.getQuotationDetails()!=null && !quotation.getQuotationDetails().isEmpty()) {
+                // We don't have a concrete vehicle, create a synthetic negative id to satisfy FK if allowed
+                // Preferably you should map SaleOrderDetail to Version/Color instead of Vehicle when not in inventory yet
+                vehicleId = quotation.getQuotationDetails().get(0).getVersion()!=null ? quotation.getQuotationDetails().get(0).getVersion().getVersionID() : 0;
+            } else {
+                vehicleId = 0; // fallback
+            }
+        }
 
         // === Gọi DAO để insert ===
         boolean success = dao.createSaleOrder(order);
@@ -226,4 +237,3 @@ public class OrderController {
     }
 
 }
-

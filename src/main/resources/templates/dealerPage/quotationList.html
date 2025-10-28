@@ -332,6 +332,13 @@
                                     </div>
                                 </div>
                             </div>
+                            <div class="mb-2">
+                                <small class="text-muted">Discount: <span th:text="${quotation.effectiveDiscountPercent} + '%'">0%</span></small>
+                            </div>
+                            <div class="mb-3">
+                                <strong>Net Total:</strong>
+                                <span class="price-highlight" th:text="${'$' + #numbers.formatDecimal(quotation.netTotal,1,2)}">$0.00</span>
+                            </div>
                             <div class="action-buttons">
                                 <a th:href="@{/quotation/detail/{id}(id=${quotation.quotationID})}" class="btn btn-outline-secondary btn-action">
                                     <i class="fas fa-eye me-1"></i>Details

@@ -1,0 +1,113 @@
+/* Dealer Vehicle List Multi-Select Styling */
+
+:root {
+  --dv-bg: #f5f7fa;
+  --dv-accent: #2563eb;
+  --dv-accent-hover: #1d4ed8;
+  --dv-border: #e2e8f0;
+  --dv-card-bg: #ffffff;
+  --dv-card-hover: #f0f7ff;
+  --dv-danger: #dc2626;
+  --dv-success: #16a34a;
+  --dv-warning: #f59e0b;
+}
+
+.dealer-vehicle-page-wrapper {
+  background: var(--dv-bg);
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.dv-toolbar {
+  background: linear-gradient(135deg,#ffffff,#f4f8ff);
+  border: 1px solid var(--dv-border);
+  border-radius: 14px;
+  padding: 14px 18px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+  position: sticky;
+  top: 10px;
+  z-index: 10;
+}
+
+.dv-toolbar .form-label { font-weight: 600; font-size: .75rem; text-transform: uppercase; letter-spacing:.5px; color:#64748b; }
+
+.dv-btn-primary {
+  background: linear-gradient(135deg,var(--dv-accent),#3b82f6);
+  border: none;
+  color: #fff;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  box-shadow: 0 4px 14px rgba(37,99,235,.35);
+  transition: .2s ease;
+}
+.dv-btn-primary:hover { background: linear-gradient(135deg,var(--dv-accent-hover),#2563eb); transform: translateY(-2px); }
+.dv-btn-primary:active { transform: translateY(0); }
+
+.dv-selected-counter { font-size:.85rem; font-weight:600; color: var(--dv-accent); }
+
+.dv-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill,minmax(260px,1fr));
+  gap: 18px;
+  margin-top: 8px;
+}
+
+.dv-card {
+  position: relative;
+  background: var(--dv-card-bg);
+  border: 1px solid var(--dv-border);
+  border-radius: 16px;
+  padding: 16px 16px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: .65rem;
+  transition: .18s ease;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+.dv-card:hover { border-color:#bfdbfe; background: var(--dv-card-hover); box-shadow:0 6px 18px rgba(0,0,0,0.08); }
+.dv-card.selected { outline:3px solid #3b82f6; box-shadow:0 6px 22px rgba(59,130,246,.35); }
+
+.dv-checkbox-wrapper { position:absolute; top:10px; left:10px; }
+.dv-checkbox-wrapper input { width:19px; height:19px; cursor:pointer; }
+
+.dv-model-name { font-weight:700; font-size:1.05rem; color:#1e293b; display:flex; align-items:center; gap:.4rem; }
+.dv-badge { background:#eff6ff; color:#1d4ed8; font-size:.65rem; font-weight:600; padding:4px 8px; border-radius:20px; letter-spacing:.5px; }
+.dv-meta { display:flex; flex-direction:column; gap:4px; font-size:.78rem; }
+.dv-meta-row { display:flex; justify-content:space-between; }
+.dv-label { color:#64748b; font-weight:500; }
+.dv-value { color:#334155; font-weight:600; }
+
+.dv-price-tag { background:#f0fdf4; color:var(--dv-success); padding:6px 10px; border-radius:10px; font-size:.78rem; font-weight:600; display:inline-flex; align-items:center; gap:.4rem; }
+.dv-year-tag { background:#fffbeb; color:var(--dv-warning); padding:6px 10px; border-radius:10px; font-size:.78rem; font-weight:600; }
+
+.dv-actions { display:flex; gap:.55rem; flex-wrap:wrap; margin-top:auto; }
+
+.dv-btn-outline { background:#fff; border:1px solid var(--dv-border); padding:8px 12px; border-radius:8px; font-size:.7rem; font-weight:600; color:#475569; display:inline-flex; gap:.4rem; align-items:center; transition:.2s ease; }
+.dv-btn-outline:hover { background:#f1f5f9; border-color:#94a3b8; }
+.dv-btn-outline-primary { border-color:#3b82f6; color:#1d4ed8; }
+.dv-btn-outline-primary:hover { background:#eff6ff; }
+
+.dv-empty { text-align:center; padding:60px 20px; border:2px dashed var(--dv-border); border-radius:16px; background:#ffffff; }
+.dv-empty h4 { font-weight:700; color:#1e293b; }
+.dv-empty p { color:#64748b; }
+
+/* Selected shimmer animation */
+@keyframes selectedPulse { 0%,100% { box-shadow:0 0 0 0 rgba(59,130,246,.5);} 50% { box-shadow:0 0 0 6px rgba(59,130,246,.0);} }
+.dv-card.selected { animation: selectedPulse 1.8s ease-in-out infinite; }
+
+/* Responsive adjustments */
+@media (max-width:768px){
+  .dv-toolbar { flex-direction:column; align-items:stretch; }
+  .dv-actions { justify-content:flex-start; }
+}
+

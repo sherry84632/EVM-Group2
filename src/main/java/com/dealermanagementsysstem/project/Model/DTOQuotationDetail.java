@@ -27,6 +27,15 @@ public class DTOQuotationDetail {
     @JoinColumn(name = "ColorID", referencedColumnName = "ColorID")
     private DTOVehicleColor color;
 
+    @Column(name = "Quantity")
+    private int quantity = 1;
+
+    @Transient
+    private Double appliedDealerDiscountPercent; // line-level dealer promotion percent (if model matches)
+
+    @Transient
+    private java.math.BigDecimal finalNetAfterAll; // line net after line-level + base discount stacking
+
     public DTOQuotationDetail() {
     }
 
@@ -79,6 +88,26 @@ public class DTOQuotationDetail {
         this.color = color;
     }
 
+    public int getQuantity() {
+        return quantity;
+    }
+
+    public void setQuantity(int quantity) {
+        this.quantity = quantity;
+    }
+
+    public Double getAppliedDealerDiscountPercent() {
+        return appliedDealerDiscountPercent;
+    }
+
+    public void setAppliedDealerDiscountPercent(Double appliedDealerDiscountPercent) {
+        this.appliedDealerDiscountPercent = appliedDealerDiscountPercent;
+    }
+
+    public BigDecimal getSubtotal() {
+        return unitPrice != null ? unitPrice.multiply(BigDecimal.valueOf(Math.max(1, quantity))) : BigDecimal.ZERO;
+    }
+
     public String getVersionName() {
         return version != null ? version.getVersionName() : null;
     }
@@ -89,5 +118,20 @@ public class DTOQuotationDetail {
 
     public String getColorName() {
         return color != null ? color.getColorName() : null;
+    }
+
+    @Transient
+    public java.math.BigDecimal getNetAfterLineDiscount() {
+        java.math.BigDecimal sub = getSubtotal();
+        double pct = appliedDealerDiscountPercent != null ? appliedDealerDiscountPercent : 0.0;
+        return sub.multiply(java.math.BigDecimal.valueOf(1 - pct/100.0));
+    }
+
+    public java.math.BigDecimal getFinalNetAfterAll() {
+        return finalNetAfterAll;
+    }
+
+    public void setFinalNetAfterAll(java.math.BigDecimal v) {
+        this.finalNetAfterAll = v;
     }
 }

@@ -1,8 +1,9 @@
 package com.dealermanagementsysstem.project.controller;
 
+import com.dealermanagementsysstem.project.Model.DAOCustomer;
 import com.dealermanagementsysstem.project.Model.DAOVehicle;
 import com.dealermanagementsysstem.project.Model.DTOVehicle;
-import com.dealermanagementsysstem.project.util.SecurityUtil;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
@@ -13,6 +14,9 @@ import java.util.List;
 
 @Controller
 public class VehicleController {
+    @Autowired
+    private DAOCustomer daoCustomer;
+
     @GetMapping("/getVehicleList")
     public String vehicleList(Model model)
     {
@@ -47,6 +51,8 @@ public class VehicleController {
         DAOVehicle daoVehicle = new DAOVehicle();
         List<DTOVehicle> vehicle = daoVehicle.getVehicles();
         model.addAttribute("vehicleList", vehicle);
+        // Load customers for multi-select quotation creation using injected DAO
+        model.addAttribute("customerList", daoCustomer.getAllCustomers());
         return "dealerPage/dealerVehicleList";
     }
 }
