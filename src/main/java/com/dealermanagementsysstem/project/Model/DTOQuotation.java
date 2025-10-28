@@ -1,37 +1,65 @@
 package com.dealermanagementsysstem.project.Model;
 
+import jakarta.persistence.*;
+
 import java.sql.Timestamp;
 import java.util.List;
 
+@Entity
+@Table(name = "Quotation")
 public class DTOQuotation {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int quotationID;
+    
+    @ManyToOne
+    @JoinColumn(name = "DealerID", referencedColumnName = "DealerID")
     private DTODealer dealer;
+    
+    @ManyToOne
+    @JoinColumn(name = "CustomerID", referencedColumnName = "CustomerID")
     private DTOCustomer customer;
-    private DTOVehicle vehicle;
+    
+    @Column(name = "CreatedAt")
     private Timestamp createdAt;
-    private String status;
-    private DTODiscountPolicy discountPolicy;
+    
+    @Column(name = "Status")
+    @Enumerated(EnumType.STRING)
+    private QuotationStatus status;
+    
+    @Column(name = "TotalAmount")
     private double totalPrice;
+    
+    @OneToMany(mappedBy = "quotation", cascade = CascadeType.ALL)
     private List<DTOQuotationDetail> quotationDetails;
+    
     // New fields for extended pricing logic
+    @Column(name = "Quantity")
     private int quantity = 1; // default single unit
-    private Double extraDiscountPercent; // optional extra discount chosen in UI
+    
+    @Column(name = "LevelID")
+    private int levelID;
+    
+    @ManyToOne
+    @JoinColumn(name = "StaffID", referencedColumnName = "StaffID")
     private DTODealerStaff staff; // staff who created the quotation
 
     public DTOQuotation() {
     }
 
     public DTOQuotation(int quotationID, DTODealer dealer, DTOCustomer customer,
-                        DTOVehicle vehicle, Timestamp createdAt, String status,
-                        DTODiscountPolicy discountPolicy, double totalPrice) {
+                        Timestamp createdAt, QuotationStatus status, double totalPrice,
+                        int quantity, int levelID, DTODealerStaff staff) {
         this.quotationID = quotationID;
         this.dealer = dealer;
         this.customer = customer;
-        this.vehicle = vehicle;
         this.createdAt = createdAt;
         this.status = status;
-        this.discountPolicy = discountPolicy;
         this.totalPrice = totalPrice;
+        this.quantity = quantity;
+        this.levelID = levelID;
+        this.staff = staff;
     }
 
     public int getQuotationID() {
@@ -58,13 +86,6 @@ public class DTOQuotation {
         this.customer = customer;
     }
 
-    public DTOVehicle getVehicle() {
-        return vehicle;
-    }
-
-    public void setVehicle(DTOVehicle vehicle) {
-        this.vehicle = vehicle;
-    }
 
     public Timestamp getCreatedAt() {
         return createdAt;
@@ -74,21 +95,14 @@ public class DTOQuotation {
         this.createdAt = createdAt;
     }
 
-    public String getStatus() {
+    public QuotationStatus getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(QuotationStatus status) {
         this.status = status;
     }
 
-    public DTODiscountPolicy getDiscountPolicy() {
-        return discountPolicy;
-    }
-
-    public void setDiscountPolicy(DTODiscountPolicy discountPolicy) {
-        this.discountPolicy = discountPolicy;
-    }
 
     public double getTotalPrice() {
         return totalPrice;
@@ -115,12 +129,12 @@ public class DTOQuotation {
         this.quantity = quantity;
     }
 
-    public Double getExtraDiscountPercent() {
-        return extraDiscountPercent;
+    public int getLevelID() {
+        return levelID;
     }
 
-    public void setExtraDiscountPercent(Double extraDiscountPercent) {
-        this.extraDiscountPercent = extraDiscountPercent;
+    public void setLevelID(int levelID) {
+        this.levelID = levelID;
     }
 
     public DTODealerStaff getStaff() {

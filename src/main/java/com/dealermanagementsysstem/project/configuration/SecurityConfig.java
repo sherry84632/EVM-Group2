@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.LogoutConfigurer;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
@@ -24,17 +25,6 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
-/**
- * Spring Security Configuration for EVM Group 2 Project
- * 
- * Features implemented:
- * - BCrypt password hashing
- * - Role-based authorization
- * - CSRF protection
- * - Session management
- * - Login rate limiting
- * - Secure logout
- */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
@@ -76,7 +66,7 @@ public class SecurityConfig {
                 throw new UsernameNotFoundException("User not found: " + email);
             }
 
-            if (!account.isStatus()) {
+            if (!account.isActive()) {
                 throw new UsernameNotFoundException("Account is disabled");
             }
 
@@ -84,7 +74,7 @@ public class SecurityConfig {
             loginAttempts.remove(email);
 
             List<GrantedAuthority> authorities = new ArrayList<>();
-            authorities.add(new SimpleGrantedAuthority("ROLE_" + account.getRole().toUpperCase()));
+            authorities.add(new SimpleGrantedAuthority("ROLE_" + account.getRole()));
 
             return User.builder()
                     .username(account.getEmail())
@@ -93,7 +83,7 @@ public class SecurityConfig {
                     .accountExpired(false)
                     .accountLocked(false)
                     .credentialsExpired(false)
-                    .disabled(!account.isStatus())
+                    .disabled(!account.isActive())
                     .build();
         };
     }
@@ -189,17 +179,6 @@ public class SecurityConfig {
         return http.build();
     }
 
-    protected void configure(HttpSecurity http) throws Exception {
-        http
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/css/**", "/scripts/**", "/images/**").permitAll()  // ⚡ THÊM DÒNG NÀY
-                        .anyRequest().authenticated()
-                )
-                .formLogin(form -> form
-                        .loginPage("/login")
-                        .permitAll()
-                )
-                .logout(logout -> logout.permitAll());
-    }
+    // REMOVED: Duplicate configure method that was causing CSRF conflicts
 
 }

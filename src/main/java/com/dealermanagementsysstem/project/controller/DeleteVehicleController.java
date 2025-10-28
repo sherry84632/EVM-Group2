@@ -15,19 +15,24 @@ public class DeleteVehicleController extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        String vin = request.getParameter("vin");
-        if (vin == null || vin.isEmpty()) {
+        String idParam = request.getParameter("id");
+        if (idParam == null || idParam.isEmpty()) {
             response.sendRedirect("vehicleListController");
             return;
         }
 
-        DAOVehicle dao = new DAOVehicle();
-        boolean deleted = dao.deleteVehicle(vin);
+        try {
+            Integer id = Integer.parseInt(idParam);
+            DAOVehicle dao = new DAOVehicle();
+            boolean deleted = dao.deleteVehicle(id);
 
-        if (deleted) {
-            System.out.println("✅ Vehicle deleted: " + vin);
-        } else {
-            System.out.println("⚠️ Delete failed for VIN: " + vin);
+            if (deleted) {
+                System.out.println("✅ Vehicle deleted: ID=" + id);
+            } else {
+                System.out.println("⚠️ Delete failed for ID: " + id);
+            }
+        } catch (NumberFormatException e) {
+            System.out.println("⚠️ Invalid vehicle ID: " + idParam);
         }
 
         // Sau khi xóa xong, quay về danh sách xe

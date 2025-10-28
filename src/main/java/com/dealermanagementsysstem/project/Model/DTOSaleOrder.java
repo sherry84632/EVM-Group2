@@ -1,27 +1,53 @@
 package com.dealermanagementsysstem.project.Model;
 
+import jakarta.persistence.*;
+
 import java.sql.Timestamp;
 import java.math.BigDecimal;
 import java.util.List;
 
+@Entity
+@Table(name = "SaleOrder")
 public class DTOSaleOrder {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int saleOrderID;
+    @ManyToOne
+    @JoinColumn(name = "CustomerID", referencedColumnName = "CustomerID")
     private DTOCustomer customer;
+    @ManyToOne
+    @JoinColumn(name = "DealerID", referencedColumnName = "DealerID")
     private DTODealer dealer;
+    @ManyToOne
+    @JoinColumn(name = "StaffID", referencedColumnName = "StaffID")
     private DTODealerStaff staff;
+    @ManyToOne
+    @JoinColumn(name = "QuotationID", referencedColumnName = "QuotationID")
+    private DTOQuotation quotation;
+    
+    @Column(name = "CreatedAt")
     private Timestamp createdAt;
-    private String status;
+    
+    @Column(name = "Status")
+    @Enumerated(EnumType.STRING)
+    private SaleOrderStatus status;
+    
+    @OneToMany(mappedBy = "saleOrder", cascade = CascadeType.ALL)
     private List<DTOSaleOrderDetail> detail; // 🔹 Danh sách chi tiết đơn hàng
+    
     // Aggregated fields
+    @Column(name = "Quantity")
     private int totalQuantity;            // Tổng số lượng (sum of details)
+    
+    @Column(name = "TotalAmount")
     private BigDecimal totalAmount;       // Tổng tiền (sum of price * quantity)
+
 
     public DTOSaleOrder() {
     }
 
-    public DTOSaleOrder(int saleOrderID, DTOCustomer customer, DTODealer dealer,
-                        DTODealerStaff staff, Timestamp createdAt, String status,
-                        List<DTOSaleOrderDetail> detail) {
+    public DTOSaleOrder(int saleOrderID, DTOCustomer customer, DTODealer dealer, DTODealerStaff staff, Timestamp createdAt, SaleOrderStatus status, List<DTOSaleOrderDetail> detail, int totalQuantity, BigDecimal totalAmount, DTOQuotation quotation) {
         this.saleOrderID = saleOrderID;
         this.customer = customer;
         this.dealer = dealer;
@@ -29,6 +55,9 @@ public class DTOSaleOrder {
         this.createdAt = createdAt;
         this.status = status;
         this.detail = detail;
+        this.totalQuantity = totalQuantity;
+        this.totalAmount = totalAmount;
+        this.quotation = quotation;
     }
 
     public int getSaleOrderID() {
@@ -89,11 +118,11 @@ public class DTOSaleOrder {
         setCreatedAt(ts);
     }
 
-    public String getStatus() {
+    public SaleOrderStatus getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(SaleOrderStatus status) {
         this.status = status;
     }
 
@@ -121,5 +150,13 @@ public class DTOSaleOrder {
 
     public void setTotalAmount(BigDecimal totalAmount) {
         this.totalAmount = totalAmount;
+    }
+
+    public DTOQuotation getQuotation() {
+        return quotation;
+    }
+
+    public void setQuotation(DTOQuotation quotation) {
+        this.quotation = quotation;
     }
 }

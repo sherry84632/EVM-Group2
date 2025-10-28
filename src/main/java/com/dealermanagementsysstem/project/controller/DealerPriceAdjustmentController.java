@@ -3,6 +3,8 @@ package com.dealermanagementsysstem.project.controller;
 import com.dealermanagementsysstem.project.Model.DAODealerPriceAdjustment;
 import com.dealermanagementsysstem.project.Model.DAOAccount;
 import com.dealermanagementsysstem.project.Model.DTODealerPriceAdjustment;
+import com.dealermanagementsysstem.project.Model.DTODealer;
+import com.dealermanagementsysstem.project.Model.DTOVehicleModel;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -79,9 +81,18 @@ public class DealerPriceAdjustmentController {
         d.setStartDate(startDate);
         d.setEndDate(endDate);
         d.setDiscountPercent(discountPercent);
-        d.setModelID(modelID);
+
+        // Set VehicleModel object
+        DTOVehicleModel vehicleModel = new DTOVehicleModel();
+        vehicleModel.setModelID(modelID);
+        d.setVehicleModel(vehicleModel);
+
+        // Set Dealer object
+        DTODealer dealer = new DTODealer();
+        dealer.setDealerID(dealerID);
+        d.setDealer(dealer);
+
         d.setNotes(notes);
-        d.setDealerID(dealerID);
         d.setDiscountAmount(0.0);
 
         boolean success = daoDiscount.createDiscount(d);

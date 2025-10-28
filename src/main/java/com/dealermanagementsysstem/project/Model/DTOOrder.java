@@ -2,6 +2,7 @@ package com.dealermanagementsysstem.project.Model;
 
 import java.sql.Date;
 
+@Deprecated
 public class DTOOrder {
     private int orderID;
     private int dealerID;

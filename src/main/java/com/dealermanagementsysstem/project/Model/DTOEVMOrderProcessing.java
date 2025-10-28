@@ -1,19 +1,40 @@
 package com.dealermanagementsysstem.project.Model;
+
+import jakarta.persistence.*;
 import java.util.Date;
+
+@Entity
+@Table(name = "EVMOrderProcessing")
 public class DTOEVMOrderProcessing {
+    
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "ProcessID")
     private int processId;
-    private int purchaseOrderId;
+    
+    @ManyToOne
+    @JoinColumn(name = "PurchaseOrderID", referencedColumnName = "PurchaseOrderID")
+    private DTOPurchaseOrder purchaseOrder;
+    
+    @Column(name = "EvmStaffID")
     private int evmStaffId;
+    
+    @Column(name = "ActionType")
     private String actionType;
+    
+    @Column(name = "ActionDate")
     private Date actionDate;
+    
+    @Column(name = "Remarks")
     private String remarks;
 
     public DTOEVMOrderProcessing() {
     }
 
-    public DTOEVMOrderProcessing(int processId, int purchaseOrderId, int evmStaffId, String actionType, Date actionDate, String remarks) {
+    public DTOEVMOrderProcessing(int processId, DTOPurchaseOrder purchaseOrder, int evmStaffId, 
+                                 String actionType, Date actionDate, String remarks) {
         this.processId = processId;
-        this.purchaseOrderId = purchaseOrderId;
+        this.purchaseOrder = purchaseOrder;
         this.evmStaffId = evmStaffId;
         this.actionType = actionType;
         this.actionDate = actionDate;
@@ -28,12 +49,12 @@ public class DTOEVMOrderProcessing {
         this.processId = processId;
     }
 
-    public int getPurchaseOrderId() {
-        return purchaseOrderId;
+    public DTOPurchaseOrder getPurchaseOrder() {
+        return purchaseOrder;
     }
 
-    public void setPurchaseOrderId(int purchaseOrderId) {
-        this.purchaseOrderId = purchaseOrderId;
+    public void setPurchaseOrder(DTOPurchaseOrder purchaseOrder) {
+        this.purchaseOrder = purchaseOrder;
     }
 
     public int getEvmStaffId() {

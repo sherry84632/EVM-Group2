@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 
 <head>
     <meta charset="UTF-8">
@@ -60,7 +60,7 @@
 
 <div class="d-flex">
 
-    <div th:replace="mainPage/navBarFragment :: navBar"></div>
+    <div th:replace="~{mainPage/navBarFragment :: navBar}"></div>
 
     <div class="mainContent flex-grow-1 p-3" style="overflow: hidden">
 
@@ -105,36 +105,33 @@
 
                     <!-- Item -->
                     <div th:each="customer : ${customers}">
-
-                        <a th:href="@{/customer/detail/{id}(id=${customer.customerID})}" style="text-decoration: none;">
-                            <button class="item-button" >
+                        <a th:href="@{/customer/detail/{id}(id=${customer.customerID})}" style="text-decoration: none">
+                            <div class="item-button">
                                 <div class="image-placeholder">
                                     <i class="fa-solid fa-address-card"></i>
                                 </div>
                                 <div class="item-info">
-                                    <div class="model-name"> <span th:text="${customer.fullName}"></span> </div>
+                                    <div class="model-name">
+                                        <span th:text="${customer.fullName}"></span>
+                                    </div>
                                     <div class="info-row">
                                         <div class="info-item">
-                                            <span class="info-label">Phone:</span>
-                                            <span class="info-value"><span th:text="${customer.phone}"></span></span>
+                                            <span class="info-label">Email:</span>
+                                            <span class="info-value" th:text="${customer.email}"></span>
                                         </div>
                                         <div class="info-item">
-                                            <span class="info-label">Email:</span>
-                                            <span class="info-value"><span th:text="${customer.email}"></span></span>
+                                            <span class="info-label">Phone:</span>
+                                            <span class="info-value" th:text="${customer.phone}"></span>
                                         </div>
                                     </div>
                                     <div class="info-row">
                                         <div class="info-item">
-                                            <span class="info-label">Address:</span>
-                                            <span class="info-value"><span th:text="${customer.address}"></span></span>
-                                        </div>
-                                        <div class="info-item">
-                                            <span class="info-label">ID:</span>
-                                            <span class="info-value"><span th:text="${customer.customerID}"></span></span>
+                                            <span class="info-label">Date of birth:</span>
+                                            <span class="info-value" th:text="${customer.birthDate}"></span>
                                         </div>
                                     </div>
                                 </div>
-                            </button>
+                            </div>
                         </a>
 
                     </div>

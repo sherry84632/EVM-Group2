@@ -10,8 +10,8 @@ import org.springframework.stereotype.Repository;
 public class DAOAccount {
 
     private static final String LOGIN_QUERY =
-            "SELECT AccountID, Username, Password, Role, Status, EvmStaffID, DealerID, DealerStaffID, Email " +
-                    "FROM Account WHERE Email = ? AND Password = ? AND Status = 1";
+            "SELECT AccountID, Username, Password, Role, IsActive, Email, CreatedAt, UpdatedAt " +
+                    "FROM Account WHERE Email = ? AND Password = ? AND IsActive = 1";
 
     public DTOAccount checkLogin(String email, String password) {
         DTOAccount account = null;
@@ -24,17 +24,15 @@ public class DAOAccount {
 
             try (ResultSet rs = stm.executeQuery()) {
                 if (rs.next()) {
-                    account = new DTOAccount(
-                            rs.getInt("AccountID"),
-                            rs.getString("Username"),
-                            rs.getString("Password"),
-                            rs.getString("Role"),
-                            rs.getBoolean("Status"),
-                            rs.getObject("EvmStaffID") != null ? rs.getInt("EvmStaffID") : null,
-                            rs.getObject("DealerID") != null ? rs.getInt("DealerID") : null,
-                            rs.getObject("DealerStaffID") != null ? rs.getInt("DealerStaffID") : null,
-                            rs.getString("Email")
-                    );
+                    account = new DTOAccount();
+                    account.setAccountId(rs.getInt("AccountID"));
+                    account.setUsername(rs.getString("Username"));
+                    account.setPassword(rs.getString("Password"));
+                    account.setRole(Role.valueOf(rs.getString("Role")));
+                    account.setActive(rs.getBoolean("IsActive"));
+                    account.setEmail(rs.getString("Email"));
+                    account.setCreatedAt(rs.getTimestamp("CreatedAt"));
+                    account.setUpdatedAt(rs.getTimestamp("UpdatedAt"));
                 }
             }
         } catch (Exception e) {
@@ -47,7 +45,15 @@ public class DAOAccount {
     public DTOAccount findAccountByEmail(String email) {
         DTOAccount account = null;
 
-        String query = "SELECT * FROM Account WHERE Email = ?";
+        String query = """
+            SELECT a.AccountID, a.Username, a.Password, a.Role, a.IsActive, a.Email, a.CreatedAt, a.UpdatedAt,
+                   ds.StaffID, ds.FullName, ds.Position, ds.Phone as StaffPhone, ds.Email as StaffEmail,
+                   d.DealerID, d.DealerName, d.Address, d.Phone, d.Email as DealerEmail
+            FROM Account a
+            LEFT JOIN DealerStaff ds ON ds.AccountID = a.AccountID
+            LEFT JOIN Dealer d ON d.DealerID = ds.DealerID
+            WHERE a.Email = ?
+        """;
 
         try (Connection con = DBUtils.getConnection();
             PreparedStatement stm = con.prepareStatement(query)) {
@@ -56,17 +62,38 @@ public class DAOAccount {
 
             try (ResultSet rs = stm.executeQuery()) {
                 if (rs.next()) {
-                    account = new DTOAccount(
-                            rs.getInt("AccountID"),
-                            rs.getString("Username"),
-                            rs.getString("Password"),
-                            rs.getString("Role"),
-                            rs.getBoolean("Status"),
-                            rs.getObject("EvmStaffID") != null ? rs.getInt("EvmStaffID") : null,
-                            rs.getObject("DealerID") != null ? rs.getInt("DealerID") : null,
-                            rs.getObject("DealerStaffID") != null ? rs.getInt("DealerStaffID") : null,
-                            rs.getString("Email")
-                    );
+                    account = new DTOAccount();
+                    account.setAccountId(rs.getInt("AccountID"));
+                    account.setUsername(rs.getString("Username"));
+                    account.setPassword(rs.getString("Password"));
+                    account.setRole(Role.valueOf(rs.getString("Role")));
+                    account.setActive(rs.getBoolean("IsActive"));
+                    account.setEmail(rs.getString("Email"));
+                    account.setCreatedAt(rs.getTimestamp("CreatedAt"));
+                    account.setUpdatedAt(rs.getTimestamp("UpdatedAt"));
+
+                    // Load DealerStaff relationship if exists
+                    if (rs.getString("FullName") != null) {
+                        DTODealerStaff dealerStaff = new DTODealerStaff();
+                        dealerStaff.setStaffID(rs.getInt("StaffID"));
+                        dealerStaff.setFullName(rs.getString("FullName"));
+                        dealerStaff.setPosition(rs.getString("Position"));
+                        dealerStaff.setPhone(rs.getString("StaffPhone"));
+                        dealerStaff.setEmail(rs.getString("StaffEmail"));
+                        
+                        // Load Dealer relationship through DealerStaff if exists
+                        if (rs.getString("DealerName") != null) {
+                            DTODealer dealer = new DTODealer();
+                            dealer.setDealerID(rs.getInt("DealerID"));
+                            dealer.setDealerName(rs.getString("DealerName"));
+                            dealer.setAddress(rs.getString("Address"));
+                            dealer.setPhone(rs.getString("Phone"));
+                            dealer.setEmail(rs.getString("DealerEmail"));
+                            dealerStaff.setDealer(dealer);
+                        }
+                        
+                        account.setDealerStaff(dealerStaff);
+                    }
                 }
             }
         }
@@ -95,13 +122,20 @@ public class DAOAccount {
     }
 
     public Integer getDealerIdByEmail(String email) {
-        String sql = "SELECT DealerID FROM Account WHERE Email = ?";
+        String sql = """
+            SELECT d.DealerID 
+            FROM Account a
+            JOIN DealerStaff ds ON ds.AccountID = a.AccountID
+            JOIN Dealer d ON d.DealerID = ds.DealerID
+            WHERE a.Email = ?
+            """;
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, email);
-            ResultSet rs = ps.executeQuery();
-            if (rs.next()) {
-                return rs.getInt("DealerID");
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("DealerID");
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();

@@ -1,29 +1,62 @@
 package com.dealermanagementsysstem.project.Model;
 
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "Account")
 public class DTOAccount {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "AccountID")
     private int accountId;
+
+    @Column(name = "Username")
     private String username;
+
+    @Column(name = "Password")
     private String password;
-    private String role;
-    private boolean status;
-    private Integer evmStaffId;
-    private Integer dealerId;
-    private Integer dealerStaffId;
+
+    @Column(name = "Role",nullable = false)
+    @Enumerated(EnumType.STRING)
+    private Role role;
+
+    @Column(name = "IsActive")
+    private boolean isActive  = true ;
+
+    @Column(name = "Email",unique = true)
     private String email;
+    
+    @Column(name = "CreatedAt")
+    private java.sql.Timestamp createdAt;
+    
+    @Column(name = "UpdatedAt")
+    private java.sql.Timestamp updatedAt;
+
+
+    @OneToOne(mappedBy = "account")
+    private DTODealerStaff dealerStaff;
 
     // Constructors
     public DTOAccount() {}
 
-    public DTOAccount(int accountId, String username, String password, String role, boolean status, Integer evmStaffId, Integer dealerId, Integer dealerStaffId, String email) {
+    public DTOAccount(int accountId, String username, String password, Role role, String email, boolean isActive,  DTODealerStaff dealerStaff) {
         this.accountId = accountId;
         this.username = username;
         this.password = password;
         this.role = role;
-        this.status = status;
-        this.evmStaffId = evmStaffId;
-        this.dealerId = dealerId;
-        this.dealerStaffId = dealerStaffId;
         this.email = email;
+        this.isActive = isActive;
+        this.dealerStaff = dealerStaff;
+    }
+
+
+    public DTODealerStaff getDealerStaff() {
+        return dealerStaff;
+    }
+
+    public void setDealerStaff(DTODealerStaff dealerStaff) {
+        this.dealerStaff = dealerStaff;
     }
 
     public int getAccountId() {
@@ -50,44 +83,20 @@ public class DTOAccount {
         this.password = password;
     }
 
-    public String getRole() {
+    public boolean isActive() {
+        return isActive;
+    }
+
+    public void setActive(boolean active) {
+        isActive = active;
+    }
+
+    public Role getRole() {
         return role;
     }
 
-    public void setRole(String role) {
+    public void setRole(Role role) {
         this.role = role;
-    }
-
-    public boolean isStatus() {
-        return status;
-    }
-
-    public void setStatus(boolean status) {
-        this.status = status;
-    }
-
-    public Integer getEvmStaffId() {
-        return evmStaffId;
-    }
-
-    public void setEvmStaffId(Integer evmStaffId) {
-        this.evmStaffId = evmStaffId;
-    }
-
-    public Integer getDealerId() {
-        return dealerId;
-    }
-
-    public void setDealerId(Integer dealerId) {
-        this.dealerId = dealerId;
-    }
-
-    public Integer getDealerStaffId() {
-        return dealerStaffId;
-    }
-
-    public void setDealerStaffId(Integer dealerStaffId) {
-        this.dealerStaffId = dealerStaffId;
     }
 
     public String getEmail() {
@@ -96,5 +105,21 @@ public class DTOAccount {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+    
+    public java.sql.Timestamp getCreatedAt() {
+        return createdAt;
+    }
+    
+    public void setCreatedAt(java.sql.Timestamp createdAt) {
+        this.createdAt = createdAt;
+    }
+    
+    public java.sql.Timestamp getUpdatedAt() {
+        return updatedAt;
+    }
+    
+    public void setUpdatedAt(java.sql.Timestamp updatedAt) {
+        this.updatedAt = updatedAt;
     }
 }

@@ -1,52 +1,55 @@
 package com.dealermanagementsysstem.project.controller;
 
-import com.dealermanagementsysstem.project.Model.DAOColor;
-import com.dealermanagementsysstem.project.Model.DAOVehicle;
-import com.dealermanagementsysstem.project.Model.DAOVehicleModel;
-import com.dealermanagementsysstem.project.Model.DTOVehicle;
+import com.dealermanagementsysstem.project.Model.*;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+
+import java.sql.SQLException;
+import java.sql.Timestamp;
 
 @Controller
 public class CreateController {
 
     @PostMapping("/createVehicle")
     public String createVehicle(
-            @RequestParam("VIN") String VIN,
             @RequestParam("colorName") String colorName,
             @RequestParam("modelName") String modelName,
             @RequestParam("manufactureYear") int manufactureYear,
             @RequestParam("engineNumber") String engineNumber,
-            @RequestParam("currentOwner") String currentOwner,
+            @RequestParam("versionID") int versionID,
             @RequestParam("status") String status,
             Model model
-    ) {
+    ) throws SQLException {
         DAOVehicle daoVehicle = new DAOVehicle();
-        DAOVehicleModel daoModel = new DAOVehicleModel();
         DAOColor daoColor = new DAOColor();
+        DAOVehicleVersion daoVersion = new DAOVehicleVersion();
 
-        Integer modelID = daoVehicle.getModelIdByName(modelName);
-        Integer colorID = daoVehicle.getColorIdByName(colorName);
+        // ✅ Lấy các entity objects
+        DTOVehicleColor color = daoColor.getColorByColorName(colorName);
+        DTOVehicleVersion version = daoVersion.getVersionById(versionID);
 
-        // ⚠️ Nếu không tìm thấy modelName hoặc colorName
-        if (modelID == null || colorID == null) {
-            model.addAttribute("error", "⚠️ ModelName hoặc ColorName không tồn tại trong hệ thống.");
-            // Trỏ đúng file HTML đang có
+        // ⚠️ Validation: Kiểm tra các entity tồn tại
+        if (color == null) {
+            model.addAttribute("error", "⚠️ ColorName không tồn tại trong hệ thống.");
+            return "evmPage/createANewVehicleToList";
+        }
+        if (version == null) {
+            model.addAttribute("error", "⚠️ VersionID không tồn tại trong hệ thống.");
             return "evmPage/createANewVehicleToList";
         }
 
-        // ✅ Tạo đối tượng Vehicle
+        // ✅ Tạo đối tượng Vehicle với schema mới (không có VIN, Owner, Dealer)
         DTOVehicle v = new DTOVehicle();
-        v.setVIN(VIN);
-        v.setColorID(colorID);
-        v.setModelID(modelID);
+        v.setColor(color);
+        v.setVersion(version);
         v.setManufactureYear(manufactureYear);
         v.setEngineNumber(engineNumber);
-        v.setCurrentOwner(currentOwner);
-        v.setStatus(status);
+        v.setStatus(VehicleStatus.valueOf(status));
+        v.setCreatedAt(new Timestamp(System.currentTimeMillis()));
+        v.setUpdatedAt(new Timestamp(System.currentTimeMillis()));
 
-        // ✅ Lưu vào DB
+        // ✅ Lưu vào DB - VehicleID sẽ tự động generate
         daoVehicle.insertVehicle(v);
 
         // ✅ Redirect sang VehicleController hiển thị danh sách xe

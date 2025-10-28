@@ -371,24 +371,38 @@
         }
 
         .badge-pending {
-            background: rgba(0, 0, 0, 0.08);
-            color: #000000;
-            border: 2px solid rgba(0, 0, 0, 0.2);
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            background: rgba(255, 193, 7, 0.2);
+            color: #856404;
+            border: 2px solid rgba(255, 193, 7, 0.5);
+            box-shadow: 0 0 20px rgba(255, 193, 7, 0.3);
         }
 
         .badge-approved {
-            background: rgba(0, 0, 0, 0.12);
-            color: #000000;
-            border: 2px solid rgba(0, 0, 0, 0.3);
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+            background: rgba(40, 167, 69, 0.2);
+            color: #155724;
+            border: 2px solid rgba(40, 167, 69, 0.5);
+            box-shadow: 0 0 20px rgba(40, 167, 69, 0.3);
         }
 
-        .badge-rejected {
-            background: rgba(0, 0, 0, 0.06);
-            color: rgba(0, 0, 0, 0.6);
-            border: 2px solid rgba(0, 0, 0, 0.15);
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.08);
+        .badge-rejected, .badge-cancelled {
+            background: rgba(220, 53, 69, 0.2);
+            color: #721c24;
+            border: 2px solid rgba(220, 53, 69, 0.5);
+            box-shadow: 0 0 20px rgba(220, 53, 69, 0.3);
+        }
+
+        .badge-in-process {
+            background: rgba(0, 123, 255, 0.2);
+            color: #004085;
+            border: 2px solid rgba(0, 123, 255, 0.5);
+            box-shadow: 0 0 20px rgba(0, 123, 255, 0.3);
+        }
+
+        .badge-delivered {
+            background: rgba(23, 162, 184, 0.2);
+            color: #0c5460;
+            border: 2px solid rgba(23, 162, 184, 0.5);
+            box-shadow: 0 0 20px rgba(23, 162, 184, 0.3);
         }
 
         /* Info text with effects */
@@ -536,13 +550,49 @@
             0% { transform: translateY(0); }
             100% { transform: translateY(100px); }
         }
+
+        /* Button styles */
+        .btn-outline-dark {
+            border: 2px solid rgba(0, 0, 0, 0.2);
+            color: #000000;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-outline-dark::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.1);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s ease, height 0.6s ease;
+        }
+
+        .btn-outline-dark:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn-outline-dark:hover {
+            background: rgba(0, 0, 0, 0.9);
+            color: #ffffff;
+            border-color: rgba(0, 0, 0, 0.9);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
     </style>
 </head>
 
 <body>
 <div class="d-flex">
     <!-- Sidebar -->
-    <div th:replace="mainPage/navBarFragment :: navBar"></div>
+    <div th:replace="~{mainPage/navBarFragment :: navBar}"></div>
 
     <!-- Main content -->
     <div class="mainContent flex-grow-1 p-3" style="overflow: hidden;">
@@ -559,28 +609,40 @@
 
         <!-- Orders -->
         <div class="scroll-box-order">
-            <div th:if="${#lists.isEmpty(orders)}" class="text-center mt-5 text-muted">
-                <i class="fa-solid fa-box-open fa-2x mb-2"></i>
+            <div th:if="${orders == null || #lists.isEmpty(orders)}" class="text-center mt-5 text-muted">
+                <i class="fa-solid fa-box-open fa-3x mb-3"></i>
                 <p>No orders have been created yet.</p>
+                <p th:if="${message}" class="text-danger" th:text="${message}"></p>
             </div>
 
-            <div th:unless="${#lists.isEmpty(orders)}" class="order-grid">
+            <div th:if="${orders != null && !#lists.isEmpty(orders)}" class="order-grid">
                 <div th:each="order : ${orders}" class="order-card">
                     <div class="order-header">
                         <h5>Order #<span th:text="${order.purchaseOrderId}"></span></h5>
                         <span class="badge-status"
-                              th:classappend="${order.status == 'Pending'} ? ' badge-pending' :
-                                              (${order.status == 'Approved'} ? ' badge-approved' : ' badge-rejected')"
+                              th:classappend="${order.status.name() == 'REQUESTED'} ? ' badge-pending' :
+                                              (${order.status.name() == 'APPROVED'} ? ' badge-approved' :
+                                              (${order.status.name() == 'IN_PROCESS'} ? ' badge-in-process' :
+                                              (${order.status.name() == 'DELIVERED'} ? ' badge-delivered' : ' badge-cancelled')))"
                               th:text="${order.status}"></span>
                     </div>
                     <hr class="my-2">
-                    <p><i class="fa-solid fa-building me-2"></i> Dealer: <span th:text="${order.dealerName}"></span></p>
-                    <p><i class="fa-solid fa-id-badge me-2"></i> Dealer ID: <span th:text="${order.dealerId}"></span></p>
-                    <p><i class="fa-solid fa-user me-2"></i> Staff: <span th:text="${order.staffName}"></span></p>
-                    <p><i class="fa-solid fa-id-card me-2"></i> Staff ID: <span th:text="${order.staffId}"></span></p>
+                    <p><i class="fa-solid fa-building me-2"></i> Dealer: <span th:text="${order.dealer?.dealerName ?: 'N/A'}"></span></p>
+                    <p><i class="fa-solid fa-id-badge me-2"></i> Dealer ID: <span th:text="${order.dealer?.dealerID ?: 'N/A'}"></span></p>
+                    <p><i class="fa-solid fa-user me-2"></i> Staff: <span th:text="${order.staff?.fullName ?: 'N/A'}"></span></p>
+                    <p><i class="fa-solid fa-id-card me-2"></i> Staff ID: <span th:text="${order.staff?.staffID ?: 'N/A'}"></span></p>
+                    <p><i class="fa-solid fa-dollar-sign me-2"></i> Total:
+                        <span th:text="${order.totalAmount != null ? #numbers.formatCurrency(order.totalAmount) : '$0.00'}"></span>
+                    </p>
                     <p><i class="fa-solid fa-calendar-day me-2"></i>
                         <span th:text="${#dates.format(order.createdAt, 'dd/MM/yyyy HH:mm')}"></span>
                     </p>
+                    <div class="mt-3 d-flex gap-2">
+                        <a th:href="@{/orderdealer/detail/{id}(id=${order.purchaseOrderId})}"
+                           class="btn btn-sm btn-outline-dark flex-fill">
+                            <i class="fa-solid fa-eye me-1"></i> View Details
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>

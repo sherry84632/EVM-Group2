@@ -47,8 +47,8 @@ public class DAOCustomer {
 
                 c.setNote(rs.getString("Note"));
 
-                Timestamp ts = rs.getTimestamp("TestDriveSchedule");
-                c.setTestDriveSchedule(ts != null ? ts.toLocalDateTime() : null);
+                Timestamp updatedAt = rs.getTimestamp("UpdatedAt");
+                c.setUpdatedAt(updatedAt != null ? updatedAt.toLocalDateTime() : null);
 
                 c.setVehicleInterest(rs.getString("VehicleInterest"));
                 list.add(c);
@@ -60,63 +60,71 @@ public class DAOCustomer {
         return list;
     }
 
-    // ✅ Thêm mới Customer
-    public boolean insertCustomer(DTOCustomer c) {
+    // ✅ Thêm mới Customer - trả về customerID
+    public int insertCustomer(DTOCustomer c) {
         String sql = """
-            INSERT INTO Customer (FullName, Phone, Email, Address, CreatedAt, BirthDate, Note, TestDriveSchedule, VehicleInterest)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO Customer (DealerID, FullName, Phone, Email, Address, CreatedAt, UpdatedAt, BirthDate, Note, VehicleInterest)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """;
 
         try (Connection conn = DBUtils.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+             PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
-            ps.setString(1, c.getFullName());
-            ps.setString(2, c.getPhone());
-            ps.setString(3, c.getEmail());
-            ps.setString(4, c.getAddress());
+            ps.setInt(1, c.getDealer() != null ? c.getDealer().getDealerID() : 1); // Default dealer if null
+            ps.setString(2, c.getFullName());
+            ps.setString(3, c.getPhone());
+            ps.setString(4, c.getEmail());
+            ps.setString(5, c.getAddress());
 
             // ✅ LocalDateTime -> Timestamp
-            ps.setTimestamp(5, c.getCreatedAt() != null ? Timestamp.valueOf(c.getCreatedAt()) : null);
+            ps.setTimestamp(6, c.getCreatedAt() != null ? Timestamp.valueOf(c.getCreatedAt()) : null);
+            ps.setTimestamp(7, c.getUpdatedAt() != null ? Timestamp.valueOf(c.getUpdatedAt()) : null);
 
-            ps.setDate(6, c.getBirthDate() != null ? java.sql.Date.valueOf(c.getBirthDate()) : null);
-            ps.setString(7, c.getNote());
-            ps.setTimestamp(8, c.getTestDriveSchedule() != null ? Timestamp.valueOf(c.getTestDriveSchedule()) : null);
-            ps.setString(9, c.getVehicleInterest());
+            ps.setDate(8, c.getBirthDate() != null ? java.sql.Date.valueOf(c.getBirthDate()) : null);
+            ps.setString(9, c.getNote());
+            ps.setString(10, c.getVehicleInterest());
 
             int rows = ps.executeUpdate();
             if (rows > 0) {
-                System.out.println("✅ Customer inserted successfully: " + c.getFullName());
-                return true;
+                // ✅ Lấy customerID vừa tạo
+                try (ResultSet generatedKeys = ps.getGeneratedKeys()) {
+                    if (generatedKeys.next()) {
+                        int newCustomerID = generatedKeys.getInt(1);
+                        System.out.println("✅ Customer inserted successfully: " + c.getFullName() + " (ID: " + newCustomerID + ")");
+                        return newCustomerID;
+                    }
+                }
             }
 
         } catch (SQLException e) {
             System.out.println("❌ Failed to insert customer!");
             e.printStackTrace();
         }
-        return false;
+        return -1; // ✅ Trả về -1 nếu thất bại
     }
 
     // ✅ Cập nhật Customer
     public boolean updateCustomer(DTOCustomer c) {
         String sql = """
             UPDATE Customer 
-            SET FullName=?, Phone=?, Email=?, Address=?, CreatedAt=?, BirthDate=?, Note=?, TestDriveSchedule=?, VehicleInterest=? 
+            SET DealerID=?, FullName=?, Phone=?, Email=?, Address=?, CreatedAt=?, UpdatedAt=?, BirthDate=?, Note=?, VehicleInterest=? 
             WHERE CustomerID=?
         """;
 
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            ps.setString(1, c.getFullName());
-            ps.setString(2, c.getPhone());
-            ps.setString(3, c.getEmail());
-            ps.setString(4, c.getAddress());
-            ps.setTimestamp(5, c.getCreatedAt() != null ? Timestamp.valueOf(c.getCreatedAt()) : null);
-            ps.setDate(6, c.getBirthDate() != null ? java.sql.Date.valueOf(c.getBirthDate()) : null);
-            ps.setString(7, c.getNote());
-            ps.setTimestamp(8, c.getTestDriveSchedule() != null ? Timestamp.valueOf(c.getTestDriveSchedule()) : null);
-            ps.setString(9, c.getVehicleInterest());
-            ps.setInt(10, c.getCustomerID());
+            ps.setInt(1, c.getDealer() != null ? c.getDealer().getDealerID() : 1); // Default dealer if null
+            ps.setString(2, c.getFullName());
+            ps.setString(3, c.getPhone());
+            ps.setString(4, c.getEmail());
+            ps.setString(5, c.getAddress());
+            ps.setTimestamp(6, c.getCreatedAt() != null ? Timestamp.valueOf(c.getCreatedAt()) : null);
+            ps.setTimestamp(7, c.getUpdatedAt() != null ? Timestamp.valueOf(c.getUpdatedAt()) : null);
+            ps.setDate(8, c.getBirthDate() != null ? java.sql.Date.valueOf(c.getBirthDate()) : null);
+            ps.setString(9, c.getNote());
+            ps.setString(10, c.getVehicleInterest());
+            ps.setInt(11, c.getCustomerID());
 
             int updated = ps.executeUpdate();
             if (updated > 0) {
@@ -131,23 +139,58 @@ public class DAOCustomer {
         return false;
     }
 
-    // ✅ Xóa Customer
+    // ✅ Xóa Customer (xóa cascade TestDrive trước)
     public boolean deleteCustomer(int id) {
-        String sql = "DELETE FROM Customer WHERE CustomerID=?";
-        try (Connection conn = DBUtils.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        Connection conn = null;
+        try {
+            conn = DBUtils.getConnection();
+            conn.setAutoCommit(false); // Bắt đầu transaction
 
-            ps.setInt(1, id);
-            int deleted = ps.executeUpdate();
-            if (deleted > 0) {
-                System.out.println("🗑️ Customer deleted successfully (ID: " + id + ")");
-                return true;
+            // 1. Xóa TestDrive liên quan trước
+            String deleteTestDriveSQL = "DELETE FROM TestDrive WHERE CustomerID = ?";
+            try (PreparedStatement ps1 = conn.prepareStatement(deleteTestDriveSQL)) {
+                ps1.setInt(1, id);
+                int testDrivesDeleted = ps1.executeUpdate();
+                System.out.println("🗑️ Deleted " + testDrivesDeleted + " test drive(s) for Customer ID: " + id);
             }
+
+            // 2. Xóa Customer
+            String deleteCustomerSQL = "DELETE FROM Customer WHERE CustomerID = ?";
+            try (PreparedStatement ps2 = conn.prepareStatement(deleteCustomerSQL)) {
+                ps2.setInt(1, id);
+                int deleted = ps2.executeUpdate();
+                if (deleted > 0) {
+                    conn.commit(); // Commit transaction
+                    System.out.println("🗑️ Customer deleted successfully (ID: " + id + ")");
+                    return true;
+                } else {
+                    conn.rollback();
+                    System.out.println("⚠️ Customer not found (ID: " + id + ")");
+                    return false;
+                }
+            }
+
         } catch (SQLException e) {
             System.out.println("❌ Failed to delete customer!");
             e.printStackTrace();
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                }
+            }
+            return false;
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
         }
-        return false;
     }
 
     // ✅ Tìm kiếm Customer
@@ -178,8 +221,8 @@ public class DAOCustomer {
 
                     c.setNote(rs.getString("Note"));
 
-                    Timestamp ts = rs.getTimestamp("TestDriveSchedule");
-                    c.setTestDriveSchedule(ts != null ? ts.toLocalDateTime() : null);
+                    Timestamp updatedAt = rs.getTimestamp("UpdatedAt");
+                    c.setUpdatedAt(updatedAt != null ? updatedAt.toLocalDateTime() : null);
 
                     c.setVehicleInterest(rs.getString("VehicleInterest"));
                     list.add(c);
@@ -218,8 +261,8 @@ public class DAOCustomer {
 
                     c.setNote(rs.getString("Note"));
 
-                    Timestamp ts = rs.getTimestamp("TestDriveSchedule");
-                    c.setTestDriveSchedule(ts != null ? ts.toLocalDateTime() : null);
+                    Timestamp updatedAt = rs.getTimestamp("UpdatedAt");
+                    c.setUpdatedAt(updatedAt != null ? updatedAt.toLocalDateTime() : null);
 
                     c.setVehicleInterest(rs.getString("VehicleInterest"));
                 }
@@ -230,4 +273,6 @@ public class DAOCustomer {
         }
         return c;
     }
+
+    // ✅ Lấy Customer theo ID (for CreateController)
 }

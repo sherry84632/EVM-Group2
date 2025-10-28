@@ -94,11 +94,11 @@
     </style>
 </head>
 
-<body class="bg-light">
+<body class="bg-light" style="overflow: hidden">
     <div class="d-flex">
-        <div th:replace="mainPage/navBarFragment :: navBar"></div>
+        <div th:replace="~{mainPage/navBarFragment :: navBar}"></div>
 
-        <div class="mainContent flex-grow-1 p-3" style="overflow: hidden">
+        <div class="mainContent flex-grow-1 p-3" style="overflow-y: auto; overflow-x: hidden; height: 99vh">
             <!-- Breadcrumb Navigation -->
             <nav aria-label="breadcrumb" class="mb-4">
                 <ol class="breadcrumb">
@@ -115,7 +115,7 @@
                         </a>
                     </li>
                     <li class="breadcrumb-item">
-                        <a th:href="@{/evm/vehicle/detail/{vin}(vin=${vehicle.VIN})}">
+                        <a th:href="@{/evm/vehicle/detail/{id}(id=${vehicle.vehicleID})}">
                             <i class="fas fa-car me-1"></i>
                             Vehicle Detail
                         </a>
@@ -130,7 +130,7 @@
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2><i class="fas fa-edit me-2"></i>Edit Vehicle</h2>
                 <div class="btn-group">
-                    <a th:href="@{/evm/vehicle/detail/{vin}(vin=${vehicle.VIN})}" class="btn btn-outline-secondary">
+                    <a th:href="@{/evm/vehicle/detail/{id}(id=${vehicle.vehicleID})}" class="btn btn-outline-secondary">
                         <i class="fas fa-eye me-2"></i>View Details
                     </a>
                     <a th:href="@{/evm/vehicle/list}" class="btn btn-outline-primary">
@@ -154,8 +154,8 @@
 
             <!-- Edit Form -->
             <div class="form-container" th:if="${vehicle != null}">
-                <form th:action="@{/evm/vehicle/edit/{vin}(vin=${vehicle.VIN})}" 
-                      method="post" 
+                <form th:action="@{/evm/vehicle/edit/{id}(id=${vehicle.vehicleID})}"
+                      method="post"
                       enctype="multipart/form-data"
                       th:object="${vehicle}">
                     
@@ -167,27 +167,27 @@
                         <h5><i class="fas fa-car me-2"></i>Vehicle Information</h5>
                         <div class="row">
                             <div class="col-md-6">
-                                <label class="form-label">VIN (Read-only)</label>
-                                <input type="text" class="form-control" th:value="${vehicle.VIN}" readonly>
+                                <label class="form-label">Vehicle ID</label>
+                                <input type="text" class="form-control" th:value="${vehicle.vehicleID}" readonly>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Manufacture Date</label>
-                                <input type="date" name="manufactureDate" class="form-control" 
-                                       th:value="${#dates.format(vehicle.manufactureDate, 'yyyy-MM-dd')}" required>
+                                <label class="form-label">Manufacture Year</label>
+                                <input type="number" name="manufactureYear" class="form-control"
+                                       th:value="${vehicle.manufactureYear}" required>
                             </div>
                         </div>
                         <div class="row mt-3">
                             <div class="col-md-6">
                                 <label class="form-label">Status</label>
                                 <select name="status" class="form-select" required>
-                                    <option value="InStock" th:selected="${vehicle.status == 'InStock'}">In Stock</option>
-                                    <option value="InProduction" th:selected="${vehicle.status == 'InProduction'}">In Production</option>
-                                    <option value="Sold" th:selected="${vehicle.status == 'Sold'}">Sold</option>
+                                    <option value="IN_STOCK" th:selected="${vehicle.status == 'IN_STOCK'}">In Stock</option>
+                                    <option value="IN_PRODUCTION" th:selected="${vehicle.status == 'IN_PRODUCTION'}">In Production</option>
+                                    <option value="SOLD" th:selected="${vehicle.status == 'SOLD'}">Sold</option>
                                 </select>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">EVM ID</label>
-                                <input type="number" name="evmID" class="form-control" th:value="${vehicle.evmID}" required>
+                                <label class="form-label">Engine Number</label>
+                                <input type="text" name="engineNumber" class="form-control" th:value="${vehicle.engineNumber}">
                             </div>
                         </div>
                     </div>
@@ -278,7 +278,7 @@
 
                     <!-- Action Buttons -->
                     <div class="d-flex justify-content-end gap-3 mt-4">
-                        <a th:href="@{/evm/vehicle/detail/{vin}(vin=${vehicle.VIN})}" class="btn btn-cancel btn-custom">
+                        <a th:href="@{/evm/vehicle/detail/{id}(id=${vehicle.vehicleID})}" class="btn btn-cancel btn-custom">
                             <i class="fas fa-times me-2"></i>Cancel
                         </a>
                         <button type="submit" class="btn btn-save btn-custom">

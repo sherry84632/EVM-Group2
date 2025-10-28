@@ -17,7 +17,7 @@ public class DAOEVMOrderProcessing {
         String sql = "INSERT INTO EVM_OrderProcessing (PurchaseOrderID, EvmStaffID, ActionType, Remarks) VALUES (?, ?, ?, ?)";
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, process.getPurchaseOrderId());
+            ps.setInt(1, process.getPurchaseOrder().getPurchaseOrderId());
             ps.setInt(2, process.getEvmStaffId());
             ps.setString(3, process.getActionType());
             ps.setString(4, process.getRemarks());
@@ -37,9 +37,13 @@ public class DAOEVMOrderProcessing {
             ps.setInt(1, orderId);
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
+                // Create DTOPurchaseOrder object
+                DTOPurchaseOrder purchaseOrder = new DTOPurchaseOrder();
+                purchaseOrder.setPurchaseOrderId(rs.getInt("PurchaseOrderID"));
+
                 DTOEVMOrderProcessing p = new DTOEVMOrderProcessing(
                         rs.getInt("ProcessID"),
-                        rs.getInt("PurchaseOrderID"),
+                        purchaseOrder,
                         rs.getInt("EvmStaffID"),
                         rs.getString("ActionType"),
                         rs.getTimestamp("ActionDate"),
