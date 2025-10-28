@@ -47,16 +47,24 @@ public class EVMOrderController {
     // 🔹 Xử lý đơn hàng (phê duyệt / từ chối)
     @PostMapping("/process/{id}")
     public String processOrder(@PathVariable int id,
-                               @ModelAttribute("process") DTOEVMOrderProcessing process,
+                               @RequestParam("actionType") String actionType,
                                RedirectAttributes redirectAttributes) {
 
         System.out.println("🔍 Processing order ID: " + id);
+        System.out.println("📋 Action Type: " + actionType);
 
-        //process.setPurchaseOrderId(id);
-        //process.setEvmStaffId(1); // demo
-        //processDAO.addProcessing(process);
-
-        String newStatus = process.getActionType().equalsIgnoreCase("Approve") ? "Approved" : "Rejected";
+        // ✅ Map action type to correct enum value
+        PurchaseOrderStatus newStatus;
+        if (actionType.equalsIgnoreCase("Approve")) {
+            newStatus = PurchaseOrderStatus.APPROVED;
+        } else if (actionType.equalsIgnoreCase("Reject")) {
+            newStatus = PurchaseOrderStatus.CANCELLED;
+        } else {
+            System.out.println("❌ Invalid action type: " + actionType);
+            redirectAttributes.addFlashAttribute("message", "❌ Invalid action!");
+            redirectAttributes.addFlashAttribute("statusType", "error");
+            return "redirect:/evm/orders/evmOrderList";
+        }
 
         // ✅ Lấy chi tiết đơn hàng TRƯỚC KHI update status
         DTOPurchaseOrder order = purchaseOrderDAO.getPurchaseOrderById(id);
@@ -71,12 +79,12 @@ public class EVMOrderController {
         System.out.println("📦 Order found - DealerID: " + order.getDealer().getDealerID() + ", Status: " + order.getStatus());
 
         // Update status
-        order.setStatus(PurchaseOrderStatus.valueOf(newStatus));
-        purchaseOrderDAO.updatePurchaseOrderStatus(order.getPurchaseOrderId(), order.getStatus());
+        order.setStatus(newStatus);
+        purchaseOrderDAO.updatePurchaseOrderStatus(order.getPurchaseOrderId(), newStatus);
         System.out.println("✅ Updated status to: " + newStatus);
 
         // ✅ Nếu đơn hàng được Approved, thêm xe vào inventory của dealer
-        if ("Approved".equals(newStatus)) {
+        if (newStatus == PurchaseOrderStatus.APPROVED) {
             System.out.println("🚗 Bắt đầu thêm xe vào inventory...");
             DAODealerInventory inventoryDAO = new DAODealerInventory();
 
@@ -88,7 +96,7 @@ public class EVMOrderController {
 
                 int successCount = 0;
                 for (DTOPurchaseOrderDetail detail : order.getOrderDetails()) {
-                    System.out.println("  ➤ Thêm xe: ModelID=" + detail.getVersion().getModel()
+                    System.out.println("  ➤ Thêm xe: ModelID=" + detail.getVersion().getModel().getModelID()
                         + ", ColorID=" + detail.getColor().getColorID()
                         + ", Quantity=" + detail.getQuantity());
 
@@ -111,11 +119,11 @@ public class EVMOrderController {
         }
 
         // 🔹 Gửi flash message về lại evmOrderList
-        String msg = newStatus.equals("Approved")
+        String msg = (newStatus == PurchaseOrderStatus.APPROVED)
                 ? "✅ The order has been approved successfully!"
                 : "❌ The order has been rejected!";
         redirectAttributes.addFlashAttribute("message", msg);
-        redirectAttributes.addFlashAttribute("statusType", newStatus);
+        redirectAttributes.addFlashAttribute("statusType", newStatus.name());
 
         return "redirect:/evm/orders/evmOrderList";
     }

@@ -70,10 +70,13 @@ public class DAOPurchaseOrder {
 
         String sqlDetail = """
                 SELECT pod.PODetailID, pod.PurchaseOrderID, pod.ColorID, pod.VersionID, pod.UnitPrice, pod.Quantity, pod.Subtotal,
-                       vc.ColorID, vc.ColorName, vv.VersionID, vv.VersionName
+                       vc.ColorID, vc.ColorName, 
+                       vv.VersionID, vv.VersionName, vv.ModelID,
+                       vm.ModelID, vm.ModelName
                 FROM PurchaseOrderDetail pod
                 LEFT JOIN VehicleColor vc ON pod.ColorID = vc.ColorID
                 LEFT JOIN VehicleVersion vv ON pod.VersionID = vv.VersionID
+                LEFT JOIN VehicleModel vm ON vv.ModelID = vm.ModelID
                 WHERE pod.PurchaseOrderID = ?
                 """;
 
@@ -123,11 +126,19 @@ public class DAOPurchaseOrder {
                                     d.setColor(color);
                                 }
                                 
-                                // Set version relationship if available
+                                // Set version relationship with model if available
                                 if (drs.getString("VersionName") != null) {
+                                    // Create VehicleModel first
+                                    DTOVehicleModel model = new DTOVehicleModel();
+                                    model.setModelID(drs.getInt("ModelID"));
+                                    model.setModelName(drs.getString("ModelName"));
+
+                                    // Create VehicleVersion with model
                                     DTOVehicleVersion version = new DTOVehicleVersion();
                                     version.setVersionID(drs.getInt("VersionID"));
                                     version.setVersionName(drs.getString("VersionName"));
+                                    version.setModel(model);
+
                                     d.setVersion(version);
                                 }
                                 
@@ -198,28 +209,33 @@ public class DAOPurchaseOrder {
         return -1;
     }
 
-    // ✅ Lấy DealerID theo email (tự động tạo nếu chưa có)
+    // ✅ Lấy DealerID theo email (từ DealerStaff)
     public int getDealerIdByEmail(String email) {
-        String selectSql = "SELECT DealerID FROM Dealer WHERE Email = ?";
-        String insertSql = "INSERT INTO Dealer (dealerName, address, phone, email, EvmID, AccountID, LevelID, PolicyID) " +
-                "VALUES (?, NULL, NULL, ?, NULL, NULL, 1, NULL)";
+        // Tìm trong DealerStaff trước (vì user đăng nhập là staff)
+        String selectStaffSql = "SELECT DealerID FROM DealerStaff WHERE Email = ?";
 
         try (Connection conn = DBUtils.getConnection()) {
-            // 🔍 Tìm Dealer trước
-            try (PreparedStatement ps = conn.prepareStatement(selectSql)) {
+            // 🔍 Tìm Staff theo email
+            try (PreparedStatement ps = conn.prepareStatement(selectStaffSql)) {
                 ps.setString(1, email);
                 try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) return rs.getInt("DealerID");
+                    if (rs.next()) {
+                        int dealerId = rs.getInt("DealerID");
+                        if (dealerId > 0) {
+                            return dealerId;
+                        }
+                    }
                 }
             }
 
-            // ⚙️ Nếu chưa có thì tạo mới Dealer
-            try (PreparedStatement ps = conn.prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS)) {
-                ps.setString(1, email.split("@")[0]); // dealerName theo email
-                ps.setString(2, email);
-                ps.executeUpdate();
-                try (ResultSet rs = ps.getGeneratedKeys()) {
-                    if (rs.next()) return rs.getInt(1);
+            // Nếu không tìm thấy trong DealerStaff, thử tìm trong Dealer
+            String selectDealerSql = "SELECT DealerID FROM Dealer WHERE Email = ?";
+            try (PreparedStatement ps = conn.prepareStatement(selectDealerSql)) {
+                ps.setString(1, email);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getInt("DealerID");
+                    }
                 }
             }
 
@@ -229,32 +245,17 @@ public class DAOPurchaseOrder {
         return -1;
     }
 
-    // ✅ Lấy StaffID theo email (tự động tạo nếu chưa có)
+    // ✅ Lấy StaffID theo email
     public int getStaffIdByEmail(String email) {
         String selectSql = "SELECT StaffID FROM DealerStaff WHERE Email = ?";
-        String insertSql = "INSERT INTO DealerStaff (DealerID, FullName, Position, Email) VALUES (?, ?, ?, ?)";
 
         try (Connection conn = DBUtils.getConnection()) {
-            // 🔍 Tìm Staff trước
+            // 🔍 Tìm Staff theo email
             try (PreparedStatement ps = conn.prepareStatement(selectSql)) {
                 ps.setString(1, email);
                 try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) return rs.getInt("StaffID");
-                }
-            }
-
-            // ⚙️ Nếu chưa có thì tạo Staff mới (gắn với Dealer tương ứng)
-            int dealerId = getDealerIdByEmail(email);
-            if (dealerId > 0) {
-                try (PreparedStatement ps = conn.prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS)) {
-                    ps.setInt(1, dealerId);
-                    ps.setString(2, "Staff " + email.split("@")[0]);
-                    ps.setString(3, "Sales");
-                    ps.setString(4, email);
-                    ps.executeUpdate();
-
-                    try (ResultSet rs = ps.getGeneratedKeys()) {
-                        if (rs.next()) return rs.getInt(1);
+                    if (rs.next()) {
+                        return rs.getInt("StaffID");
                     }
                 }
             }
