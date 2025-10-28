@@ -9,8 +9,7 @@
     <link rel="stylesheet" href="/css/mainPageStyle.css">
     <link rel="stylesheet" href="/css/iconStyle.css">
     <link rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"
-          crossorigin="anonymous" referrerpolicy="no-referrer" />
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
 </head>
 
 <body class="bg-gradient2-custom">
@@ -29,7 +28,7 @@
             <h2>Create a New Customer</h2>
         </div>
 
-        <div class="d-flex create-vehicle-form-container">
+        <div class="create-vehicle-form-container">
 
             <!-- ✅ action khớp controller -->
             <form action="/customer/save" method="post">
@@ -81,7 +80,10 @@
                     <input name="vehicleInterest" type="text" class="create-vehicle-form-input mb-1">
                 </div>
 
-                <button type="submit" class="btn btn-dark rounded-pill">Create</button>
+                <div class="create-vehicle-form-row">
+                    <label></label>
+                    <button type="submit" class="btn btn-dark rounded-pill" style="margin-bottom: 20px">Create</button>
+                </div>
             </form>
 
             <div th:if="${error}" class="alert alert-danger mt-3" role="alert">
