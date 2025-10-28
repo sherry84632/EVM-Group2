@@ -7,6 +7,8 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.time.LocalDate;
+import java.sql.Date;
 import java.util.List;
 
 @Controller
@@ -80,6 +82,17 @@ public class EVMOrderController {
         } else {
             return "redirect:/evm/orders/list?error=Order not found";
         }
+    }
+
+    private void ensureDeliveryCreated(int purchaseOrderId) {
+        DAODelivery daoDelivery = new DAODelivery();
+        DTODelivery del = new DTODelivery();
+        DTOPurchaseOrder po = new DTOPurchaseOrder();
+        po.setPurchaseOrderId(purchaseOrderId);
+        del.setPurchaseOrder(po);
+        del.setDeliveryDate(Date.valueOf(LocalDate.now().plusDays(7))); // planned +7 days
+        del.setDeliveryStatus(DeliveryStatus.CREATED); // use existing enum value
+        daoDelivery.createDelivery(del); // ignore result
     }
 
     // 🔹 Xử lý đơn hàng (phê duyệt / từ chối)
@@ -170,6 +183,8 @@ public class EVMOrderController {
                 }
                 System.out.println("📊 Kết quả: " + successCount + "/" + order.getOrderDetails().size() + " thành công");
             }
+
+            ensureDeliveryCreated(order.getPurchaseOrderId());
         }
 
         // 🔹 Gửi flash message về lại evmOrderList
@@ -180,5 +195,35 @@ public class EVMOrderController {
         redirectAttributes.addFlashAttribute("statusType", newStatus.name());
 
         return "redirect:/evm/orders/list";
+    }
+
+    @PostMapping("/delivery/{orderId}/status")
+    public String updateDeliveryStatus(@PathVariable int orderId,
+                                       @RequestParam("newStatus") String newStatus,
+                                       RedirectAttributes redirectAttributes){
+        DAODelivery daoDelivery = new DAODelivery();
+        if(!daoDelivery.existsDelivery(orderId)){
+            ensureDeliveryCreated(orderId); // create if missing
+        }
+        DeliveryStatus target;
+        try { target = DeliveryStatus.valueOf(newStatus.toUpperCase()); } catch(IllegalArgumentException ex){
+            redirectAttributes.addFlashAttribute("message","❌ Invalid delivery status");
+            redirectAttributes.addFlashAttribute("statusType","error");
+            return "redirect:/evm/orders/detail/"+orderId;
+        }
+        java.util.Date now = new java.util.Date();
+        boolean ok = daoDelivery.updateDeliveryStatusByPurchaseOrderId(orderId,target, (target==DeliveryStatus.IN_TRANSIT||target==DeliveryStatus.CREATED)? daoDelivery.getLatestByPurchaseOrderId(orderId)!=null? daoDelivery.getLatestByPurchaseOrderId(orderId).getDeliveryDate(): now : now);
+        if(ok){
+            // sync purchase order status
+            if(target==DeliveryStatus.IN_TRANSIT){ purchaseOrderDAO.updatePurchaseOrderStatus(orderId, PurchaseOrderStatus.IN_PROCESS); }
+            if(target==DeliveryStatus.DELIVERED){ purchaseOrderDAO.updatePurchaseOrderStatus(orderId, PurchaseOrderStatus.DELIVERED); }
+            if(target==DeliveryStatus.CANCELLED){ purchaseOrderDAO.updatePurchaseOrderStatus(orderId, PurchaseOrderStatus.CANCELLED); }
+            redirectAttributes.addFlashAttribute("message","✅ Delivery status updated to "+target);
+            redirectAttributes.addFlashAttribute("statusType",target.name());
+        } else {
+            redirectAttributes.addFlashAttribute("message","❌ Failed to update delivery status");
+            redirectAttributes.addFlashAttribute("statusType","error");
+        }
+        return "redirect:/evm/orders/detail/"+orderId;
     }
 }

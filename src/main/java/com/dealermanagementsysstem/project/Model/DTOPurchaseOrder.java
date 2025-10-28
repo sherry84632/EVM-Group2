@@ -56,6 +56,12 @@ public class DTOPurchaseOrder {
     @Transient
     private Integer totalQuantity; // computed sum of detail quantities
 
+    @Transient private Date plannedDeliveryDate;
+    @Transient private Date actualDeliveryDate;
+    @Transient private String deliveryMethod;
+    @Transient private String shippingStatus;
+    @Transient private String logisticsNotes;
+
     public DTOPurchaseOrder() {}
 
     public DTOPurchaseOrder(int purchaseOrderId, DTODealer dealer, DTODealerStaff staff, 
@@ -176,6 +182,17 @@ public class DTOPurchaseOrder {
 
     public Integer getTotalQuantity() { return totalQuantity; }
     public void setTotalQuantity(Integer totalQuantity) { this.totalQuantity = totalQuantity; }
+
+    public Date getPlannedDeliveryDate() { return plannedDeliveryDate; }
+    public void setPlannedDeliveryDate(Date plannedDeliveryDate) { this.plannedDeliveryDate = plannedDeliveryDate; }
+    public Date getActualDeliveryDate() { return actualDeliveryDate; }
+    public void setActualDeliveryDate(Date actualDeliveryDate) { this.actualDeliveryDate = actualDeliveryDate; }
+    public String getDeliveryMethod() { return deliveryMethod; }
+    public void setDeliveryMethod(String deliveryMethod) { this.deliveryMethod = deliveryMethod; }
+    public String getShippingStatus() { return shippingStatus; }
+    public void setShippingStatus(String shippingStatus) { this.shippingStatus = shippingStatus; }
+    public String getLogisticsNotes() { return logisticsNotes; }
+    public void setLogisticsNotes(String logisticsNotes) { this.logisticsNotes = logisticsNotes; }
 
     @Override
     public String toString() {

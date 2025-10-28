@@ -464,31 +464,40 @@
                     <h6><i class="fas fa-truck me-2"></i>Delivery & Production</h6>
                     <div class="info-row">
                         <span class="info-label">Planned Delivery:</span>
-                        <span class="info-value empty-field">-</span>
+                        <span class="info-value" th:text="${order.plannedDeliveryDate != null ? #dates.format(order.plannedDeliveryDate,'dd/MM/yyyy') : '-'}">-</span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Actual Delivery:</span>
-                        <span class="info-value empty-field">-</span>
+                        <span class="info-value" th:text="${order.actualDeliveryDate != null ? #dates.format(order.actualDeliveryDate,'dd/MM/yyyy') : '-'}">-</span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Delivery Method:</span>
-                        <span class="info-value empty-field">-</span>
+                        <span class="info-value" th:text="${order.deliveryMethod ?: '-'}">-</span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Shipping Status:</span>
-                        <span class="info-value empty-field">-</span>
+                        <span class="info-value" th:text="${order.shippingStatus ?: (order.status.name()=='APPROVED' ? 'PLANNED' : '-')} ">-</span>
                     </div>
-                    <div class="info-row">
-                        <span class="info-label">Production Status:</span>
-                        <span class="info-value empty-field">-</span>
+                    <div class="info-row" th:if="${order.logisticsNotes}">
+                        <span class="info-label">Notes:</span>
+                        <span class="info-value" th:text="${order.logisticsNotes}">-</span>
                     </div>
-                    <div class="info-row">
-                        <span class="info-label">Factory:</span>
-                        <span class="info-value empty-field">-</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">VIN:</span>
-                        <span class="info-value empty-field">-</span>
+                    <div class="mt-3" th:if="${order.status.name() == 'APPROVED' or order.status.name()=='IN_PROCESS'}">
+                        <form th:action="@{'/evm/orders/delivery/' + ${order.purchaseOrderId} + '/status'}" method="post" class="row g-2 align-items-end">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                            <div class="col-auto">
+                                <label for="newStatus" class="form-label mb-0">Update Delivery Status</label>
+                                <select name="newStatus" id="newStatus" class="form-select form-select-sm">
+                                    <option value="CREATED" th:selected="${order.shippingStatus=='CREATED'}">CREATED</option>
+                                    <option value="IN_TRANSIT" th:selected="${order.shippingStatus=='IN_TRANSIT'}">IN_TRANSIT</option>
+                                    <option value="DELIVERED" th:selected="${order.shippingStatus=='DELIVERED'}">DELIVERED</option>
+                                    <option value="CANCELLED" th:selected="${order.shippingStatus=='CANCELLED'}">CANCELLED</option>
+                                </select>
+                            </div>
+                            <div class="col-auto">
+                                <button type="submit" class="btn btn-outline-primary btn-sm"><i class="fas fa-sync me-1"></i>Apply</button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>

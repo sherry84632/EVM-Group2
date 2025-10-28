@@ -20,7 +20,8 @@ public class DAOPurchaseOrder {
                        dl.LevelName,
                        ds.StaffID, ds.FullName AS StaffName, ds.Position AS StaffPosition,
                        adj.DiscountPercent AS AdjustmentDiscountPercent, adj.PromotionName AS AdjustmentPromotionName,
-                       pol.PolicyName, pol.HangPercent, pol.DailyPercent
+                       pol.PolicyName, pol.HangPercent, pol.DailyPercent,
+                       dly.DeliveryDate AS LatestDeliveryDate, dly.DeliveryStatus AS LatestDeliveryStatus
                 FROM PurchaseOrder po
                 LEFT JOIN Dealer d ON po.DealerID = d.DealerID
                 LEFT JOIN DealerStaff ds ON po.StaffID = ds.StaffID
@@ -39,6 +40,12 @@ public class DAOPurchaseOrder {
                    WHERE dp.DealerID = d.DealerID
                    ORDER BY dp.CreatedAt DESC
                 ) pol
+                OUTER APPLY (
+                   SELECT TOP 1 DeliveryDate, DeliveryStatus
+                   FROM Delivery dv
+                   WHERE dv.PurchaseOrderID = po.PurchaseOrderID
+                   ORDER BY dv.DeliveryID DESC
+                ) dly
                 ORDER BY po.PurchaseOrderID DESC
                 """;
 
@@ -76,6 +83,11 @@ public class DAOPurchaseOrder {
                 else if (rs.getBigDecimal("DailyPercent") != null) policyPercent = rs.getBigDecimal("DailyPercent").doubleValue();
                 dto.setPolicyDiscountPercent(policyPercent);
                 if (dto.getStatus() == PurchaseOrderStatus.APPROVED) dto.setApprovedByStaffName(staff.getFullName());
+                // hydrate delivery summary
+                Timestamp deliveryDate = rs.getTimestamp("LatestDeliveryDate");
+                if (deliveryDate != null) dto.setPlannedDeliveryDate(deliveryDate);
+                String delStatus = rs.getString("LatestDeliveryStatus");
+                if (delStatus != null) dto.setShippingStatus(delStatus);
                 list.add(dto);
             }
 
@@ -91,7 +103,8 @@ public class DAOPurchaseOrder {
                        dl.LevelName,
                        ds.StaffID, ds.FullName AS StaffName, ds.Position AS StaffPosition,
                        adj.DiscountPercent AS AdjustmentDiscountPercent, adj.PromotionName AS AdjustmentPromotionName,
-                       pol.PolicyName, pol.HangPercent, pol.DailyPercent
+                       pol.PolicyName, pol.HangPercent, pol.DailyPercent,
+                       dly.DeliveryDate AS LatestDeliveryDate, dly.DeliveryStatus AS LatestDeliveryStatus
                 FROM PurchaseOrder po
                 LEFT JOIN Dealer d ON po.DealerID = d.DealerID
                 LEFT JOIN DealerStaff ds ON po.StaffID = ds.StaffID
@@ -110,6 +123,12 @@ public class DAOPurchaseOrder {
                    WHERE dp.DealerID = d.DealerID
                    ORDER BY dp.CreatedAt DESC
                 ) pol
+                OUTER APPLY (
+                   SELECT TOP 1 DeliveryDate, DeliveryStatus
+                   FROM Delivery dv
+                   WHERE dv.PurchaseOrderID = po.PurchaseOrderID
+                   ORDER BY dv.DeliveryID DESC
+                ) dly
                 WHERE po.PurchaseOrderID = ?
                 """;
 
@@ -226,6 +245,13 @@ public class DAOPurchaseOrder {
                             int totalQty = details.stream().mapToInt(DTOPurchaseOrderDetail::getQuantity).sum();
                             dto.setTotalQuantity(totalQty);
                         }
+                    }
+                    // hydrate delivery info
+                    dto.setPlannedDeliveryDate(rs.getTimestamp("LatestDeliveryDate"));
+                    dto.setShippingStatus(rs.getString("LatestDeliveryStatus"));
+                    if ("DELIVERED".equals(rs.getString("LatestDeliveryStatus"))) {
+                        dto.setActualDeliveryDate(rs.getTimestamp("LatestDeliveryDate"));
+                        if (dto.getStatus() != PurchaseOrderStatus.CANCELLED) dto.setStatus(PurchaseOrderStatus.DELIVERED);
                     }
                     return dto;
                 }
