@@ -3,25 +3,25 @@ package com.dealermanagementsysstem.project.Model;
 import org.springframework.stereotype.Repository;
 import utils.DBUtils;
 
+import java.math.BigDecimal;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
 @Repository
 public class DAOPurchaseOrder {
-
     // 🔹 Lấy danh sách tất cả PurchaseOrders
     public List<DTOPurchaseOrder> getAllPurchaseOrders() {
         List<DTOPurchaseOrder> list = new ArrayList<>();
         String sql = """
-                SELECT po.PurchaseOrderID, po.DealerID, po.StaffID, po.CreatedAt, po.Status, po.TotalAmount, po.EvmID,
-                       d.DealerID, d.DealerName,
-                       ds.StaffID, ds.FullName AS StaffName
-                FROM PurchaseOrder po
-                LEFT JOIN Dealer d ON po.DealerID = d.DealerID
-                LEFT JOIN DealerStaff ds ON po.StaffID = ds.StaffID
-                ORDER BY po.PurchaseOrderID DESC
-                """;
+        SELECT po.PurchaseOrderID, po.DealerID, po.StaffID, po.CreatedAt, po.Status, po.TotalAmount, po.EvmID,
+               d.DealerID, d.DealerName,
+               ds.StaffID, ds.FullName AS StaffName
+        FROM PurchaseOrder po
+        LEFT JOIN Dealer d ON po.DealerID = d.DealerID
+        LEFT JOIN DealerStaff ds ON po.StaffID = ds.StaffID
+        ORDER BY po.PurchaseOrderID DESC
+        """;
 
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -59,23 +59,23 @@ public class DAOPurchaseOrder {
     // 🔹 Lấy 1 đơn hàng theo ID (kèm chi tiết)
     public DTOPurchaseOrder getPurchaseOrderById(int id) {
         String sqlOrder = """
-                SELECT po.PurchaseOrderID, po.DealerID, po.StaffID, po.CreatedAt, po.Status, po.TotalAmount, po.EvmID,
-                       d.DealerID, d.DealerName, d.Address AS DealerAddress, d.Phone AS DealerPhone, d.Email AS DealerEmail,
-                       ds.StaffID, ds.FullName AS StaffName, ds.Position AS StaffPosition
-                FROM PurchaseOrder po
-                LEFT JOIN Dealer d ON po.DealerID = d.DealerID
-                LEFT JOIN DealerStaff ds ON po.StaffID = ds.StaffID
-                WHERE po.PurchaseOrderID = ?
-                """;
+        SELECT po.PurchaseOrderID, po.DealerID, po.StaffID, po.CreatedAt, po.Status, po.TotalAmount, po.EvmID,
+               d.DealerID, d.DealerName, d.Address AS DealerAddress, d.Phone AS DealerPhone, d.Email AS DealerEmail,
+               ds.StaffID, ds.FullName AS StaffName, ds.Position AS StaffPosition
+        FROM PurchaseOrder po
+        LEFT JOIN Dealer d ON po.DealerID = d.DealerID
+        LEFT JOIN DealerStaff ds ON po.StaffID = ds.StaffID
+        WHERE po.PurchaseOrderID = ?
+        """;
 
         String sqlDetail = """
-                SELECT pod.PODetailID, pod.PurchaseOrderID, pod.ColorID, pod.VersionID, pod.UnitPrice, pod.Quantity, pod.Subtotal,
-                       vc.ColorID, vc.ColorName, vv.VersionID, vv.VersionName
-                FROM PurchaseOrderDetail pod
-                LEFT JOIN VehicleColor vc ON pod.ColorID = vc.ColorID
-                LEFT JOIN VehicleVersion vv ON pod.VersionID = vv.VersionID
-                WHERE pod.PurchaseOrderID = ?
-                """;
+        SELECT pod.PODetailID, pod.PurchaseOrderID, pod.ColorID, pod.VersionID, pod.UnitPrice, pod.Quantity, pod.Subtotal,
+               vc.ColorID, vc.ColorName, vv.VersionID, vv.VersionName
+        FROM PurchaseOrderDetail pod
+        LEFT JOIN VehicleColor vc ON pod.ColorID = vc.ColorID
+        LEFT JOIN VehicleVersion vv ON pod.VersionID = vv.VersionID
+        WHERE pod.PurchaseOrderID = ?
+        """;
 
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement psOrder = conn.prepareStatement(sqlOrder)) {
@@ -94,12 +94,16 @@ public class DAOPurchaseOrder {
                     DTODealer dealer = new DTODealer();
                     dealer.setDealerID(rs.getInt("DealerID"));
                     dealer.setDealerName(rs.getString("DealerName"));
+                    dealer.setAddress(rs.getString("DealerAddress"));
+                    dealer.setEmail(rs.getString("DealerEmail"));
+                    dealer.setPhone(rs.getString("DealerPhone"));
                     dto.setDealer(dealer);
 
                     // Staff info
                     DTODealerStaff staff = new DTODealerStaff();
                     staff.setStaffID(rs.getInt("StaffID"));
                     staff.setFullName(rs.getString("StaffName"));
+                    staff.setPosition(rs.getString("StaffPosition"));
                     dto.setStaff(staff);
 
                     // 🔹 Lấy danh sách chi tiết đơn hàng
@@ -110,27 +114,27 @@ public class DAOPurchaseOrder {
                             while (drs.next()) {
                                 DTOPurchaseOrderDetail d = new DTOPurchaseOrderDetail();
                                 d.setPoDetailId(drs.getInt("PODetailID"));
-                                d.setPurchaseOrder(dto); // Set the parent purchase order
+                                d.setPurchaseOrder(dto);
                                 d.setUnitPrice(drs.getBigDecimal("UnitPrice"));
                                 d.setQuantity(drs.getInt("Quantity"));
                                 d.setSubtotal(drs.getBigDecimal("Subtotal"));
-                                
-                                // Set color relationship if available
+
+                                // Color
                                 if (drs.getString("ColorName") != null) {
                                     DTOVehicleColor color = new DTOVehicleColor();
                                     color.setColorID(drs.getInt("ColorID"));
                                     color.setColorName(drs.getString("ColorName"));
                                     d.setColor(color);
                                 }
-                                
-                                // Set version relationship if available
+
+                                // Version
                                 if (drs.getString("VersionName") != null) {
                                     DTOVehicleVersion version = new DTOVehicleVersion();
                                     version.setVersionID(drs.getInt("VersionID"));
                                     version.setVersionName(drs.getString("VersionName"));
                                     d.setVersion(version);
                                 }
-                                
+
                                 details.add(d);
                             }
                             dto.setOrderDetails(details);
@@ -198,52 +202,47 @@ public class DAOPurchaseOrder {
         return -1;
     }
 
-    // ✅ Lấy DealerID theo email (tự động tạo nếu chưa có)
+    // ✅ Lấy DealerID theo email
     public int getDealerIdByEmail(String email) {
         String selectSql = "SELECT DealerID FROM Dealer WHERE Email = ?";
-        String insertSql = "INSERT INTO Dealer (dealerName, address, phone, email, EvmID, AccountID, LevelID, PolicyID) " +
-                "VALUES (?, NULL, NULL, ?, NULL, NULL, 1, NULL)";
-
+        String insertSql = "INSERT INTO Dealer (EvmID, LevelID, PolicyID, Address, DealerName, Email, Phone) VALUES (?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = DBUtils.getConnection()) {
-            // 🔍 Tìm Dealer trước
             try (PreparedStatement ps = conn.prepareStatement(selectSql)) {
                 ps.setString(1, email);
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) return rs.getInt("DealerID");
                 }
             }
-
-            // ⚙️ Nếu chưa có thì tạo mới Dealer
             try (PreparedStatement ps = conn.prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS)) {
-                ps.setString(1, email.split("@")[0]); // dealerName theo email
-                ps.setString(2, email);
+                ps.setInt(1, 1);
+                ps.setInt(2, 1);
+                ps.setInt(3, 1);
+                ps.setString(4, "Unknown Address");
+                ps.setString(5, email.split("@")[0]);
+                ps.setString(6, email);
+                ps.setString(7, "000-000-0000");
                 ps.executeUpdate();
                 try (ResultSet rs = ps.getGeneratedKeys()) {
                     if (rs.next()) return rs.getInt(1);
                 }
             }
-
         } catch (SQLException e) {
             e.printStackTrace();
         }
         return -1;
     }
 
-    // ✅ Lấy StaffID theo email (tự động tạo nếu chưa có)
+    // ✅ Lấy StaffID theo email
     public int getStaffIdByEmail(String email) {
         String selectSql = "SELECT StaffID FROM DealerStaff WHERE Email = ?";
         String insertSql = "INSERT INTO DealerStaff (DealerID, FullName, Position, Email) VALUES (?, ?, ?, ?)";
-
         try (Connection conn = DBUtils.getConnection()) {
-            // 🔍 Tìm Staff trước
             try (PreparedStatement ps = conn.prepareStatement(selectSql)) {
                 ps.setString(1, email);
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) return rs.getInt("StaffID");
                 }
             }
-
-            // ⚙️ Nếu chưa có thì tạo Staff mới (gắn với Dealer tương ứng)
             int dealerId = getDealerIdByEmail(email);
             if (dealerId > 0) {
                 try (PreparedStatement ps = conn.prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS)) {
@@ -252,31 +251,30 @@ public class DAOPurchaseOrder {
                     ps.setString(3, "Sales");
                     ps.setString(4, email);
                     ps.executeUpdate();
-
                     try (ResultSet rs = ps.getGeneratedKeys()) {
                         if (rs.next()) return rs.getInt(1);
                     }
                 }
             }
-
         } catch (SQLException e) {
             e.printStackTrace();
         }
         return -1;
     }
+
     // 🔹 Lấy danh sách đơn hàng theo DealerID
     public List<DTOPurchaseOrder> getPurchaseOrdersByDealerId(int dealerId) {
         List<DTOPurchaseOrder> list = new ArrayList<>();
         String sql = """
-            SELECT po.PurchaseOrderID, po.DealerID, po.StaffID, po.CreatedAt, po.Status, po.TotalAmount, po.EvmID,
-                   d.DealerID, d.DealerName,
-                   ds.StaffID, ds.FullName AS StaffName
-            FROM PurchaseOrder po
-            LEFT JOIN Dealer d ON po.DealerID = d.DealerID
-            LEFT JOIN DealerStaff ds ON po.StaffID = ds.StaffID
-            WHERE po.DealerID = ?
-            ORDER BY po.PurchaseOrderID DESC
-            """;
+    SELECT po.PurchaseOrderID, po.DealerID, po.StaffID, po.CreatedAt, po.Status, po.TotalAmount, po.EvmID,
+           d.DealerID, d.DealerName,
+           ds.StaffID, ds.FullName AS StaffName
+    FROM PurchaseOrder po
+    LEFT JOIN Dealer d ON po.DealerID = d.DealerID
+    LEFT JOIN DealerStaff ds ON po.StaffID = ds.StaffID
+    WHERE po.DealerID = ?
+    ORDER BY po.PurchaseOrderID DESC
+    """;
 
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -291,13 +289,11 @@ public class DAOPurchaseOrder {
                     dto.setTotalAmount(rs.getBigDecimal("TotalAmount"));
                     dto.setEvmID(rs.getInt("EvmID"));
 
-                    // Dealer info
                     DTODealer dealer = new DTODealer();
                     dealer.setDealerID(rs.getInt("DealerID"));
                     dealer.setDealerName(rs.getString("DealerName"));
                     dto.setDealer(dealer);
 
-                    // Staff info
                     DTODealerStaff staff = new DTODealerStaff();
                     staff.setStaffID(rs.getInt("StaffID"));
                     staff.setFullName(rs.getString("StaffName"));
@@ -311,6 +307,20 @@ public class DAOPurchaseOrder {
             e.printStackTrace();
         }
         return list;
+    }
+
+    // 🔹 Lấy BasePrice của Model
+    public BigDecimal getBasePriceByModelId(int modelId) {
+        String sql = "SELECT BasePrice FROM VehicleModel WHERE ModelID = ?";
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, modelId);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) return rs.getBigDecimal("BasePrice");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return BigDecimal.ZERO;
     }
 
 }
