@@ -3,6 +3,7 @@ package com.dealermanagementsysstem.project.Model;
 import org.springframework.stereotype.Repository;
 import utils.DBUtils;
 
+import java.math.BigDecimal;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -312,5 +313,16 @@ public class DAOPurchaseOrder {
         }
         return list;
     }
-
+    public BigDecimal getBasePriceByModelId(int modelId) {
+        String sql = "SELECT BasePrice FROM VehicleModel WHERE ModelID = ?";
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, modelId);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) return rs.getBigDecimal("BasePrice");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return BigDecimal.ZERO;
+    }
 }
