@@ -41,9 +41,6 @@ public class DAOPurchaseOrder {
                 dealer.setDealerName(rs.getString("DealerName"));
                 dto.setDealer(dealer);
 
-                // Set transient dealerName for easy template access
-                dto.setDealerName(rs.getString("DealerName"));
-
                 // Staff info
                 DTODealerStaff staff = new DTODealerStaff();
                 staff.setStaffID(rs.getInt("StaffID"));
@@ -63,7 +60,7 @@ public class DAOPurchaseOrder {
     public DTOPurchaseOrder getPurchaseOrderById(int id) {
         String sqlOrder = """
                 SELECT po.PurchaseOrderID, po.DealerID, po.StaffID, po.CreatedAt, po.Status, po.TotalAmount, po.EvmID,
-                       d.DealerID, d.DealerName, d.Address AS DealerAddress, d.Phone AS DealerPhone, d.Email AS DealerEmail, d.LevelID,
+                       d.DealerID, d.DealerName, d.Address AS DealerAddress, d.Phone AS DealerPhone, d.Email AS DealerEmail,
                        ds.StaffID, ds.FullName AS StaffName, ds.Position AS StaffPosition
                 FROM PurchaseOrder po
                 LEFT JOIN Dealer d ON po.DealerID = d.DealerID
@@ -73,13 +70,10 @@ public class DAOPurchaseOrder {
 
         String sqlDetail = """
                 SELECT pod.PODetailID, pod.PurchaseOrderID, pod.ColorID, pod.VersionID, pod.UnitPrice, pod.Quantity, pod.Subtotal,
-                       vc.ColorID, vc.ColorName, 
-                       vv.VersionID, vv.VersionName, vv.ModelID,
-                       vm.ModelID, vm.ModelName
+                       vc.ColorID, vc.ColorName, vv.VersionID, vv.VersionName
                 FROM PurchaseOrderDetail pod
                 LEFT JOIN VehicleColor vc ON pod.ColorID = vc.ColorID
                 LEFT JOIN VehicleVersion vv ON pod.VersionID = vv.VersionID
-                LEFT JOIN VehicleModel vm ON vv.ModelID = vm.ModelID
                 WHERE pod.PurchaseOrderID = ?
                 """;
 
@@ -96,40 +90,17 @@ public class DAOPurchaseOrder {
                     dto.setTotalAmount(rs.getBigDecimal("TotalAmount"));
                     dto.setEvmID(rs.getInt("EvmID"));
 
-                    // Dealer info with full details
+                    // Dealer info
                     DTODealer dealer = new DTODealer();
                     dealer.setDealerID(rs.getInt("DealerID"));
                     dealer.setDealerName(rs.getString("DealerName"));
-                    dealer.setAddress(rs.getString("DealerAddress"));
-                    dealer.setPhone(rs.getString("DealerPhone"));
-                    dealer.setEmail(rs.getString("DealerEmail"));
-                    dealer.setLevelID(rs.getInt("LevelID"));
                     dto.setDealer(dealer);
 
-                    // Set transient dealerName for easy template access
-                    dto.setDealerName(rs.getString("DealerName"));
-
-                    // Staff info with position
+                    // Staff info
                     DTODealerStaff staff = new DTODealerStaff();
                     staff.setStaffID(rs.getInt("StaffID"));
                     staff.setFullName(rs.getString("StaffName"));
-                    staff.setPosition(rs.getString("StaffPosition"));
                     dto.setStaff(staff);
-
-                    // Set transient fields for display
-                    // Since DealerLevel table doesn't exist, use LevelID as level name
-                    int levelId = rs.getInt("LevelID");
-                    dto.setDealerLevelName(levelId > 0 ? "Level " + levelId : "N/A");
-
-                    // Policy information - set as N/A since we're not joining DiscountPolicy
-                    // (DiscountPercent is actually in DealerPriceAdjustment, not DiscountPolicy)
-                    dto.setPolicyName("N/A");
-                    dto.setPolicyDiscountPercent(null);
-
-                    // If order is approved, set approved by staff name
-                    if (dto.getStatus() == PurchaseOrderStatus.APPROVED) {
-                        dto.setApprovedByStaffName("EVM Staff"); // Can be updated with actual EVM staff info later
-                    }
 
                     // 🔹 Lấy danh sách chi tiết đơn hàng
                     try (PreparedStatement psDetail = conn.prepareStatement(sqlDetail)) {
@@ -150,28 +121,14 @@ public class DAOPurchaseOrder {
                                     color.setColorID(drs.getInt("ColorID"));
                                     color.setColorName(drs.getString("ColorName"));
                                     d.setColor(color);
-                                    // Set transient field
-                                    d.setColorName(drs.getString("ColorName"));
                                 }
                                 
-                                // Set version relationship with model if available
+                                // Set version relationship if available
                                 if (drs.getString("VersionName") != null) {
-                                    // Create VehicleModel first
-                                    DTOVehicleModel model = new DTOVehicleModel();
-                                    model.setModelID(drs.getInt("ModelID"));
-                                    model.setModelName(drs.getString("ModelName"));
-
-                                    // Create VehicleVersion with model
                                     DTOVehicleVersion version = new DTOVehicleVersion();
                                     version.setVersionID(drs.getInt("VersionID"));
                                     version.setVersionName(drs.getString("VersionName"));
-                                    version.setModel(model);
-
                                     d.setVersion(version);
-
-                                    // Set transient fields for easy template access
-                                    d.setModelName(drs.getString("ModelName"));
-                                    d.setVersionName(drs.getString("VersionName"));
                                 }
                                 
                                 details.add(d);
@@ -241,33 +198,28 @@ public class DAOPurchaseOrder {
         return -1;
     }
 
-    // ✅ Lấy DealerID theo email (từ DealerStaff)
+    // ✅ Lấy DealerID theo email (tự động tạo nếu chưa có)
     public int getDealerIdByEmail(String email) {
-        // Tìm trong DealerStaff trước (vì user đăng nhập là staff)
-        String selectStaffSql = "SELECT DealerID FROM DealerStaff WHERE Email = ?";
+        String selectSql = "SELECT DealerID FROM Dealer WHERE Email = ?";
+        String insertSql = "INSERT INTO Dealer (dealerName, address, phone, email, EvmID, AccountID, LevelID, PolicyID) " +
+                "VALUES (?, NULL, NULL, ?, NULL, NULL, 1, NULL)";
 
         try (Connection conn = DBUtils.getConnection()) {
-            // 🔍 Tìm Staff theo email
-            try (PreparedStatement ps = conn.prepareStatement(selectStaffSql)) {
+            // 🔍 Tìm Dealer trước
+            try (PreparedStatement ps = conn.prepareStatement(selectSql)) {
                 ps.setString(1, email);
                 try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) {
-                        int dealerId = rs.getInt("DealerID");
-                        if (dealerId > 0) {
-                            return dealerId;
-                        }
-                    }
+                    if (rs.next()) return rs.getInt("DealerID");
                 }
             }
 
-            // Nếu không tìm thấy trong DealerStaff, thử tìm trong Dealer
-            String selectDealerSql = "SELECT DealerID FROM Dealer WHERE Email = ?";
-            try (PreparedStatement ps = conn.prepareStatement(selectDealerSql)) {
-                ps.setString(1, email);
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) {
-                        return rs.getInt("DealerID");
-                    }
+            // ⚙️ Nếu chưa có thì tạo mới Dealer
+            try (PreparedStatement ps = conn.prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS)) {
+                ps.setString(1, email.split("@")[0]); // dealerName theo email
+                ps.setString(2, email);
+                ps.executeUpdate();
+                try (ResultSet rs = ps.getGeneratedKeys()) {
+                    if (rs.next()) return rs.getInt(1);
                 }
             }
 
@@ -277,17 +229,32 @@ public class DAOPurchaseOrder {
         return -1;
     }
 
-    // ✅ Lấy StaffID theo email
+    // ✅ Lấy StaffID theo email (tự động tạo nếu chưa có)
     public int getStaffIdByEmail(String email) {
         String selectSql = "SELECT StaffID FROM DealerStaff WHERE Email = ?";
+        String insertSql = "INSERT INTO DealerStaff (DealerID, FullName, Position, Email) VALUES (?, ?, ?, ?)";
 
         try (Connection conn = DBUtils.getConnection()) {
-            // 🔍 Tìm Staff theo email
+            // 🔍 Tìm Staff trước
             try (PreparedStatement ps = conn.prepareStatement(selectSql)) {
                 ps.setString(1, email);
                 try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) {
-                        return rs.getInt("StaffID");
+                    if (rs.next()) return rs.getInt("StaffID");
+                }
+            }
+
+            // ⚙️ Nếu chưa có thì tạo Staff mới (gắn với Dealer tương ứng)
+            int dealerId = getDealerIdByEmail(email);
+            if (dealerId > 0) {
+                try (PreparedStatement ps = conn.prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS)) {
+                    ps.setInt(1, dealerId);
+                    ps.setString(2, "Staff " + email.split("@")[0]);
+                    ps.setString(3, "Sales");
+                    ps.setString(4, email);
+                    ps.executeUpdate();
+
+                    try (ResultSet rs = ps.getGeneratedKeys()) {
+                        if (rs.next()) return rs.getInt(1);
                     }
                 }
             }
@@ -329,9 +296,6 @@ public class DAOPurchaseOrder {
                     dealer.setDealerID(rs.getInt("DealerID"));
                     dealer.setDealerName(rs.getString("DealerName"));
                     dto.setDealer(dealer);
-
-                    // Set transient dealerName for easy template access
-                    dto.setDealerName(rs.getString("DealerName"));
 
                     // Staff info
                     DTODealerStaff staff = new DTODealerStaff();
