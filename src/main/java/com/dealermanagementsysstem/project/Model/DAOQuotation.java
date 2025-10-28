@@ -45,11 +45,18 @@ public class DAOQuotation {
                     vehicle.setVehicleID(rs.getInt("VehicleID"));
                     vehicle.setManufactureYear(rs.getInt("ManufactureYear"));
                     vehicle.setEngineNumber(rs.getString("EngineNumber"));
-                    vehicle.setStatus(VehicleStatus.valueOf(rs.getString("Status")));
+                    String statusStr = rs.getString("Status");
+                    if (statusStr != null && !statusStr.isBlank()) {
+                        try {
+                            vehicle.setStatus(VehicleStatus.valueOf(statusStr));
+                        } catch (IllegalArgumentException ex) {
+                            log.warn("Unknown VehicleStatus '{}' for VehicleID={}. Setting null", statusStr, vehicleId);
+                        }
+                    }
                     vehicle.setCreatedAt(rs.getTimestamp("CreatedAt"));
                     vehicle.setUpdatedAt(rs.getTimestamp("UpdatedAt"));
 
-                    // Set color relationship
+                    // Color relationship
                     if (rs.getString("ColorName") != null) {
                         DTOVehicleColor color = new DTOVehicleColor();
                         color.setColorID(rs.getInt("ColorID"));
@@ -57,11 +64,19 @@ public class DAOQuotation {
                         vehicle.setColor(color);
                     }
 
-                    // Set version relationship
+                    // Version + Model relationship (needed for basePrice & modelName)
                     if (rs.getString("VersionName") != null) {
                         DTOVehicleVersion version = new DTOVehicleVersion();
                         version.setVersionID(rs.getInt("VersionID"));
                         version.setVersionName(rs.getString("VersionName"));
+                        // Attach model if present
+                        if (rs.getString("ModelName") != null) {
+                            DTOVehicleModel model = new DTOVehicleModel();
+                            model.setModelID(rs.getInt("ModelID"));
+                            model.setModelName(rs.getString("ModelName"));
+                            model.setBasePrice(rs.getBigDecimal("BasePrice"));
+                            version.setModel(model);
+                        }
                         vehicle.setVersion(version);
                     }
 
@@ -522,149 +537,115 @@ public class DAOQuotation {
         }
     }
 
-    // ✅ Insert QuotationDetail
+    // ✅ Insert QuotationDetail (restored after truncation)
     public boolean insertQuotationDetail(DTOQuotationDetail detail) {
-        String sql = """
-                    INSERT INTO QuotationDetail (QuotationID, VersionID, ColorID, UnitPrice)
-                    VALUES (?, ?, ?, ?)
-                """;
-
+        String sql = "INSERT INTO QuotationDetail (QuotationID, VersionID, ColorID, UnitPrice) VALUES (?,?,?,?)";
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-
             ps.setInt(1, detail.getQuotation().getQuotationID());
             ps.setInt(2, detail.getVersion().getVersionID());
             ps.setInt(3, detail.getColor().getColorID());
             ps.setBigDecimal(4, detail.getUnitPrice());
-
-            int affectedRows = ps.executeUpdate();
-            if (affectedRows > 0) {
-                log.info("QuotationDetail inserted quotationID={} versionID={} colorID={}", 
-                        detail.getQuotation().getQuotationID(), 
-                        detail.getVersion().getVersionID(), 
-                        detail.getColor().getColorID());
+            int rows = ps.executeUpdate();
+            if (rows > 0) {
+                log.info("QuotationDetail inserted quotationID={} versionID={} colorID={}", detail.getQuotation().getQuotationID(), detail.getVersion().getVersionID(), detail.getColor().getColorID());
                 return true;
-            } else {
-                log.warn("No QuotationDetail inserted quotationID={}", detail.getQuotation().getQuotationID());
-                return false;
             }
-
+            log.warn("No QuotationDetail inserted quotationID={}", detail.getQuotation().getQuotationID());
         } catch (SQLException e) {
             log.error("Failed to insert QuotationDetail quotationID={}", detail.getQuotation().getQuotationID(), e);
-            return false;
         }
+        return false;
     }
 
-    // ✅ Get QuotationDetails by QuotationID
+    // ✅ Get QuotationDetails by QuotationID (with model attached)
     public List<DTOQuotationDetail> getQuotationDetails(int quotationID) {
         List<DTOQuotationDetail> details = new ArrayList<>();
-
         String sql = """
-                    SELECT qd.QuotationDetailID, qd.QuotationID, qd.VersionID, qd.ColorID, qd.UnitPrice,
-                           vv.VersionName,
-                           vc.ColorName,
-                           vm.ModelID, vm.ModelName
-                    FROM QuotationDetail qd
-                    LEFT JOIN VehicleVersion vv ON qd.VersionID = vv.VersionID
-                    LEFT JOIN VehicleColor vc ON qd.ColorID = vc.ColorID
-                    LEFT JOIN VehicleModel vm ON vv.ModelID = vm.ModelID
-                    WHERE qd.QuotationID = ?
+                SELECT qd.QuotationDetailID, qd.QuotationID, qd.VersionID, qd.ColorID, qd.UnitPrice,
+                       vv.VersionName,
+                       vm.ModelID, vm.ModelName,
+                       vc.ColorID AS CColorID, vc.ColorName
+                FROM QuotationDetail qd
+                LEFT JOIN VehicleVersion vv ON qd.VersionID = vv.VersionID
+                LEFT JOIN VehicleModel vm ON vv.ModelID = vm.ModelID
+                LEFT JOIN VehicleColor vc ON qd.ColorID = vc.ColorID
+                WHERE qd.QuotationID = ?
                 """;
-
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-
             ps.setInt(1, quotationID);
-
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    DTOQuotationDetail detail = new DTOQuotationDetail();
-                    detail.setQuotationDetailID(rs.getInt("QuotationDetailID"));
-                    detail.setUnitPrice(rs.getBigDecimal("UnitPrice"));
-
-                    // Set quotation relationship
-                    DTOQuotation quotation = new DTOQuotation();
-                    quotation.setQuotationID(rs.getInt("QuotationID"));
-                    detail.setQuotation(quotation);
-
-                    // Set version relationship
+                    DTOQuotationDetail d = new DTOQuotationDetail();
+                    d.setQuotationDetailID(rs.getInt("QuotationDetailID"));
+                    d.setUnitPrice(rs.getBigDecimal("UnitPrice"));
+                    DTOQuotation qRef = new DTOQuotation();
+                    qRef.setQuotationID(rs.getInt("QuotationID"));
+                    d.setQuotation(qRef);
                     if (rs.getString("VersionName") != null) {
-                        DTOVehicleVersion version = new DTOVehicleVersion();
-                        version.setVersionID(rs.getInt("VersionID"));
-                        version.setVersionName(rs.getString("VersionName"));
-                        detail.setVersion(version);
+                        DTOVehicleVersion v = new DTOVehicleVersion();
+                        v.setVersionID(rs.getInt("VersionID"));
+                        v.setVersionName(rs.getString("VersionName"));
+                        if (rs.getString("ModelName") != null) {
+                            DTOVehicleModel m = new DTOVehicleModel();
+                            m.setModelID(rs.getInt("ModelID"));
+                            m.setModelName(rs.getString("ModelName"));
+                            v.setModel(m);
+                        }
+                        d.setVersion(v);
                     }
-
-                    // Set color relationship
                     if (rs.getString("ColorName") != null) {
-                        DTOVehicleColor color = new DTOVehicleColor();
-                        color.setColorID(rs.getInt("ColorID"));
-                        color.setColorName(rs.getString("ColorName"));
-                        detail.setColor(color);
+                        DTOVehicleColor c = new DTOVehicleColor();
+                        c.setColorID(rs.getInt("CColorID"));
+                        c.setColorName(rs.getString("ColorName"));
+                        d.setColor(c);
                     }
-
-                    details.add(detail);
+                    details.add(d);
                 }
             }
         } catch (SQLException e) {
             log.error("Error fetching quotation details quotationID={}", quotationID, e);
         }
-
         return details;
     }
 
     // ✅ Update QuotationDetail
     public boolean updateQuotationDetail(DTOQuotationDetail detail) {
-        String sql = """
-                    UPDATE QuotationDetail 
-                    SET VersionID = ?, ColorID = ?, UnitPrice = ?
-                    WHERE QuotationDetailID = ?
-                """;
-
+        String sql = "UPDATE QuotationDetail SET VersionID = ?, ColorID = ?, UnitPrice = ? WHERE QuotationDetailID = ?";
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-
             ps.setInt(1, detail.getVersion().getVersionID());
             ps.setInt(2, detail.getColor().getColorID());
             ps.setBigDecimal(3, detail.getUnitPrice());
             ps.setInt(4, detail.getQuotationDetailID());
-
-            int affectedRows = ps.executeUpdate();
-            if (affectedRows > 0) {
+            int rows = ps.executeUpdate();
+            if (rows > 0) {
                 log.info("QuotationDetail updated id={}", detail.getQuotationDetailID());
                 return true;
-            } else {
-                log.warn("No QuotationDetail updated id={}", detail.getQuotationDetailID());
-                return false;
             }
-
+            log.warn("No QuotationDetail updated id={}", detail.getQuotationDetailID());
         } catch (SQLException e) {
             log.error("Failed to update QuotationDetail id={}", detail.getQuotationDetailID(), e);
-            return false;
         }
+        return false;
     }
 
     // ✅ Delete QuotationDetail
     public boolean deleteQuotationDetail(int quotationDetailID) {
         String sql = "DELETE FROM QuotationDetail WHERE QuotationDetailID = ?";
-
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-
             ps.setInt(1, quotationDetailID);
-
-            int affectedRows = ps.executeUpdate();
-            if (affectedRows > 0) {
+            int rows = ps.executeUpdate();
+            if (rows > 0) {
                 log.info("QuotationDetail deleted id={}", quotationDetailID);
                 return true;
-            } else {
-                log.warn("No QuotationDetail deleted id={}", quotationDetailID);
-                return false;
             }
-
+            log.warn("No QuotationDetail deleted id={}", quotationDetailID);
         } catch (SQLException e) {
             log.error("Failed to delete QuotationDetail id={}", quotationDetailID, e);
-            return false;
         }
+        return false;
     }
 }

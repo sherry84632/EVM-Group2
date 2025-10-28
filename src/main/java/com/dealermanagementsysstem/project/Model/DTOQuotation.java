@@ -144,4 +144,34 @@ public class DTOQuotation {
     public void setStaff(DTODealerStaff staff) {
         this.staff = staff;
     }
+
+    @Transient
+    public DTOQuotationDetail getFirstDetail() {
+        return (quotationDetails != null && !quotationDetails.isEmpty()) ? quotationDetails.get(0) : null;
+    }
+    @Transient
+    public String getFirstModelName() {
+        DTOQuotationDetail d = getFirstDetail();
+        return d != null ? d.getModelName() : null;
+    }
+    @Transient
+    public String getFirstVersionName() {
+        DTOQuotationDetail d = getFirstDetail();
+        return d != null ? d.getVersionName() : null;
+    }
+    @Transient
+    public String getFirstColorName() {
+        DTOQuotationDetail d = getFirstDetail();
+        return d != null ? d.getColorName() : null;
+    }
+    @Transient
+    public java.math.BigDecimal getFirstUnitPrice() {
+        DTOQuotationDetail d = getFirstDetail();
+        return d != null ? d.getUnitPrice() : java.math.BigDecimal.ZERO;
+    }
+    @Transient
+    public double getCalculatedTotal() {
+        java.math.BigDecimal unit = getFirstUnitPrice();
+        return unit.doubleValue() * Math.max(1, quantity);
+    }
 }

@@ -78,4 +78,16 @@ public class DTOQuotationDetail {
     public void setColor(DTOVehicleColor color) {
         this.color = color;
     }
+
+    public String getVersionName() {
+        return version != null ? version.getVersionName() : null;
+    }
+
+    public String getModelName() {
+        return (version != null && version.getModel() != null) ? version.getModel().getModelName() : null;
+    }
+
+    public String getColorName() {
+        return color != null ? color.getColorName() : null;
+    }
 }

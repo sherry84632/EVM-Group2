@@ -174,4 +174,25 @@ public class DTOVehicle {
     public Integer getColorID() {
         return color != null ? color.getColorID() : null;
     }
+
+    /**
+     * Convenience method to access VIN (Vehicle Identification Number)
+     * Usage in Thymeleaf: ${vehicle.VIN}
+     * Assuming engineNumber represents VIN in current data model
+     */
+    public String getVIN() {
+        return getEngineNumber();
+    }
+
+    /**
+     * Convenience method to access base price of the vehicle
+     * Usage in Thymeleaf: ${vehicle.basePrice}
+     * Delegates to model's base price if available
+     */
+    public java.math.BigDecimal getBasePrice() {
+        if (version != null && version.getModel() != null) {
+            return version.getModel().getBasePrice();
+        }
+        return java.math.BigDecimal.ZERO; // fallback to 0 to avoid null in templates
+    }
 }
