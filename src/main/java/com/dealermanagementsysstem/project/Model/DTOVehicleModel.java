@@ -31,7 +31,8 @@ public class DTOVehicleModel {
     @Column(name = "Description", columnDefinition = "NVARCHAR(MAX)")
     private String description;
 
-    @Column(name = "ModelImage")
+    @Lob
+    @Column(name = "ModelImage", columnDefinition = "VARBINARY(MAX)")
     private byte[] modelImage;
 
     @Column(name = "EvmID")

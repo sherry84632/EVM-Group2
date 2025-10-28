@@ -263,7 +263,7 @@
                 <div class="row g-2 mb-3">
                     <div class="col-6">
                         <p class="mb-2"><strong>Dealer:</strong></p>
-                        <p class="text-muted mb-0" th:text="${order.dealer?.dealerName ?: 'N/A'}">-</p>
+                        <p class="text-muted mb-0" th:text="${order.dealerName ?: order.dealer?.dealerName ?: 'N/A'}">-</p>
                     </div>
                     <div class="col-6">
                         <p class="mb-2"><strong>Staff:</strong></p>

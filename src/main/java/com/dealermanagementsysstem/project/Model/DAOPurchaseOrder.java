@@ -150,6 +150,8 @@ public class DAOPurchaseOrder {
                                     color.setColorID(drs.getInt("ColorID"));
                                     color.setColorName(drs.getString("ColorName"));
                                     d.setColor(color);
+                                    // Set transient field
+                                    d.setColorName(drs.getString("ColorName"));
                                 }
                                 
                                 // Set version relationship with model if available
@@ -166,6 +168,10 @@ public class DAOPurchaseOrder {
                                     version.setModel(model);
 
                                     d.setVersion(version);
+
+                                    // Set transient fields for easy template access
+                                    d.setModelName(drs.getString("ModelName"));
+                                    d.setVersionName(drs.getString("VersionName"));
                                 }
                                 
                                 details.add(d);
@@ -323,6 +329,9 @@ public class DAOPurchaseOrder {
                     dealer.setDealerID(rs.getInt("DealerID"));
                     dealer.setDealerName(rs.getString("DealerName"));
                     dto.setDealer(dealer);
+
+                    // Set transient dealerName for easy template access
+                    dto.setDealerName(rs.getString("DealerName"));
 
                     // Staff info
                     DTODealerStaff staff = new DTODealerStaff();
