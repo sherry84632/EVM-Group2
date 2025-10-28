@@ -37,6 +37,22 @@ public class DTOPurchaseOrder {
     @OneToMany(mappedBy = "purchaseOrder", cascade = CascadeType.ALL)
     private List<DTOPurchaseOrderDetail> orderDetails;
 
+    // Transient fields for additional information (not persisted to DB)
+    @Transient
+    private String dealerName;
+
+    @Transient
+    private String dealerLevelName;
+
+    @Transient
+    private String policyName;
+
+    @Transient
+    private Double policyDiscountPercent;
+
+    @Transient
+    private String approvedByStaffName;
+
     public DTOPurchaseOrder() {}
 
     public DTOPurchaseOrder(int purchaseOrderId, DTODealer dealer, DTODealerStaff staff, 
@@ -113,6 +129,46 @@ public class DTOPurchaseOrder {
 
     public void setEvmID(int evmID) {
         this.evmID = evmID;
+    }
+
+    public String getDealerName() {
+        return dealerName;
+    }
+
+    public void setDealerName(String dealerName) {
+        this.dealerName = dealerName;
+    }
+
+    public String getDealerLevelName() {
+        return dealerLevelName;
+    }
+
+    public void setDealerLevelName(String dealerLevelName) {
+        this.dealerLevelName = dealerLevelName;
+    }
+
+    public String getPolicyName() {
+        return policyName;
+    }
+
+    public void setPolicyName(String policyName) {
+        this.policyName = policyName;
+    }
+
+    public Double getPolicyDiscountPercent() {
+        return policyDiscountPercent;
+    }
+
+    public void setPolicyDiscountPercent(Double policyDiscountPercent) {
+        this.policyDiscountPercent = policyDiscountPercent;
+    }
+
+    public String getApprovedByStaffName() {
+        return approvedByStaffName;
+    }
+
+    public void setApprovedByStaffName(String approvedByStaffName) {
+        this.approvedByStaffName = approvedByStaffName;
     }
 
     @Override

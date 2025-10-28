@@ -41,6 +41,9 @@ public class DAOPurchaseOrder {
                 dealer.setDealerName(rs.getString("DealerName"));
                 dto.setDealer(dealer);
 
+                // Set transient dealerName for easy template access
+                dto.setDealerName(rs.getString("DealerName"));
+
                 // Staff info
                 DTODealerStaff staff = new DTODealerStaff();
                 staff.setStaffID(rs.getInt("StaffID"));
@@ -60,7 +63,7 @@ public class DAOPurchaseOrder {
     public DTOPurchaseOrder getPurchaseOrderById(int id) {
         String sqlOrder = """
                 SELECT po.PurchaseOrderID, po.DealerID, po.StaffID, po.CreatedAt, po.Status, po.TotalAmount, po.EvmID,
-                       d.DealerID, d.DealerName, d.Address AS DealerAddress, d.Phone AS DealerPhone, d.Email AS DealerEmail,
+                       d.DealerID, d.DealerName, d.Address AS DealerAddress, d.Phone AS DealerPhone, d.Email AS DealerEmail, d.LevelID,
                        ds.StaffID, ds.FullName AS StaffName, ds.Position AS StaffPosition
                 FROM PurchaseOrder po
                 LEFT JOIN Dealer d ON po.DealerID = d.DealerID
@@ -93,17 +96,40 @@ public class DAOPurchaseOrder {
                     dto.setTotalAmount(rs.getBigDecimal("TotalAmount"));
                     dto.setEvmID(rs.getInt("EvmID"));
 
-                    // Dealer info
+                    // Dealer info with full details
                     DTODealer dealer = new DTODealer();
                     dealer.setDealerID(rs.getInt("DealerID"));
                     dealer.setDealerName(rs.getString("DealerName"));
+                    dealer.setAddress(rs.getString("DealerAddress"));
+                    dealer.setPhone(rs.getString("DealerPhone"));
+                    dealer.setEmail(rs.getString("DealerEmail"));
+                    dealer.setLevelID(rs.getInt("LevelID"));
                     dto.setDealer(dealer);
 
-                    // Staff info
+                    // Set transient dealerName for easy template access
+                    dto.setDealerName(rs.getString("DealerName"));
+
+                    // Staff info with position
                     DTODealerStaff staff = new DTODealerStaff();
                     staff.setStaffID(rs.getInt("StaffID"));
                     staff.setFullName(rs.getString("StaffName"));
+                    staff.setPosition(rs.getString("StaffPosition"));
                     dto.setStaff(staff);
+
+                    // Set transient fields for display
+                    // Since DealerLevel table doesn't exist, use LevelID as level name
+                    int levelId = rs.getInt("LevelID");
+                    dto.setDealerLevelName(levelId > 0 ? "Level " + levelId : "N/A");
+
+                    // Policy information - set as N/A since we're not joining DiscountPolicy
+                    // (DiscountPercent is actually in DealerPriceAdjustment, not DiscountPolicy)
+                    dto.setPolicyName("N/A");
+                    dto.setPolicyDiscountPercent(null);
+
+                    // If order is approved, set approved by staff name
+                    if (dto.getStatus() == PurchaseOrderStatus.APPROVED) {
+                        dto.setApprovedByStaffName("EVM Staff"); // Can be updated with actual EVM staff info later
+                    }
 
                     // 🔹 Lấy danh sách chi tiết đơn hàng
                     try (PreparedStatement psDetail = conn.prepareStatement(sqlDetail)) {

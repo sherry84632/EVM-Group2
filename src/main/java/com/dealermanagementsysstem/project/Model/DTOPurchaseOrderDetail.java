@@ -33,6 +33,16 @@ public class DTOPurchaseOrderDetail {
     @Column(name = "Subtotal")
     private java.math.BigDecimal subtotal;
 
+    // Transient fields for template display
+    @Transient
+    private String modelName;
+
+    @Transient
+    private String versionName;
+
+    @Transient
+    private String colorName;
+
     public DTOPurchaseOrderDetail() {}
 
     public DTOPurchaseOrderDetail(int poDetailId, DTOPurchaseOrder purchaseOrder, DTOVehicleColor color, 
@@ -66,4 +76,13 @@ public class DTOPurchaseOrderDetail {
     
     public java.math.BigDecimal getSubtotal() { return subtotal; }
     public void setSubtotal(java.math.BigDecimal subtotal) { this.subtotal = subtotal; }
+
+    public String getModelName() { return modelName; }
+    public void setModelName(String modelName) { this.modelName = modelName; }
+
+    public String getVersionName() { return versionName; }
+    public void setVersionName(String versionName) { this.versionName = versionName; }
+
+    public String getColorName() { return colorName; }
+    public void setColorName(String colorName) { this.colorName = colorName; }
 }
