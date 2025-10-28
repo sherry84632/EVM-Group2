@@ -35,8 +35,11 @@ public class PurchaseOrderController {
                     (org.springframework.security.core.userdetails.User) auth.getPrincipal();
             String email = user.getUsername();
 
+            System.out.println("🔍 DEBUG: Logged in email = " + email);
+
             // Lấy DealerID dựa theo email đăng nhập
             int dealerId = daoPurchaseOrder.getDealerIdByEmail(email);
+            System.out.println("🔍 DEBUG: DealerID found = " + dealerId);
 
             if (dealerId <= 0) {
                 model.addAttribute("message", "❌ Không tìm thấy Dealer tương ứng với tài khoản đăng nhập (" + email + ")");
@@ -46,11 +49,13 @@ public class PurchaseOrderController {
 
             // Lấy danh sách đơn hàng theo DealerID
             List<DTOPurchaseOrder> orders = daoPurchaseOrder.getPurchaseOrdersByDealerId(dealerId);
+            System.out.println("🔍 DEBUG: Number of orders found = " + (orders != null ? orders.size() : 0));
 
             model.addAttribute("orders", orders);
         } catch (Exception e) {
             e.printStackTrace();
             model.addAttribute("message", "⚠️ Lỗi khi tải danh sách đơn hàng: " + e.getMessage());
+            model.addAttribute("orders", List.of());
         }
 
         return "dealerPage/orderStatusList";
@@ -182,6 +187,26 @@ public class PurchaseOrderController {
     @GetMapping("/api")
     public List<DTOPurchaseOrder> getAllOrders() {
         return daoPurchaseOrder.getAllPurchaseOrders();
+    }
+
+    /**
+     * 🔹 Trang chi tiết đơn hàng
+     */
+    @GetMapping("/detail/{id}")
+    public String showOrderDetail(@PathVariable int id, Model model) {
+        try {
+            DTOPurchaseOrder order = daoPurchaseOrder.getPurchaseOrderById(id);
+            if (order == null) {
+                model.addAttribute("message", "❌ Order not found!");
+                return "dealerPage/orderStatusList";
+            }
+            model.addAttribute("order", order);
+            return "dealerPage/orderDetail";
+        } catch (Exception e) {
+            e.printStackTrace();
+            model.addAttribute("message", "⚠️ Error loading order details: " + e.getMessage());
+            return "dealerPage/orderStatusList";
+        }
     }
 
     /**
