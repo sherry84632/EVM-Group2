@@ -21,7 +21,7 @@ public class DTODealerStaff {
     @Column(name = "Email",unique = true)
     private String email;
 
-    @OneToOne
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "AccountID", referencedColumnName = "AccountID", unique = true)
     private DTOAccount account;
 

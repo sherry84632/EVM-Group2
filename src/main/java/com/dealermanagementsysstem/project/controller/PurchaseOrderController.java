@@ -7,6 +7,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
+import java.sql.Connection;
 import java.sql.Timestamp;
 import java.util.List;
 
@@ -122,7 +124,13 @@ public class PurchaseOrderController {
             
             order.setStatus(PurchaseOrderStatus.valueOf(status != null ? status.toUpperCase() : "REQUESTED"));
             order.setCreatedAt(new Timestamp(System.currentTimeMillis()));
-            order.setTotalAmount(java.math.BigDecimal.ZERO); // Will be calculated from details
+            BigDecimal basePrice = daoPurchaseOrder.getBasePriceByModelId(modelId);
+
+// 🔹 Tính tổng tiền = giá gốc × số lượng
+            BigDecimal totalAmount = basePrice.multiply(BigDecimal.valueOf(quantity));
+
+// 🔹 Gán vào đơn hàng
+            order.setTotalAmount(totalAmount);
             order.setEvmID(1); // Default EVM ID
 
             // ✅ Ghi vào DB
@@ -237,4 +245,7 @@ public class PurchaseOrderController {
         int result = daoPurchaseOrder.deletePurchaseOrder(id);
         return result > 0 ? "Deleted successfully" : "Delete failed";
     }
+
+
+
 }

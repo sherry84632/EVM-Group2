@@ -232,6 +232,30 @@
                     <div class="info-label">Dealer Name:</div>
                     <div class="info-value" th:text="${order.dealer?.dealerName ?: 'N/A'}"></div>
                 </div>
+                <div class="info-row">
+                    <div class="info-label">Dealer Level:</div>
+                    <div class="info-value" th:text="${order.dealerLevelName ?: 'N/A'}"></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Address:</div>
+                    <div class="info-value" th:text="${order.dealer?.address ?: 'N/A'}"></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Phone:</div>
+                    <div class="info-value" th:text="${order.dealer?.phone ?: 'N/A'}"></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Email:</div>
+                    <div class="info-value" th:text="${order.dealer?.email ?: 'N/A'}"></div>
+                </div>
+                <div class="info-row" th:if="${order.policyName != null}">
+                    <div class="info-label">Discount Policy:</div>
+                    <div class="info-value" th:text="${order.policyName}"></div>
+                </div>
+                <div class="info-row" th:if="${order.policyDiscountPercent != null and order.policyDiscountPercent > 0}">
+                    <div class="info-label">Policy Discount:</div>
+                    <div class="info-value" th:text="${order.policyDiscountPercent + '%'}"></div>
+                </div>
             </div>
 
             <!-- Staff Information -->
@@ -244,6 +268,14 @@
                 <div class="info-row">
                     <div class="info-label">Staff Name:</div>
                     <div class="info-value" th:text="${order.staff?.fullName ?: 'N/A'}"></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Position:</div>
+                    <div class="info-value" th:text="${order.staff?.position ?: 'N/A'}"></div>
+                </div>
+                <div class="info-row" th:if="${order.approvedByStaffName != null}">
+                    <div class="info-label">Approved By:</div>
+                    <div class="info-value" th:text="${order.approvedByStaffName}"></div>
                 </div>
             </div>
 

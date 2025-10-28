@@ -287,11 +287,11 @@
                     </thead>
                     <tbody>
                         <tr th:each="detail : ${order.orderDetails}">
-                            <td th:text="${detail.modelName}">-</td>
-                            <td th:text="${detail.colorName}">-</td>
+                            <td th:text="${detail.modelName ?: detail.version?.model?.modelName ?: 'N/A'}">-</td>
+                            <td th:text="${detail.colorName ?: detail.color?.colorName ?: 'N/A'}">-</td>
                             <td th:text="${detail.quantity}">-</td>
-                            <td th:text="${detail.modelId}">-</td>
-                            <td th:text="${detail.colorId}">-</td>
+                            <td th:text="${detail.version?.model?.modelID ?: 'N/A'}">-</td>
+                            <td th:text="${detail.color?.colorID ?: 'N/A'}">-</td>
                         </tr>
                     </tbody>
                 </table>
@@ -310,23 +310,29 @@
                     </div>
                     <div class="info-row">
                         <span class="info-label">Dealer Name:</span>
-                        <span class="info-value" th:text="${order.dealerName}">-</span>
+                        <span class="info-value" th:text="${order.dealer?.dealerName ?: 'N/A'}">-</span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Dealer ID:</span>
-                        <span class="info-value" th:text="${order.dealerId}">-</span>
+                        <span class="info-value" th:text="${order.dealer?.dealerID ?: 'N/A'}">-</span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Status:</span>
                         <span class="info-value">
-                            <span th:if="${order.status == 'Pending'}"
+                            <span th:if="${order.status.name() == 'REQUESTED'}"
                                   class="status-badge status-pending"
                                   th:text="${order.status}"></span>
-                            <span th:if="${order.status == 'Approved'}"
+                            <span th:if="${order.status.name() == 'APPROVED'}"
                                   class="status-badge status-approved"
                                   th:text="${order.status}"></span>
-                            <span th:if="${order.status == 'Rejected'}"
+                            <span th:if="${order.status.name() == 'CANCELLED'}"
                                   class="status-badge status-rejected"
+                                  th:text="${order.status}"></span>
+                            <span th:if="${order.status.name() == 'IN_PROCESS'}"
+                                  class="status-badge status-pending"
+                                  th:text="${order.status}"></span>
+                            <span th:if="${order.status.name() == 'DELIVERED'}"
+                                  class="status-badge status-approved"
                                   th:text="${order.status}"></span>
                         </span>
                     </div>
@@ -341,15 +347,27 @@
                     <h6><i class="fas fa-building me-2"></i>Dealer Information</h6>
                     <div class="info-row">
                         <span class="info-label">Contact Person:</span>
-                        <span class="info-value" th:text="${order.staffName}">-</span>
+                        <span class="info-value" th:text="${order.staff?.fullName ?: 'N/A'}">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Position:</span>
+                        <span class="info-value" th:text="${order.staff?.position ?: 'N/A'}">-</span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Dealer Level:</span>
-                        <span class="info-value empty-field">-</span>
+                        <span class="info-value" th:text="${order.dealerLevelName ?: 'N/A'}">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Phone:</span>
+                        <span class="info-value" th:text="${order.dealer?.phone ?: 'N/A'}">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Email:</span>
+                        <span class="info-value" th:text="${order.dealer?.email ?: 'N/A'}">-</span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Address:</span>
-                        <span class="info-value empty-field">-</span>
+                        <span class="info-value" th:text="${order.dealer?.address ?: 'N/A'}">-</span>
                     </div>
                 </div>
 
@@ -360,23 +378,27 @@
                         <div th:each="detail, detailStat : ${order.orderDetails}">
                             <div class="info-row">
                                 <span class="info-label">Model:</span>
-                                <span class="info-value" th:text="${detail.modelName}">-</span>
+                                <span class="info-value" th:text="${detail.modelName ?: detail.version?.model?.modelName ?: 'N/A'}">-</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Version:</span>
+                                <span class="info-value" th:text="${detail.versionName ?: detail.version?.versionName ?: 'N/A'}">-</span>
                             </div>
                             <div class="info-row">
                                 <span class="info-label">Color:</span>
-                                <span class="info-value" th:text="${detail.colorName}">-</span>
+                                <span class="info-value" th:text="${detail.colorName ?: detail.color?.colorName ?: 'N/A'}">-</span>
                             </div>
                             <div class="info-row">
                                 <span class="info-label">Quantity:</span>
                                 <span class="info-value" th:text="${detail.quantity}">-</span>
                             </div>
                             <div class="info-row">
-                                <span class="info-label">Model ID:</span>
-                                <span class="info-value" th:text="${detail.modelId}">-</span>
+                                <span class="info-label">Unit Price:</span>
+                                <span class="info-value" th:text="${#numbers.formatDecimal(detail.unitPrice, 0, 'COMMA', 0, 'POINT') + ' VND'}">-</span>
                             </div>
                             <div class="info-row">
-                                <span class="info-label">Color ID:</span>
-                                <span class="info-value" th:text="${detail.colorId}">-</span>
+                                <span class="info-label">Subtotal:</span>
+                                <span class="info-value fw-bold" th:text="${#numbers.formatDecimal(detail.subtotal, 0, 'COMMA', 0, 'POINT') + ' VND'}">-</span>
                             </div>
                             <hr th:if="${!detailStat.last}">
                         </div>
@@ -397,46 +419,80 @@
                     <h6><i class="fas fa-chart-line me-2"></i>Order Status & Pricing</h6>
                     <div class="info-row">
                         <span class="info-label">Status:</span>
-                        <span class="info-value empty-field">-</span>
+                        <span class="info-value">
+                            <span th:if="${order.status.name() == 'REQUESTED'}"
+                                  class="status-badge status-pending"
+                                  th:text="${order.status}"></span>
+                            <span th:if="${order.status.name() == 'APPROVED'}"
+                                  class="status-badge status-approved"
+                                  th:text="${order.status}"></span>
+                            <span th:if="${order.status.name() == 'CANCELLED'}"
+                                  class="status-badge status-rejected"
+                                  th:text="${order.status}"></span>
+                            <span th:if="${order.status.name() == 'IN_PROCESS'}"
+                                  class="status-badge status-pending"
+                                  th:text="${order.status}"></span>
+                            <span th:if="${order.status.name() == 'DELIVERED'}"
+                                  class="status-badge status-approved"
+                                  th:text="${order.status}"></span>
+                        </span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Approved by:</span>
-                        <span class="info-value empty-field">-</span>
+                        <span class="info-value" th:text="${order.approvedByStaffName ?: 'Pending Approval'}">-</span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Discount Policy:</span>
-                        <span class="info-value empty-field">-</span>
+                        <span class="info-value" th:text="${order.policyName ?: 'No Policy Applied'}">-</span>
+                    </div>
+                    <div class="info-row" th:if="${order.policyDiscountPercent != null and order.policyDiscountPercent > 0}">
+                        <span class="info-label">Policy Discount:</span>
+                        <span class="info-value" th:text="${order.policyDiscountPercent + '%'}">-</span>
                     </div>
                     
                     <div class="price-info">
                         <div class="price-row">
                             <span class="price-label">Total Items:</span>
-                            <span class="price-value" th:text="${#lists.size(order.orderDetails)}">0</span>
+                            <span class="price-value" th:text="${order.orderDetails != null ? order.orderDetails.size() : 0}">0</span>
                         </div>
-                        <div class="price-row">
+                        <div class="price-row" th:if="${order.orderDetails != null and !order.orderDetails.isEmpty()}">
                             <span class="price-label">Total Quantity:</span>
-                            <span class="price-value" th:text="${#aggregates.sum(order.orderDetails.![quantity])}">0</span>
+                            <span class="price-value" th:text="${order.orderDetails[0].quantity}">0</span>
                         </div>
-                        <div class="price-row">
+                        <div class="price-row" th:if="${order.orderDetails != null and !order.orderDetails.isEmpty() and order.orderDetails[0].unitPrice != null}">
                             <span class="price-label">Unit Price:</span>
-                            <span class="price-value">155,000,000 VNĐ</span>
+                            <span class="price-value" th:text="${#numbers.formatCurrency(order.orderDetails[0].unitPrice)}">0 VNĐ</span>
                         </div>
-                        <div class="price-row">
-                            <span class="price-label">Dealer Net Price:</span>
-                            <span class="price-value">165,000,000 VNĐ</span>
+                        <div class="price-row" th:if="${order.orderDetails != null and !order.orderDetails.isEmpty() and order.orderDetails[0].unitPrice != null}">
+                            <span class="price-label">Dealer Net Price (Unit):</span>
+                            <span class="price-value" th:text="${#numbers.formatCurrency(order.orderDetails[0].unitPrice)}">0 VNĐ</span>
+                        </div>
+                        <div class="price-row" th:if="${order.orderDetails != null and !order.orderDetails.isEmpty() and order.orderDetails[0].subtotal != null}">
+                            <span class="price-label">Subtotal (Qty × Unit Price):</span>
+                            <span class="price-value" th:text="${#numbers.formatCurrency(order.orderDetails[0].subtotal)}">0 VNĐ</span>
                         </div>
                         <div class="price-row">
                             <span class="price-label">Payment Term:</span>
-                            <span class="price-value">Installment</span>
+                            <span class="price-value">Cash / Installment</span>
                         </div>
-                        <div class="price-row total-price">
-                            <span class="price-label">Order Price:</span>
-                            <span class="price-value">165,000,000 VNĐ</span>
+                        <div class="price-row total-price" th:if="${order.totalAmount != null}">
+                            <span class="price-label">Order Total Price:</span>
+                            <span class="price-value" th:text="${#numbers.formatCurrency(order.totalAmount)}">0 VNĐ</span>
+                        </div>
+                        <div class="price-row total-price" th:unless="${order.totalAmount != null}">
+                            <span class="price-label">Order Total Price:</span>
+                            <span class="price-value">Calculating...</span>
                         </div>
                         <div class="mt-2">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Dealer Net Price: Price after dealer level discounts and promotions
+                            </small>
+                        </div>
+                        <div class="mt-1" th:if="${order.status.name() == 'APPROVED'}">
                             <small class="text-success">
                                 <i class="fas fa-check-circle me-1"></i>
-                                Manufacturer discount applied
+                                Order approved - Ready for processing
                             </small>
                         </div>
                     </div>

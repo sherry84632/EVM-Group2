@@ -26,7 +26,7 @@ public class DTOVehicle {
     @Column(name = "EngineNumber")
     private String engineNumber;
     
-    @Column(name = "Status")
+    @Column(name = "Status", columnDefinition = "VARCHAR(50)")
     @Enumerated(EnumType.STRING)
     private VehicleStatus status;
     

@@ -32,6 +32,43 @@ public class EVMOrderController {
         return "evmPage/evmOrderList";
     }
 
+    // 🔹 Hiển thị lịch sử đơn hàng (chỉ các đơn đã xử lý)
+    @GetMapping("/evmOrderHistory")
+    public String showOrderHistory(Model model,
+                                   @RequestParam(required = false) String keyword,
+                                   @ModelAttribute("message") String message,
+                                   @ModelAttribute("statusType") String statusType) {
+
+        List<DTOPurchaseOrder> allOrders = purchaseOrderDAO.getAllPurchaseOrders();
+
+        // Filter only processed orders (not REQUESTED)
+        List<DTOPurchaseOrder> historyOrders = allOrders.stream()
+            .filter(order -> order.getStatus() != PurchaseOrderStatus.REQUESTED)
+            .toList();
+
+        // Apply keyword search if provided
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            String searchKeyword = keyword.toLowerCase().trim();
+            historyOrders = historyOrders.stream()
+                .filter(order -> {
+                    String dealerName = order.getDealerName() != null ? order.getDealerName().toLowerCase() : "";
+                    String status = order.getStatus() != null ? order.getStatus().toString().toLowerCase() : "";
+                    return dealerName.contains(searchKeyword) || status.contains(searchKeyword);
+                })
+                .toList();
+        }
+
+        model.addAttribute("orders", historyOrders);
+        model.addAttribute("keyword", keyword);
+
+        if (message != null && !message.isEmpty()) {
+            model.addAttribute("message", message);
+            model.addAttribute("statusType", statusType);
+        }
+
+        return "evmPage/evmOrderHistory";
+    }
+
     // 🔹 Hiển thị chi tiết đơn hàng
     @GetMapping("/detail/{id}")
     public String showOrderDetail(@PathVariable("id") int orderId, Model model) {
@@ -53,11 +90,11 @@ public class EVMOrderController {
         System.out.println("🔍 Processing order ID: " + id);
         System.out.println("📋 Action Type: " + actionType);
 
-        // ✅ Map action type to correct enum value
+        // ✅ Map action type to correct enum value (case insensitive)
         PurchaseOrderStatus newStatus;
-        if (actionType.equalsIgnoreCase("Approve")) {
+        if (actionType.equalsIgnoreCase("Approve") || actionType.equalsIgnoreCase("APPROVED")) {
             newStatus = PurchaseOrderStatus.APPROVED;
-        } else if (actionType.equalsIgnoreCase("Reject")) {
+        } else if (actionType.equalsIgnoreCase("Reject") || actionType.equalsIgnoreCase("REJECTED") || actionType.equalsIgnoreCase("Cancel")) {
             newStatus = PurchaseOrderStatus.CANCELLED;
         } else {
             System.out.println("❌ Invalid action type: " + actionType);
@@ -96,6 +133,22 @@ public class EVMOrderController {
 
                 int successCount = 0;
                 for (DTOPurchaseOrderDetail detail : order.getOrderDetails()) {
+                    // ✅ Check for null values before accessing nested properties
+                    if (detail.getVersion() == null) {
+                        System.out.println("  ⚠️ CẢNH BÁO: Version is NULL for detail ID " + detail.getPoDetailId());
+                        continue;
+                    }
+
+                    if (detail.getVersion().getModel() == null) {
+                        System.out.println("  ⚠️ CẢNH BÁO: Model is NULL for version ID " + detail.getVersion().getVersionID());
+                        continue;
+                    }
+
+                    if (detail.getColor() == null) {
+                        System.out.println("  ⚠️ CẢNH BÁO: Color is NULL for detail ID " + detail.getPoDetailId());
+                        continue;
+                    }
+
                     System.out.println("  ➤ Thêm xe: ModelID=" + detail.getVersion().getModel().getModelID()
                         + ", ColorID=" + detail.getColor().getColorID()
                         + ", Quantity=" + detail.getQuantity());
