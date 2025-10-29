@@ -330,6 +330,15 @@ public class QuotationController {
             model.addAttribute("baseDiscountPercent", baseDiscountPct);
             model.addAttribute("finalCombinedDiscountPercent", grossAll>0? (1 - finalNetTotal / grossAll)*100.0 : 0.0);
             model.addAttribute("details", details); // ensure updated lines passed
+
+            // Add missing attributes to avoid Thymeleaf null boolean evaluation
+            boolean quotationLocked = dao.isQuotationLocked(id);
+            model.addAttribute("quotationLocked", quotationLocked);
+            Integer completedSaleOrderId = dao.getCompletedSaleOrderId(id);
+            if (completedSaleOrderId != null) {
+                model.addAttribute("completedSaleOrderId", completedSaleOrderId);
+            }
+
             return "dealerPage/quotationDetail";
         } catch (Exception e) {
             log.error("Error loading quotation detail id={}", id, e);
