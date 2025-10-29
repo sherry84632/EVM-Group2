@@ -16,6 +16,9 @@ public class DTODealerInventory {
     @JoinColumn(name = "DealerID", referencedColumnName = "DealerID")
     private DTODealer dealer;
     
+    @Column(name = "VIN")
+    private String vin;
+
     @ManyToOne
     @JoinColumn(name = "VehicleID", referencedColumnName = "VehicleID")
     private DTOVehicle vehicle;
@@ -52,6 +55,14 @@ public class DTODealerInventory {
 
     public void setDealer(DTODealer dealer) {
         this.dealer = dealer;
+    }
+
+    public String getVin() {
+        return vin;
+    }
+
+    public void setVin(String vin) {
+        this.vin = vin;
     }
 
     public DTOVehicle getVehicle() {

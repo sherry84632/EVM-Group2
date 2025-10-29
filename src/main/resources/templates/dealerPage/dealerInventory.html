@@ -36,51 +36,95 @@
                 <h1>Dealer Inventory</h1>
             </span>
 
-            <form action="/dealerCustomerDetail" method="get">
-                <input name="keyword"
-                       type="text"
-                       class="search-vehicle-list-input-control search-vehicle-list-input mb-1"
-                       placeholder="Search by model name:"
-                       th:value="${keyword}"
-                       style="margin-top: 12px;">
-                <button type="submit" class="btn btn-dark rounded-pill">Search</button>
+            <form action="/dealer-inventory" method="get" class="row g-2 align-items-end" style="width: 100%">
+                <div class="col-auto">
+                    <label class="form-label">VIN</label>
+                    <input name="vin" type="text" class="form-control" placeholder="VIN" th:value="${vin}">
+                </div>
+                <div class="col-auto">
+                    <label class="form-label">Model</label>
+                    <select name="modelId" class="form-select" id="modelSelect">
+                        <option th:selected="${modelId==null}" value="">All</option>
+                        <option th:each="m : ${models}" th:value="${m.modelID}" th:text="${m.modelName}" th:selected="${modelId==m.modelID}"></option>
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <label class="form-label">Version</label>
+                    <select name="versionId" class="form-select" id="versionSelect">
+                        <option th:selected="${versionId==null}" value="">All</option>
+                        <option th:each="v : ${versions}" th:value="${v.versionID}" th:text="${v.versionName}" th:selected="${versionId==v.versionID}"></option>
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <label class="form-label">Color</label>
+                    <select name="colorId" class="form-select" id="colorSelect">
+                        <option th:selected="${colorId==null}" value="">All</option>
+                        <option th:each="c : ${colors}" th:value="${c.colorID}" th:text="${c.colorName}" th:selected="${colorId==c.colorID}"></option>
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-select">
+                        <option value="">All</option>
+                        <option value="AVAILABLE" th:selected="${status=='AVAILABLE'}">IN_STOCK</option>
+                        <option value="RESERVED" th:selected="${status=='RESERVED'}">RESERVED</option>
+                        <option value="SOLD" th:selected="${status=='SOLD'}">SOLD</option>
+                        <option value="TRANSFERRED" th:selected="${status=='TRANSFERRED'}">TRANSFERRED</option>
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <label class="form-label">Received From</label>
+                    <input name="from" type="date" class="form-control" th:value="${from}">
+                </div>
+                <div class="col-auto">
+                    <label class="form-label">To</label>
+                    <input name="to" type="date" class="form-control" th:value="${to}">
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-dark">Filter</button>
+                </div>
             </form>
 
         </div>
 
         <div class="d-flex">
 
-            <div class="scroll-box">
-                <div class="items-container">
-
-                    <div th:each="vehicle : ${vehicles}">
-
-                        <!-- Item  -->
-                        <button class="item-button">
-                            <div class="image-placeholder">🚗</div>
-                            <div class="item-info">
-                                <div class="model-name" th:text="${vehicle.vin}"></div>
-                                <div class="info-row">
-                                    <div class="info-item">
-                                        <span class="info-label">Received date:</span>
-                                        <span class="info-value" th:text="${vehicle.receivedDate}"></span>
-                                    </div>
-                                    <div class="info-item">
-                                        <span class="info-label">Status:</span>
-                                        <span class="info-value" th:text="${vehicle.status}"></span>
-                                    </div>
-                                </div>
-                                <div class="info-row">
-                                    <div class="info-item">
-                                        <span class="info-label">Amount:</span>
-                                        <span class="info-value" th:text="${vehicle.amount}"></span>
-                                    </div>
-                                </div>
-                            </div>
-                        </button>
-
+            <div class="container-fluid px-0">
+                <div class="row g-3" th:if="${vehicles != null}">
+                    <div class="col-12" th:if="${#lists.isEmpty(vehicles)}">
+                        <div class="alert alert-info mb-0">No vehicles found for the selected filters.</div>
                     </div>
 
+                    <div class="col-12 col-sm-6 col-lg-4 col-xl-3" th:each="inv : ${vehicles}">
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <span class="fw-semibold" th:text="${inv.vin}">VIN</span>
+                                <span th:text="${inv.status=='AVAILABLE' ? 'IN_STOCK' : inv.status}"
+                                      th:class="${inv.status=='AVAILABLE' ? 'badge bg-primary' : (inv.status=='RESERVED' ? 'badge bg-warning text-dark' : (inv.status=='SOLD' ? 'badge bg-success' : 'badge bg-secondary'))}"></span>
+                            </div>
+                            <div class="card-body py-3">
+                                <div class="mb-1">
+                                    <small class="text-muted d-block">Model</small>
+                                    <span th:text="${inv.vehicle != null && inv.vehicle.modelName != null ? inv.vehicle.modelName : 'N/A'}"></span>
+                                </div>
+                                <div class="mb-1">
+                                    <small class="text-muted d-block">Version</small>
+                                    <span th:text="${inv.vehicle != null && inv.vehicle.versionName != null ? inv.vehicle.versionName : 'N/A'}"></span>
+                                </div>
+                                <div class="mb-1">
+                                    <small class="text-muted d-block">Color</small>
+                                    <span th:text="${inv.vehicle != null && inv.vehicle.colorName != null ? inv.vehicle.colorName : 'N/A'}"></span>
+                                </div>
+                                <div class="mb-0">
+                                    <small class="text-muted d-block">Received</small>
+                                    <span th:text="${#dates.format(inv.receivedDate,'yyyy-MM-dd')}"></span>
+                                </div>
+                            </div>
+                            <div class="card-footer bg-white d-flex gap-2">
+                                <a class="btn btn-sm btn-outline-primary" th:href="@{'/dealer-inventory/view'(vin=${inv.vin})}">View</a>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -92,6 +136,49 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="/scripts/navBarMenuProject.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const modelSelect = document.getElementById('modelSelect');
+  const versionSelect = document.getElementById('versionSelect');
+  const colorSelect = document.getElementById('colorSelect');
+
+  function clearOptions(sel){
+    while(sel.options.length > 1){ sel.remove(1); }
+  }
+
+  async function fetchJSON(url){
+    const res = await fetch(url, { headers: { 'Accept':'application/json' }});
+    if(!res.ok) return [];
+    return await res.json();
+  }
+
+  modelSelect && modelSelect.addEventListener('change', async () => {
+    const modelId = modelSelect.value;
+    clearOptions(versionSelect); clearOptions(colorSelect);
+    if(modelId){
+      const versions = await fetchJSON(`/dealer-inventory/versions?modelId=${modelId}`);
+      versions.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v.versionID; opt.textContent = v.versionName; versionSelect.appendChild(opt);
+      });
+    }
+  });
+
+  versionSelect && versionSelect.addEventListener('change', async () => {
+    const modelId = modelSelect.value || '';
+    const versionId = versionSelect.value || '';
+    clearOptions(colorSelect);
+    if(modelId || versionId){
+      const url = `/dealer-inventory/colors?${modelId?`modelId=${modelId}`:''}${versionId?`${modelId?'&':''}versionId=${versionId}`:''}`;
+      const colors = await fetchJSON(url);
+      colors.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.colorID; opt.textContent = c.colorName; colorSelect.appendChild(opt);
+      });
+    }
+  });
+});
+</script>
 
 </body>
 
