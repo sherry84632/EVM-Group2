@@ -21,14 +21,14 @@
             document.getElementById("formTitle").innerText = "Update Dealer";
             document.getElementById("submitButton").innerText = "Update Dealer";
 
-            // 🟢 Cập nhật đúng action khi nhấn Edit
+            // 🟢 Khi edit: đặt action thành update
             document.getElementById("dealerForm").action = "/dealer/" + button.getAttribute("data-id") + "/update";
         }
 
         // 🟢 Reset form về trạng thái thêm mới
         function resetForm() {
             document.getElementById("dealerForm").reset();
-            document.getElementById("dealerId").value = "";
+            document.getElementById("dealerId").removeAttribute("name"); // xóa name => không gửi dealerID
             document.getElementById("formTitle").innerText = "Add New Dealer";
             document.getElementById("submitButton").innerText = "Add Dealer";
             document.getElementById("dealerForm").action = "/dealer/create";
@@ -63,10 +63,11 @@
                 <div class="card-body">
                     <h5 id="formTitle" class="card-title mb-3">Add New Dealer</h5>
 
-                    <!-- 🔹 Fix CSRF và dealerID -->
+                    <!-- 🔹 Fix CSRF -->
                     <form id="dealerForm" action="/dealer/create" method="post">
                         <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                        <input type="hidden" id="dealerId" name="dealerID">
+                        <!-- 🟢 dealerID chỉ có khi Edit -->
+                        <input type="hidden" id="dealerId">
 
                         <div class="row g-2">
                             <div class="col"><input id="dealerName" name="dealerName" class="form-control" placeholder="Dealer Name" required></div>
@@ -125,7 +126,7 @@
                             Edit
                         </button>
 
-                        <!-- 🟥 Fix CSRF cho Delete -->
+                        <!-- 🟥 Delete -->
                         <form th:action="@{'/dealer/' + ${dealer.dealerID} + '/delete'}" method="post" style="display:inline">
                             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
                             <button class="btn btn-danger btn-sm" type="submit">Delete</button>
