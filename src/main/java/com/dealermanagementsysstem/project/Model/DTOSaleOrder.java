@@ -44,6 +44,13 @@ public class DTOSaleOrder {
     @Column(name = "TotalAmount")
     private BigDecimal totalAmount;       // Tổng tiền (sum of price * quantity)
 
+    @Column(name = "PlannedDeliveryDate")
+    private java.sql.Timestamp plannedDeliveryDate;
+    @Column(name = "ActualDeliveryDate")
+    private java.sql.Timestamp actualDeliveryDate;
+    @Column(name = "EtaDays")
+    private Integer etaDays; // calculated days from creation to planned
+
 
     public DTOSaleOrder() {
     }
@@ -159,5 +166,39 @@ public class DTOSaleOrder {
 
     public void setQuotation(DTOQuotation quotation) {
         this.quotation = quotation;
+    }
+
+    public java.sql.Timestamp getPlannedDeliveryDate() {
+        return plannedDeliveryDate;
+    }
+
+    public void setPlannedDeliveryDate(java.sql.Timestamp plannedDeliveryDate) {
+        this.plannedDeliveryDate = plannedDeliveryDate;
+    }
+
+    public java.sql.Timestamp getActualDeliveryDate() {
+        return actualDeliveryDate;
+    }
+
+    public void setActualDeliveryDate(java.sql.Timestamp actualDeliveryDate) {
+        this.actualDeliveryDate = actualDeliveryDate;
+    }
+
+    public Integer getEtaDays() {
+        return etaDays;
+    }
+
+    public void setEtaDays(Integer etaDays) {
+        this.etaDays = etaDays;
+    }
+
+    @Transient
+    public int getDaysRemaining() {
+        if (plannedDeliveryDate == null || actualDeliveryDate != null) return 0;
+        long now = System.currentTimeMillis();
+        long planned = plannedDeliveryDate.getTime();
+        if (planned <= now) return 0;
+        long diffMs = planned - now;
+        return (int) Math.ceil(diffMs / 86400000.0); // round up to whole day
     }
 }

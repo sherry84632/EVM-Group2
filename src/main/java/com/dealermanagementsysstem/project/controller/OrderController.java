@@ -7,8 +7,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -34,7 +34,7 @@ public class OrderController {
     // 2️⃣  FORM TẠO SALE ORDER MỚI
     // ======================================================
     @GetMapping("/new")
-    public String showCreateForm(Model model, HttpSession session) {
+    public String showCreateForm(Model model, HttpSession session) { // session kept for future enhancements
 
         // ✅ Lấy thông tin người dùng đăng nhập
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -136,6 +136,7 @@ public class OrderController {
         int computedTotalQty = 0;
         java.math.BigDecimal computedTotalAmount = java.math.BigDecimal.ZERO;
         DAOVehicle vehicleDAO = new DAOVehicle();
+        double baseDiscountPct = quotation.getDiscountPercent()!=null ? quotation.getDiscountPercent() : 0.0; // primitive
         if (quotation.getQuotationDetails() != null && !quotation.getQuotationDetails().isEmpty()) {
             for (DTOQuotationDetail qd : quotation.getQuotationDetails()) {
                 int lineQty = qd.getQuantity();
@@ -145,7 +146,6 @@ public class OrderController {
                 if (versionId != null && colorId != null) {
                     vehicleIds = vehicleDAO.findAvailableVehicleIdsByVersionAndColor(versionId, colorId, lineQty);
                     if (vehicleIds.size() < lineQty) {
-                        // fallback any status
                         vehicleIds = vehicleDAO.findVehicleIdsByVersionAndColorAllStatuses(versionId, colorId, lineQty);
                     }
                 }
@@ -153,20 +153,30 @@ public class OrderController {
                     model.addAttribute("error", "Không đủ xe (Version="+versionId+", Color="+colorId+") để tạo đơn. Cần " + lineQty + ", chỉ có " + vehicleIds.size());
                     return "redirect:/quotation/detail/" + quotationID;
                 }
+                // Determine unit net price (after discount). Prefer qd.getFinalNetAfterAll per line, else apply base discount.
+                java.math.BigDecimal unitGross = qd.getUnitPrice()!=null? qd.getUnitPrice(): java.math.BigDecimal.ZERO;
+                java.math.BigDecimal unitNet;
+                if (qd.getFinalNetAfterAll()!=null) {
+                    // finalNetAfterAll is total for one unit after stacking (in quotation detail we stored per item net)
+                    unitNet = qd.getFinalNetAfterAll();
+                } else {
+                    unitNet = unitGross.multiply(java.math.BigDecimal.valueOf(1 - baseDiscountPct/100.0));
+                }
                 for (int i=0;i<lineQty;i++) {
                     DTOSaleOrderDetail sod = new DTOSaleOrderDetail();
                     sod.setSaleOrder(order);
                     DTOVehicle veh = new DTOVehicle();
                     veh.setVehicleID(vehicleIds.get(i));
                     sod.setVehicle(veh);
-                    sod.setPrice(qd.getUnitPrice()!=null?qd.getUnitPrice():java.math.BigDecimal.ZERO);
-                    sod.setQuantity(1); // each detail represents 1 physical vehicle
+                    // price stored as discounted unit price
+                    sod.setPrice(unitNet);
+                    sod.setQuantity(1); // each physical vehicle line qty=1
                     if (quotation.getDealer()!=null && quotation.getDealer().getPolicyID() > 0) {
                         DTODiscountPolicy policy = new DTODiscountPolicy(); policy.setPolicyID(quotation.getDealer().getPolicyID()); sod.setDiscountPolicy(policy);
                     }
                     details.add(sod);
                     computedTotalQty += 1;
-                    computedTotalAmount = computedTotalAmount.add(sod.getPrice());
+                    computedTotalAmount = computedTotalAmount.add(unitNet);
                 }
             }
         } else {
@@ -175,14 +185,15 @@ public class OrderController {
             if (vehicleId != null) {
                 DTOVehicle veh = new DTOVehicle(); veh.setVehicleID(vehicleId); sod.setVehicle(veh);
             }
-            sod.setPrice(java.math.BigDecimal.valueOf(quotation.getTotalPrice()));
-            sod.setQuantity(quantity);
+            // quotation total already discounted, derive per-unit directly
+            java.math.BigDecimal perUnit = java.math.BigDecimal.valueOf(quotation.getTotalPrice())
+                    .divide(java.math.BigDecimal.valueOf(Math.max(1, quantity)), java.math.MathContext.DECIMAL64);
+            sod.setPrice(perUnit);
+            sod.setQuantity(1);
             if (quotation.getDealer()!=null && quotation.getDealer().getPolicyID()>0) {
                 DTODiscountPolicy policy = new DTODiscountPolicy(); policy.setPolicyID(quotation.getDealer().getPolicyID()); sod.setDiscountPolicy(policy);
             }
-            details.add(sod);
-            computedTotalQty = quantity;
-            computedTotalAmount = java.math.BigDecimal.valueOf(quotation.getTotalPrice());
+            for (int i=0;i<quantity;i++){ details.add(sod); computedTotalQty += 1; computedTotalAmount = computedTotalAmount.add(sod.getPrice()); }
         }
         order.setTotalQuantity(computedTotalQty);
         order.setTotalAmount(computedTotalAmount);
@@ -190,7 +201,13 @@ public class OrderController {
         order.setStatus(SaleOrderStatus.valueOf(normalized));
 
         // === Gọi DAO để insert ===
+        // apply delivery estimate before persisting
+        dao.applyPlannedDeliveryEstimate(order);
         boolean success = dao.createSaleOrder(order);
+        if (success) {
+            // persist delivery info right after insertion
+            dao.updateDeliveryInfo(order.getSaleOrderID(), order.getPlannedDeliveryDate(), order.getActualDeliveryDate(), order.getEtaDays());
+        }
 
         if (success) {
             model.addAttribute("message", "Tạo đơn hàng thành công!");
@@ -233,32 +250,58 @@ public class OrderController {
     public String updateStatus(
             @RequestParam("saleOrderID") int saleOrderID,
             @RequestParam("status") String status,
-            Model model
+            RedirectAttributes ra
     ) {
         boolean success = dao.updateSaleOrderStatus(saleOrderID, String.valueOf(SaleOrderStatus.valueOf(status.toUpperCase())));
         if (success) {
-            // ✅ Nếu trạng thái là "COMPLETED", xóa xe khỏi inventory
+            DTOSaleOrder order = dao.getSaleOrderById(saleOrderID);
+            if (order != null) {
+                dao.applyActualDeliveryIfEligible(order);
+            }
             if (SaleOrderStatus.valueOf(status.toUpperCase()) == SaleOrderStatus.COMPLETED) {
-                DTOSaleOrder order = dao.getSaleOrderById(saleOrderID);
                 if (order != null && order.getDetail() != null) {
                     DAODealerInventory inventoryDAO = new DAODealerInventory();
                     for (DTOSaleOrderDetail detail : order.getDetail()) {
                         Integer vehicleId = detail.getVehicle().getVehicleID();
-                        boolean removed = inventoryDAO.removeVehicleByID(vehicleId);
-                        if (!removed) {
-                            System.out.println("⚠️ Không thể xóa VehicleID " + vehicleId + " khỏi inventory");
-                        }
+                        inventoryDAO.removeVehicleByID(vehicleId);
                     }
                 }
             }
-            model.addAttribute("message", "Cập nhật trạng thái đơn hàng thành công!");
+            ra.addFlashAttribute("message", "Cập nhật trạng thái thành công: " + status.toUpperCase());
         } else {
-            model.addAttribute("error", "Không thể cập nhật trạng thái đơn hàng!");
-            System.out.println("Cap nhat ko thanh coing");
-            System.out.println(saleOrderID);
-            System.out.println(status);
+            ra.addFlashAttribute("error", "Không thể cập nhật trạng thái đơn hàng!");
         }
+        return "redirect:/saleorder/detail/" + saleOrderID;
+    }
+
+    // ======================================================
+    // ❌ XÓA SALE ORDER
+    // ======================================================
+    @PostMapping("/delete/{id}")
+    public String deleteSaleOrder(@PathVariable int id, RedirectAttributes ra) {
+        boolean ok = dao.deleteSaleOrder(id);
+        ra.addFlashAttribute(ok?"message":"error", ok?"Sale order deleted":"Failed to delete sale order");
         return "redirect:/saleorder";
+    }
+
+    // ======================================================
+    // 🚚 UPDATE DELIVERY INFO
+    // ======================================================
+    @PostMapping("/delivery/update")
+    public String updateDeliveryInfo(@RequestParam int saleOrderID,
+                                     @RequestParam(required=false) String plannedDate,
+                                     @RequestParam(required=false) Integer etaDays,
+                                     RedirectAttributes ra) {
+        DTOSaleOrder order = dao.getSaleOrderById(saleOrderID);
+        if (order == null) { ra.addFlashAttribute("error","Sale order not found"); return "redirect:/saleorder"; }
+        java.sql.Timestamp plannedTs = order.getPlannedDeliveryDate();
+        if (plannedDate != null && !plannedDate.isBlank()) {
+            try { plannedTs = java.sql.Timestamp.valueOf(plannedDate + " 00:00:00"); } catch (Exception e) { ra.addFlashAttribute("error","Invalid planned date format (yyyy-MM-dd)"); return "redirect:/saleorder/detail/"+saleOrderID; }
+        }
+        Integer newEta = etaDays!=null? etaDays : order.getEtaDays();
+        boolean ok = dao.updateDeliveryInfo(saleOrderID, plannedTs, order.getActualDeliveryDate(), newEta);
+        ra.addFlashAttribute(ok?"message":"error", ok?"Updated delivery info":"Failed updating delivery info");
+        return "redirect:/saleorder/detail/"+saleOrderID;
     }
 
 }

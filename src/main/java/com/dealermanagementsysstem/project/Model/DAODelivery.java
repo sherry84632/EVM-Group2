@@ -176,4 +176,22 @@ public class DAODelivery {
         }
         return false;
     }
+
+    // 🔹 NEW: Cập nhật chỉ DeliveryDate theo PurchaseOrderID, giữ nguyên DeliveryStatus hiện tại
+    public boolean updateDeliveryDateByPurchaseOrderId(int purchaseOrderId, java.util.Date date) {
+        String sql = "UPDATE Delivery SET DeliveryDate = ? WHERE PurchaseOrderID = ?";
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            if (date != null) {
+                ps.setTimestamp(1, new java.sql.Timestamp(date.getTime()));
+            } else {
+                ps.setTimestamp(1, null);
+            }
+            ps.setInt(2, purchaseOrderId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
 }
