@@ -79,4 +79,3 @@ public class DTOSaleContract {
         this.status = status;
     }
 }
-

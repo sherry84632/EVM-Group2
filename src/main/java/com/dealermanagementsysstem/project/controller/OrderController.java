@@ -279,8 +279,15 @@ public class OrderController {
     // ======================================================
     @PostMapping("/delete/{id}")
     public String deleteSaleOrder(@PathVariable int id, RedirectAttributes ra) {
+        // remove contracts first to satisfy FK constraint
+        DAOSaleContract contractDAO = new DAOSaleContract();
+        int removed = contractDAO.deleteContractsBySaleOrderID(id);
         boolean ok = dao.deleteSaleOrder(id);
-        ra.addFlashAttribute(ok?"message":"error", ok?"Sale order deleted":"Failed to delete sale order");
+        if (ok) {
+            ra.addFlashAttribute("message", "Sale order deleted ("+id+") - removed "+removed+" contract(s)");
+        } else {
+            ra.addFlashAttribute("error", "Failed to delete sale order ("+id+") - check contracts or dependencies");
+        }
         return "redirect:/saleorder";
     }
 

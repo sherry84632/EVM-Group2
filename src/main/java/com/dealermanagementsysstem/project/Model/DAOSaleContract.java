@@ -13,13 +13,8 @@ public class DAOSaleContract {
     public List<DTOSaleContract> getAllSaleContracts() {
         List<DTOSaleContract> list = new ArrayList<>();
         String sql = """
-            SELECT sc.ContractID, sc.SaleOrderID, sc.ContractDate, sc.Status, sc.TotalAmount,
-                   so.SaleOrderID, c.CustomerID, c.FullName AS CustomerName,
-                   d.DealerID, d.DealerName
+            SELECT sc.ContractID, sc.SaleOrderID, sc.ContractDate, sc.Status, sc.TotalAmount
             FROM SaleContract sc
-            JOIN SaleOrder so ON sc.SaleOrderID = so.SaleOrderID
-            JOIN Customer c ON so.customer_customer_id = c.CustomerID
-            JOIN Dealer d ON so.dealer_dealer_id = d.DealerID
             ORDER BY sc.ContractDate DESC
         """;
 
@@ -52,13 +47,8 @@ public class DAOSaleContract {
     // ✅ Lấy SaleContract theo ID
     public DTOSaleContract getSaleContractById(int contractID) {
         String sql = """
-            SELECT sc.ContractID, sc.SaleOrderID, sc.ContractDate, sc.Status, sc.TotalAmount,
-                   so.SaleOrderID, c.CustomerID, c.FullName AS CustomerName,
-                   d.DealerID, d.DealerName
+            SELECT sc.ContractID, sc.SaleOrderID, sc.ContractDate, sc.Status, sc.TotalAmount
             FROM SaleContract sc
-            JOIN SaleOrder so ON sc.SaleOrderID = so.SaleOrderID
-            JOIN Customer c ON so.customer_customer_id = c.CustomerID
-            JOIN Dealer d ON so.dealer_dealer_id = d.DealerID
             WHERE sc.ContractID = ?
         """;
 
@@ -128,5 +118,47 @@ public class DAOSaleContract {
             e.printStackTrace();
         }
         return false;
+    }
+
+    // ✅ Lấy SaleContract theo SaleOrderID
+    public DTOSaleContract getSaleContractBySaleOrderId(int saleOrderID) {
+        String sql = """
+            SELECT sc.ContractID, sc.SaleOrderID, sc.ContractDate, sc.Status, sc.TotalAmount
+            FROM SaleContract sc
+            WHERE sc.SaleOrderID = ?
+        """;
+        try (Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, saleOrderID);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    DTOSaleContract c = new DTOSaleContract();
+                    c.setContractID(rs.getInt("ContractID"));
+                    java.sql.Date contractDate = rs.getDate("ContractDate");
+                    c.setContractDate(contractDate != null ? new java.util.Date(contractDate.getTime()) : null);
+                    c.setStatus(SaleContractStatus.valueOf(rs.getString("Status")));
+                    c.setTotalAmount(rs.getBigDecimal("TotalAmount"));
+                    DTOSaleOrder so = new DTOSaleOrder(); so.setSaleOrderID(rs.getInt("SaleOrderID")); c.setSaleOrder(so);
+                    return c;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    /** Delete a contract by its ContractID */
+    public boolean deleteContract(int contractID) {
+        String sql = "DELETE FROM SaleContract WHERE ContractID=?";
+        try (java.sql.Connection conn = DBUtils.getConnection(); java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, contractID); return ps.executeUpdate() > 0;
+        } catch (SQLException e) { e.printStackTrace(); return false; }
+    }
+    /** Delete all contracts referencing a sale order (for cascade manual) */
+    public int deleteContractsBySaleOrderID(int saleOrderID) {
+        String sql = "DELETE FROM SaleContract WHERE SaleOrderID=?";
+        try (java.sql.Connection conn = DBUtils.getConnection(); java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, saleOrderID); return ps.executeUpdate();
+        } catch (SQLException e) { e.printStackTrace(); return 0; }
     }
 }
