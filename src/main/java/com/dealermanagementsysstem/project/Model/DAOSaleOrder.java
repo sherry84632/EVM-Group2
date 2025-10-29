@@ -7,7 +7,9 @@ import java.util.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Repository; // added
 
+@Repository // added annotation
 public class DAOSaleOrder {
 
     private static final Logger log = LoggerFactory.getLogger(DAOSaleOrder.class);

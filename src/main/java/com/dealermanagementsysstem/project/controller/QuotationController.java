@@ -9,43 +9,34 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.ArrayList;
 
 @Controller
 @RequestMapping("/quotation")
 public class QuotationController {
 
-    @Autowired
-    private DAOQuotation dao; // use Spring managed bean instead of manual instantiation
-    @Autowired
-    private DAODealer daoDealer;
-    @Autowired
-    private DAOAccount daoAccount;
-    @Autowired
-    private DAODealerPriceAdjustment daoDealerPriceAdjustment;
-    @Autowired
-    private DAOVehicle vehicleDAO; // new injection for multi-select
+    @Autowired private DAOQuotation dao;
+    @Autowired private DAODealer daoDealer;
+    @Autowired private DAOAccount daoAccount;
+    @Autowired private DAODealerPriceAdjustment daoDealerPriceAdjustment;
+    @Autowired private DAOCustomer customerDAO;
+    @Autowired private DAOVehicle vehicleDao; // added DI
 
     private static final Logger log = LoggerFactory.getLogger(QuotationController.class);
 
     // ✅ Hiển thị form báo giá
     @GetMapping("/new")
-    public String showQuotationForm(
-            @RequestParam("vehicleId") Integer vehicleId,
-            HttpSession session,
-            Model model
-    ) {
-    log.debug("Open quotation form VehicleID={}", vehicleId);
+    public String showQuotationForm(@RequestParam("vehicleId") Integer vehicleId, HttpSession session, Model model) {
+        log.debug("Open quotation form VehicleID={}", vehicleId);
 
         // 1️⃣ Lấy thông tin xe
-    log.trace("Fetching vehicle ID={}", vehicleId);
+        log.trace("Fetching vehicle ID={}", vehicleId);
         DTOVehicle vehicle = dao.getVehicleById(vehicleId);
         if (vehicle == null) {
             log.warn("Vehicle not found ID={}", vehicleId);
@@ -79,7 +70,6 @@ public class QuotationController {
 
         // 4️⃣ Load customers for selection
         try {
-            DAOCustomer customerDAO = new DAOCustomer();
             List<DTOCustomer> customerList = customerDAO.getAllCustomers();
             model.addAttribute("customerList", customerList);
             log.debug("Loaded customers count={}", customerList.size());
@@ -99,17 +89,15 @@ public class QuotationController {
 
     // 🔥 CORE FLOW STEP 2: Save quotation to database
     @PostMapping("/save")
-    public String saveQuotation(
-            @RequestParam("customerID") int customerID,
-            @RequestParam("vehicleId") int vehicleId,
-            @RequestParam(value = "quantity", defaultValue = "1") int quantity,
-            @RequestParam(value = "extraDiscount", required = false) Double extraDiscount,
-            @RequestParam(value = "promotionID", required = false) Integer promotionID,
-            @RequestParam(value = "dealerID", required = false) Integer dealerIDParam,
-            HttpSession session,
-            RedirectAttributes redirectAttributes,
-            Model model
-    ) {
+    public String saveQuotation(@RequestParam("customerID") int customerID,
+                                 @RequestParam("vehicleId") int vehicleId,
+                                 @RequestParam(value = "quantity", defaultValue = "1") int quantity,
+                                 @RequestParam(value = "extraDiscount", required = false) Double extraDiscount,
+                                 @RequestParam(value = "promotionID", required = false) Integer promotionID,
+                                 @RequestParam(value = "dealerID", required = false) Integer dealerIDParam,
+                                 HttpSession session,
+                                 RedirectAttributes redirectAttributes,
+                                 Model model) {
         log.debug("Saving quotation customerID={} vehicleId={} quantity={} dealerIDParam={} promotionID={} extraDiscount={}", customerID, vehicleId, quantity, dealerIDParam, promotionID, extraDiscount);
 
         DTOAccount account = (DTOAccount) session.getAttribute("user");
@@ -119,37 +107,18 @@ public class QuotationController {
             Integer resolvedDealerId = null;
             if (account != null && account.getDealerStaff() != null && account.getDealerStaff().getDealer()!=null) {
                 resolvedDealerId = account.getDealerStaff().getDealer().getDealerID();
-            } else if (dealerIDParam != null) {
-                resolvedDealerId = dealerIDParam;
-                log.trace("Using dealer from param dealerId={}", resolvedDealerId);
-            }
-            if (resolvedDealerId == null) {
-                model.addAttribute("error", "Please select a dealer to create quotation.");
-                return "dealerPage/quotationForm";
-            }
+            } else if (dealerIDParam != null) { resolvedDealerId = dealerIDParam; log.trace("Using dealer from param dealerId={}", resolvedDealerId); }
+            if (resolvedDealerId == null) { model.addAttribute("error", "Please select a dealer to create quotation."); return "dealerPage/quotationForm"; }
             DTODealer dealer = dao.getDealerByID(resolvedDealerId);
-            if (dealer == null) {
-                model.addAttribute("error", "Dealer not found.");
-                return "dealerPage/quotationForm";
-            }
+            if (dealer == null) { model.addAttribute("error", "Dealer not found."); return "dealerPage/quotationForm"; }
 
             // Get customer
-            DAOCustomer customerDAO = new DAOCustomer();
-            DTOCustomer customer = customerDAO.getAllCustomers().stream()
-                    .filter(c -> c.getCustomerID() == customerID)
-                    .findFirst()
-                    .orElse(null);
-            if (customer == null) {
-                model.addAttribute("error", "Customer not found.");
-                return "dealerPage/quotationForm";
-            }
+            DTOCustomer customer = customerDAO.getCustomerById(customerID);
+            if (customer == null) { model.addAttribute("error", "Customer not found."); return "dealerPage/quotationForm"; }
 
             // Get vehicle
             DTOVehicle vehicle = dao.getVehicleById(vehicleId);
-            if (vehicle == null) {
-                model.addAttribute("error", "Vehicle not found.");
-                return "dealerPage/quotationForm";
-            }
+            if (vehicle == null) { model.addAttribute("error", "Vehicle not found."); return "dealerPage/quotationForm"; }
 
             // Determine discount
             double discountPercentValue = 0.0;
@@ -160,16 +129,12 @@ public class QuotationController {
                     case 3 -> discountPercentValue = 5.0;
                     default -> discountPercentValue = 0.0;
                 }
-            } else if (extraDiscount != null) {
-                discountPercentValue = Math.max(0.0, Math.min(80.0, extraDiscount));
-            }
+            } else if (extraDiscount != null) { discountPercentValue = Math.max(0.0, Math.min(80.0, extraDiscount)); }
 
             // Pricing
             java.math.BigDecimal basePriceBD = vehicle.getBasePrice() != null ? vehicle.getBasePrice() : java.math.BigDecimal.ZERO;
-            double basePrice = basePriceBD.doubleValue();
-            int safeQuantity = Math.max(1, quantity);
-            double gross = basePrice * safeQuantity;
-            double net = gross * (1 - discountPercentValue/100.0);
+            double basePrice = basePriceBD.doubleValue(); int safeQuantity = Math.max(1, quantity);
+            double gross = basePrice * safeQuantity; double net = gross * (1 - discountPercentValue/100.0);
 
             // Build quotation
             DTOQuotation quotation = new DTOQuotation();
@@ -181,38 +146,19 @@ public class QuotationController {
             quotation.setLevelID(dealer.getLevelID() > 0 ? dealer.getLevelID() : 1);
             quotation.setDiscountPercent(discountPercentValue == 0.0 ? null : discountPercentValue);
             quotation.setTotalPrice(net);
-            if (account != null && account.getDealerStaff() != null) {
-                DTODealerStaff staff = new DTODealerStaff();
-                staff.setStaffID(account.getDealerStaff().getStaffID());
-                quotation.setStaff(staff);
-            }
+            if (account != null && account.getDealerStaff() != null) { DTODealerStaff staff = new DTODealerStaff(); staff.setStaffID(account.getDealerStaff().getStaffID()); quotation.setStaff(staff); }
 
             int quotationID = dao.insertQuotation(quotation);
-            if (quotationID <= 0) {
-                model.addAttribute("error", "Failed to create quotation. Please try again.");
-                return "dealerPage/quotationForm";
-            }
+            if (quotationID <= 0) { model.addAttribute("error", "Failed to create quotation. Please try again."); return "dealerPage/quotationForm"; }
             log.info("Quotation created quotationID={}", quotationID);
 
             // Insert a single quotation detail representing this vehicle (if version & color present)
             if (vehicle.getVersion() != null && vehicle.getColor() != null) {
-                DTOQuotationDetail detail = new DTOQuotationDetail();
-                DTOQuotation qRef = new DTOQuotation();
-                qRef.setQuotationID(quotationID);
-                detail.setQuotation(qRef);
-                detail.setUnitPrice(basePriceBD); // store base price per unit
-                DTOVehicleVersion versionRef = new DTOVehicleVersion();
-                versionRef.setVersionID(vehicle.getVersion().getVersionID());
-                detail.setVersion(versionRef);
-                DTOVehicleColor colorRef = new DTOVehicleColor();
-                colorRef.setColorID(vehicle.getColor().getColorID());
-                detail.setColor(colorRef);
-                detail.setQuantity(safeQuantity);
-                boolean detailInserted = dao.insertQuotationDetail(detail);
-                log.info("Quotation detail inserted={} quotationID={}", detailInserted, quotationID);
-            } else {
-                log.warn("Vehicle missing version or color, skipping detail insertion vehicleId={}", vehicleId);
-            }
+                DTOQuotationDetail detail = new DTOQuotationDetail(); DTOQuotation qRef = new DTOQuotation(); qRef.setQuotationID(quotationID); detail.setQuotation(qRef);
+                detail.setUnitPrice(basePriceBD); DTOVehicleVersion versionRef = new DTOVehicleVersion(); versionRef.setVersionID(vehicle.getVersion().getVersionID()); detail.setVersion(versionRef);
+                DTOVehicleColor colorRef = new DTOVehicleColor(); colorRef.setColorID(vehicle.getColor().getColorID()); detail.setColor(colorRef); detail.setQuantity(safeQuantity);
+                boolean detailInserted = dao.insertQuotationDetail(detail); log.info("Quotation detail inserted={} quotationID={}", detailInserted, quotationID);
+            } else { log.warn("Vehicle missing version or color, skipping detail insertion vehicleId={}", vehicleId); }
 
             dao.recalcQuotationTotal(quotationID); // ensures net stored
             redirectAttributes.addFlashAttribute("message", "Quotation created successfully (ID: " + quotationID + ")");
@@ -245,37 +191,31 @@ public class QuotationController {
 
     // 🔥 CORE FLOW STEP 4: View quotation details
     @GetMapping("/detail/{id}")
-    public String viewQuotationDetail(@PathVariable("id") int id, @RequestParam(value="discountId", required=false) Integer discountId, Model model) {
-    log.debug("Viewing quotation detail id={}", id);
-
+    public String viewQuotationDetail(@PathVariable("id") int id,
+                                       @RequestParam(value="discountId", required=false) Integer discountId,
+                                       Model model) {
+        log.debug("Viewing quotation detail id={}", id);
         try {
             DTOQuotation quotation = dao.getQuotationById(id);
-            if (quotation == null) {
-                model.addAttribute("error", "Quotation not found!");
-                return "redirect:/quotation/list";
-            }
+            if (quotation == null) { model.addAttribute("error", "Quotation not found!"); return "redirect:/quotation/list"; }
             List<DTOQuotationDetail> details = dao.getQuotationDetails(id);
-            quotation.setQuotationDetails(details);
-            if (details != null && !details.isEmpty()) {
-                double totalPrice = details.stream().mapToDouble(d -> d.getUnitPrice().doubleValue()).sum();
+            if (details == null) details = new ArrayList<>();
+            List<DTOQuotationDetail> safeDetails = details; // local alias for analyzer
+            quotation.setQuotationDetails(safeDetails);
+            if (!safeDetails.isEmpty()) {
+                double totalPrice = safeDetails.stream().mapToDouble(d -> d.getUnitPrice().doubleValue()).sum();
                 quotation.setTotalPrice(totalPrice);
             }
             model.addAttribute("quotation", quotation);
-            model.addAttribute("details", details);
+            model.addAttribute("details", safeDetails);
             if (quotation.getDealer()!=null) {
                 var active = daoDealerPriceAdjustment.getActiveDiscountsByDealer(quotation.getDealer().getDealerID());
-                log.debug("Active promotions for dealer {} count={}", quotation.getDealer().getDealerID(), active.size());
-                for (DTODealerPriceAdjustment p : active) {
-                    log.debug("Promotion id={} name={} pct={} start={} end={}", p.getAdjustmentID(), p.getPromotionName(), p.getDiscountPercent(), p.getStartDate(), p.getEndDate());
-                }
                 model.addAttribute("activeDiscounts", active);
             }
-            boolean promotionAppliedFlag = false;
-            Double appliedLineDiscountPercent = null; // percent for matched model lines
-            if (discountId != null) {
-                if (discountId == 0) { // treat 0 as remove promotion
-                    for (DTOQuotationDetail d: details) d.setAppliedDealerDiscountPercent(null);
-                } else {
+            boolean promotionAppliedFlag = false; Double appliedLineDiscountPercent = null;
+            if (discountId != null && !details.isEmpty()) {
+                if (discountId == 0) { for (DTOQuotationDetail d: details) d.setAppliedDealerDiscountPercent(null); }
+                else {
                     DTODealerPriceAdjustment applied = daoDealerPriceAdjustment.getDiscountById(discountId);
                     if (applied != null && applied.getDiscountPercent()!=null) {
                         Integer promoModelId = applied.getVehicleModel()!=null ? applied.getVehicleModel().getModelID() : null;
@@ -284,39 +224,25 @@ public class QuotationController {
                             boolean anyMatched = false;
                             for (DTOQuotationDetail d : details) {
                                 if (d.getVersion()!=null && d.getVersion().getModel()!=null && d.getVersion().getModel().getModelID() == promoModelId) {
-                                    d.setAppliedDealerDiscountPercent(linePct);
-                                    anyMatched = true;
+                                    d.setAppliedDealerDiscountPercent(linePct); anyMatched = true;
                                 } else { d.setAppliedDealerDiscountPercent(null); }
                             }
-                            if (anyMatched) {
-                                promotionAppliedFlag = true;
-                                appliedLineDiscountPercent = linePct;
-                                model.addAttribute("appliedDealerDiscount", applied);
-                            } else {
-                                model.addAttribute("error", "Promotion model does not match any line items.");
-                            }
-                        } else {
-                            model.addAttribute("error", "Discount missing model reference.");
-                        }
-                    } else {
-                        model.addAttribute("error", "Selected discount not valid or has no percent.");
-                    }
+                            if (anyMatched) { promotionAppliedFlag = true; appliedLineDiscountPercent = linePct; model.addAttribute("appliedDealerDiscount", applied); }
+                            else { model.addAttribute("error", "Promotion model does not match any line items."); }
+                        } else { model.addAttribute("error", "Discount missing model reference."); }
+                    } else { model.addAttribute("error", "Selected discount not valid or has no percent."); }
                 }
             }
-            // Calculate final net: apply line-level then base discount stacking
             double baseDiscountPct = quotation.getDiscountPercent()!=null ? quotation.getDiscountPercent() : 0.0;
-            double grossAll = details.stream().mapToDouble(d -> d.getSubtotal().doubleValue()).sum();
-            double afterLine = details.stream().mapToDouble(d -> {
-                double sub = d.getSubtotal().doubleValue();
-                double lp = d.getAppliedDealerDiscountPercent()!=null ? d.getAppliedDealerDiscountPercent() : 0.0;
+            double grossAll = safeDetails.isEmpty()?0.0: safeDetails.stream().mapToDouble(d -> d.getSubtotal().doubleValue()).sum();
+            double afterLine = safeDetails.isEmpty()?0.0: safeDetails.stream().mapToDouble(d -> {
+                double sub = d.getSubtotal().doubleValue(); double lp = d.getAppliedDealerDiscountPercent()!=null ? d.getAppliedDealerDiscountPercent() : 0.0;
                 return sub * (1 - lp/100.0);
             }).sum();
             double finalNetTotal = afterLine * (1 - baseDiscountPct/100.0);
-            // per line final net
-            for (DTOQuotationDetail d: details) {
+            for (DTOQuotationDetail d: safeDetails) {
                 double lp = d.getAppliedDealerDiscountPercent()!=null ? d.getAppliedDealerDiscountPercent() : 0.0;
-                double sub = d.getSubtotal().doubleValue();
-                double lineAfterLine = sub * (1 - lp/100.0);
+                double sub = d.getSubtotal().doubleValue(); double lineAfterLine = sub * (1 - lp/100.0);
                 double lineFinal = lineAfterLine * (1 - baseDiscountPct/100.0);
                 d.setFinalNetAfterAll(java.math.BigDecimal.valueOf(lineFinal));
             }
@@ -328,8 +254,8 @@ public class QuotationController {
             model.addAttribute("promotionApplied", promotionAppliedFlag);
             model.addAttribute("finalNetTotal", finalNetTotal);
             model.addAttribute("baseDiscountPercent", baseDiscountPct);
-            model.addAttribute("finalCombinedDiscountPercent", grossAll>0? (1 - finalNetTotal / grossAll)*100.0 : 0.0);
-            model.addAttribute("details", details); // ensure updated lines passed
+            double finalCombined = (grossAll>0)? (1 - finalNetTotal / grossAll)*100.0 : 0.0;
+            model.addAttribute("finalCombinedDiscountPercent", finalCombined);
             return "dealerPage/quotationDetail";
         } catch (Exception e) {
             log.error("Error loading quotation detail id={}", id, e);
@@ -799,15 +725,14 @@ public class QuotationController {
             dealer = dao.getDealerByID(account.getDealerStaff().getDealer().getDealerID());
             model.addAttribute("activeDiscounts", daoDealerPriceAdjustment.getActiveDiscountsByDealer(dealer.getDealerID()));
         } else {
-            try { model.addAttribute("dealerList", daoDealer.getAllDealers()); } catch (Exception ex) { }
+            try { model.addAttribute("dealerList", daoDealer.getAllDealers()); } catch (Exception ex) { log.warn("Failed load dealers", ex); }
         }
-        // Vehicles list for selection
-        java.util.List<DTOVehicle> vehicles = vehicleDAO.getVehicles();
+        List<DTOVehicle> vehicles = vehicleDao.getVehicles();
         model.addAttribute("vehicles", vehicles);
-        // Customers list
-        try { DAOCustomer cDao = new DAOCustomer(); model.addAttribute("customerList", cDao.getAllCustomers()); } catch (Exception ignored) {}
+        model.addAttribute("customerList", customerDAO.getAllCustomers());
         if (dealer != null) model.addAttribute("dealer", dealer);
-        model.addAttribute("nowTs", java.time.LocalDateTime.now());
+        model.addAttribute("nowTs", LocalDateTime.now());
+        // Ensure the template dealerPage/quotationCreateMulti.html exists; if not, adjust view name.
         return "dealerPage/quotationCreateMulti";
     }
 

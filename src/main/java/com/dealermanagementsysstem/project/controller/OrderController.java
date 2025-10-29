@@ -1,13 +1,13 @@
 package com.dealermanagementsysstem.project.controller;
 
 import com.dealermanagementsysstem.project.Model.*;
-import jakarta.servlet.http.HttpSession;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -18,14 +18,19 @@ import java.util.List;
 @RequestMapping({"/order","/saleorder"})
 public class OrderController {
 
-    private final DAOSaleOrder dao = new DAOSaleOrder();
+    @Autowired private DAOSaleOrder saleOrderDao; // replaced manual new
+    @Autowired private DAOAccount accountDao; // for account lookup
+    @Autowired private DAOQuotation quotationDao; // for quotations
+    @Autowired private DAOVehicle vehicleDao; // for vehicle availability checks
+    @Autowired private DAODealerInventory dealerInventoryDao; // inventory adjustments
+    @Autowired private DAOSaleContract saleContractDao; // delete cascade
 
     // ======================================================
     // 1️⃣  DANH SÁCH TẤT CẢ SALE ORDER
     // ======================================================
     @GetMapping
     public String listSaleOrders(Model model) {
-        List<DTOSaleOrder> orders = dao.getAllSaleOrders();
+        List<DTOSaleOrder> orders = saleOrderDao.getAllSaleOrders();
         model.addAttribute("orders", orders);
         return "dealerPage/dealerCustomerOrderList";
     }
@@ -34,14 +39,13 @@ public class OrderController {
     // 2️⃣  FORM TẠO SALE ORDER MỚI
     // ======================================================
     @GetMapping("/new")
-    public String showCreateForm(Model model, HttpSession session) { // session kept for future enhancements
+    public String showCreateForm(Model model) {
 
         // ✅ Lấy thông tin người dùng đăng nhập
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String email = auth.getName();
 
-        DAOAccount daoAccount = new DAOAccount();
-        DTOAccount account = daoAccount.findAccountByEmail(email);
+        DTOAccount account = accountDao.findAccountByEmail(email);
 
         if (account == null || account.getDealerStaff() == null) {
             model.addAttribute("error", "Bạn cần đăng nhập bằng tài khoản dealer!");
@@ -49,8 +53,7 @@ public class OrderController {
         }
 
         // ✅ Lấy danh sách quotation đã duyệt cho dealer này
-        DAOQuotation quotationDAO = new DAOQuotation();
-        List<DTOQuotation> approvedQuotations = quotationDAO.getQuotationsByDealer(account.getDealerStaff().getDealer().getDealerID())
+        List<DTOQuotation> approvedQuotations = quotationDao.getQuotationsByDealer(account.getDealerStaff().getDealer().getDealerID())
                 .stream()
                 .filter(q -> q.getStatus() == QuotationStatus.APPROVED)
                 .toList();
@@ -82,8 +85,7 @@ public class OrderController {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String email = auth.getName();
 
-        DAOAccount daoAccount = new DAOAccount();
-        DTOAccount account = daoAccount.findAccountByEmail(email);
+        DTOAccount account = accountDao.findAccountByEmail(email);
 
         if (account == null || account.getDealerStaff()== null) {
             model.addAttribute("error", "Tài khoản hiện tại không hợp lệ hoặc chưa đăng nhập!");
@@ -93,10 +95,9 @@ public class OrderController {
         int dealerID = account.getDealerStaff().getDealer().getDealerID();
 
         // ✅ Lấy quotation được chọn
-        DAOQuotation quotationDAO = new DAOQuotation();
-        DTOQuotation quotation = quotationDAO.getQuotationById(quotationID);
+        DTOQuotation quotation = quotationDao.getQuotationById(quotationID);
         if (quotation == null || quotation.getStatus() != QuotationStatus.APPROVED) {
-            model.addAttribute("error", "Quotation không hợp lệ hoặc chưa đư���c duyệt!");
+            model.addAttribute("error", "Quotation không hợp lệ hoặc chưa được duyệt!");
             return "redirect:/quotation/list";
         }
 
@@ -135,7 +136,6 @@ public class OrderController {
         List<DTOSaleOrderDetail> details = new ArrayList<>();
         int computedTotalQty = 0;
         java.math.BigDecimal computedTotalAmount = java.math.BigDecimal.ZERO;
-        DAOVehicle vehicleDAO = new DAOVehicle();
         double baseDiscountPct = quotation.getDiscountPercent()!=null ? quotation.getDiscountPercent() : 0.0; // primitive
         if (quotation.getQuotationDetails() != null && !quotation.getQuotationDetails().isEmpty()) {
             for (DTOQuotationDetail qd : quotation.getQuotationDetails()) {
@@ -144,9 +144,9 @@ public class OrderController {
                 Integer colorId = qd.getColor()!=null? qd.getColor().getColorID(): null;
                 List<Integer> vehicleIds = new ArrayList<>();
                 if (versionId != null && colorId != null) {
-                    vehicleIds = vehicleDAO.findAvailableVehicleIdsByVersionAndColor(versionId, colorId, lineQty);
+                    vehicleIds = vehicleDao.findAvailableVehicleIdsByVersionAndColor(versionId, colorId, lineQty);
                     if (vehicleIds.size() < lineQty) {
-                        vehicleIds = vehicleDAO.findVehicleIdsByVersionAndColorAllStatuses(versionId, colorId, lineQty);
+                        vehicleIds = vehicleDao.findVehicleIdsByVersionAndColorAllStatuses(versionId, colorId, lineQty);
                     }
                 }
                 if (vehicleIds.size() < lineQty) {
@@ -202,11 +202,11 @@ public class OrderController {
 
         // === Gọi DAO để insert ===
         // apply delivery estimate before persisting
-        dao.applyPlannedDeliveryEstimate(order);
-        boolean success = dao.createSaleOrder(order);
+        saleOrderDao.applyPlannedDeliveryEstimate(order);
+        boolean success = saleOrderDao.createSaleOrder(order);
         if (success) {
             // persist delivery info right after insertion
-            dao.updateDeliveryInfo(order.getSaleOrderID(), order.getPlannedDeliveryDate(), order.getActualDeliveryDate(), order.getEtaDays());
+            saleOrderDao.updateDeliveryInfo(order.getSaleOrderID(), order.getPlannedDeliveryDate(), order.getActualDeliveryDate(), order.getEtaDays());
         }
 
         if (success) {
@@ -223,7 +223,7 @@ public class OrderController {
     // ======================================================
     @GetMapping("/detail/{id}")
     public String viewOrderDetail(@PathVariable("id") int id, Model model) {
-        DTOSaleOrder order = dao.getSaleOrderById(id);
+        DTOSaleOrder order = saleOrderDao.getSaleOrderById(id);
         if (order == null) {
             model.addAttribute("error", "Không tìm thấy đơn hàng!");
             return "redirect:/saleorder";
@@ -238,9 +238,7 @@ public class OrderController {
     @GetMapping("/detail/item/{detailId}")
     @ResponseBody
     public DTOSaleOrderDetail getDetailItem(@PathVariable("detailId") int detailId) {
-        // ✅ Lấy chi tiết đơn hàng qua DAO
-        DAOSaleOrder dao = new DAOSaleOrder();
-        return dao.getDetailById(detailId);
+        return saleOrderDao.getDetailById(detailId);
     }
 
     // ======================================================
@@ -252,18 +250,16 @@ public class OrderController {
             @RequestParam("status") String status,
             RedirectAttributes ra
     ) {
-        boolean success = dao.updateSaleOrderStatus(saleOrderID, String.valueOf(SaleOrderStatus.valueOf(status.toUpperCase())));
+        boolean success = saleOrderDao.updateSaleOrderStatus(saleOrderID, String.valueOf(SaleOrderStatus.valueOf(status.toUpperCase())));
         if (success) {
-            DTOSaleOrder order = dao.getSaleOrderById(saleOrderID);
+            DTOSaleOrder order = saleOrderDao.getSaleOrderById(saleOrderID);
             if (order != null) {
-                dao.applyActualDeliveryIfEligible(order);
+                saleOrderDao.applyActualDeliveryIfEligible(order);
             }
             if (SaleOrderStatus.valueOf(status.toUpperCase()) == SaleOrderStatus.COMPLETED) {
                 if (order != null && order.getDetail() != null) {
-                    DAODealerInventory inventoryDAO = new DAODealerInventory();
                     for (DTOSaleOrderDetail detail : order.getDetail()) {
-                        Integer vehicleId = detail.getVehicle().getVehicleID();
-                        inventoryDAO.removeVehicleByID(vehicleId);
+                        Integer vehicleId = detail.getVehicle().getVehicleID(); dealerInventoryDao.removeVehicleByID(vehicleId);
                     }
                 }
             }
@@ -279,15 +275,10 @@ public class OrderController {
     // ======================================================
     @PostMapping("/delete/{id}")
     public String deleteSaleOrder(@PathVariable int id, RedirectAttributes ra) {
-        // remove contracts first to satisfy FK constraint
-        DAOSaleContract contractDAO = new DAOSaleContract();
-        int removed = contractDAO.deleteContractsBySaleOrderID(id);
-        boolean ok = dao.deleteSaleOrder(id);
-        if (ok) {
-            ra.addFlashAttribute("message", "Sale order deleted ("+id+") - removed "+removed+" contract(s)");
-        } else {
-            ra.addFlashAttribute("error", "Failed to delete sale order ("+id+") - check contracts or dependencies");
-        }
+        int removed = saleContractDao.deleteContractsBySaleOrderID(id);
+        boolean ok = saleOrderDao.deleteSaleOrder(id);
+        if (ok) { ra.addFlashAttribute("message", "Sale order deleted ("+id+") - removed "+removed+" contract(s)"); }
+        else { ra.addFlashAttribute("error", "Failed to delete sale order ("+id+") - check contracts or dependencies"); }
         return "redirect:/saleorder";
     }
 
@@ -299,14 +290,14 @@ public class OrderController {
                                      @RequestParam(required=false) String plannedDate,
                                      @RequestParam(required=false) Integer etaDays,
                                      RedirectAttributes ra) {
-        DTOSaleOrder order = dao.getSaleOrderById(saleOrderID);
+        DTOSaleOrder order = saleOrderDao.getSaleOrderById(saleOrderID);
         if (order == null) { ra.addFlashAttribute("error","Sale order not found"); return "redirect:/saleorder"; }
         java.sql.Timestamp plannedTs = order.getPlannedDeliveryDate();
         if (plannedDate != null && !plannedDate.isBlank()) {
             try { plannedTs = java.sql.Timestamp.valueOf(plannedDate + " 00:00:00"); } catch (Exception e) { ra.addFlashAttribute("error","Invalid planned date format (yyyy-MM-dd)"); return "redirect:/saleorder/detail/"+saleOrderID; }
         }
         Integer newEta = etaDays!=null? etaDays : order.getEtaDays();
-        boolean ok = dao.updateDeliveryInfo(saleOrderID, plannedTs, order.getActualDeliveryDate(), newEta);
+        boolean ok = saleOrderDao.updateDeliveryInfo(saleOrderID, plannedTs, order.getActualDeliveryDate(), newEta);
         ra.addFlashAttribute(ok?"message":"error", ok?"Updated delivery info":"Failed updating delivery info");
         return "redirect:/saleorder/detail/"+saleOrderID;
     }

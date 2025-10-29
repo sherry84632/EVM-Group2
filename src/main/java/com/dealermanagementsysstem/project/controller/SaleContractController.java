@@ -5,6 +5,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
 import java.util.Date;
@@ -13,8 +14,8 @@ import java.util.Date;
 @RequestMapping("/contract")
 public class SaleContractController {
 
-    private final DAOSaleContract daoContract = new DAOSaleContract();
-    private final DAOSaleOrder daoSaleOrder = new DAOSaleOrder();
+    @Autowired private DAOSaleContract daoContract; // DI
+    @Autowired private DAOSaleOrder daoSaleOrder; // DI
 
     @PostMapping("/create")
     public String createFromSaleOrder(@RequestParam("saleOrderID") int saleOrderID, RedirectAttributes ra) {

@@ -14,13 +14,12 @@ import java.util.List;
 
 @Controller
 public class VehicleController {
-    @Autowired
-    private DAOCustomer daoCustomer;
+    @Autowired private DAOCustomer daoCustomer;
+    @Autowired private DAOVehicle daoVehicle; // injected
 
     @GetMapping("/getVehicleList")
     public String vehicleList(Model model)
     {
-        DAOVehicle daoVehicle = new DAOVehicle();
         List<DTOVehicle> vehicle = daoVehicle.getVehicles();
         model.addAttribute("vehicleList", vehicle);
         return "evmPage/vehicleList";
@@ -29,7 +28,6 @@ public class VehicleController {
     @GetMapping("/getVehicleListToOrder")
     public String vehicleList2(Model model)
     {
-        DAOVehicle daoVehicle = new DAOVehicle();
         List<DTOVehicle> vehicle = daoVehicle.getVehicles();
         model.addAttribute("vehicleList", vehicle);
         
@@ -48,7 +46,6 @@ public class VehicleController {
     @GetMapping("/getVehicleListToCreateQuotation")
     public String vehicleList3(Model model)
     {
-        DAOVehicle daoVehicle = new DAOVehicle();
         List<DTOVehicle> vehicle = daoVehicle.getVehicles();
         model.addAttribute("vehicleList", vehicle);
         // Load customers for multi-select quotation creation using injected DAO
