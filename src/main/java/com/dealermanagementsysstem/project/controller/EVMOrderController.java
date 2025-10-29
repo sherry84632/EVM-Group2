@@ -226,4 +226,54 @@ public class EVMOrderController {
         }
         return "redirect:/evm/orders/detail/"+orderId;
     }
+
+    // 🔹 NEW: Cập nhật Planned Delivery Date (ngày dự kiến giao) thủ công
+    @PostMapping("/delivery/{orderId}/date")
+    public String updatePlannedDeliveryDate(@PathVariable int orderId,
+                                            @RequestParam("plannedDate") String plannedDate,
+                                            RedirectAttributes redirectAttributes){
+        try {
+            DAODelivery daoDelivery = new DAODelivery();
+            if(!daoDelivery.existsDelivery(orderId)) {
+                ensureDeliveryCreated(orderId);
+            }
+            java.util.Date date = null;
+            if(plannedDate!=null && !plannedDate.isBlank()){
+                date = java.sql.Date.valueOf(plannedDate);
+            }
+            boolean ok = daoDelivery.updateDeliveryDateByPurchaseOrderId(orderId,date);
+            if(ok){
+                redirectAttributes.addFlashAttribute("message","✅ Planned delivery date updated");
+                redirectAttributes.addFlashAttribute("statusType","UPDATED");
+            } else {
+                redirectAttributes.addFlashAttribute("message","❌ Failed to update planned delivery date");
+                redirectAttributes.addFlashAttribute("statusType","error");
+            }
+        } catch (Exception ex){
+            redirectAttributes.addFlashAttribute("message","❌ Invalid date format");
+            redirectAttributes.addFlashAttribute("statusType","error");
+        }
+        return "redirect:/evm/orders/detail/"+orderId;
+    }
+
+    // 🔹 NEW: Tạo hợp đồng (Contract) từ PurchaseOrder sau khi Approved
+    @PostMapping("/contract/{orderId}/create")
+    public String createContractFromOrder(@PathVariable int orderId, RedirectAttributes redirectAttributes){
+        DTOPurchaseOrder order = purchaseOrderDAO.getPurchaseOrderById(orderId);
+        if(order==null){
+            redirectAttributes.addFlashAttribute("message","❌ Order not found");
+            redirectAttributes.addFlashAttribute("statusType","error");
+            return "redirect:/evm/orders/list";
+        }
+        if(order.getStatus()!=PurchaseOrderStatus.APPROVED && order.getStatus()!=PurchaseOrderStatus.DELIVERED && order.getStatus()!=PurchaseOrderStatus.IN_PROCESS){
+            redirectAttributes.addFlashAttribute("message","⚠️ Order must be approved before creating contract");
+            redirectAttributes.addFlashAttribute("statusType","error");
+            return "redirect:/evm/orders/detail/"+orderId;
+        }
+        // Placeholder logic: In thực tế sẽ gọi DAOContract.create(...)
+        // Ở đây chỉ flash message xác nhận.
+        redirectAttributes.addFlashAttribute("message","✅ Contract created for order #"+orderId+" (placeholder) ");
+        redirectAttributes.addFlashAttribute("statusType","CONTRACT_CREATED");
+        return "redirect:/evm/orders/detail/"+orderId;
+    }
 }

@@ -206,48 +206,38 @@
                     </div>
                 </div>
 
-                <!-- Vehicle Information -->
-                <div class="info-section" th:if="${quotation.vehicle != null}">
+                <!-- Vehicle Information (adjusted) -->
+                <div class="info-section">
                     <h5><i class="fas fa-car me-2"></i>Vehicle Information</h5>
-                    <div class="row">
+                    <div th:if="${quotation.firstModelName != null}" class="row">
                         <div class="col-md-6">
                             <div class="info-row">
-                                <span class="info-label">VIN:</span>
-                                <span class="info-value" th:text="${quotation.vehicle.VIN}"></span>
+                                <span class="info-label">Model:</span>
+                                <span class="info-value" th:text="${quotation.firstModelName}">-</span>
                             </div>
                             <div class="info-row">
-                                <span class="info-label">Model:</span>
-                                <span class="info-value" th:text="${quotation.vehicle.modelName}"></span>
+                                <span class="info-label">Version:</span>
+                                <span class="info-value" th:text="${quotation.firstVersionName ?: '-'}">-</span>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="info-row">
-                                <span class="info-label">Year:</span>
-                                <span class="info-value" th:text="${quotation.vehicle.manufactureYear}"></span>
-                            </div>
-                            <div class="info-row">
                                 <span class="info-label">Color:</span>
-                                <span class="info-value" th:text="${quotation.vehicle.colorName}"></span>
+                                <span class="info-value" th:text="${quotation.firstColorName ?: '-'}">-</span>
                             </div>
                             <div class="info-row">
-                                <span class="info-label">Base Price:</span>
-                                <span class="info-value">$<span th:text="${#numbers.formatDecimal(quotation.vehicle.basePrice, 1, 2)}"></span></span>
+                                <span class="info-label">Base Unit Price:</span>
+                                <span class="info-value">$<span th:text="${#numbers.formatDecimal(quotation.firstUnitPrice,1,2)}"></span></span>
                             </div>
                         </div>
                     </div>
-                </div>
-
-                <!-- No Vehicle Information -->
-                <div class="info-section" th:if="${quotation.vehicle == null}">
-                    <h5><i class="fas fa-car me-2"></i>Vehicle Information</h5>
-                    <div class="alert alert-warning">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        No vehicle information available for this quotation.
+                    <div th:if="${quotation.firstModelName == null}" class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>No vehicle lines found in this quotation.
                     </div>
                 </div>
 
                 <!-- Pricing Details -->
-                <div class="info-section" th:if="${details != null and !details.empty}">
+                <div class="info-section" th:if="${details != null and !details.isEmpty()}">
                     <h5><i class="fas fa-dollar-sign me-2"></i>Pricing Details</h5>
                     <div class="pricing-table">
                         <div class="table-responsive">
@@ -340,12 +330,10 @@
                 <button type="button" class="btn-action btn-export" id="exportPdfBtn">
                     <i class="fas fa-file-pdf me-2"></i>Export to PDF
                 </button>
-                <a th:href="@{/saleorder/new?quotationID={id}(id=${quotation.quotationID})}"
-                   class="btn-action btn-create-order" th:if="${quotation.status == 'Approved'}">
+                <a th:if="${quotation.status.name()=='APPROVED'}" th:href="@{/saleorder/new(quotationID=${quotation.quotationID})}" class="btn-action btn-create-order">
                     <i class="fas fa-shopping-cart me-2"></i>Create Order
                 </a>
-                <a th:href="@{/quotation/detail/{id}(id=${quotation.quotationID})}"
-                   class="btn-action btn-create-order" th:if="${quotation.status != 'Approved'}">
+                <a th:if="${quotation.status.name()!='APPROVED'}" th:href="@{/quotation/detail/{id}(id=${quotation.quotationID})}" class="btn-action btn-create-order">
                     <i class="fas fa-eye me-2"></i>View Details
                 </a>
             </div>

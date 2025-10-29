@@ -747,4 +747,38 @@ public class DAOQuotation {
         }
         return null;
     }
+
+    // ✅ Delete Quotation
+    public boolean deleteQuotation(int quotationID) {
+        String sqlDetails = "DELETE FROM QuotationDetail WHERE QuotationID=?";
+        String sqlQuotation = "DELETE FROM Quotation WHERE QuotationID=?";
+        try (java.sql.Connection conn = utils.DBUtils.getConnection()) {
+            conn.setAutoCommit(false);
+            try (java.sql.PreparedStatement ps1 = conn.prepareStatement(sqlDetails)) {
+                ps1.setInt(1, quotationID); ps1.executeUpdate();
+            }
+            try (java.sql.PreparedStatement ps2 = conn.prepareStatement(sqlQuotation)) {
+                ps2.setInt(1, quotationID); int rows = ps2.executeUpdate();
+                if (rows > 0) { conn.commit(); org.slf4j.LoggerFactory.getLogger(DAOQuotation.class).info("Deleted quotation id={}", quotationID); return true; }
+            }
+            conn.rollback();
+        } catch (java.sql.SQLException e) {
+            org.slf4j.LoggerFactory.getLogger(DAOQuotation.class).error("Failed deleting quotation id={}", quotationID, e);
+        }
+        return false;
+    }
+
+    // ✅ Update unit price and quantity together for a quotation detail
+    public boolean updateQuotationDetailFields(int quotationDetailID, java.math.BigDecimal unitPrice, int quantity) {
+        String sql = "UPDATE QuotationDetail SET UnitPrice = ?, Quantity = ? WHERE QuotationDetailID = ?";
+        try (java.sql.Connection conn = utils.DBUtils.getConnection(); java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setBigDecimal(1, unitPrice != null ? unitPrice : java.math.BigDecimal.ZERO);
+            ps.setInt(2, Math.max(1, quantity));
+            ps.setInt(3, quotationDetailID);
+            return ps.executeUpdate() > 0;
+        } catch (java.sql.SQLException e) {
+            org.slf4j.LoggerFactory.getLogger(DAOQuotation.class).error("Failed bulk field update detailID={}", quotationDetailID, e);
+            return false;
+        }
+    }
 }

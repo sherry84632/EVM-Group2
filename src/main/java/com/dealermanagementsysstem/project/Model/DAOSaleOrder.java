@@ -4,7 +4,6 @@ import utils.DBUtils;
 
 import java.sql.*;
 import java.util.*;
-import java.math.BigDecimal;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,7 +16,7 @@ public class DAOSaleOrder {
     // 1️⃣  TẠO SALE ORDER MỚI
     // ======================================================
     public boolean createSaleOrder(DTOSaleOrder saleOrder) {
-        String sqlOrder = "INSERT INTO SaleOrder (customer_customer_id, dealer_dealer_id, staff_staff_id, CreatedAt, Status, Quantity, TotalAmount) VALUES (?, ?, ?, GETDATE(), ?, ?, ?)";
+        String sqlOrder = "INSERT INTO SaleOrder (customer_customer_id, dealer_dealer_id, staff_staff_id, CreatedAt, Status, Quantity, TotalAmount, PlannedDeliveryDate, ActualDeliveryDate, EtaDays) VALUES (?, ?, ?, GETDATE(), ?, ?, ?, ?, ?, ?)";
         String sqlDetail = "INSERT INTO SaleOrderDetail (SaleOrderID, VehicleID, Price, PolicyID) VALUES (?, ?, ?, ?)";
         Connection conn = null; PreparedStatement psOrder = null; PreparedStatement psDetail = null; ResultSet rs = null;
         try {
@@ -50,6 +49,9 @@ public class DAOSaleOrder {
             psOrder.setString(4, saleOrder.getStatus().toString());
             psOrder.setInt(5, saleOrder.getTotalQuantity());
             psOrder.setBigDecimal(6, saleOrder.getTotalAmount());
+            psOrder.setTimestamp(7, saleOrder.getPlannedDeliveryDate());
+            psOrder.setTimestamp(8, saleOrder.getActualDeliveryDate());
+            if (saleOrder.getEtaDays()!=null) psOrder.setInt(9, saleOrder.getEtaDays()); else psOrder.setNull(9, java.sql.Types.INTEGER);
             psOrder.executeUpdate();
             rs = psOrder.getGeneratedKeys(); int saleOrderID = 0; if (rs.next()) saleOrderID = rs.getInt(1); saleOrder.setSaleOrderID(saleOrderID);
             log.info("[SaleOrder] Header inserted id={}", saleOrderID);
@@ -90,6 +92,7 @@ public class DAOSaleOrder {
 
         String sql = """
                     SELECT so.SaleOrderID, so.CreatedAt, so.Status, so.TotalAmount, so.Quantity,
+                           so.PlannedDeliveryDate, so.ActualDeliveryDate, so.EtaDays,
                            c.CustomerID, c.FullName AS CustomerName,
                            d.DealerID, d.DealerName,
                            s.StaffID, s.FullName AS StaffName
@@ -111,6 +114,11 @@ public class DAOSaleOrder {
                 order.setStatus(SaleOrderStatus.valueOf(rs.getString("Status")));
                 order.setTotalAmount(rs.getBigDecimal("TotalAmount"));
                 order.setTotalQuantity(rs.getInt("Quantity"));
+
+                // Delivery info
+                order.setPlannedDeliveryDate(rs.getTimestamp("PlannedDeliveryDate"));
+                order.setActualDeliveryDate(rs.getTimestamp("ActualDeliveryDate"));
+                order.setEtaDays((Integer) rs.getObject("EtaDays"));
 
                 // Customer
                 DTOCustomer customer = new DTOCustomer();
@@ -148,6 +156,7 @@ public class DAOSaleOrder {
         DTOSaleOrder order = null;
         String sql = """
                     SELECT so.SaleOrderID, so.CreatedAt, so.Status, so.TotalAmount, so.Quantity,
+                           so.PlannedDeliveryDate, so.ActualDeliveryDate, so.EtaDays,
                            c.CustomerID, c.FullName AS CustomerName,
                            d.DealerID, d.DealerName,
                            s.StaffID, s.FullName AS StaffName
@@ -171,6 +180,11 @@ public class DAOSaleOrder {
                 order.setStatus(SaleOrderStatus.valueOf(rs.getString("Status")));
                 order.setTotalAmount(rs.getBigDecimal("TotalAmount"));
                 order.setTotalQuantity(rs.getInt("Quantity"));
+
+                // Delivery info
+                order.setPlannedDeliveryDate(rs.getTimestamp("PlannedDeliveryDate"));
+                order.setActualDeliveryDate(rs.getTimestamp("ActualDeliveryDate"));
+                order.setEtaDays((Integer) rs.getObject("EtaDays"));
 
                 DTOCustomer c = new DTOCustomer();
                 c.setCustomerID(rs.getInt("CustomerID"));
@@ -367,6 +381,66 @@ public class DAOSaleOrder {
         } catch (SQLException e) {
             e.printStackTrace();
             return false;
+        }
+    }
+
+    // ======================================================
+    // 🔴 XÓA SALE ORDER VÀ CHI TIẾT
+    // ======================================================
+    public boolean deleteSaleOrder(int saleOrderID) {
+        String sqlDetails = "DELETE FROM SaleOrderDetail WHERE SaleOrderID=?";
+        String sqlHeader = "DELETE FROM SaleOrder WHERE SaleOrderID=?";
+        try (java.sql.Connection conn = utils.DBUtils.getConnection()) {
+            conn.setAutoCommit(false);
+            try (java.sql.PreparedStatement ps1 = conn.prepareStatement(sqlDetails)) {
+                ps1.setInt(1, saleOrderID); ps1.executeUpdate();
+            }
+            int rows;
+            try (java.sql.PreparedStatement ps2 = conn.prepareStatement(sqlHeader)) {
+                ps2.setInt(1, saleOrderID); rows = ps2.executeUpdate();
+            }
+            if (rows > 0) { conn.commit(); log.info("Deleted SaleOrder id={}", saleOrderID); return true; }
+            conn.rollback();
+        } catch (java.sql.SQLException e) {
+            log.error("Failed deleting SaleOrder id={}", saleOrderID, e);
+        }
+        return false;
+    }
+
+    // ======================================================
+    // 📦 TÍNH TOÁN NGÀY GIAO DỰ KIẾN VÀ THỰC TẾ
+    // ======================================================
+    public boolean updateDeliveryInfo(int saleOrderID, java.sql.Timestamp planned, java.sql.Timestamp actual, Integer etaDays) {
+        DTOSaleOrder existing = getSaleOrderById(saleOrderID);
+        if (existing == null) return false;
+        // do not overwrite actual if already set
+        java.sql.Timestamp newActual = existing.getActualDeliveryDate() != null ? existing.getActualDeliveryDate() : actual;
+        String sql = "UPDATE SaleOrder SET PlannedDeliveryDate=?, ActualDeliveryDate=?, EtaDays=? WHERE SaleOrderID=?";
+        try (Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setTimestamp(1, planned);
+            ps.setTimestamp(2, newActual);
+            if (etaDays!=null) ps.setInt(3, etaDays); else ps.setNull(3, java.sql.Types.INTEGER);
+            ps.setInt(4, saleOrderID);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            log.error("Failed updateDeliveryInfo saleOrderID={}", saleOrderID, e);
+            return false;
+        }
+    }
+    public void applyPlannedDeliveryEstimate(DTOSaleOrder order) {
+        int eta = 7; // fixed ETA
+        java.sql.Timestamp created = order.getCreatedAt();
+        long base = created != null ? created.getTime() : System.currentTimeMillis();
+        long millis = base + eta * 24L*3600*1000;
+        order.setPlannedDeliveryDate(new java.sql.Timestamp(millis));
+        order.setEtaDays(eta);
+    }
+    public void applyActualDeliveryIfEligible(DTOSaleOrder order) {
+        if (order.getStatus() == SaleOrderStatus.SHIPPED || order.getStatus() == SaleOrderStatus.COMPLETED) {
+            if (order.getActualDeliveryDate() == null) {
+                order.setActualDeliveryDate(new java.sql.Timestamp(System.currentTimeMillis()));
+                updateDeliveryInfo(order.getSaleOrderID(), order.getPlannedDeliveryDate(), order.getActualDeliveryDate(), order.getEtaDays());
+            }
         }
     }
 

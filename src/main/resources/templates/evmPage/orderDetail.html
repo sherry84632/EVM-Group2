@@ -485,6 +485,20 @@
                         <span class="info-label">Notes:</span>
                         <span class="info-value" th:text="${order.logisticsNotes}">-</span>
                     </div>
+                    <!-- Form update planned delivery date khi đã approved -->
+                    <div class="mt-3" th:if="${order.status.name() == 'APPROVED' or order.status.name()=='IN_PROCESS'}">
+                        <form th:action="@{'/evm/orders/delivery/' + ${order.purchaseOrderId} + '/date'}" method="post" class="row g-2 align-items-end">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                            <div class="col-auto">
+                                <label for="plannedDate" class="form-label mb-0">Planned Date</label>
+                                <input type="date" name="plannedDate" id="plannedDate" class="form-control form-control-sm" th:value="${order.plannedDeliveryDate != null ? #dates.format(order.plannedDeliveryDate,'yyyy-MM-dd') : ''}" />
+                            </div>
+                            <div class="col-auto">
+                                <button type="submit" class="btn btn-outline-secondary btn-sm"><i class="fas fa-calendar-check me-1"></i>Save</button>
+                            </div>
+                        </form>
+                    </div>
+                    <!-- Existing status update form -->
                     <div class="mt-3" th:if="${order.status.name() == 'APPROVED' or order.status.name()=='IN_PROCESS'}">
                         <form th:action="@{'/evm/orders/delivery/' + ${order.purchaseOrderId} + '/status'}" method="post" class="row g-2 align-items-end">
                             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
@@ -492,7 +506,7 @@
                                 <label for="newStatus" class="form-label mb-0">Update Delivery Status</label>
                                 <select name="newStatus" id="newStatus" class="form-select form-select-sm">
                                     <option value="CREATED" th:selected="${order.shippingStatus=='CREATED'}">CREATED</option>
-                                    <option value="IN_TRANSIT" th:selected="${order.shippingStatus=='IN_TRANSIT'}">IN_TRANSIT</option>
+                                    <option value="IN_TRANSIT" th:selected="${order.shippingStatus=='IN_TRANSIT'}">IN TRANSIT</option>
                                     <option value="DELIVERED" th:selected="${order.shippingStatus=='DELIVERED'}">DELIVERED</option>
                                     <option value="CANCELLED" th:selected="${order.shippingStatus=='CANCELLED'}">CANCELLED</option>
                                 </select>
@@ -516,6 +530,11 @@
                 <i class="fas fa-trash me-2"></i>
                 Delete Order
             </button>
+            <!-- Nút tạo hợp đồng khi đơn đã approved/in_process/delivered -->
+            <form th:if="${order.status.name()=='APPROVED' or order.status.name()=='IN_PROCESS' or order.status.name()=='DELIVERED'}" th:action="@{'/evm/orders/contract/' + ${order.purchaseOrderId} + '/create'}" method="post">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                <button type="submit" class="btn btn-outline-success"><i class="fas fa-file-signature me-2"></i>Create Contract</button>
+            </form>
         </div>
 
         <!-- Approve/Reject Buttons -->

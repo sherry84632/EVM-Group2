@@ -30,6 +30,8 @@ public class QuotationController {
     private DAOAccount daoAccount;
     @Autowired
     private DAODealerPriceAdjustment daoDealerPriceAdjustment;
+    @Autowired
+    private DAOVehicle vehicleDAO; // new injection for multi-select
 
     private static final Logger log = LoggerFactory.getLogger(QuotationController.class);
 
@@ -780,5 +782,66 @@ public class QuotationController {
         model.addAttribute("net", net);
         model.addAttribute("discountPercent", discountPercent);
         return "dealerPage/quotationLineDetail";
+    }
+
+    // 🔥 NEW: Multi-select vehicle quotation creation form
+    @GetMapping("/multi")
+    public String showMultiQuotationForm(HttpSession session, Model model) {
+        DTOAccount account = resolveSessionAccount(session);
+        DTODealer dealer = null;
+        if (account != null && account.getDealerStaff() != null && account.getDealerStaff().getDealer() != null) {
+            dealer = dao.getDealerByID(account.getDealerStaff().getDealer().getDealerID());
+            model.addAttribute("activeDiscounts", daoDealerPriceAdjustment.getActiveDiscountsByDealer(dealer.getDealerID()));
+        } else {
+            try { model.addAttribute("dealerList", daoDealer.getAllDealers()); } catch (Exception ex) { }
+        }
+        // Vehicles list for selection
+        java.util.List<DTOVehicle> vehicles = vehicleDAO.getVehicles();
+        model.addAttribute("vehicles", vehicles);
+        // Customers list
+        try { DAOCustomer cDao = new DAOCustomer(); model.addAttribute("customerList", cDao.getAllCustomers()); } catch (Exception ignored) {}
+        if (dealer != null) model.addAttribute("dealer", dealer);
+        model.addAttribute("nowTs", java.time.LocalDateTime.now());
+        return "dealerPage/quotationCreateMulti";
+    }
+
+    @PostMapping("/delete/{id}")
+    public String deleteQuotation(@PathVariable int id, RedirectAttributes ra) {
+        try {
+            boolean ok = dao.deleteQuotation(id);
+            ra.addFlashAttribute(ok?"message":"error", ok?"Quotation deleted successfully":"Failed to delete quotation");
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", "Exception deleting quotation: " + e.getMessage());
+        }
+        return "redirect:/quotation/list";
+    }
+
+    @PostMapping("/update")
+    public String batchUpdateQuotation(
+            @RequestParam int quotationID,
+            @RequestParam(name="discountPercent", required=false) Double discountPercent,
+            @RequestParam(name="detailIds", required=false) List<Integer> detailIds,
+            @RequestParam(name="unitPrices", required=false) List<Double> unitPrices,
+            @RequestParam(name="quantities", required=false) List<Integer> quantities,
+            RedirectAttributes ra) {
+        DTOQuotation q = dao.getQuotationById(quotationID);
+        if (q == null) { ra.addFlashAttribute("error","Quotation not found"); return "redirect:/quotation/list"; }
+        // Update detail lines
+        if (detailIds != null && unitPrices != null && quantities != null) {
+            int updated = 0; int len = Math.min(detailIds.size(), Math.min(unitPrices.size(), quantities.size()));
+            for (int i=0;i<len;i++) {
+                Integer id = detailIds.get(i); Double price = unitPrices.get(i); Integer qty = quantities.get(i);
+                if (id == null) continue; java.math.BigDecimal priceBD = price!=null? java.math.BigDecimal.valueOf(Math.max(0, price)) : java.math.BigDecimal.ZERO;
+                if (dao.updateQuotationDetailFields(id, priceBD, qty!=null?qty:1)) updated++;
+            }
+            ra.addFlashAttribute("message", "Updated " + updated + " line(s)");
+        }
+        // Update base discount only now
+        if (discountPercent != null) {
+            double clamped = Math.max(0.0, Math.min(80.0, discountPercent));
+            dao.updateQuotationDiscount(quotationID, clamped);
+        }
+        dao.recalcQuotationTotal(quotationID);
+        return "redirect:/quotation/detail/" + quotationID;
     }
 }

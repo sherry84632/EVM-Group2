@@ -56,19 +56,19 @@
                     <div th:each="order : ${orders}">
 
                         <!-- Item  -->
-                        <a th:href="@{/saleorder/detail/{id}(id=${order.orderID})}" style="text-decoration: none">
+                        <a th:href="@{/saleorder/detail/{id}(id=${order.saleOrderID})}" style="text-decoration: none">
                             <button class="item-button">
                                 <div class="image-placeholder">
                                     <i class="fa-solid fa-clipboard-list"></i>
                                 </div>
                                 <div class="item-info">
                                     <div class="model-name">
-                                        Order ID: <span th:text="${order.orderID}"></span>
+                                        Order ID: <span th:text="${order.saleOrderID}"></span>
                                     </div>
                                     <div class="info-row">
                                         <div class="info-item">
                                             <span class="info-label">Created date:</span>
-                                            <span class="info-value" th:text="${order.orderDate}"></span>
+                                            <span class="info-value" th:text="${#dates.format(order.createdAt,'dd/MM/yyyy HH:mm')}"></span>
                                         </div>
                                         <div class="info-item">
                                             <span class="info-label">Quantity:</span>
@@ -82,13 +82,16 @@
                                         </div>
                                         <div class="info-item">
                                             <span class="info-label">Total:</span>
-                                            <span class="info-value" th:text="${order.totalAmount}"></span>
+                                            <span class="info-value" th:text="${#numbers.formatDecimal(order.totalAmount,0,'COMMA',0,'POINT') + ' VND'}"></span>
                                         </div>
                                     </div>
                                 </div>
                             </button>
                         </a>
-
+                        <form th:action="@{/saleorder/delete/{id}(id=${order.saleOrderID})}" method="post" class="mt-1" onsubmit="return confirm('Delete sale order #' + [[${order.saleOrderID}]] + ' ?')">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                            <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i> Delete</button>
+                        </form>
                     </div>
 
                 </div>
