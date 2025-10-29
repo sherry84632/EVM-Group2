@@ -216,7 +216,28 @@ public class EVMOrderController {
         if(ok){
             // sync purchase order status
             if(target==DeliveryStatus.IN_TRANSIT){ purchaseOrderDAO.updatePurchaseOrderStatus(orderId, PurchaseOrderStatus.IN_PROCESS); }
-            if(target==DeliveryStatus.DELIVERED){ purchaseOrderDAO.updatePurchaseOrderStatus(orderId, PurchaseOrderStatus.DELIVERED); }
+            if(target==DeliveryStatus.DELIVERED){
+                purchaseOrderDAO.updatePurchaseOrderStatus(orderId, PurchaseOrderStatus.DELIVERED);
+                // ✅ Add vehicles to dealer inventory when delivery is completed
+                try {
+                    DTOPurchaseOrder po = purchaseOrderDAO.getPurchaseOrderById(orderId);
+                    if (po != null && po.getOrderDetails() != null && po.getDealer() != null) {
+                        DAODealerInventory inventoryDAO = new DAODealerInventory();
+                        for (DTOPurchaseOrderDetail d : po.getOrderDetails()) {
+                            int dealerId = po.getDealer().getDealerID();
+                            int colorId = d.getColor() != null ? d.getColor().getColorID() : 0;
+                            int versionId = d.getVersion() != null ? d.getVersion().getVersionID() : 0;
+                            int qty = d.getQuantity();
+                            if (colorId > 0 && versionId > 0 && qty > 0) {
+                                inventoryDAO.addWhenDeliveryCompleted(orderId, dealerId, colorId, versionId, qty);
+                            }
+                        }
+                    }
+                } catch (Exception ex) {
+                    // log and continue
+                    System.out.println("Failed to add inventory on delivery completion: " + ex.getMessage());
+                }
+            }
             if(target==DeliveryStatus.CANCELLED){ purchaseOrderDAO.updatePurchaseOrderStatus(orderId, PurchaseOrderStatus.CANCELLED); }
             redirectAttributes.addFlashAttribute("message","✅ Delivery status updated to "+target);
             redirectAttributes.addFlashAttribute("statusType",target.name());
