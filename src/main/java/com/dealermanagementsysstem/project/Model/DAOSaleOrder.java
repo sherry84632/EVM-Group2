@@ -93,8 +93,8 @@ public class DAOSaleOrder {
         String sql = """
                     SELECT so.SaleOrderID, so.CreatedAt, so.Status, so.TotalAmount, so.Quantity,
                            so.PlannedDeliveryDate, so.ActualDeliveryDate, so.EtaDays,
-                           c.CustomerID, c.FullName AS CustomerName,
-                           d.DealerID, d.DealerName,
+                           c.CustomerID, c.FullName AS CustomerName, c.Email AS CustomerEmail, c.Phone AS CustomerPhone, c.Address AS CustomerAddress,
+                           d.DealerID, d.DealerName, d.Email AS DealerEmail, d.Phone AS DealerPhone, d.Address AS DealerAddress,
                            s.StaffID, s.FullName AS StaffName
                     FROM SaleOrder so
                     JOIN Customer c ON so.customer_customer_id = c.CustomerID
@@ -124,12 +124,18 @@ public class DAOSaleOrder {
                 DTOCustomer customer = new DTOCustomer();
                 customer.setCustomerID(rs.getInt("CustomerID"));
                 customer.setFullName(rs.getString("CustomerName"));
+                customer.setEmail(rs.getString("CustomerEmail"));
+                customer.setPhone(rs.getString("CustomerPhone"));
+                customer.setAddress(rs.getString("CustomerAddress"));
                 order.setCustomer(customer);
 
                 // Dealer
                 DTODealer dealer = new DTODealer();
                 dealer.setDealerID(rs.getInt("DealerID"));
                 dealer.setDealerName(rs.getString("DealerName"));
+                dealer.setEmail(rs.getString("DealerEmail"));
+                dealer.setPhone(rs.getString("DealerPhone"));
+                dealer.setAddress(rs.getString("DealerAddress"));
                 order.setDealer(dealer);
 
                 // Staff
@@ -157,8 +163,8 @@ public class DAOSaleOrder {
         String sql = """
                     SELECT so.SaleOrderID, so.CreatedAt, so.Status, so.TotalAmount, so.Quantity,
                            so.PlannedDeliveryDate, so.ActualDeliveryDate, so.EtaDays,
-                           c.CustomerID, c.FullName AS CustomerName,
-                           d.DealerID, d.DealerName,
+                           c.CustomerID, c.FullName AS CustomerName, c.Email AS CustomerEmail, c.Phone AS CustomerPhone, c.Address AS CustomerAddress,
+                           d.DealerID, d.DealerName, d.Email AS DealerEmail, d.Phone AS DealerPhone, d.Address AS DealerAddress,
                            s.StaffID, s.FullName AS StaffName
                     FROM SaleOrder so
                     JOIN Customer c ON so.customer_customer_id = c.CustomerID
@@ -189,11 +195,17 @@ public class DAOSaleOrder {
                 DTOCustomer c = new DTOCustomer();
                 c.setCustomerID(rs.getInt("CustomerID"));
                 c.setFullName(rs.getString("CustomerName"));
+                c.setEmail(rs.getString("CustomerEmail"));
+                c.setPhone(rs.getString("CustomerPhone"));
+                c.setAddress(rs.getString("CustomerAddress"));
                 order.setCustomer(c);
 
                 DTODealer d = new DTODealer();
                 d.setDealerID(rs.getInt("DealerID"));
                 d.setDealerName(rs.getString("DealerName"));
+                d.setEmail(rs.getString("DealerEmail"));
+                d.setPhone(rs.getString("DealerPhone"));
+                d.setAddress(rs.getString("DealerAddress"));
                 order.setDealer(d);
 
                 DTODealerStaff s = new DTODealerStaff();

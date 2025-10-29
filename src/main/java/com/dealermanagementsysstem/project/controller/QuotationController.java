@@ -444,7 +444,9 @@ public class QuotationController {
             @RequestParam("unitPrice") double unitPrice,
             Model model
     ) {
-        log.debug("Adding quotation detail quotationID={} versionID={} colorID={} unitPrice={}", 
+        if (dao.isQuotationLocked(quotationID)) { model.addAttribute("error","Quotation locked; cannot add line."); return "redirect:/quotation/detail/"+quotationID; }
+
+        log.debug("Adding quotation detail quotationID={} versionID={} colorID={} unitPrice={}",
                  quotationID, versionID, colorID, unitPrice);
 
         try {
@@ -554,6 +556,8 @@ public class QuotationController {
             @RequestParam("quotationID") int quotationID,
             Model model
     ) {
+        if (dao.isQuotationLocked(quotationID)) { model.addAttribute("error","Quotation locked; cannot delete line."); return "redirect:/quotation/detail/"+quotationID; }
+
         log.debug("Deleting quotation detail id={} quotationID={}", quotationDetailID, quotationID);
 
         try {
@@ -721,6 +725,7 @@ public class QuotationController {
     public String updateQuotationDiscount(@RequestParam int quotationID,
                                           @RequestParam double discountPercent,
                                           RedirectAttributes ra) {
+        if (dao.isQuotationLocked(quotationID)) { ra.addFlashAttribute("error","Quotation locked; cannot change discount."); return "redirect:/quotation/detail/"+quotationID; }
         double clamped = Math.max(0.0, Math.min(80.0, discountPercent));
         boolean ok = dao.updateQuotationDiscount(quotationID, clamped);
         ra.addFlashAttribute(ok ? "message" : "error", ok ? "Updated discount to " + clamped + "%" : "Failed to update discount");
@@ -731,6 +736,7 @@ public class QuotationController {
                                        @RequestParam int quotationID,
                                        @RequestParam int quantity,
                                        RedirectAttributes ra) {
+        if (dao.isQuotationLocked(quotationID)) { ra.addFlashAttribute("error","Quotation locked; cannot change quantity."); return "redirect:/quotation/detail/"+quotationID; }
         boolean ok = dao.updateQuotationDetailQuantity(quotationDetailID, quantity);
         if (ok) {
             dao.recalcQuotationTotal(quotationID);
@@ -807,6 +813,7 @@ public class QuotationController {
 
     @PostMapping("/delete/{id}")
     public String deleteQuotation(@PathVariable int id, RedirectAttributes ra) {
+        if (dao.isQuotationLocked(id)) { ra.addFlashAttribute("error","Quotation locked by completed sale order; cannot delete."); return "redirect:/quotation/detail/"+id; }
         try {
             boolean ok = dao.deleteQuotation(id);
             ra.addFlashAttribute(ok?"message":"error", ok?"Quotation deleted successfully":"Failed to delete quotation");
@@ -824,6 +831,7 @@ public class QuotationController {
             @RequestParam(name="unitPrices", required=false) List<Double> unitPrices,
             @RequestParam(name="quantities", required=false) List<Integer> quantities,
             RedirectAttributes ra) {
+        if (dao.isQuotationLocked(quotationID)) { ra.addFlashAttribute("error","Quotation locked by completed sale order. Create a new quotation instead."); return "redirect:/quotation/detail/"+quotationID; }
         DTOQuotation q = dao.getQuotationById(quotationID);
         if (q == null) { ra.addFlashAttribute("error","Quotation not found"); return "redirect:/quotation/list"; }
         // Update detail lines

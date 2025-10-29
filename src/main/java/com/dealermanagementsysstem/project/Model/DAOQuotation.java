@@ -781,4 +781,23 @@ public class DAOQuotation {
             return false;
         }
     }
+
+    /** Check if quotation has a COMPLETED sale order -> lock editing */
+    public boolean isQuotationLocked(int quotationID) {
+        String sql = "SELECT TOP 1 1 FROM SaleOrder WHERE QuotationID = ? AND Status = 'COMPLETED'";
+        try (Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, quotationID);
+            try (ResultSet rs = ps.executeQuery()) { return rs.next(); }
+        } catch (SQLException e) { log.error("isQuotationLocked failed quotationID={}", quotationID, e); }
+        return false;
+    }
+    /** Return the first completed sale order id for display (or null) */
+    public Integer getCompletedSaleOrderId(int quotationID) {
+        String sql = "SELECT TOP 1 SaleOrderID FROM SaleOrder WHERE QuotationID = ? AND Status = 'COMPLETED' ORDER BY SaleOrderID";
+        try (Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, quotationID);
+            try (ResultSet rs = ps.executeQuery()) { if (rs.next()) return rs.getInt("SaleOrderID"); }
+        } catch (SQLException e) { log.error("getCompletedSaleOrderId failed quotationID={}", quotationID, e); }
+        return null;
+    }
 }
