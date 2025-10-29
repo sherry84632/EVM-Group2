@@ -1,6 +1,8 @@
 package com.dealermanagementsysstem.project.controller;
 
 import com.dealermanagementsysstem.project.Model.*;
+import com.dealermanagementsysstem.project.controller.base.BaseController;
+import com.dealermanagementsysstem.project.service.support.AuthContextService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.slf4j.Logger;
@@ -19,7 +21,7 @@ import java.util.ArrayList;
 
 @Controller
 @RequestMapping("/quotation")
-public class QuotationController {
+public class QuotationController extends BaseController {
 
     @Autowired private DAOQuotation dao;
     @Autowired private DAODealer daoDealer;
@@ -27,12 +29,16 @@ public class QuotationController {
     @Autowired private DAODealerPriceAdjustment daoDealerPriceAdjustment;
     @Autowired private DAOCustomer customerDAO;
     @Autowired private DAOVehicle vehicleDao; // added DI
+    @Autowired private AuthContextService authContextService;
 
     private static final Logger log = LoggerFactory.getLogger(QuotationController.class);
+
+    @Override protected AuthContextService authService() { return authContextService; }
 
     // ✅ Hiển thị form báo giá
     @GetMapping("/new")
     public String showQuotationForm(@RequestParam("vehicleId") Integer vehicleId, HttpSession session, Model model) {
+        addUserContext(model, session, daoAccount);
         log.debug("Open quotation form VehicleID={}", vehicleId);
 
         // 1️⃣ Lấy thông tin xe
@@ -172,8 +178,9 @@ public class QuotationController {
 
     // 🔥 CORE FLOW STEP 3: List all quotations (for dealer to review)
     @GetMapping("/list")
-    public String listQuotations(Model model) {
-    log.debug("Loading quotations list");
+    public String listQuotations(Model model, HttpSession session) {
+        addUserContext(model, session, daoAccount);
+        log.debug("Loading quotations list");
 
         try {
             List<DTOQuotation> quotations = dao.getAllQuotations();

@@ -1,8 +1,12 @@
 package com.dealermanagementsysstem.project.controller;
 
+import com.dealermanagementsysstem.project.Model.DAOAccount;
 import com.dealermanagementsysstem.project.Model.DAOCustomer;
 import com.dealermanagementsysstem.project.Model.DAOVehicle;
 import com.dealermanagementsysstem.project.Model.DTOVehicle;
+import com.dealermanagementsysstem.project.controller.base.BaseController;
+import com.dealermanagementsysstem.project.service.support.AuthContextService;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -13,21 +17,23 @@ import org.springframework.web.bind.annotation.GetMapping;
 import java.util.List;
 
 @Controller
-public class VehicleController {
+public class VehicleController extends BaseController {
+    @Autowired private DAOAccount daoAccount;
     @Autowired private DAOCustomer daoCustomer;
     @Autowired private DAOVehicle daoVehicle; // injected
+    @Autowired private AuthContextService authContextService;
 
     @GetMapping("/getVehicleList")
-    public String vehicleList(Model model)
-    {
+    public String vehicleList(Model model, HttpSession session) {
+        addUserContext(model, session, daoAccount);
         List<DTOVehicle> vehicle = daoVehicle.getVehicles();
         model.addAttribute("vehicleList", vehicle);
         return "evmPage/vehicleList";
     }
 
     @GetMapping("/getVehicleListToOrder")
-    public String vehicleList2(Model model)
-    {
+    public String vehicleList2(Model model, HttpSession session) {
+        addUserContext(model, session, daoAccount);
         List<DTOVehicle> vehicle = daoVehicle.getVehicles();
         model.addAttribute("vehicleList", vehicle);
         
@@ -44,8 +50,8 @@ public class VehicleController {
     }
 
     @GetMapping("/getVehicleListToCreateQuotation")
-    public String vehicleList3(Model model)
-    {
+    public String vehicleList3(Model model, HttpSession session) {
+        addUserContext(model, session, daoAccount);
         List<DTOVehicle> vehicle = daoVehicle.getVehicles();
         model.addAttribute("vehicleList", vehicle);
         // Load customers for multi-select quotation creation using injected DAO

@@ -1,6 +1,9 @@
 package com.dealermanagementsysstem.project.controller;
 
 import com.dealermanagementsysstem.project.Model.*;
+import com.dealermanagementsysstem.project.controller.base.BaseController;
+import com.dealermanagementsysstem.project.service.support.AuthContextService;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
@@ -16,7 +19,7 @@ import java.util.List;
 
 @Controller
 @RequestMapping({"/order","/saleorder"})
-public class OrderController {
+public class OrderController extends BaseController {
 
     @Autowired private DAOSaleOrder saleOrderDao; // replaced manual new
     @Autowired private DAOAccount accountDao; // for account lookup
@@ -24,12 +27,17 @@ public class OrderController {
     @Autowired private DAOVehicle vehicleDao; // for vehicle availability checks
     @Autowired private DAODealerInventory dealerInventoryDao; // inventory adjustments
     @Autowired private DAOSaleContract saleContractDao; // delete cascade
+    @Autowired private AuthContextService authContextService;
+
+    @Override
+    protected AuthContextService authService() { return authContextService; }
 
     // ======================================================
     // 1️⃣  DANH SÁCH TẤT CẢ SALE ORDER
     // ======================================================
     @GetMapping
-    public String listSaleOrders(Model model) {
+    public String listSaleOrders(Model model, HttpSession session) {
+        addUserContext(model, session, accountDao);
         List<DTOSaleOrder> orders = saleOrderDao.getAllSaleOrders();
         model.addAttribute("orders", orders);
         return "dealerPage/dealerCustomerOrderList";
@@ -39,8 +47,9 @@ public class OrderController {
     // 2️⃣  FORM TẠO SALE ORDER MỚI
     // ======================================================
     @GetMapping("/new")
-    public String showCreateForm(Model model) {
+    public String showCreateForm(Model model, HttpSession session) {
 
+        addUserContext(model, session, accountDao);
         // ✅ Lấy thông tin người dùng đăng nhập
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String email = auth.getName();

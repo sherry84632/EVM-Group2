@@ -1,6 +1,9 @@
 package com.dealermanagementsysstem.project.controller;
 
 import com.dealermanagementsysstem.project.Model.*;
+import com.dealermanagementsysstem.project.controller.base.BaseController;
+import com.dealermanagementsysstem.project.service.support.AuthContextService;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -12,10 +15,14 @@ import java.util.Date;
 
 @Controller
 @RequestMapping("/contract")
-public class SaleContractController {
+public class SaleContractController extends BaseController {
 
     @Autowired private DAOSaleContract daoContract; // DI
     @Autowired private DAOSaleOrder daoSaleOrder; // DI
+    @Autowired private AuthContextService authContextService;
+    @Autowired private DAOAccount daoAccount;
+
+    @Override protected AuthContextService authService() { return authContextService; }
 
     @PostMapping("/create")
     public String createFromSaleOrder(@RequestParam("saleOrderID") int saleOrderID, RedirectAttributes ra) {
@@ -45,7 +52,8 @@ public class SaleContractController {
     }
 
     @GetMapping("/list")
-    public String list(Model model) {
+    public String list(Model model, HttpSession session) {
+        addUserContext(model, session, daoAccount);
         model.addAttribute("contracts", daoContract.getAllSaleContracts());
         return "contract/contractList";
     }
