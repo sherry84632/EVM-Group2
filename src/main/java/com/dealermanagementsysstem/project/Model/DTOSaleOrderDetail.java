@@ -24,7 +24,7 @@ public class DTOSaleOrderDetail {
     private BigDecimal price;
 
     @ManyToOne
-    @Column(name = "PolicyID", referencedColumnName = "PolicyID")
+    @JoinColumn(name = "PolicyID", referencedColumnName = "PolicyID")
     private DTODiscountPolicy discountPolicy;
 
     @Column(name = "Quantity")
