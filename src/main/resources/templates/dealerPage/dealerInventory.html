@@ -14,7 +14,7 @@
     <link rel="stylesheet" href="/css/inentoryScrollBox.css">
 </head>
 
-<body class="bg-gradient2-custom">
+<body class="bg-gradient2-custom" style="overflow: hidden">
 
 <button class="mobile-menu-toggle" id="menuToggleBtn">
     <i class="fa-solid fa-bars"></i>
@@ -26,17 +26,9 @@
 
     <div class="mainContent flex-grow-1 p-3" style="overflow: hidden">
 
-        <div class="d-flex">
-            <h2>THIS IS A DEALER LINK.</h2>
-        </div>
-
         <div class="d-flex wrap">
 
-            <span>
-                <h1>Dealer Inventory</h1>
-            </span>
-
-            <form action="/dealer-inventory" method="get" class="row g-2 align-items-end" style="width: 100%">
+            <form action="/dealer-inventory" method="get" class="row g-2 align-items-end" style="width: 100%; height: auto;">
                 <div class="col-auto">
                     <label class="form-label">VIN</label>
                     <input name="vin" type="text" class="form-control" placeholder="VIN" th:value="${vin}">
@@ -87,7 +79,7 @@
 
         </div>
 
-        <div class="d-flex">
+        <div class="d-flex" style="overflow-x: hidden; overflow-y: auto; height: 90vh">
 
             <div class="container-fluid px-0">
                 <div class="row g-3" th:if="${vehicles != null}">
