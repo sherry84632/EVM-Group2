@@ -134,57 +134,12 @@ public class EVMOrderController {
         purchaseOrderDAO.updatePurchaseOrderStatus(order.getPurchaseOrderId(), newStatus);
         System.out.println("✅ Updated status to: " + newStatus);
 
-        // ✅ Nếu đơn hàng được Approved, thêm xe vào inventory của dealer
+        // ✅ Khi đơn hàng được Approved, chỉ tạo Delivery record - KHÔNG tạo xe ngay
+        // Xe sẽ được tạo và thêm vào inventory khi Delivery status chuyển sang DELIVERED
         if (newStatus == PurchaseOrderStatus.APPROVED) {
-            System.out.println("🚗 Bắt đầu thêm xe vào inventory...");
-            DAODealerInventory inventoryDAO = new DAODealerInventory();
-
-            if (order.getOrderDetails() == null || order.getOrderDetails().isEmpty()) {
-                System.out.println("⚠️ CẢNH BÁO: OrderDetails là NULL hoặc RỖNG!");
-                System.out.println("⚠️ Không có xe nào để thêm vào inventory!");
-            } else {
-                System.out.println("📋 Tìm thấy " + order.getOrderDetails().size() + " chi tiết đơn hàng");
-
-                int successCount = 0;
-                for (DTOPurchaseOrderDetail detail : order.getOrderDetails()) {
-                    // ✅ Check for null values before accessing nested properties
-                    if (detail.getVersion() == null) {
-                        System.out.println("  ⚠️ CẢNH BÁO: Version is NULL for detail ID " + detail.getPoDetailId());
-                        continue;
-                    }
-
-                    if (detail.getVersion().getModel() == null) {
-                        System.out.println("  ⚠️ CẢNH BÁO: Model is NULL for version ID " + detail.getVersion().getVersionID());
-                        continue;
-                    }
-
-                    if (detail.getColor() == null) {
-                        System.out.println("  ⚠️ CẢNH BÁO: Color is NULL for detail ID " + detail.getPoDetailId());
-                        continue;
-                    }
-
-                    System.out.println("  ➤ Thêm xe: ModelID=" + detail.getVersion().getModel().getModelID()
-                        + ", ColorID=" + detail.getColor().getColorID()
-                        + ", Quantity=" + detail.getQuantity());
-
-                    boolean added = inventoryDAO.addVehiclesToInventory(
-                        order.getDealer().getDealerID(),
-                        detail.getColor().getColorID(),
-                        detail.getVersion().getVersionID(),
-                        detail.getQuantity()
-                    );
-
-                    if (added) {
-                        successCount++;
-                        System.out.println("  ✅ Thành công!");
-                    } else {
-                        System.out.println("  ❌ THẤT BẠI - Không thể thêm xe vào inventory!");
-                    }
-                }
-                System.out.println("📊 Kết quả: " + successCount + "/" + order.getOrderDetails().size() + " thành công");
-            }
-
+            System.out.println("📦 Đơn hàng được approved - tạo delivery record");
             ensureDeliveryCreated(order.getPurchaseOrderId());
+            System.out.println("✅ Delivery record created. Xe sẽ được thêm vào inventory khi delivery status = DELIVERED");
         }
 
         // 🔹 Gửi flash message về lại evmOrderList

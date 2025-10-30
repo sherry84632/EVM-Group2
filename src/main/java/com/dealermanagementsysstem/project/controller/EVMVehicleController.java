@@ -31,20 +31,49 @@ public class EVMVehicleController {
     }
 
     // ===========================
-    // 1️⃣ Danh sách xe
+    // 1️⃣ Danh sách xe MẪU (Catalog) - Ưu tiên hiển thị xe TEMPLATE
     // ===========================
     @GetMapping("/list")
     public String listVehicles(@RequestParam(value = "keyword", required = false) String keyword, Model model) {
         List<DTOVehicle> vehicles;
         try {
-            vehicles = (keyword != null && !keyword.trim().isEmpty())
-                    ? dao.searchVehiclesByModelName(keyword)
-                    : dao.getVehicles();
+            if (keyword != null && !keyword.trim().isEmpty()) {
+                // Search theo keyword
+                vehicles = dao.searchVehiclesByModelName(keyword);
+
+                // Ưu tiên filter lấy TEMPLATE, nếu không có thì lấy tất cả
+                List<DTOVehicle> templateVehicles = vehicles.stream()
+                        .filter(v -> v.getStatus() == VehicleStatus.TEMPLATE)
+                        .toList();
+
+                if (!templateVehicles.isEmpty()) {
+                    vehicles = templateVehicles;
+                }
+                // Nếu không có TEMPLATE, giữ nguyên kết quả search (tất cả xe)
+
+            } else {
+                // Lấy xe TEMPLATE trước
+                vehicles = dao.getVehiclesByStatus(VehicleStatus.TEMPLATE);
+
+                // Nếu không có xe TEMPLATE nào, lấy tất cả xe (backward compatibility)
+                if (vehicles.isEmpty()) {
+                    log.warn("No TEMPLATE vehicles found, showing all vehicles for backward compatibility");
+                    vehicles = dao.getVehicles();
+                }
+            }
+
             if (vehicles == null) vehicles = new ArrayList<>();
             model.addAttribute("vehicles", vehicles);
             model.addAttribute("keyword", keyword);
+
+            // Thêm warning nếu đang hiển thị tất cả xe (chưa có TEMPLATE)
+            if (vehicles.stream().anyMatch(v -> v.getStatus() != VehicleStatus.TEMPLATE)) {
+                model.addAttribute("warning", "⚠️ Hiển thị tất cả xe. Vui lòng cập nhật Status = TEMPLATE cho xe mẫu catalog.");
+            }
+
             addActionRole(model);
         } catch (Exception e) {
+            log.error("Error loading vehicle list", e);
             model.addAttribute("vehicles", new ArrayList<>());
             model.addAttribute("error", "Failed to load vehicles: " + e.getMessage());
         }
@@ -170,7 +199,7 @@ public class EVMVehicleController {
             @RequestParam(value = "transmission", required = false) String transmission,
             @RequestParam(value = "manufactureYear", required = false, defaultValue = "0") int manufactureYear,
             @RequestParam(value = "engineNumber", required = false) String engineNumber,
-            @RequestParam(value = "status", required = false, defaultValue = "IN_STOCK") String status,
+            @RequestParam(value = "status", required = false, defaultValue = "TEMPLATE") String status,
             @RequestParam(value = "thumbnail", required = false) MultipartFile thumbnail,
             Model model
     ) {
