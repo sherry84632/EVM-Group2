@@ -19,6 +19,8 @@ import java.util.List;
 public class OrderController {
 
     private final DAOSaleOrder dao = new DAOSaleOrder();
+    private final DAOPurchaseOrder purchaseOrderDAO = new DAOPurchaseOrder();
+    private final DAOPurchaseOrderDetail purchaseOrderDetailDAO = new DAOPurchaseOrderDetail();
 
     // ======================================================
     // 1️⃣  DANH SÁCH TẤT CẢ SALE ORDER
@@ -70,13 +72,14 @@ public class OrderController {
     // ======================================================
     @PostMapping("/insert")
     public String insertSaleOrder(
-            @RequestParam("quantity") int quantity,
+            @RequestParam(value = "quantity", required = false) Integer quantity,
             @RequestParam("customerID") int customerID,
             @RequestParam("staffID") int staffID,
             @RequestParam(value = "vehicleId", required = false) Integer vehicleId,
             @RequestParam("quotationID") int quotationID,
             @RequestParam(value = "status", required = false, defaultValue = "CREATED") String status,
-            Model model
+            Model model,
+            RedirectAttributes ra
     ) {
         // ✅ Lấy thông tin tài khoản hiện tại
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -150,7 +153,19 @@ public class OrderController {
                     }
                 }
                 if (vehicleIds.size() < lineQty) {
-                    model.addAttribute("error", "Không đủ xe (Version="+versionId+", Color="+colorId+") để tạo đơn. Cần " + lineQty + ", chỉ có " + vehicleIds.size());
+                    // Auto-create purchase order for missing vehicles
+                    int shortage = lineQty - vehicleIds.size();
+                    try {
+                        int poId = createPurchaseOrderForShortage(dealerID, staffID, versionId, colorId, shortage);
+                        if (poId > 0) {
+                            ra.addFlashAttribute("message", "⚠️ Không đủ xe trong kho. Hệ thống đã tự động tạo đơn hàng mua #" + poId + " cho " + shortage + " xe còn thiếu. Vui lòng chờ EVM xử lý và thử lại sau.");
+                            ra.addFlashAttribute("statusType", "INFO");
+                        } else {
+                            ra.addFlashAttribute("error", "Không đủ xe (Version="+versionId+", Color="+colorId+") để tạo đơn. Cần " + lineQty + ", chỉ có " + vehicleIds.size() + ". Không thể tạo đơn hàng mua tự động.");
+                        }
+                    } catch (Exception e) {
+                        ra.addFlashAttribute("error", "Không đủ xe (Version="+versionId+", Color="+colorId+") để tạo đơn. Cần " + lineQty + ", chỉ có " + vehicleIds.size() + ". Lỗi tạo đơn hàng mua: " + e.getMessage());
+                    }
                     return "redirect:/quotation/detail/" + quotationID;
                 }
                 // Determine unit net price (after discount). Prefer qd.getFinalNetAfterAll per line, else apply base discount.
@@ -186,14 +201,15 @@ public class OrderController {
                 DTOVehicle veh = new DTOVehicle(); veh.setVehicleID(vehicleId); sod.setVehicle(veh);
             }
             // quotation total already discounted, derive per-unit directly
+            int qtyFallback = (quantity != null && quantity > 0) ? quantity : 1;
             java.math.BigDecimal perUnit = java.math.BigDecimal.valueOf(quotation.getTotalPrice())
-                    .divide(java.math.BigDecimal.valueOf(Math.max(1, quantity)), java.math.MathContext.DECIMAL64);
+                    .divide(java.math.BigDecimal.valueOf(Math.max(1, qtyFallback)), java.math.MathContext.DECIMAL64);
             sod.setPrice(perUnit);
             sod.setQuantity(1);
             if (quotation.getDealer()!=null && quotation.getDealer().getPolicyID()>0) {
                 DTODiscountPolicy policy = new DTODiscountPolicy(); policy.setPolicyID(quotation.getDealer().getPolicyID()); sod.setDiscountPolicy(policy);
             }
-            for (int i=0;i<quantity;i++){ details.add(sod); computedTotalQty += 1; computedTotalAmount = computedTotalAmount.add(sod.getPrice()); }
+            for (int i=0;i<qtyFallback;i++){ details.add(sod); computedTotalQty += 1; computedTotalAmount = computedTotalAmount.add(sod.getPrice()); }
         }
         order.setTotalQuantity(computedTotalQty);
         order.setTotalAmount(computedTotalAmount);
@@ -272,6 +288,63 @@ public class OrderController {
             ra.addFlashAttribute("error", "Không thể cập nhật trạng thái đơn hàng!");
         }
         return "redirect:/saleorder/detail/" + saleOrderID;
+    }
+
+    // ======================================================
+    // 🔧 HELPER: Tạo Purchase Order cho xe thiếu
+    // ======================================================
+    private int createPurchaseOrderForShortage(int dealerID, int staffID, int versionId, int colorId, int shortageQty) {
+        try {
+            // Get model ID from version
+            DAOVehicleVersionLookup versionLookup = new DAOVehicleVersionLookup();
+            Integer modelId = versionLookup.getModelIdByVersionId(versionId);
+            if (modelId == null) {
+                System.err.println("Cannot find model for version " + versionId);
+                return -1;
+            }
+
+            // Compute unit price for this dealer
+            java.math.BigDecimal unitPrice = purchaseOrderDetailDAO.computeUnitPrice(versionId, dealerID);
+            if (unitPrice == null) unitPrice = java.math.BigDecimal.ZERO;
+            java.math.BigDecimal totalAmount = unitPrice.multiply(java.math.BigDecimal.valueOf(shortageQty));
+
+            // Create purchase order
+            DTOPurchaseOrder order = new DTOPurchaseOrder();
+            DTODealer dealer = new DTODealer();
+            dealer.setDealerID(dealerID);
+            order.setDealer(dealer);
+            
+            DTODealerStaff staff = new DTODealerStaff();
+            staff.setStaffID(staffID);
+            order.setStaff(staff);
+            
+            order.setStatus(PurchaseOrderStatus.REQUESTED);
+            order.setCreatedAt(new java.sql.Timestamp(System.currentTimeMillis()));
+            order.setTotalAmount(totalAmount);
+            order.setEvmID(1);
+
+            // Insert purchase order and get ID
+            int poId = purchaseOrderDAO.insertPurchaseOrder(order);
+            if (poId <= 0) {
+                System.err.println("Failed to create purchase order");
+                return -1;
+            }
+
+            // Insert detail using the correct method
+            boolean detailSuccess = purchaseOrderDetailDAO.insertOrderDetail(poId, colorId, versionId, shortageQty, unitPrice);
+            if (!detailSuccess) {
+                System.err.println("Failed to create purchase order detail");
+                return -1;
+            }
+
+            System.out.println("✅ Auto-created Purchase Order #" + poId + " for " + shortageQty + " vehicles (Version=" + versionId + ", Color=" + colorId + ")");
+            return poId;
+
+        } catch (Exception e) {
+            System.err.println("Error creating purchase order for shortage: " + e.getMessage());
+            e.printStackTrace();
+            return -1;
+        }
     }
 
     // ======================================================

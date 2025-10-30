@@ -112,7 +112,11 @@ public class QuotationController {
     ) {
         log.debug("Saving quotation customerID={} vehicleId={} quantity={} dealerIDParam={} promotionID={} extraDiscount={}", customerID, vehicleId, quantity, dealerIDParam, promotionID, extraDiscount);
 
-        DTOAccount account = (DTOAccount) session.getAttribute("user");
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+
+        DAOAccount daoAccount = new DAOAccount();
+        DTOAccount account = daoAccount.findAccountByEmail(email);
 
         try {
             // Resolve dealer ID
