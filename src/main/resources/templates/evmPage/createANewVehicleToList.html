@@ -108,11 +108,15 @@
                     <label for="status">Status:</label>
                     <select id="status" name="status" required>
                         <option value="">Select vehicle status</option>
-                        <option value="IN_STOCK" selected>In Stock</option>
+                        <option value="TEMPLATE" selected>Template (Xe mẫu catalog)</option>
+                        <option value="IN_STOCK">In Stock (Xe trong kho dealer)</option>
                         <option value="ALLOCATED">Allocated</option>
                         <option value="SOLD">Sold</option>
                         <option value="TRANSFERRED">Transferred</option>
                     </select>
+                    <small class="form-text text-muted">
+                        💡 Chọn "Template" để xe hiển thị trong Vehicle List (catalog xe mẫu)
+                    </small>
                 </div>
 
                 <div class="form-group">

@@ -325,11 +325,27 @@ public class DAOVehicle {
     public List<DTOVehicle> getAllVehicles() { return getVehicles(); }
 
     public List<DTOVehicle> getVehiclesByStatus(VehicleStatus status) {
-        String sql = BASE_SELECT + " WHERE v.Status = ? ORDER BY v.CreatedAt DESC";
+        // Use UPPER() for case-insensitive comparison
+        String sql = BASE_SELECT + " WHERE UPPER(v.Status) = UPPER(?) ORDER BY v.CreatedAt DESC";
         List<DTOVehicle> list = new ArrayList<>();
+
+        log.debug("Querying vehicles with status: {}", status);
+
         try (Connection con = DBUtils.getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setString(1, status.toString()); try (ResultSet rs = ps.executeQuery()) { while (rs.next()) list.add(mapVehicle(rs)); }
-        } catch (SQLException e) { log.error("Error fetching vehicles by status {}", status, e); }
+            ps.setString(1, status.toString());
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    DTOVehicle vehicle = mapVehicle(rs);
+                    list.add(vehicle);
+                }
+            }
+
+            log.info("Found {} vehicles with status {}", list.size(), status);
+        } catch (SQLException e) {
+            log.error("Error fetching vehicles by status {}", status, e);
+        }
+
         return list;
     }
 
