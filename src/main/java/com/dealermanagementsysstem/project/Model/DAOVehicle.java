@@ -51,7 +51,7 @@ public class DAOVehicle {
     }
 
     public List<DTOVehicle> searchVehiclesByModelName(String keyword) {
-        String sql = BASE_SELECT + " WHERE vm.ModelName LIKE ? ORDER BY v.CreatedAt DESC";
+        String sql = BASE_SELECT + " WHERE vm.ModelName LIKE ? AND v.Status = 'TEMPLATE' ORDER BY v.CreatedAt DESC";
         List<DTOVehicle> vehicles = new ArrayList<>();
         try (Connection con = DBUtils.getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, "%" + keyword + "%");
