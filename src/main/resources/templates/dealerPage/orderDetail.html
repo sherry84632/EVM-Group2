@@ -289,21 +289,47 @@
                     <thead>
                         <tr>
                             <th>Item #</th>
-                            <th>Color</th>
+                            <th>Model</th>
                             <th>Version</th>
-                            <th>Unit Price</th>
+                            <th>Color</th>
                             <th>Quantity</th>
+                            <th>Base Price</th>
+                            <th>Discount</th>
+                            <th>Unit Price</th>
                             <th>Subtotal</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr th:each="detail, iterStat : ${order.orderDetails}">
                             <td th:text="${iterStat.count}"></td>
-                            <td th:text="${detail.color?.colorName ?: 'N/A'}"></td>
-                            <td th:text="${detail.version?.versionName ?: 'N/A'}"></td>
-                            <td th:text="${detail.unitPrice != null ? #numbers.formatCurrency(detail.unitPrice) : '$0.00'}"></td>
+                            <td th:text="${detail.modelName ?: detail.version?.model?.modelName ?: 'N/A'}"></td>
+                            <td th:text="${detail.versionName ?: detail.version?.versionName ?: 'N/A'}"></td>
+                            <td th:text="${detail.colorName ?: detail.color?.colorName ?: 'N/A'}"></td>
                             <td th:text="${detail.quantity}"></td>
-                            <td th:text="${detail.subtotal != null ? #numbers.formatCurrency(detail.subtotal) : '$0.00'}"></td>
+                            <!-- Base Price -->
+                            <td style="text-decoration: line-through; color: #999;">
+                                <span th:if="${detail.basePrice != null}" th:text="${#numbers.formatCurrency(detail.basePrice)}">$0.00</span>
+                                <span th:unless="${detail.basePrice != null}">-</span>
+                            </td>
+                            <!-- Discount -->
+                            <td style="color: #28a745;">
+                                <span th:if="${detail.discountPercent != null and detail.discountPercent > 0}">
+                                    <strong th:text="${detail.discountPercent + '%'}">-</strong>
+                                    <br/>
+                                    <small th:if="${detail.discountAmount != null}">
+                                        (-<span th:text="${#numbers.formatCurrency(detail.discountAmount)}">$0</span>)
+                                    </small>
+                                </span>
+                                <span th:unless="${detail.discountPercent != null and detail.discountPercent > 0}">-</span>
+                            </td>
+                            <!-- Unit Price After Discount -->
+                            <td style="font-weight: bold; color: #007bff;">
+                                <span th:text="${detail.unitPrice != null ? #numbers.formatCurrency(detail.unitPrice) : '$0.00'}"></span>
+                            </td>
+                            <!-- Subtotal -->
+                            <td style="font-weight: bold;">
+                                <span th:text="${detail.subtotal != null ? #numbers.formatCurrency(detail.subtotal) : '$0.00'}"></span>
+                            </td>
                         </tr>
                     </tbody>
                 </table>

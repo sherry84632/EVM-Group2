@@ -17,7 +17,7 @@ public class DAODealerInventory {
     public List<DTODealerInventory> getVehiclesByDealerID(int dealerID) {
         List<DTODealerInventory> list = new ArrayList<>();
         String sql = """
-                    SELECT di.DealerInventoryID, di.DealerID, di.VIN, di.ReceivedDate, di.Status,
+                    SELECT di.DealerInventoryID, di.DealerID, di.VIN, di.ReceivedDate, di.Status, di.CostPrice,
                            v.VehicleID, v.ManufactureYear, v.EngineNumber, v.Status AS VehicleStatus,
                            vc.ColorID, vc.ColorName,
                            vv.VersionID, vv.VersionName,
@@ -40,6 +40,7 @@ public class DAODealerInventory {
                     dto.setReceivedDate(rs.getDate("ReceivedDate"));
                     dto.setStatus(DealerInventoryStatus.valueOf(rs.getString("Status")));
                     dto.setVin(rs.getString("VIN"));
+                    dto.setCostPrice(rs.getBigDecimal("CostPrice")); // ✅ Lấy giá cost
 
                     DTODealer dealer = new DTODealer();
                     dealer.setDealerID(rs.getInt("DealerID"));
@@ -545,13 +546,17 @@ public class DAODealerInventory {
             log.warn("Validation failed for colorID={} versionID={}", colorID, versionID);
             return false;
         }
+
+        // ✅ Lấy UnitPrice (giá sau chiết khấu) từ PurchaseOrderDetail
+        java.math.BigDecimal costPrice = getCostPriceFromPO(purchaseOrderId, colorID, versionID);
+
         String sqlInsertVehicle = """
                     INSERT INTO Vehicle (ColorID, VersionID, ManufactureYear, EngineNumber, Status, CreatedAt, UpdatedAt) 
                     VALUES (?, ?, YEAR(GETDATE()), ?, 'IN_STOCK', GETDATE(), GETDATE())
                 """;
         String sqlInsertInventory = """
-                    INSERT INTO DealerInventory (DealerID, VehicleID, VIN, ReceivedDate, Status) 
-                    VALUES (?, ?, ?, GETDATE(), 'AVAILABLE')
+                    INSERT INTO DealerInventory (DealerID, VehicleID, VIN, ReceivedDate, Status, CostPrice) 
+                    VALUES (?, ?, ?, GETDATE(), 'AVAILABLE', ?)
                 """;
         String sqlGetLatestDelivery = "SELECT TOP 1 DeliveryID FROM Delivery WHERE PurchaseOrderID = ? ORDER BY DeliveryID DESC";
         String sqlInsertDeliveryDetail = "INSERT INTO DeliveryDetail (DeliveryID, VehicleID) VALUES (?, ?)";
@@ -583,6 +588,8 @@ public class DAODealerInventory {
                     psInventory.setInt(1, dealerID);
                     if (vehicleId != null) psInventory.setInt(2, vehicleId); else psInventory.setNull(2, Types.INTEGER);
                     psInventory.setString(3, vin);
+                    // ✅ Lưu giá cost (sau chiết khấu)
+                    psInventory.setBigDecimal(4, costPrice);
                     psInventory.executeUpdate();
                 }
 
@@ -595,7 +602,7 @@ public class DAODealerInventory {
                 }
             }
             conn.commit();
-            log.info("Successfully added {} vehicles to inventory dealerID={} for PO {}", quantity, dealerID, purchaseOrderId);
+            log.info("Successfully added {} vehicles to inventory dealerID={} for PO {} with costPrice={}", quantity, dealerID, purchaseOrderId, costPrice);
             return true;
         } catch (SQLException e) {
             log.error("Error adding vehicles to inventory dealerID={} for PO {}", dealerID, purchaseOrderId, e);
@@ -627,6 +634,136 @@ public class DAODealerInventory {
             log.error("Error validating ColorID={} VersionID={}", colorID, versionID, e);
             return false;
         }
+    }
+
+    /**
+     * Lấy giá cost (UnitPrice sau chiết khấu) từ PurchaseOrderDetail
+     * @param purchaseOrderId ID của Purchase Order
+     * @param colorID ColorID của xe
+     * @param versionID VersionID của xe
+     * @return UnitPrice đã chiết khấu, hoặc BasePrice nếu không tìm thấy
+     */
+    private java.math.BigDecimal getCostPriceFromPO(int purchaseOrderId, int colorID, int versionID) {
+        String sql = """
+            SELECT pod.UnitPrice
+            FROM PurchaseOrderDetail pod
+            WHERE pod.PurchaseOrderID = ?
+              AND pod.ColorID = ?
+              AND pod.VersionID = ?
+        """;
+
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, purchaseOrderId);
+            ps.setInt(2, colorID);
+            ps.setInt(3, versionID);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    java.math.BigDecimal unitPrice = rs.getBigDecimal("UnitPrice");
+                    if (unitPrice != null && unitPrice.compareTo(java.math.BigDecimal.ZERO) > 0) {
+                        log.debug("Found cost price from PO {}: {}", purchaseOrderId, unitPrice);
+                        return unitPrice;
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            log.error("Error getting cost price from PO {} for color {} version {}", purchaseOrderId, colorID, versionID, e);
+        }
+
+        // Fallback: Lấy BasePrice từ VehicleModel
+        log.warn("No unit price found in PO {}, falling back to BasePrice", purchaseOrderId);
+        return getBasePriceFromVersion(versionID);
+    }
+
+    /**
+     * Lấy CostPrice của xe từ DealerInventory theo VehicleID
+     * Dùng khi tạo Sale Order để lấy giá gốc (đã chiết khấu từ EVM)
+     * @param vehicleId ID của xe
+     * @return CostPrice, hoặc BasePrice nếu không tìm thấy
+     */
+    public java.math.BigDecimal getCostPriceByVehicleId(int vehicleId) {
+        String sql = """
+            SELECT di.CostPrice
+            FROM DealerInventory di
+            WHERE di.VehicleID = ?
+        """;
+
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, vehicleId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    java.math.BigDecimal costPrice = rs.getBigDecimal("CostPrice");
+                    if (costPrice != null && costPrice.compareTo(java.math.BigDecimal.ZERO) > 0) {
+                        log.debug("Found cost price for vehicle {}: {}", vehicleId, costPrice);
+                        return costPrice;
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            log.error("Error getting cost price for vehicle {}", vehicleId, e);
+        }
+
+        // Fallback: Lấy BasePrice từ VehicleModel qua Vehicle
+        log.warn("No cost price found for vehicle {}, falling back to BasePrice", vehicleId);
+        return getBasePriceForVehicle(vehicleId);
+    }
+
+    /**
+     * Lấy BasePrice từ VehicleModel cho một vehicle cụ thể (fallback)
+     */
+    private java.math.BigDecimal getBasePriceForVehicle(int vehicleId) {
+        String sql = """
+            SELECT vm.BasePrice
+            FROM Vehicle v
+            JOIN VehicleVersion vv ON v.VersionID = vv.VersionID
+            JOIN VehicleModel vm ON vv.ModelID = vm.ModelID
+            WHERE v.VehicleID = ?
+        """;
+
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, vehicleId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getBigDecimal("BasePrice");
+                }
+            }
+        } catch (SQLException e) {
+            log.error("Error getting base price for vehicle {}", vehicleId, e);
+        }
+
+        return java.math.BigDecimal.ZERO;
+    }
+
+    /**
+     * Lấy BasePrice từ VehicleModel thông qua VersionID (fallback)
+     */
+    private java.math.BigDecimal getBasePriceFromVersion(int versionID) {
+        String sql = """
+            SELECT vm.BasePrice
+            FROM VehicleVersion vv
+            JOIN VehicleModel vm ON vv.ModelID = vm.ModelID
+            WHERE vv.VersionID = ?
+        """;
+
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, versionID);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getBigDecimal("BasePrice");
+                }
+            }
+        } catch (SQLException e) {
+            log.error("Error getting base price for version {}", versionID, e);
+        }
+
+        return java.math.BigDecimal.ZERO;
     }
 
     // VIN generation moved to utils.VINUtils
