@@ -2,9 +2,6 @@ package com.dealermanagementsysstem.project.Model;
 
 import jakarta.persistence.*;
 
-import java.util.ArrayList;
-import java.util.List;
-
 @Entity
 @Table(name = "Dealer")
 public class DTODealer {
@@ -16,35 +13,38 @@ public class DTODealer {
 
     @Column(name = "DealerName", nullable = false)
     private String dealerName;
+
     @Column(name = "Address")
     private String address;
 
     @Column(name = "Phone", unique = true)
     private String phone;
+
     @Column(name = "Email", unique = true)
     private String email;
 
-    @OneToMany(mappedBy = "dealer")
-    private List<DTODealerStaff>  dealerStaffList = new ArrayList<>();
-
     @Column(name = "EvmID")
     private int evmID;
+
     @Column(name = "LevelID")
     private int levelID;
+
     @Column(name = "PolicyID")
     private int policyID;
     
     @Column(name = "CreatedAt")
     private java.sql.Timestamp createdAt;
-    
+
     @Column(name = "UpdatedAt")
     private java.sql.Timestamp updatedAt;
+
+    // === CONSTRUCTORS ===
 
     public DTODealer() {
     }
 
-
-    public DTODealer(int dealerID, String dealerName, String address, String phone, String email, int evmID, int levelID, int policyID) {
+    public DTODealer(int dealerID, String dealerName, String address, String phone,
+                     String email, int evmID, int levelID, int policyID) {
         this.dealerID = dealerID;
         this.dealerName = dealerName;
         this.address = address;
@@ -55,8 +55,7 @@ public class DTODealer {
         this.policyID = policyID;
     }
 
-
-
+    // === GETTERS / SETTERS ===
 
     public int getDealerID() {
         return dealerID;

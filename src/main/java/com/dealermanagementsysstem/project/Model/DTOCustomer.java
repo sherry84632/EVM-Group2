@@ -48,37 +48,92 @@ public class DTOCustomer {
     private String vehicleInterest;
 
     // === GETTER / SETTER ===
-    public int getCustomerID() { return customerID; }
-    public void setCustomerID(int customerID) { this.customerID = customerID; }
 
-    public String getFullName() { return fullName; }
-    public void setFullName(String fullName) { this.fullName = fullName; }
+    public int getCustomerID() {
+        return customerID;
+    }
 
-    public String getPhone() { return phone; }
-    public String getPhoneNumber() { return phone; }
-    public void setPhone(String phone) { this.phone = phone; }
+    public void setCustomerID(int customerID) {
+        this.customerID = customerID;
+    }
 
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
+    public String getFullName() {
+        return fullName;
+    }
 
-    public String getAddress() { return address; }
-    public void setAddress(String address) { this.address = address; }
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
+    }
 
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
-    
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    public String getPhone() {
+        return phone;
+    }
 
-    public LocalDate getBirthDate() { return birthDate; }
-    public void setBirthDate(LocalDate birthDate) { this.birthDate = birthDate; }
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
 
-    public String getNote() { return note; }
-    public void setNote(String note) { this.note = note; }
+    public String getEmail() {
+        return email;
+    }
 
-    public String getVehicleInterest() { return vehicleInterest; }
-    public void setVehicleInterest(String vehicleInterest) { this.vehicleInterest = vehicleInterest; }
+    public void setEmail(String email) {
+        this.email = email;
+    }
 
-    public DTODealer getDealer() { return dealer; }
-    public void setDealer(DTODealer dealer) { this.dealer = dealer; }
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public LocalDate getBirthDate() {
+        return birthDate;
+    }
+
+    public void setBirthDate(LocalDate birthDate) {
+        this.birthDate = birthDate;
+    }
+
+    public String getNote() {
+        return note;
+    }
+
+    public void setNote(String note) {
+        this.note = note;
+    }
+
+    public String getVehicleInterest() {
+        return vehicleInterest;
+    }
+
+    public void setVehicleInterest(String vehicleInterest) {
+        this.vehicleInterest = vehicleInterest;
+    }
+
+    public DTODealer getDealer() {
+        return dealer;
+    }
+
+    public void setDealer(DTODealer dealer) {
+        this.dealer = dealer;
+    }
 }

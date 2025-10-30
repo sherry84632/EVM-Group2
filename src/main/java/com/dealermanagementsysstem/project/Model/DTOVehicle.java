@@ -1,7 +1,6 @@
 package com.dealermanagementsysstem.project.Model;
 
 import jakarta.persistence.*;
-import java.math.BigDecimal;
 
 @Entity
 @Table(name = "Vehicle")

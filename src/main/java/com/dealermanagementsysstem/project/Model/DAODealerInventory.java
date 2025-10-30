@@ -407,6 +407,29 @@ public class DAODealerInventory {
             log.error("Failed checking delivery status for PO {}", purchaseOrderId, e);
             return false;
         }
+
+        // ✅ Kiểm tra xem đã có xe được tạo cho PO này chưa (tránh tạo trùng)
+        String checkExisting = """
+            SELECT COUNT(*) as cnt FROM DealerInventory di
+            INNER JOIN Vehicle v ON di.VehicleID = v.VehicleID
+            INNER JOIN DeliveryDetail dd ON dd.VehicleID = v.VehicleID
+            INNER JOIN Delivery d ON d.DeliveryID = dd.DeliveryID
+            WHERE d.PurchaseOrderID = ?
+        """;
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(checkExisting)) {
+            ps.setInt(1, purchaseOrderId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next() && rs.getInt("cnt") > 0) {
+                    log.info("Vehicles already added to inventory for PO {} - skipping duplicate creation", purchaseOrderId);
+                    return true; // Already added, không tạo nữa
+                }
+            }
+        } catch (SQLException e) {
+            log.error("Failed checking existing inventory for PO {}", purchaseOrderId, e);
+            return false;
+        }
+
         return addVehiclesToInventoryForPO(purchaseOrderId, dealerID, colorID, versionID, quantity);
     }
 

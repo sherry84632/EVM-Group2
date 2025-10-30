@@ -243,17 +243,83 @@ public class DAOVehicle {
     }
 
     public boolean deleteVehicle(Integer id) {
-        String sql = "DELETE FROM Vehicle WHERE VehicleID = ?";
-        try (Connection con = DBUtils.getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setInt(1, id);
-            boolean ok = ps.executeUpdate() > 0;
-            if (ok) { log.info("Vehicle deleted ID={}", id); }
-            else { log.warn("No vehicle deleted ID={}", id); }
-            return ok;
+        Connection con = null;
+        try {
+            con = DBUtils.getConnection();
+            con.setAutoCommit(false);
+
+            log.info("Attempting to delete vehicle ID={}", id);
+
+            // 1. Xóa các bản ghi trong DealerInventory
+            String deleteDealerInventory = "DELETE FROM DealerInventory WHERE VehicleID = ?";
+            try (PreparedStatement ps = con.prepareStatement(deleteDealerInventory)) {
+                ps.setInt(1, id);
+                int deletedInventory = ps.executeUpdate();
+                log.debug("Deleted {} records from DealerInventory", deletedInventory);
+            }
+
+            // 2. Xóa các bản ghi trong SaleOrderDetail
+            String deleteSaleOrderDetail = "DELETE FROM SaleOrderDetail WHERE VehicleID = ?";
+            try (PreparedStatement ps = con.prepareStatement(deleteSaleOrderDetail)) {
+                ps.setInt(1, id);
+                int deletedSaleDetails = ps.executeUpdate();
+                log.debug("Deleted {} records from SaleOrderDetail", deletedSaleDetails);
+            }
+
+            // 3. Xóa các bản ghi trong DeliveryDetail
+            String deleteDeliveryDetail = "DELETE FROM DeliveryDetail WHERE VehicleID = ?";
+            try (PreparedStatement ps = con.prepareStatement(deleteDeliveryDetail)) {
+                ps.setInt(1, id);
+                int deletedDeliveryDetails = ps.executeUpdate();
+                log.debug("Deleted {} records from DeliveryDetail", deletedDeliveryDetails);
+            }
+
+            // 4. Xóa các bản ghi trong TestDrive (nếu có)
+            String deleteTestDrive = "DELETE FROM TestDrive WHERE VehicleID = ?";
+            try (PreparedStatement ps = con.prepareStatement(deleteTestDrive)) {
+                ps.setInt(1, id);
+                int deletedTestDrives = ps.executeUpdate();
+                log.debug("Deleted {} records from TestDrive", deletedTestDrives);
+            }
+
+            // 5. Cuối cùng xóa Vehicle
+            String deleteVehicle = "DELETE FROM Vehicle WHERE VehicleID = ?";
+            try (PreparedStatement ps = con.prepareStatement(deleteVehicle)) {
+                ps.setInt(1, id);
+                int deletedVehicle = ps.executeUpdate();
+
+                if (deletedVehicle > 0) {
+                    con.commit();
+                    log.info("✅ Vehicle deleted successfully ID={}", id);
+                    return true;
+                } else {
+                    con.rollback();
+                    log.warn("⚠️ No vehicle found to delete ID={}", id);
+                    return false;
+                }
+            }
+
         } catch (SQLException e) {
-            log.error("Error deleting vehicle ID={}", id, e);
+            log.error("❌ Error deleting vehicle ID={}", id, e);
+            if (con != null) {
+                try {
+                    con.rollback();
+                    log.debug("Transaction rolled back");
+                } catch (SQLException ex) {
+                    log.error("Error during rollback", ex);
+                }
+            }
+            return false;
+        } finally {
+            if (con != null) {
+                try {
+                    con.setAutoCommit(true);
+                    con.close();
+                } catch (SQLException e) {
+                    log.error("Error closing connection", e);
+                }
+            }
         }
-        return false;
     }
 
     public List<DTOVehicle> getAllVehicles() { return getVehicles(); }
