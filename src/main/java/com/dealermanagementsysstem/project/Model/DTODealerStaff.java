@@ -16,9 +16,11 @@ public class DTODealerStaff {
 
     @Column(name = "Position")
     private String position;
-    @Column(name = "Phone",unique = true)
+
+    @Column(name = "Phone", unique = true)
     private String phone;
-    @Column(name = "Email",unique = true)
+
+    @Column(name = "Email", unique = true)
     private String email;
 
     @OneToOne(fetch = FetchType.LAZY)
@@ -29,11 +31,12 @@ public class DTODealerStaff {
     @JoinColumn(name = "DealerID", referencedColumnName = "DealerID")
     private DTODealer dealer;
 
+    // === CONSTRUCTORS ===
 
     public DTODealerStaff() {
     }
 
-
+    // === GETTERS / SETTERS ===
 
     public int getStaffID() {
         return staffID;

@@ -6,40 +6,45 @@ import java.math.BigDecimal;
 @Entity
 @Table(name = "SaleOrderDetail")
 public class DTOSaleOrderDetail {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "SODetailID")
     private int soDetailID;
-    
+
     @ManyToOne
     @JoinColumn(name = "SaleOrderID", referencedColumnName = "SaleOrderID")
     private DTOSaleOrder saleOrder;
-    
+
     @ManyToOne
     @JoinColumn(name = "VehicleID", referencedColumnName = "VehicleID")
     private DTOVehicle vehicle;
-    
+
     @Column(name = "Price")
     private BigDecimal price;
-    
+
     @ManyToOne
-    @JoinColumn(name = "PolicyID", referencedColumnName = "PolicyID")
+    @Column(name = "PolicyID", referencedColumnName = "PolicyID")
     private DTODiscountPolicy discountPolicy;
 
-    @Column(name = "Quantity", nullable = true)
-    private Integer quantity; // optional per-line quantity
+    @Column(name = "Quantity")
+    private Integer quantity; // Optional per-line quantity, defaults to 1
+
+    // === CONSTRUCTORS ===
+
     public DTOSaleOrderDetail() {
     }
 
-    public DTOSaleOrderDetail(int soDetailID, DTOSaleOrder saleOrder, DTOVehicle vehicle, BigDecimal price, 
-                              DTODiscountPolicy discountPolicy) {
+    public DTOSaleOrderDetail(int soDetailID, DTOSaleOrder saleOrder, DTOVehicle vehicle,
+                              BigDecimal price, DTODiscountPolicy discountPolicy) {
         this.soDetailID = soDetailID;
         this.saleOrder = saleOrder;
         this.vehicle = vehicle;
         this.price = price;
         this.discountPolicy = discountPolicy;
     }
+
+    // === GETTERS / SETTERS ===
 
     public DTOSaleOrder getSaleOrder() {
         return saleOrder;
@@ -82,6 +87,11 @@ public class DTOSaleOrderDetail {
         this.price = price;
     }
 
-    public Integer getQuantity(){ return quantity!=null?quantity:1; }
-    public void setQuantity(Integer q){ this.quantity = q; }
+    public Integer getQuantity() {
+        return quantity != null ? quantity : 1;
+    }
+
+    public void setQuantity(Integer quantity) {
+        this.quantity = quantity;
+    }
 }
