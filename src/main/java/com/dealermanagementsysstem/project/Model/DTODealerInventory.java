@@ -30,6 +30,9 @@ public class DTODealerInventory {
     @Enumerated(EnumType.STRING)
     private DealerInventoryStatus status;
 
+    @Column(name = "CostPrice")
+    private java.math.BigDecimal costPrice; // Giá cost sau chiết khấu từ EVM
+
     public DTODealerInventory() {}
 
     public DTODealerInventory(int dealerInventoryID, DTODealer dealer, DTOVehicle vehicle, 
@@ -87,5 +90,13 @@ public class DTODealerInventory {
 
     public void setStatus(DealerInventoryStatus status) {
         this.status = status;
+    }
+
+    public java.math.BigDecimal getCostPrice() {
+        return costPrice;
+    }
+
+    public void setCostPrice(java.math.BigDecimal costPrice) {
+        this.costPrice = costPrice;
     }
 }

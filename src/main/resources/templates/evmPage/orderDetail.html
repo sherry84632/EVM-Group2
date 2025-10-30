@@ -280,19 +280,43 @@
                     <thead class="table-light">
                         <tr>
                             <th>Model</th>
+                            <th>Version</th>
                             <th>Color</th>
                             <th>Quantity</th>
-                            <th>Model ID</th>
-                            <th>Color ID</th>
+                            <th>Base Price</th>
+                            <th>Discount</th>
+                            <th>Unit Price</th>
+                            <th>Subtotal</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr th:each="detail : ${order.orderDetails}">
                             <td th:text="${detail.modelName ?: detail.version?.model?.modelName ?: 'N/A'}">-</td>
+                            <td th:text="${detail.versionName ?: detail.version?.versionName ?: 'N/A'}">-</td>
                             <td th:text="${detail.colorName ?: detail.color?.colorName ?: 'N/A'}">-</td>
                             <td th:text="${detail.quantity}">-</td>
-                            <td th:text="${detail.version?.model?.modelID ?: 'N/A'}">-</td>
-                            <td th:text="${detail.color?.colorID ?: 'N/A'}">-</td>
+                            <!-- Base Price -->
+                            <td th:if="${detail.basePrice != null}" class="text-muted" style="text-decoration: line-through;">
+                                <span th:text="${#numbers.formatDecimal(detail.basePrice, 0, 'COMMA', 0, 'POINT')}">-</span> VND
+                            </td>
+                            <td th:unless="${detail.basePrice != null}">-</td>
+                            <!-- Discount -->
+                            <td th:if="${detail.discountPercent != null and detail.discountPercent > 0}" class="text-success">
+                                <span th:text="${detail.discountPercent + '%'}">-</span>
+                                <br/>
+                                <small th:if="${detail.discountAmount != null}">
+                                    (-<span th:text="${#numbers.formatDecimal(detail.discountAmount, 0, 'COMMA', 0, 'POINT')}">-</span> VND)
+                                </small>
+                            </td>
+                            <td th:unless="${detail.discountPercent != null and detail.discountPercent > 0}">-</td>
+                            <!-- Unit Price After Discount -->
+                            <td class="fw-bold text-primary">
+                                <span th:text="${#numbers.formatDecimal(detail.unitPrice, 0, 'COMMA', 0, 'POINT')}">-</span> VND
+                            </td>
+                            <!-- Subtotal -->
+                            <td class="fw-bold">
+                                <span th:text="${#numbers.formatDecimal(detail.subtotal, 0, 'COMMA', 0, 'POINT')}">-</span> VND
+                            </td>
                         </tr>
                     </tbody>
                 </table>
@@ -387,9 +411,25 @@
                                 <span class="info-label">Quantity:</span>
                                 <span class="info-value" th:text="${detail.quantity}">-</span>
                             </div>
+                            <!-- ✅ Giá gốc (BasePrice) -->
+                            <div class="info-row" th:if="${detail.basePrice != null}">
+                                <span class="info-label">Base Price:</span>
+                                <span class="info-value text-muted" style="text-decoration: line-through;" th:text="${#numbers.formatDecimal(detail.basePrice, 0, 'COMMA', 0, 'POINT') + ' VND'}">-</span>
+                            </div>
+                            <!-- ✅ Chiết khấu -->
+                            <div class="info-row" th:if="${detail.discountPercent != null and detail.discountPercent > 0}">
+                                <span class="info-label">Discount:</span>
+                                <span class="info-value text-success">
+                                    <span th:text="${detail.discountPercent + '%'}">-</span>
+                                    <span th:if="${detail.discountAmount != null}">
+                                        (-<span th:text="${#numbers.formatDecimal(detail.discountAmount, 0, 'COMMA', 0, 'POINT') + ' VND'}">-</span>)
+                                    </span>
+                                </span>
+                            </div>
+                            <!-- ✅ Giá sau chiết khấu (Unit Price) -->
                             <div class="info-row">
-                                <span class="info-label">Unit Price:</span>
-                                <span class="info-value" th:text="${#numbers.formatDecimal(detail.unitPrice, 0, 'COMMA', 0, 'POINT') + ' VND'}">-</span>
+                                <span class="info-label">Unit Price (After Discount):</span>
+                                <span class="info-value fw-bold text-primary" th:text="${#numbers.formatDecimal(detail.unitPrice, 0, 'COMMA', 0, 'POINT') + ' VND'}">-</span>
                             </div>
                             <div class="info-row">
                                 <span class="info-label">Subtotal:</span>
@@ -443,17 +483,17 @@
                             <span class="price-label">Total Quantity:</span>
                             <span class="price-value" th:text="${order.totalQuantity != null ? order.totalQuantity : 0}">0</span>
                         </div>
-                        <div class="price-row" th:if="${order.primaryUnitPrice != null}">
-                            <span class="price-label">First Unit Price:</span>
-                            <span class="price-value" th:text="${#numbers.formatDecimal(order.primaryUnitPrice,0,'COMMA',0,'POINT') + ' VND'}">0 VND</span>
+                        <div class="price-row">
+                            <span class="price-label">Unit Price:</span>
+                            <span class="price-value" th:text="${#numbers.formatCurrency(order.primaryUnitPrice)}">$0.00</span>
                         </div>
-                        <div class="price-row" th:if="${order.primarySubtotal != null}">
-                            <span class="price-label">First Subtotal:</span>
-                            <span class="price-value" th:text="${#numbers.formatDecimal(order.primarySubtotal,0,'COMMA',0,'POINT') + ' VND'}">0 VND</span>
+                        <div class="price-row">
+                            <span class="price-label">Subtotal:</span>
+                            <span class="price-value" th:text="${#numbers.formatCurrency(order.primarySubtotal)}">$0.00</span>
                         </div>
-                        <div class="price-row total-price" th:if="${order.totalAmount != null}">
-                            <span class="price-label">Order Total Price:</span>
-                            <span class="price-value" th:text="${#numbers.formatDecimal(order.totalAmount,0,'COMMA',0,'POINT') + ' VND'}">0 VND</span>
+                        <div class="price-row total-price">
+                            <span class="price-label">Total Amount:</span>
+                            <span class="price-value" th:text="${#numbers.formatCurrency(order.totalAmount)}">$0.00</span>
                         </div>
                         <div class="price-row total-price" th:unless="${order.totalAmount != null}">
                             <span class="price-label">Order Total Price:</span>

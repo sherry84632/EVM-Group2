@@ -43,6 +43,15 @@ public class DTOPurchaseOrderDetail {
     @Transient
     private String colorName;
 
+    @Transient
+    private java.math.BigDecimal basePrice; // Giá gốc (chưa chiết khấu)
+
+    @Transient
+    private Double discountPercent; // % chiết khấu
+
+    @Transient
+    private java.math.BigDecimal discountAmount; // Số tiền chiết khấu
+
     public DTOPurchaseOrderDetail() {}
 
     public DTOPurchaseOrderDetail(int poDetailId, DTOPurchaseOrder purchaseOrder, DTOVehicleColor color, 
@@ -85,4 +94,13 @@ public class DTOPurchaseOrderDetail {
 
     public String getColorName() { return colorName; }
     public void setColorName(String colorName) { this.colorName = colorName; }
+
+    public java.math.BigDecimal getBasePrice() { return basePrice; }
+    public void setBasePrice(java.math.BigDecimal basePrice) { this.basePrice = basePrice; }
+
+    public Double getDiscountPercent() { return discountPercent; }
+    public void setDiscountPercent(Double discountPercent) { this.discountPercent = discountPercent; }
+
+    public java.math.BigDecimal getDiscountAmount() { return discountAmount; }
+    public void setDiscountAmount(java.math.BigDecimal discountAmount) { this.discountAmount = discountAmount; }
 }

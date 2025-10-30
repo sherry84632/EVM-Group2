@@ -54,22 +54,19 @@ public class DAOPurchaseOrderDetail {
         return insertOrderDetail(purchaseOrderId, colorId, versionId, quantity, unit);
     }
 
-    // Dealer-aware unit price (DealerPriceAdjustment filtered by DealerID if provided)
+    // Dealer-aware unit price (DiscountPolicy.HangPercent filtered by DealerID if provided)
     public BigDecimal computeUnitPrice(int versionId, Integer dealerId) {
         String sql = """
             SELECT vm.BasePrice,
-                   pa.DiscountPercent
+                   pol.HangPercent AS DiscountPercent
             FROM VehicleVersion vv
             JOIN VehicleModel vm ON vv.ModelID = vm.ModelID
             OUTER APPLY (
-                SELECT TOP 1 DiscountPercent
-                FROM DealerPriceAdjustment pa
-                WHERE pa.ModelID = vm.ModelID
-                  AND (? IS NULL OR pa.DealerID = ?)
-                  AND pa.StartDate <= GETDATE()
-                  AND (pa.EndDate IS NULL OR pa.EndDate >= GETDATE())
-                ORDER BY pa.StartDate DESC
-            ) pa
+                SELECT TOP 1 HangPercent
+                FROM DiscountPolicy pol
+                WHERE (? IS NULL OR pol.DealerID = ?)
+                ORDER BY pol.CreatedAt DESC
+            ) pol
             WHERE vv.VersionID = ?
         """;
         try (Connection conn = DBUtils.getConnection();
@@ -80,7 +77,8 @@ public class DAOPurchaseOrderDetail {
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     BigDecimal base = rs.getBigDecimal("BasePrice");
-                    Double discountPercent = rs.getObject("DiscountPercent", Double.class);
+                    java.math.BigDecimal discountPercentBD = rs.getBigDecimal("DiscountPercent");
+                    Double discountPercent = discountPercentBD != null ? discountPercentBD.doubleValue() : null;
                     if (base == null) return BigDecimal.ZERO;
                     if (discountPercent != null && discountPercent > 0) {
                         BigDecimal discount = base.multiply(BigDecimal.valueOf(discountPercent / 100.0));

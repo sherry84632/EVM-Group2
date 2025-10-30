@@ -136,11 +136,20 @@ public class DAOPurchaseOrder {
                 SELECT pod.PODetailID, pod.PurchaseOrderID, pod.ColorID, pod.VersionID, pod.UnitPrice, pod.Quantity, pod.Subtotal,
                        vc.ColorID AS DetailColorID, vc.ColorName,
                        vv.VersionID AS DetailVersionID, vv.VersionName,
-                       vm.ModelID, vm.ModelName, vm.BasePrice
+                       vm.ModelID, vm.ModelName, vm.BasePrice,
+                       pol.HangPercent AS DiscountPercent
                 FROM PurchaseOrderDetail pod
                 LEFT JOIN VehicleColor vc ON pod.ColorID = vc.ColorID
                 LEFT JOIN VehicleVersion vv ON pod.VersionID = vv.VersionID
                 LEFT JOIN VehicleModel vm ON vv.ModelID = vm.ModelID
+                LEFT JOIN PurchaseOrder po ON pod.PurchaseOrderID = po.PurchaseOrderID
+                LEFT JOIN Dealer d ON po.DealerID = d.DealerID
+                OUTER APPLY (
+                   SELECT TOP 1 HangPercent
+                   FROM DiscountPolicy dp
+                   WHERE dp.DealerID = d.DealerID
+                   ORDER BY dp.CreatedAt DESC
+                ) pol
                 WHERE pod.PurchaseOrderID = ?
                 ORDER BY pod.PODetailID ASC
                 """;
@@ -197,6 +206,22 @@ public class DAOPurchaseOrder {
                                 d.setUnitPrice(drs.getBigDecimal("UnitPrice"));
                                 d.setQuantity(drs.getInt("Quantity"));
                                 d.setSubtotal(drs.getBigDecimal("Subtotal"));
+
+                                // ✅ Set BasePrice (giá gốc)
+                                BigDecimal basePrice = drs.getBigDecimal("BasePrice");
+                                d.setBasePrice(basePrice);
+
+                                // ✅ Set DiscountPercent (% chiết khấu)
+                                Double discountPct = drs.getObject("DiscountPercent", Double.class);
+                                d.setDiscountPercent(discountPct);
+
+                                // ✅ Tính DiscountAmount (số tiền chiết khấu)
+                                if (basePrice != null && discountPct != null && discountPct > 0) {
+                                    BigDecimal discountAmount = basePrice.multiply(BigDecimal.valueOf(discountPct / 100.0));
+                                    d.setDiscountAmount(discountAmount);
+                                } else {
+                                    d.setDiscountAmount(BigDecimal.ZERO);
+                                }
 
                                 // Color
                                 if (drs.getString("ColorName") != null) {
