@@ -37,9 +37,13 @@ public class EVMVehicleController {
     public String listVehicles(@RequestParam(value = "keyword", required = false) String keyword, Model model) {
         List<DTOVehicle> vehicles;
         try {
+            log.info("Loading vehicle list, keyword={}", keyword);
+
             if (keyword != null && !keyword.trim().isEmpty()) {
                 // Search theo keyword
+                log.info("Searching vehicles by keyword: {}", keyword);
                 vehicles = dao.searchVehiclesByModelName(keyword);
+                log.info("Found {} vehicles matching keyword '{}'", vehicles.size(), keyword);
 
                 // Ưu tiên filter lấy TEMPLATE, nếu không có thì lấy tất cả
                 List<DTOVehicle> templateVehicles = vehicles.stream()
@@ -47,33 +51,52 @@ public class EVMVehicleController {
                         .toList();
 
                 if (!templateVehicles.isEmpty()) {
+                    log.info("Filtered to {} TEMPLATE vehicles", templateVehicles.size());
                     vehicles = templateVehicles;
+                } else {
+                    log.warn("No TEMPLATE vehicles in search results, showing all {} results", vehicles.size());
                 }
-                // Nếu không có TEMPLATE, giữ nguyên kết quả search (tất cả xe)
 
             } else {
-                // Lấy xe TEMPLATE trước
+                // Không có keyword - lấy TẤT CẢ xe TEMPLATE
+                log.info("Loading all TEMPLATE vehicles");
                 vehicles = dao.getVehiclesByStatus(VehicleStatus.TEMPLATE);
+                log.info("Loaded {} TEMPLATE vehicles from database", vehicles.size());
 
                 // Nếu không có xe TEMPLATE nào, lấy tất cả xe (backward compatibility)
                 if (vehicles.isEmpty()) {
-                    log.warn("No TEMPLATE vehicles found, showing all vehicles for backward compatibility");
+                    log.warn("⚠️ No TEMPLATE vehicles found! Loading ALL vehicles as fallback");
                     vehicles = dao.getVehicles();
+                    log.info("Fallback: Loaded {} total vehicles", vehicles.size());
                 }
             }
 
             if (vehicles == null) vehicles = new ArrayList<>();
+
+            // Log chi tiết từng xe
+            for (DTOVehicle v : vehicles) {
+                log.debug("Vehicle ID={}, Status={}, Model={}",
+                    v.getVehicleID(), v.getStatus(),
+                    v.getVersion() != null && v.getVersion().getModel() != null ?
+                        v.getVersion().getModel().getModelName() : "N/A");
+            }
+
             model.addAttribute("vehicles", vehicles);
             model.addAttribute("keyword", keyword);
 
             // Thêm warning nếu đang hiển thị tất cả xe (chưa có TEMPLATE)
-            if (vehicles.stream().anyMatch(v -> v.getStatus() != VehicleStatus.TEMPLATE)) {
-                model.addAttribute("warning", "⚠️ Hiển thị tất cả xe. Vui lòng cập nhật Status = TEMPLATE cho xe mẫu catalog.");
+            long nonTemplateCount = vehicles.stream()
+                .filter(v -> v.getStatus() != VehicleStatus.TEMPLATE)
+                .count();
+
+            if (nonTemplateCount > 0) {
+                log.warn("⚠️ Displaying {} non-TEMPLATE vehicles", nonTemplateCount);
+                model.addAttribute("warning", "⚠️ Đang hiển thị " + nonTemplateCount + " xe không phải TEMPLATE. Vui lòng cập nhật Status = TEMPLATE cho xe mẫu catalog.");
             }
 
             addActionRole(model);
         } catch (Exception e) {
-            log.error("Error loading vehicle list", e);
+            log.error("❌ Error loading vehicle list", e);
             model.addAttribute("vehicles", new ArrayList<>());
             model.addAttribute("error", "Failed to load vehicles: " + e.getMessage());
         }
@@ -346,10 +369,18 @@ public class EVMVehicleController {
             }
 
             // ========== SUCCESS ==========
-            log.info("🎉 Vehicle created successfully! ID={}, Model={}, Version={}, Color={}",
-                    vehicle.getVehicleID(), modelName, versionName, colorName);
+            log.info("🎉 Vehicle created successfully! ID={}, Model={}, Version={}, Color={}, Status={}",
+                    vehicle.getVehicleID(), modelName, versionName, colorName, vehicle.getStatus());
 
-            model.addAttribute("message", "✅ Vehicle created successfully! ID: " + vehicle.getVehicleID());
+            // Verify vehicle was saved with correct status
+            DTOVehicle savedVehicle = dao.getVehicleById(vehicle.getVehicleID());
+            if (savedVehicle != null) {
+                log.info("✅ Verified in DB: VehicleID={}, Status={}", savedVehicle.getVehicleID(), savedVehicle.getStatus());
+            } else {
+                log.warn("⚠️ Could not verify vehicle in DB after insert");
+            }
+
+            model.addAttribute("message", "✅ Vehicle created successfully! ID: " + vehicle.getVehicleID() + " (Status: " + vehicle.getStatus() + ")");
             return "redirect:/evm/vehicle/list";
 
         } catch (IllegalArgumentException e) {
