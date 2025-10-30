@@ -767,4 +767,157 @@ public class DAODealerInventory {
     }
 
     // VIN generation moved to utils.VINUtils
+
+    /**
+     * ✅ Lấy danh sách VehicleID AVAILABLE từ Inventory theo VersionID và ColorID
+     * Dùng cho Sale Order creation - lấy xe từ kho dealer thay vì tạo mới
+     * @param dealerID ID của dealer
+     * @param versionID Version của xe
+     * @param colorID Màu của xe
+     * @param limit Số lượng xe cần lấy
+     * @return Danh sách VehicleID available trong inventory
+     */
+    public List<Integer> getAvailableVehicleIdsFromInventory(int dealerID, int versionID, int colorID, int limit) {
+        List<Integer> vehicleIds = new ArrayList<>();
+        if (limit <= 0) {
+            log.warn("Invalid limit {} for getAvailableVehicleIdsFromInventory", limit);
+            return vehicleIds;
+        }
+
+        String sql = """
+            SELECT TOP (?) di.VehicleID
+            FROM DealerInventory di
+            JOIN Vehicle v ON di.VehicleID = v.VehicleID
+            WHERE di.DealerID = ?
+              AND di.Status = 'AVAILABLE'
+              AND v.VersionID = ?
+              AND v.ColorID = ?
+            ORDER BY di.ReceivedDate ASC
+        """;
+
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, limit);
+            ps.setInt(2, dealerID);
+            ps.setInt(3, versionID);
+            ps.setInt(4, colorID);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    vehicleIds.add(rs.getInt("VehicleID"));
+                }
+            }
+
+            log.info("Found {} available vehicles in inventory for dealer={} version={} color={}",
+                     vehicleIds.size(), dealerID, versionID, colorID);
+
+        } catch (SQLException e) {
+            log.error("Error getting available vehicles from inventory dealer={} version={} color={}",
+                      dealerID, versionID, colorID, e);
+        }
+
+        return vehicleIds;
+    }
+
+    /**
+     * ✅ Reserve xe trong inventory (đánh dấu là RESERVED khi tạo Sale Order)
+     * @param vehicleID ID của xe cần reserve
+     * @return true nếu thành công
+     */
+    public boolean reserveVehicle(int vehicleID) {
+        String sql = "UPDATE DealerInventory SET Status = 'RESERVED' WHERE VehicleID = ? AND Status = 'AVAILABLE'";
+
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, vehicleID);
+            int rows = ps.executeUpdate();
+
+            if (rows > 0) {
+                log.info("✅ Reserved vehicle in inventory VehicleID={}", vehicleID);
+                return true;
+            } else {
+                log.warn("⚠️ Failed to reserve vehicle VehicleID={} (may not be AVAILABLE)", vehicleID);
+                return false;
+            }
+        } catch (SQLException e) {
+            log.error("Error reserving vehicle VehicleID={}", vehicleID, e);
+            return false;
+        }
+    }
+
+    /**
+     * ✅ Hoàn trả xe về inventory (đánh dấu lại AVAILABLE khi Sale Order bị CANCEL)
+     * @param vehicleID ID của xe cần hoàn trả
+     * @return true nếu thành công
+     */
+    public boolean returnVehicleToInventory(int vehicleID) {
+        String sql = "UPDATE DealerInventory SET Status = 'AVAILABLE' WHERE VehicleID = ? AND Status IN ('RESERVED', 'SOLD')";
+
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, vehicleID);
+            int rows = ps.executeUpdate();
+
+            if (rows > 0) {
+                log.info("✅ Returned vehicle to inventory VehicleID={}", vehicleID);
+                return true;
+            } else {
+                log.warn("⚠️ Failed to return vehicle VehicleID={} (may not exist in inventory)", vehicleID);
+                return false;
+            }
+        } catch (SQLException e) {
+            log.error("Error returning vehicle to inventory VehicleID={}", vehicleID, e);
+            return false;
+        }
+    }
+
+    /**
+     * ✅ Đánh dấu xe là SOLD trong inventory (khi Sale Order hoàn thành)
+     * @param vehicleID ID của xe
+     * @return true nếu thành công
+     */
+    public boolean markVehicleAsSold(int vehicleID) {
+        String sql = "UPDATE DealerInventory SET Status = 'SOLD' WHERE VehicleID = ?";
+
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, vehicleID);
+            int rows = ps.executeUpdate();
+
+            if (rows > 0) {
+                log.info("✅ Marked vehicle as SOLD VehicleID={}", vehicleID);
+                return true;
+            } else {
+                log.warn("⚠️ Failed to mark vehicle as SOLD VehicleID={}", vehicleID);
+                return false;
+            }
+        } catch (SQLException e) {
+            log.error("Error marking vehicle as SOLD VehicleID={}", vehicleID, e);
+            return false;
+        }
+    }
+
+    /**
+     * ✅ Lấy VIN của xe từ inventory theo VehicleID
+     * @param vehicleID ID của xe
+     * @return VIN hoặc null nếu không tìm thấy
+     */
+    public String getVINByVehicleId(int vehicleID) {
+        String sql = "SELECT VIN FROM DealerInventory WHERE VehicleID = ?";
+
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, vehicleID);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("VIN");
+                }
+            }
+        } catch (SQLException e) {
+            log.error("Error getting VIN for VehicleID={}", vehicleID, e);
+        }
+
+        return null;
+    }
 }

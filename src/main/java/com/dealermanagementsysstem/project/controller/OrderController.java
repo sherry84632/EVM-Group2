@@ -21,6 +21,7 @@ public class OrderController {
     private final DAOSaleOrder dao = new DAOSaleOrder();
     private final DAOPurchaseOrder purchaseOrderDAO = new DAOPurchaseOrder();
     private final DAOPurchaseOrderDetail purchaseOrderDetailDAO = new DAOPurchaseOrderDetail();
+    private final DAODealerInventory inventoryDAO = new DAODealerInventory(); // ✅ Thêm DAO Inventory
 
     // ======================================================
     // 1️⃣  DANH SÁCH TẤT CẢ SALE ORDER
@@ -140,33 +141,35 @@ public class OrderController {
         java.math.BigDecimal computedTotalAmount = java.math.BigDecimal.ZERO;
         DAOVehicle vehicleDAO = new DAOVehicle();
         double baseDiscountPct = quotation.getDiscountPercent()!=null ? quotation.getDiscountPercent() : 0.0; // primitive
+
         if (quotation.getQuotationDetails() != null && !quotation.getQuotationDetails().isEmpty()) {
             for (DTOQuotationDetail qd : quotation.getQuotationDetails()) {
                 int lineQty = qd.getQuantity();
                 Integer versionId = qd.getVersion()!=null? qd.getVersion().getVersionID(): null;
                 Integer colorId = qd.getColor()!=null? qd.getColor().getColorID(): null;
                 List<Integer> vehicleIds = new ArrayList<>();
+
+                // ✅ LẤY XE TỪ INVENTORY THAY VÌ VEHICLE TABLE
                 if (versionId != null && colorId != null) {
-                    vehicleIds = vehicleDAO.findAvailableVehicleIdsByVersionAndColor(versionId, colorId, lineQty);
+                    vehicleIds = inventoryDAO.getAvailableVehicleIdsFromInventory(dealerID, versionId, colorId, lineQty);
+
+                    // Nếu không đủ xe trong inventory
                     if (vehicleIds.size() < lineQty) {
-                        vehicleIds = vehicleDAO.findVehicleIdsByVersionAndColorAllStatuses(versionId, colorId, lineQty);
-                    }
-                }
-                if (vehicleIds.size() < lineQty) {
-                    // Auto-create purchase order for missing vehicles
-                    int shortage = lineQty - vehicleIds.size();
-                    try {
-                        int poId = createPurchaseOrderForShortage(dealerID, staffID, versionId, colorId, shortage);
-                        if (poId > 0) {
-                            ra.addFlashAttribute("message", "⚠️ Không đủ xe trong kho. Hệ thống đã tự động tạo đơn hàng mua #" + poId + " cho " + shortage + " xe còn thiếu. Vui lòng chờ EVM xử lý và thử lại sau.");
-                            ra.addFlashAttribute("statusType", "INFO");
-                        } else {
-                            ra.addFlashAttribute("error", "Không đủ xe (Version="+versionId+", Color="+colorId+") để tạo đơn. Cần " + lineQty + ", chỉ có " + vehicleIds.size() + ". Không thể tạo đơn hàng mua tự động.");
+                        // Auto-create purchase order for missing vehicles
+                        int shortage = lineQty - vehicleIds.size();
+                        try {
+                            int poId = createPurchaseOrderForShortage(dealerID, staffID, versionId, colorId, shortage);
+                            if (poId > 0) {
+                                ra.addFlashAttribute("message", "⚠️ Không đủ xe trong kho. Hệ thống đã tự động tạo đơn hàng mua #" + poId + " cho " + shortage + " xe còn thiếu. Vui lòng chờ EVM xử lý và thử lại sau.");
+                                ra.addFlashAttribute("statusType", "INFO");
+                            } else {
+                                ra.addFlashAttribute("error", "Không đủ xe (Version="+versionId+", Color="+colorId+") trong kho. Cần " + lineQty + ", chỉ có " + vehicleIds.size() + " xe. Không thể tạo đơn hàng mua tự động.");
+                            }
+                        } catch (Exception e) {
+                            ra.addFlashAttribute("error", "Không đủ xe (Version="+versionId+", Color="+colorId+") trong kho. Cần " + lineQty + ", chỉ có " + vehicleIds.size() + " xe. Lỗi tạo đơn hàng mua: " + e.getMessage());
                         }
-                    } catch (Exception e) {
-                        ra.addFlashAttribute("error", "Không đủ xe (Version="+versionId+", Color="+colorId+") để tạo đơn. Cần " + lineQty + ", chỉ có " + vehicleIds.size() + ". Lỗi tạo đơn hàng mua: " + e.getMessage());
+                        return "redirect:/quotation/detail/" + quotationID;
                     }
-                    return "redirect:/quotation/detail/" + quotationID;
                 }
                 // Determine unit net price (after discount). Prefer qd.getFinalNetAfterAll per line, else apply base discount.
                 java.math.BigDecimal unitGross = qd.getUnitPrice()!=null? qd.getUnitPrice(): java.math.BigDecimal.ZERO;
@@ -223,10 +226,20 @@ public class OrderController {
         if (success) {
             // persist delivery info right after insertion
             dao.updateDeliveryInfo(order.getSaleOrderID(), order.getPlannedDeliveryDate(), order.getActualDeliveryDate(), order.getEtaDays());
+
+            // ✅ RESERVE CÁC XE TRONG INVENTORY
+            for (DTOSaleOrderDetail detail : details) {
+                if (detail.getVehicle() != null && detail.getVehicle().getVehicleID() != null) {
+                    boolean reserved = inventoryDAO.reserveVehicle(detail.getVehicle().getVehicleID());
+                    if (!reserved) {
+                        System.err.println("⚠️ Failed to reserve vehicle ID=" + detail.getVehicle().getVehicleID());
+                    }
+                }
+            }
         }
 
         if (success) {
-            model.addAttribute("message", "Tạo đơn hàng thành công!");
+            ra.addFlashAttribute("message", "✅ Tạo đơn hàng thành công! Các xe đã được reserve trong kho.");
             return "redirect:/saleorder";
         } else {
             model.addAttribute("error", "Không thể tạo đơn hàng, vui lòng thử lại.");
@@ -268,25 +281,62 @@ public class OrderController {
             @RequestParam("status") String status,
             RedirectAttributes ra
     ) {
-        boolean success = dao.updateSaleOrderStatus(saleOrderID, String.valueOf(SaleOrderStatus.valueOf(status.toUpperCase())));
-        if (success) {
-            DTOSaleOrder order = dao.getSaleOrderById(saleOrderID);
-            if (order != null) {
-                dao.applyActualDeliveryIfEligible(order);
+        SaleOrderStatus newStatus = SaleOrderStatus.valueOf(status.toUpperCase());
+        DTOSaleOrder order = dao.getSaleOrderById(saleOrderID);
+
+        if (order == null) {
+            ra.addFlashAttribute("error", "Không tìm thấy đơn hàng!");
+            return "redirect:/saleorder";
+        }
+
+        // ✅ XỬ LÝ KHI CANCEL - HOÀN TRẢ XE VỀ INVENTORY
+        if (newStatus == SaleOrderStatus.CANCELLED) {
+            if (order.getDetail() != null) {
+                for (DTOSaleOrderDetail detail : order.getDetail()) {
+                    Integer vehicleId = detail.getVehicle() != null ? detail.getVehicle().getVehicleID() : null;
+                    if (vehicleId != null) {
+                        boolean returned = inventoryDAO.returnVehicleToInventory(vehicleId);
+                        if (returned) {
+                            System.out.println("✅ Returned vehicle ID=" + vehicleId + " to inventory (status=AVAILABLE)");
+                        } else {
+                            System.err.println("⚠️ Failed to return vehicle ID=" + vehicleId + " to inventory");
+                        }
+                    }
+                }
             }
-            if (SaleOrderStatus.valueOf(status.toUpperCase()) == SaleOrderStatus.COMPLETED) {
-                if (order != null && order.getDetail() != null) {
-                    DAODealerInventory inventoryDAO = new DAODealerInventory();
-                    for (DTOSaleOrderDetail detail : order.getDetail()) {
-                        Integer vehicleId = detail.getVehicle().getVehicleID();
+        }
+
+        // ✅ XỬ LÝ KHI COMPLETED - ĐÁNH DẤU XE LÀ SOLD VÀ XÓA KHỎI INVENTORY
+        if (newStatus == SaleOrderStatus.COMPLETED) {
+            if (order.getDetail() != null) {
+                for (DTOSaleOrderDetail detail : order.getDetail()) {
+                    Integer vehicleId = detail.getVehicle() != null ? detail.getVehicle().getVehicleID() : null;
+                    if (vehicleId != null) {
+                        // Đánh dấu SOLD trước khi xóa
+                        inventoryDAO.markVehicleAsSold(vehicleId);
+                        // Sau đó xóa khỏi inventory (xe đã bán)
                         inventoryDAO.removeVehicleByID(vehicleId);
                     }
                 }
             }
-            ra.addFlashAttribute("message", "Cập nhật trạng thái thành công: " + status.toUpperCase());
+        }
+
+        boolean success = dao.updateSaleOrderStatus(saleOrderID, newStatus.toString());
+
+        if (success) {
+            dao.applyActualDeliveryIfEligible(order);
+
+            String message = switch (newStatus) {
+                case CANCELLED -> "❌ Đơn hàng đã bị hủy. Các xe đã được hoàn trả vào kho.";
+                case COMPLETED -> "✅ Đơn hàng đã hoàn thành. Các xe đã được xóa khỏi kho.";
+                default -> "✅ Cập nhật trạng thái thành công: " + status.toUpperCase();
+            };
+
+            ra.addFlashAttribute("message", message);
         } else {
             ra.addFlashAttribute("error", "Không thể cập nhật trạng thái đơn hàng!");
         }
+
         return "redirect:/saleorder/detail/" + saleOrderID;
     }
 

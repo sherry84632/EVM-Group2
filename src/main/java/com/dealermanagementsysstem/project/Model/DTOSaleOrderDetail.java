@@ -30,6 +30,9 @@ public class DTOSaleOrderDetail {
     @Column(name = "Quantity")
     private Integer quantity; // Optional per-line quantity, defaults to 1
 
+    // Transient field - not stored in DB, loaded from DealerInventory
+    private transient String vin;
+
     // === CONSTRUCTORS ===
 
     public DTOSaleOrderDetail() {
@@ -43,6 +46,7 @@ public class DTOSaleOrderDetail {
         this.price = price;
         this.discountPolicy = discountPolicy;
     }
+
 
     // === GETTERS / SETTERS ===
 
@@ -93,5 +97,13 @@ public class DTOSaleOrderDetail {
 
     public void setQuantity(Integer quantity) {
         this.quantity = quantity;
+    }
+
+    public String getVin() {
+        return vin;
+    }
+
+    public void setVin(String vin) {
+        this.vin = vin;
     }
 }

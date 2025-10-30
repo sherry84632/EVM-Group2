@@ -230,17 +230,19 @@ public class DAOSaleOrder {
 
         String sql = """
                     SELECT sod.SODetailID, sod.SaleOrderID, sod.VehicleID, sod.Price, sod.PolicyID,
-                           v.ManufactureYear, v.Status,
+                           v.ManufactureYear, v.Status, v.EngineNumber,
                            vc.ColorID, vc.ColorName,
                            vv.VersionID, vv.VersionName,
                            vm.ModelID, vm.ModelName, vm.BasePrice AS ModelBasePrice,
-                           dp.PolicyID, dp.PolicyName
+                           dp.PolicyID, dp.PolicyName,
+                           di.VIN
                     FROM SaleOrderDetail sod
                     JOIN Vehicle v ON sod.VehicleID = v.VehicleID
                     LEFT JOIN VehicleColor vc ON v.ColorID = vc.ColorID
                     LEFT JOIN VehicleVersion vv ON v.VersionID = vv.VersionID
                     LEFT JOIN VehicleModel vm ON vv.ModelID = vm.ModelID
                     LEFT JOIN DiscountPolicy dp ON sod.PolicyID = dp.PolicyID
+                    LEFT JOIN DealerInventory di ON di.VehicleID = v.VehicleID
                     WHERE sod.SaleOrderID = ?
                 """;
 
@@ -255,6 +257,7 @@ public class DAOSaleOrder {
                 DTOVehicle vehicle = new DTOVehicle();
                 vehicle.setVehicleID(rs.getInt("VehicleID"));
                 vehicle.setManufactureYear(rs.getInt("ManufactureYear"));
+                vehicle.setEngineNumber(rs.getString("EngineNumber"));
                 vehicle.setStatus(VehicleStatus.valueOf(rs.getString("Status")));
 
                 // Color info
@@ -294,6 +297,10 @@ public class DAOSaleOrder {
                 detail.setPrice(rs.getBigDecimal("Price"));
                 detail.setDiscountPolicy(discountPolicy);
 
+                // ✅ Lấy VIN từ DealerInventory
+                String vin = rs.getString("VIN");
+                detail.setVin(vin != null ? vin : "N/A");
+
                 details.add(detail);
             }
 
@@ -310,17 +317,19 @@ public class DAOSaleOrder {
         DTOSaleOrderDetail detail = null;
         String sql = """
                     SELECT sod.SODetailID, sod.SaleOrderID, sod.VehicleID, sod.Price, sod.PolicyID,
-                           v.ManufactureYear, v.Status,
+                           v.ManufactureYear, v.Status, v.EngineNumber,
                            vc.ColorID, vc.ColorName,
                            vv.VersionID, vv.VersionName,
                            vm.ModelID, vm.ModelName, vm.BasePrice AS ModelBasePrice,
-                           dp.PolicyID, dp.PolicyName
+                           dp.PolicyID, dp.PolicyName,
+                           di.VIN
                     FROM SaleOrderDetail sod
                     JOIN Vehicle v ON sod.VehicleID = v.VehicleID
                     LEFT JOIN VehicleColor vc ON v.ColorID = vc.ColorID
                     LEFT JOIN VehicleVersion vv ON v.VersionID = vv.VersionID
                     LEFT JOIN VehicleModel vm ON vv.ModelID = vm.ModelID
                     LEFT JOIN DiscountPolicy dp ON sod.PolicyID = dp.PolicyID
+                    LEFT JOIN DealerInventory di ON di.VehicleID = v.VehicleID
                     WHERE sod.SODetailID = ?
                 """;
 
@@ -333,6 +342,7 @@ public class DAOSaleOrder {
                     DTOVehicle vehicle = new DTOVehicle();
                     vehicle.setVehicleID(rs.getInt("VehicleID"));
                     vehicle.setManufactureYear(rs.getInt("ManufactureYear"));
+                    vehicle.setEngineNumber(rs.getString("EngineNumber"));
                     vehicle.setStatus(VehicleStatus.valueOf(rs.getString("Status")));
 
                     if (rs.getString("ColorName") != null) {
@@ -368,6 +378,10 @@ public class DAOSaleOrder {
                     detail.setVehicle(vehicle);
                     detail.setPrice(rs.getBigDecimal("Price"));
                     detail.setDiscountPolicy(discountPolicy);
+
+                    // ✅ Lấy VIN từ DealerInventory
+                    String vin = rs.getString("VIN");
+                    detail.setVin(vin != null ? vin : "N/A");
                 }
             }
 
