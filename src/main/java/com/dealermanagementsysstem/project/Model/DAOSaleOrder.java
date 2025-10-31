@@ -16,7 +16,7 @@ public class DAOSaleOrder {
     // 1️⃣  TẠO SALE ORDER MỚI
     // ======================================================
     public boolean createSaleOrder(DTOSaleOrder saleOrder) {
-        String sqlOrder = "INSERT INTO SaleOrder (customer_customer_id, dealer_dealer_id, staff_staff_id, CreatedAt, Status, Quantity, TotalAmount, PlannedDeliveryDate, ActualDeliveryDate, EtaDays) VALUES (?, ?, ?, GETDATE(), ?, ?, ?, ?, ?, ?)";
+        String sqlOrder = "INSERT INTO SaleOrder (CustomerID, DealerID, StaffID, CreatedAt, Status, Quantity, TotalAmount, PlannedDeliveryDate, ActualDeliveryDate, EtaDays) VALUES (?, ?, ?, GETDATE(), ?, ?, ?, ?, ?, ?)";
         String sqlDetail = "INSERT INTO SaleOrderDetail (SaleOrderID, VehicleID, Price, PolicyID) VALUES (?, ?, ?, ?)";
         Connection conn = null; PreparedStatement psOrder = null; PreparedStatement psDetail = null; ResultSet rs = null;
         try {
@@ -97,9 +97,9 @@ public class DAOSaleOrder {
                            d.DealerID, d.DealerName, d.Email AS DealerEmail, d.Phone AS DealerPhone, d.Address AS DealerAddress,
                            s.StaffID, s.FullName AS StaffName
                     FROM SaleOrder so
-                    JOIN Customer c ON so.customer_customer_id = c.CustomerID
-                    JOIN Dealer d ON so.dealer_dealer_id = d.DealerID
-                    JOIN DealerStaff s ON so.staff_staff_id = s.StaffID
+                    JOIN Customer c ON so.CustomerID = c.CustomerID
+                    JOIN Dealer d ON so.DealerID = d.DealerID
+                    JOIN DealerStaff s ON so.StaffID = s.StaffID
                     ORDER BY so.SaleOrderID DESC
                 """;
 
@@ -167,9 +167,9 @@ public class DAOSaleOrder {
                            d.DealerID, d.DealerName, d.Email AS DealerEmail, d.Phone AS DealerPhone, d.Address AS DealerAddress,
                            s.StaffID, s.FullName AS StaffName
                     FROM SaleOrder so
-                    JOIN Customer c ON so.customer_customer_id = c.CustomerID
-                    JOIN Dealer d ON so.dealer_dealer_id = d.DealerID
-                    JOIN DealerStaff s ON so.staff_staff_id = s.StaffID
+                    JOIN Customer c ON so.CustomerID = c.CustomerID
+                    JOIN Dealer d ON so.DealerID = d.DealerID
+                    JOIN DealerStaff s ON so.StaffID = s.StaffID
                     WHERE so.SaleOrderID = ?
                 """;
 

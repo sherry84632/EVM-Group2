@@ -265,14 +265,20 @@
 <body>
 <div class="d-flex">
     <div th:replace="~{mainPage/navBarFragment :: navBar}"></div>
+
     <div class="page-wrapper flex-grow-1">
         <!-- Flash messages -->
-        <div class="flash" th:if="${message}"><div class="alert alert-success py-2 px-3" th:text="${message}"></div></div>
-        <div class="flash" th:if="${error}"><div class="alert alert-danger py-2 px-3" th:text="${error}"></div></div>
+        <div class="flash" th:if="${message}">
+            <div class="alert alert-success py-2 px-3" th:text="${message}"></div>
+        </div>
+        <div class="flash" th:if="${error}">
+            <div class="alert alert-danger py-2 px-3" th:text="${error}"></div>
+        </div>
         <!-- Header -->
         <div class="so-header">
             <h1 class="so-title">Sale Order #<span th:text="${order.saleOrderID}">-</span></h1>
-            <div class="badge-status" th:classappend="' st-' + ${order.status.name()}" th:text="${order.status.name()}"></div>
+            <div class="badge-status" th:classappend="' st-' + ${order.status.name()}"
+                 th:text="${order.status.name()}"></div>
         </div>
         <!-- Layout -->
         <div class="layout-columns">
@@ -282,31 +288,61 @@
                 <div class="card-soft">
                     <h5><i class="fa fa-info-circle"></i>Basic Info</h5>
                     <div class="info-grid">
-                        <div class="info-item"><span class="info-label">Dealer Staff ID</span><span class="info-value" th:text="${order.staff.staffID}">-</span></div>
-                        <div class="info-item"><span class="info-label">Dealer ID</span><span class="info-value" th:text="${order.dealer.dealerID}">-</span></div>
-                        <div class="info-item"><span class="info-label">Created At</span><span class="info-value" th:text="${#dates.format(order.createdAt,'dd/MM/yyyy HH:mm')}">-</span></div>
-                        <div class="info-item"><span class="info-label">Total Qty</span><span class="info-value" th:text="${order.totalQuantity}">0</span></div>
-                        <div class="info-item"><span class="info-label">Total Amount</span><span class="info-value" th:text="${#numbers.formatCurrency(order.totalAmount)}">$0.00</span></div>
+                        <div class="info-item"><span class="info-label">Dealer Staff ID</span><span class="info-value"
+                                                                                                    th:text="${order.staff.staffID}">-</span>
+                        </div>
+                        <div class="info-item"><span class="info-label">Dealer ID</span><span class="info-value"
+                                                                                              th:text="${order.dealer.dealerID}">-</span>
+                        </div>
+                        <div class="info-item"><span class="info-label">Created At</span><span class="info-value"
+                                                                                               th:text="${#dates.format(order.createdAt,'dd/MM/yyyy HH:mm')}">-</span>
+                        </div>
+                        <div class="info-item"><span class="info-label">Total Qty</span><span class="info-value"
+                                                                                              th:text="${order.totalQuantity}">0</span>
+                        </div>
+                        <div class="info-item"><span class="info-label">Total Amount</span><span class="info-value"
+                                                                                                 th:text="${#numbers.formatCurrency(order.totalAmount)}">$0.00</span>
+                        </div>
                     </div>
                     <div class="status-actions">
-                        <form th:action="@{/saleorder/updateStatus}" method="post" th:if="${order.status.name()=='CREATED'}">
-                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"><input type="hidden" name="saleOrderID" th:value="${order.saleOrderID}"><input type="hidden" name="status" value="CONTRACT_SIGNED">
+                        <form th:action="@{/saleorder/updateStatus}" method="post"
+                              th:if="${order.status.name()=='CREATED'}">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"><input
+                                type="hidden" name="saleOrderID" th:value="${order.saleOrderID}"><input type="hidden"
+                                                                                                        name="status"
+                                                                                                        value="CONTRACT_SIGNED">
                             <button class="btn btn-outline-primary btn-sm" type="submit">Contract Signed</button>
                         </form>
-                        <form th:action="@{/saleorder/updateStatus}" method="post" th:if="${order.status.name()=='CONTRACT_SIGNED'}">
-                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"><input type="hidden" name="saleOrderID" th:value="${order.saleOrderID}"><input type="hidden" name="status" value="PROCESSING">
+                        <form th:action="@{/saleorder/updateStatus}" method="post"
+                              th:if="${order.status.name()=='CONTRACT_SIGNED'}">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"><input
+                                type="hidden" name="saleOrderID" th:value="${order.saleOrderID}"><input type="hidden"
+                                                                                                        name="status"
+                                                                                                        value="PROCESSING">
                             <button class="btn btn-outline-primary btn-sm" type="submit">Processing</button>
                         </form>
-                        <form th:action="@{/saleorder/updateStatus}" method="post" th:if="${order.status.name()=='PROCESSING'}">
-                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"><input type="hidden" name="saleOrderID" th:value="${order.saleOrderID}"><input type="hidden" name="status" value="SHIPPED">
+                        <form th:action="@{/saleorder/updateStatus}" method="post"
+                              th:if="${order.status.name()=='PROCESSING'}">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"><input
+                                type="hidden" name="saleOrderID" th:value="${order.saleOrderID}"><input type="hidden"
+                                                                                                        name="status"
+                                                                                                        value="SHIPPED">
                             <button class="btn btn-outline-warning btn-sm" type="submit">Shipped</button>
                         </form>
-                        <form th:action="@{/saleorder/updateStatus}" method="post" th:if="${order.status.name()=='SHIPPED'}">
-                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"><input type="hidden" name="saleOrderID" th:value="${order.saleOrderID}"><input type="hidden" name="status" value="COMPLETED">
+                        <form th:action="@{/saleorder/updateStatus}" method="post"
+                              th:if="${order.status.name()=='SHIPPED'}">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"><input
+                                type="hidden" name="saleOrderID" th:value="${order.saleOrderID}"><input type="hidden"
+                                                                                                        name="status"
+                                                                                                        value="COMPLETED">
                             <button class="btn btn-outline-success btn-sm" type="submit">Completed</button>
                         </form>
-                        <form th:action="@{/saleorder/updateStatus}" method="post" th:if="${order.status.name()!='CANCELLED' and order.status.name()!='COMPLETED'}">
-                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"><input type="hidden" name="saleOrderID" th:value="${order.saleOrderID}"><input type="hidden" name="status" value="CANCELLED">
+                        <form th:action="@{/saleorder/updateStatus}" method="post"
+                              th:if="${order.status.name()!='CANCELLED' and order.status.name()!='COMPLETED'}">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"><input
+                                type="hidden" name="saleOrderID" th:value="${order.saleOrderID}"><input type="hidden"
+                                                                                                        name="status"
+                                                                                                        value="CANCELLED">
                             <button class="btn btn-outline-danger btn-sm" type="submit">Cancel</button>
                         </form>
                     </div>
@@ -315,14 +351,22 @@
                 <div class="card-soft">
                     <h5><i class="fa fa-truck"></i>Delivery</h5>
                     <div class="info-grid">
-                        <div class="info-item"><span class="info-label">Planned Date</span><span class="info-value" th:text="${order.plannedDeliveryDate != null ? #dates.format(order.plannedDeliveryDate,'dd/MM/yyyy') : 'N/A'}">-</span></div>
-                        <div class="info-item"><span class="info-label">Actual Date</span><span class="info-value" th:text="${order.actualDeliveryDate != null ? #dates.format(order.actualDeliveryDate,'dd/MM/yyyy HH:mm') : 'Pending'}">-</span></div>
-                        <div class="info-item"><span class="info-label">Days Remaining</span><span class="info-value" th:text="${order.getDaysRemaining()}">0</span></div>
+                        <div class="info-item"><span class="info-label">Planned Date</span><span class="info-value"
+                                                                                                 th:text="${order.plannedDeliveryDate != null ? #dates.format(order.plannedDeliveryDate,'dd/MM/yyyy') : 'N/A'}">-</span>
+                        </div>
+                        <div class="info-item"><span class="info-label">Actual Date</span><span class="info-value"
+                                                                                                th:text="${order.actualDeliveryDate != null ? #dates.format(order.actualDeliveryDate,'dd/MM/yyyy HH:mm') : 'Pending'}">-</span>
+                        </div>
+                        <div class="info-item"><span class="info-label">Days Remaining</span><span class="info-value"
+                                                                                                   th:text="${order.getDaysRemaining()}">0</span>
+                        </div>
                     </div>
                     <form th:action="@{/saleorder/delivery/update}" method="post" class="mt-3 d-flex gap-2 flex-wrap">
-                        <input type="hidden" name="saleOrderID" th:value="${order.saleOrderID}" />
-                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
-                        <input type="date" name="plannedDate" class="form-control form-control-sm" style="max-width:180px" th:value="${order.plannedDeliveryDate != null ? #dates.format(order.plannedDeliveryDate,'yyyy-MM-dd') : ''}" />
+                        <input type="hidden" name="saleOrderID" th:value="${order.saleOrderID}"/>
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                        <input type="date" name="plannedDate" class="form-control form-control-sm"
+                               style="max-width:180px"
+                               th:value="${order.plannedDeliveryDate != null ? #dates.format(order.plannedDeliveryDate,'yyyy-MM-dd') : ''}"/>
                         <button type="submit" class="btn btn-sm btn-outline-primary">Update</button>
                     </form>
                 </div>
@@ -335,17 +379,33 @@
                     <div class="party-dual">
                         <div class="party-box">
                             <h6>Customer</h6>
-                            <div class="party-line"><span class="party-label">Name</span><span class="party-value" th:text="${order.customer?.fullName ?: '-'}">-</span></div>
-                            <div class="party-line"><span class="party-label">Phone</span><span class="party-value" th:text="${order.customer?.phone ?: '-'}">-</span></div>
-                            <div class="party-line"><span class="party-label">Email</span><span class="party-value" th:text="${order.customer?.email ?: '-'}">-</span></div>
-                            <div class="party-line"><span class="party-label">Address</span><span class="party-value" th:text="${order.customer?.address ?: '-'}">-</span></div>
+                            <div class="party-line"><span class="party-label">Name</span><span class="party-value"
+                                                                                               th:text="${order.customer?.fullName ?: '-'}">-</span>
+                            </div>
+                            <div class="party-line"><span class="party-label">Phone</span><span class="party-value"
+                                                                                                th:text="${order.customer?.phone ?: '-'}">-</span>
+                            </div>
+                            <div class="party-line"><span class="party-label">Email</span><span class="party-value"
+                                                                                                th:text="${order.customer?.email ?: '-'}">-</span>
+                            </div>
+                            <div class="party-line"><span class="party-label">Address</span><span class="party-value"
+                                                                                                  th:text="${order.customer?.address ?: '-'}">-</span>
+                            </div>
                         </div>
                         <div class="party-box">
                             <h6>Dealer</h6>
-                            <div class="party-line"><span class="party-label">Name</span><span class="party-value" th:text="${order.dealer?.dealerName ?: '-'}">-</span></div>
-                            <div class="party-line"><span class="party-label">Phone</span><span class="party-value" th:text="${order.dealer?.phone ?: '-'}">-</span></div>
-                            <div class="party-line"><span class="party-label">Email</span><span class="party-value" th:text="${order.dealer?.email ?: '-'}">-</span></div>
-                            <div class="party-line"><span class="party-label">Address</span><span class="party-value" th:text="${order.dealer?.address ?: '-'}">-</span></div>
+                            <div class="party-line"><span class="party-label">Name</span><span class="party-value"
+                                                                                               th:text="${order.dealer?.dealerName ?: '-'}">-</span>
+                            </div>
+                            <div class="party-line"><span class="party-label">Phone</span><span class="party-value"
+                                                                                                th:text="${order.dealer?.phone ?: '-'}">-</span>
+                            </div>
+                            <div class="party-line"><span class="party-label">Email</span><span class="party-value"
+                                                                                                th:text="${order.dealer?.email ?: '-'}">-</span>
+                            </div>
+                            <div class="party-line"><span class="party-label">Address</span><span class="party-value"
+                                                                                                  th:text="${order.dealer?.address ?: '-'}">-</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -354,11 +414,21 @@
                     <h5><i class="fa fa-car"></i>Vehicles</h5>
                     <div th:if="${order.detail != null and !order.detail.isEmpty()}">
                         <table class="table table-hover table-sm mb-3">
-                            <thead><tr><th>#</th><th>VIN</th><th>Model</th><th>Version</th><th>Color</th><th>Unit Price</th></tr></thead>
+                            <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>VIN</th>
+                                <th>Model</th>
+                                <th>Version</th>
+                                <th>Color</th>
+                                <th>Unit Price</th>
+                            </tr>
+                            </thead>
                             <tbody>
                             <tr th:each="d,stat : ${order.detail}">
                                 <td th:text="${stat.index+1}"></td>
-                                <td><span class="badge bg-info text-dark" th:text="${d.vin != null ? d.vin : 'N/A'}">N/A</span></td>
+                                <td><span class="badge bg-info text-dark"
+                                          th:text="${d.vin != null ? d.vin : 'N/A'}">N/A</span></td>
                                 <td th:text="${d.vehicle?.version?.model?.modelName ?: '-'}"></td>
                                 <td th:text="${d.vehicle?.version?.versionName ?: '-'}"></td>
                                 <td th:text="${d.vehicle?.color?.colorName ?: '-'}"></td>
@@ -367,10 +437,15 @@
                             </tbody>
                         </table>
                         <div class="summary-box">
-                            <div class="summary-item"><span>Items</span><span th:text="${order.detail.size()}">0</span></div>
-                            <div class="summary-item"><span>Total Qty</span><span th:text="${order.totalQuantity}">0</span></div>
-                            <div class="summary-item" th:if="${order.quotation != null}"><span>Base Discount</span><span th:text="${order.quotation.discountPercent != null ? order.quotation.discountPercent + '%' : '0%'}">0%</span></div>
-                            <div class="summary-item"><span>Total Amount</span><span th:text="${#numbers.formatCurrency(order.totalAmount)}">$0.00</span></div>
+                            <div class="summary-item"><span>Items</span><span th:text="${order.detail.size()}">0</span>
+                            </div>
+                            <div class="summary-item"><span>Total Qty</span><span
+                                    th:text="${order.totalQuantity}">0</span></div>
+                            <div class="summary-item" th:if="${order.quotation != null}"><span>Base Discount</span><span
+                                    th:text="${order.quotation.discountPercent != null ? order.quotation.discountPercent + '%' : '0%'}">0%</span>
+                            </div>
+                            <div class="summary-item"><span>Total Amount</span><span
+                                    th:text="${#numbers.formatCurrency(order.totalAmount)}">$0.00</span></div>
                         </div>
                     </div>
                     <div th:if="${order.detail == null or order.detail.isEmpty()}">
@@ -378,17 +453,22 @@
                     </div>
                 </div>
                 <!-- Contract Placeholder -->
-                <div class="card-soft" th:if="${order.status.name()=='CONTRACT_SIGNED' or order.status.name()=='PROCESSING' or order.status.name()=='SHIPPED' or order.status.name()=='COMPLETED'}">
+                <div class="card-soft"
+                     th:if="${order.status.name()=='CONTRACT_SIGNED' or order.status.name()=='PROCESSING' or order.status.name()=='SHIPPED' or order.status.name()=='COMPLETED'}">
                     <h5><i class="fa fa-file-signature"></i>Contract</h5>
                     <div th:if="${contract != null}">
-                        <p class="contract-hint mb-2">Hợp đồng đã tạo: <a th:href="@{/contract/detail/{id}(id=${contract.contractID})}" class="fw-semibold">#<span th:text="${contract.contractID}"></span></a></p>
-                        <a th:href="@{/contract/detail/{id}(id=${contract.contractID})}" class="btn btn-sm btn-outline-primary">View Contract</a>
+                        <p class="contract-hint mb-2">Hợp đồng đã tạo: <a
+                                th:href="@{/contract/detail/{id}(id=${contract.contractID})}" class="fw-semibold">#<span
+                                th:text="${contract.contractID}"></span></a></p>
+                        <a th:href="@{/contract/detail/{id}(id=${contract.contractID})}"
+                           class="btn btn-sm btn-outline-primary">View Contract</a>
                     </div>
                     <div th:if="${contract == null}">
-                        <p class="contract-hint" th:if="${order.status.name()!='COMPLETED'}">Bạn có thể tạo hợp đồng từ sale order này.</p>
+                        <p class="contract-hint" th:if="${order.status.name()!='COMPLETED'}">Bạn có thể tạo hợp đồng từ
+                            sale order này.</p>
                         <form th:action="@{/contract/create}" method="post">
-                            <input type="hidden" name="saleOrderID" th:value="${order.saleOrderID}" />
-                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                            <input type="hidden" name="saleOrderID" th:value="${order.saleOrderID}"/>
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
                             <button type="submit" class="btn btn-sm btn-outline-secondary">Create Contract</button>
                         </form>
                     </div>
