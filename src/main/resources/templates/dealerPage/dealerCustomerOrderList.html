@@ -82,7 +82,7 @@
                                         </div>
                                         <div class="info-item">
                                             <span class="info-label">Total:</span>
-                                            <span class="info-value" th:text="${#numbers.formatDecimal(order.totalAmount,0,'COMMA',0,'POINT') + ' VND'}"></span>
+                                            <span class="info-value" th:text="'$' + ${#numbers.formatDecimal(order.totalAmount,0,'COMMA',0,'POINT')}"></span>
                                         </div>
                                     </div>
                                 </div>

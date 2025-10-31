@@ -15,7 +15,7 @@
             <div class="col-md-3"><strong>Sale Order ID:</strong> <span th:text="${so.saleOrderID}">-</span></div>
             <div class="col-md-3"><strong>Date:</strong> <span th:text="${#dates.format(contract.contractDate,'dd/MM/yyyy')}">-</span></div>
             <div class="col-md-3"><strong>Status:</strong> <span th:text="${contract.status}">-</span></div>
-            <div class="col-md-3"><strong>Total Amount:</strong> <span th:text="${#numbers.formatDecimal(contract.totalAmount,0,'COMMA',0,'POINT')+' VND'}">0 VND</span></div>
+            <div class="col-md-3"><strong>Total Amount:</strong> <span th:text="'$' + ${#numbers.formatDecimal(contract.totalAmount,0,'COMMA',0,'POINT')}">$0</span></div>
         </div>
     </div>
     <div class="card p-3 mb-3">
@@ -30,7 +30,7 @@
                     <td th:text="${d.vehicle?.version?.model?.modelName ?: '-'}"></td>
                     <td th:text="${d.vehicle?.version?.versionName ?: '-'}"></td>
                     <td th:text="${d.vehicle?.color?.colorName ?: '-'}"></td>
-                    <td th:text="${#numbers.formatDecimal(d.price,0,'COMMA',0,'POINT')+' VND'}"></td>
+                    <td th:text="'$' + ${#numbers.formatDecimal(d.price,0,'COMMA',0,'POINT')}"></td>
                 </tr>
                 </tbody>
             </table>

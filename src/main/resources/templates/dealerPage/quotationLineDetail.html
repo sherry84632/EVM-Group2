@@ -46,10 +46,10 @@
                     <div class="info-row"><span class="info-label">Quantity:</span><span class="info-value" th:text="${detail.quantity}"></span></div>
                 </div>
                 <div class="col-md-6">
-                    <div class="info-row"><span class="info-label">Unit Price:</span><span class="info-value" th:text="${#numbers.formatDecimal(detail.unitPrice,0,'COMMA',0,'POINT') + ' VND'}"></span></div>
-                    <div class="info-row"><span class="info-label">Subtotal (Gross):</span><span class="info-value" th:text="${#numbers.formatDecimal(gross,0,'COMMA',0,'POINT') + ' VND'}"></span></div>
+                    <div class="info-row"><span class="info-label">Unit Price:</span><span class="info-value" th:text="'$' + ${#numbers.formatDecimal(detail.unitPrice,0,'COMMA',0,'POINT')}"></span></div>
+                    <div class="info-row"><span class="info-label">Subtotal (Gross):</span><span class="info-value" th:text="'$' + ${#numbers.formatDecimal(gross,0,'COMMA',0,'POINT')}"></span></div>
                     <div class="info-row"><span class="info-label">Discount % (Quotation):</span><span class="info-value" th:text="${discountPercent + '%'}"></span></div>
-                    <div class="info-row"><span class="info-label">Net After Discount:</span><span class="info-value fw-semibold" th:text="${#numbers.formatDecimal(net,0,'COMMA',0,'POINT') + ' VND'}"></span></div>
+                    <div class="info-row"><span class="info-label">Net After Discount:</span><span class="info-value fw-semibold" th:text="'$' + ${#numbers.formatDecimal(net,0,'COMMA',0,'POINT')}"></span></div>
                 </div>
             </div>
             <hr>

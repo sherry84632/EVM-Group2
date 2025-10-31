@@ -167,9 +167,9 @@
                                     <th>Model</th>
                                     <th>Version</th>
                                     <th>Color</th>
-                                    <th>Unit Price (VND)</th>
+                                    <th>Unit Price ($)</th>
                                     <th>Quantity</th>
-                                    <th>Subtotal (VND)</th>
+                                    <th>Subtotal ($)</th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -247,11 +247,11 @@
                     <div class="final-total-box">
                         <div class="d-flex justify-content-between mb-2">
                             <span class="fw-bold">Gross Total:</span>
-                            <span th:text="${lineLevelGross != null ? (#numbers.formatDecimal(lineLevelGross, 0, 'COMMA', 0, 'POINT') + ' VND') : 'N/A'}"></span>
+                            <span th:text="${lineLevelGross != null ? ('$' + #numbers.formatDecimal(lineLevelGross, 0, 'COMMA', 0, 'POINT')) : 'N/A'}"></span>
                         </div>
                         <div th:if="${promotionApplied}" class="d-flex justify-content-between mb-2 text-success">
                             <span>After Line Discount (<span th:text="${lineLevelDiscountPercent}"></span>%):</span>
-                            <span th:text="${#numbers.formatDecimal(lineLevelNet, 0, 'COMMA', 0, 'POINT')} + ' VND'"></span>
+                            <span th:text="'$' + ${#numbers.formatDecimal(lineLevelNet, 0, 'COMMA', 0, 'POINT')}"></span>
                         </div>
                         <div th:if="${baseDiscountPercent != null and baseDiscountPercent > 0}" class="d-flex justify-content-between mb-2 text-info">
                             <span>Base Discount (<span th:text="${baseDiscountPercent}"></span>%):</span>
@@ -260,7 +260,7 @@
                         <hr/>
                         <div class="d-flex justify-content-between">
                             <span class="price-highlight">Final Net Total:</span>
-                            <span class="price-highlight" th:text="${#numbers.formatDecimal(finalNetTotal, 0, 'COMMA', 0, 'POINT')} + ' VND'"></span>
+                            <span class="price-highlight" th:text="'$' + ${#numbers.formatDecimal(finalNetTotal, 0, 'COMMA', 0, 'POINT')}"></span>
                         </div>
                         <div th:if="${finalCombinedDiscountPercent != null and finalCombinedDiscountPercent > 0}" class="text-end mt-1">
                             <small class="text-muted">Total Discount: <span th:text="${#numbers.formatDecimal(finalCombinedDiscountPercent, 1, 2)}"></span>%</small>
