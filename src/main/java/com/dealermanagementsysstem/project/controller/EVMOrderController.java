@@ -178,19 +178,38 @@ public class EVMOrderController {
                     DTOPurchaseOrder po = purchaseOrderDAO.getPurchaseOrderById(orderId);
                     if (po != null && po.getOrderDetails() != null && po.getDealer() != null) {
                         DAODealerInventory inventoryDAO = new DAODealerInventory();
+                        int totalDetails = po.getOrderDetails().size();
+                        int successCount = 0;
+
+                        System.out.println("📦 Processing delivery for PO #" + orderId + " with " + totalDetails + " detail(s)");
+
                         for (DTOPurchaseOrderDetail d : po.getOrderDetails()) {
                             int dealerId = po.getDealer().getDealerID();
                             int colorId = d.getColor() != null ? d.getColor().getColorID() : 0;
                             int versionId = d.getVersion() != null ? d.getVersion().getVersionID() : 0;
                             int qty = d.getQuantity();
+
+                            System.out.println("  → Detail: ColorID=" + colorId + " VersionID=" + versionId + " Qty=" + qty);
+
                             if (colorId > 0 && versionId > 0 && qty > 0) {
-                                inventoryDAO.addWhenDeliveryCompleted(orderId, dealerId, colorId, versionId, qty);
+                                boolean added = inventoryDAO.addWhenDeliveryCompleted(orderId, dealerId, colorId, versionId, qty);
+                                if (added) {
+                                    successCount++;
+                                    System.out.println("  ✅ Added " + qty + " vehicle(s) to inventory");
+                                } else {
+                                    System.out.println("  ❌ Failed to add vehicles to inventory");
+                                }
+                            } else {
+                                System.out.println("  ⚠️ Skipped: Invalid ColorID/VersionID/Qty");
                             }
                         }
+
+                        System.out.println("✅ Inventory update complete: " + successCount + "/" + totalDetails + " details processed");
                     }
                 } catch (Exception ex) {
                     // log and continue
-                    System.out.println("Failed to add inventory on delivery completion: " + ex.getMessage());
+                    System.out.println("❌ Failed to add inventory on delivery completion: " + ex.getMessage());
+                    ex.printStackTrace();
                 }
             }
             if(target==DeliveryStatus.CANCELLED){ purchaseOrderDAO.updatePurchaseOrderStatus(orderId, PurchaseOrderStatus.CANCELLED); }

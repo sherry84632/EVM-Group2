@@ -409,25 +409,32 @@ public class DAODealerInventory {
             return false;
         }
 
-        // ✅ Kiểm tra xem đã có xe được tạo cho PO này chưa (tránh tạo trùng)
+        // ✅ Kiểm tra xem đã có xe được tạo cho PO này với ColorID và VersionID cụ thể chưa (tránh tạo trùng)
+        // QUAN TRỌNG: Check theo combination (PO + Color + Version) để hỗ trợ nhiều loại xe trong 1 đơn
         String checkExisting = """
             SELECT COUNT(*) as cnt FROM DealerInventory di
             INNER JOIN Vehicle v ON di.VehicleID = v.VehicleID
             INNER JOIN DeliveryDetail dd ON dd.VehicleID = v.VehicleID
             INNER JOIN Delivery d ON d.DeliveryID = dd.DeliveryID
-            WHERE d.PurchaseOrderID = ?
+            WHERE d.PurchaseOrderID = ? 
+              AND v.ColorID = ? 
+              AND v.VersionID = ?
         """;
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement ps = conn.prepareStatement(checkExisting)) {
             ps.setInt(1, purchaseOrderId);
+            ps.setInt(2, colorID);
+            ps.setInt(3, versionID);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next() && rs.getInt("cnt") > 0) {
-                    log.info("Vehicles already added to inventory for PO {} - skipping duplicate creation", purchaseOrderId);
+                    log.info("Vehicles already added to inventory for PO {} with ColorID={} VersionID={} - skipping duplicate creation",
+                             purchaseOrderId, colorID, versionID);
                     return true; // Already added, không tạo nữa
                 }
             }
         } catch (SQLException e) {
-            log.error("Failed checking existing inventory for PO {}", purchaseOrderId, e);
+            log.error("Failed checking existing inventory for PO {} ColorID={} VersionID={}",
+                      purchaseOrderId, colorID, versionID, e);
             return false;
         }
 
