@@ -40,14 +40,13 @@ public class DealerDiscountPolicyController {
         return "evmPage/evmDiscountPolicyManagement"; // ⚙️ file HTML
     }
 
-    // ✅ Tạo mới Discount Policy
+    //  Tạo mới Discount Policy
     @PostMapping("/create")
     public String createDiscountPolicy(
             @RequestParam("policyName") String policyName,
             @RequestParam("description") String description,
             @RequestParam("hangPercent") double hangPercent,
             @RequestParam("dailyPercent") double dailyPercent,
-            @RequestParam("status") String status,
             @RequestParam("dealerId") int dealerId,
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
@@ -62,20 +61,24 @@ public class DealerDiscountPolicyController {
         dto.setDescription(description);
         dto.setHangPercent(BigDecimal.valueOf(hangPercent));
         dto.setDailyPercent(BigDecimal.valueOf(dailyPercent));
-        dto.setStatus(DiscountPolicyStatus.valueOf(status.toUpperCase()));
+
+        //  Luôn mặc định là ACTIVE
+        dto.setStatus(DiscountPolicyStatus.ACTIVE);
+
         dto.setStartDate(startDate);
         dto.setEndDate(endDate);
 
         boolean success = daoPolicy.createDiscountPolicy(dto);
 
         if (success) {
-            model.addAttribute("message", "✅ Created Discount Policy successfully!");
+            model.addAttribute("message", " Created Discount Policy successfully!");
         } else {
-            model.addAttribute("error", "❌ Failed to create Discount Policy. Check data or Dealer ID!");
+            model.addAttribute("error", " Failed to create Discount Policy. Check data or Dealer ID!");
         }
 
         List<DTODiscountPolicy> policies = daoPolicy.getAllPolicies();
         model.addAttribute("policies", policies);
         return "evmPage/evmDiscountPolicyManagement";
     }
+
 }
