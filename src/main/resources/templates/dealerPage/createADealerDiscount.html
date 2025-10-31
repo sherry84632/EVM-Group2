@@ -13,6 +13,44 @@
           crossorigin="anonymous" referrerpolicy="no-referrer"/>
     <link rel="stylesheet" href="/css/discountManagement.css">
     <link rel="stylesheet" href="/css/discountScrollBox.css">
+    <style>
+        .breadcrumb {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            padding: 12px 20px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .breadcrumb-item {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .breadcrumb-item a {
+            color: #6c757d;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .breadcrumb-item a:hover {
+            color: #007bff;
+        }
+
+        .breadcrumb-item.active {
+            color: #495057;
+            font-weight: 600;
+        }
+
+        .breadcrumb-item + .breadcrumb-item::before {
+            content: "›";
+            color: #adb5bd;
+            font-weight: bold;
+            margin: 0 8px;
+        }
+    </style>
+
 </head>
 
 <body class="bg-gradient2-custom" style="overflow:hidden;">
@@ -26,6 +64,22 @@
     <div th:replace="~{mainPage/navBarFragment :: navBar}"></div>
 
     <div class="mainContentVer">
+        <nav aria-label="breadcrumb" class="mb-4">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a href="/showDealerHomePage" class="d-flex align-items-center">
+                        <i class="fas fa-home me-1"></i>
+                        Home
+                    </a>
+                </li>
+
+                <li class="breadcrumb-item active" aria-current="page">
+                    <i class="fas fa-list me-1"></i>
+                    Create Discount
+                </li>
+            </ol>
+        </nav>
+
 
         <div class="left-column">
 
