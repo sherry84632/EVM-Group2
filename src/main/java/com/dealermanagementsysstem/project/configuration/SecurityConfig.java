@@ -127,8 +127,11 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .csrf(csrf -> csrf
-                .ignoringRequestMatchers("/test", "/health", "/api/test/**", "/evm/vehicle/create") // Allow these endpoints without CSRF
+                // Use cookie-based CSRF token so multiple tabs consistently get the latest token
+                .csrfTokenRepository(org.springframework.security.web.csrf.CookieCsrfTokenRepository.withHttpOnlyFalse())
+                .ignoringRequestMatchers("/test", "/health", "/api/test/**", "/evm/vehicle/create")
             )
+            .addFilterAfter(new com.dealermanagementsysstem.project.configuration.CsrfTokenExposeFilter(), org.springframework.security.web.csrf.CsrfFilter.class)
             .authorizeHttpRequests(authz -> authz
                 // Public endpoints
                 .requestMatchers("/", "/login", "/success", "/test", "/health", "/api/test/**", "/css/**", "/js/**", "/images/**", "/static/**", "/scripts/**").permitAll()
@@ -149,7 +152,7 @@ public class SecurityConfig {
                 .requestMatchers("/evm/vehicle/create", "/evm/vehicle/edit/**", "/evm/vehicle/delete/**").hasAnyRole("ADMIN", "EVM", "EVMSTAFF")
                 
                 // Dealer role endpoints  
-                .requestMatchers("/showDealerHomePage", "/dealerCustomerManagement", "/dealerCustomerList",
+                .requestMatchers("/showDealerHomePage", "/dealerCustomerManagement", "/betterCustomerListFinal",
                                "/dealerCreateANewCustomer", "/dealerCustomerDetail", "/dealerVehiclesInformation",
                                "/getVehicleListToOrder", "/getVehicleListToCreateQuotation",
                                "/customer/**").hasAnyRole("DEALER", "DEALERSTAFF", "ADMIN")
