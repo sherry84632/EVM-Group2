@@ -265,7 +265,7 @@
 <body>
 <div class="d-flex">
     <div th:replace="~{mainPage/navBarFragment :: navBar}"></div>
-    <div class="page-wrapper flex-grow-1">
+    <div class="page-wrapper flex-grow-1" style="overflow-y: auto; overflow-x: hidden; height: 98vh">
         <!-- Flash messages -->
         <div class="flash" th:if="${message}"><div class="alert alert-success py-2 px-3" th:text="${message}"></div></div>
         <div class="flash" th:if="${error}"><div class="alert alert-danger py-2 px-3" th:text="${error}"></div></div>
