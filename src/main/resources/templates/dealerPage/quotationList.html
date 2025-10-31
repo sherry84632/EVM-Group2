@@ -383,8 +383,7 @@
                                     </div>
                                     <div class="col-6">
                                         <strong>Total:</strong><br>
-                                        <span class="price-highlight"
-                                              th:text="${'$' + #numbers.formatDecimal(quotation.totalPrice, 1, 2)}"></span>
+                                        <span class="price-highlight" th:text="'$' + ${#numbers.formatDecimal(quotation.totalPrice, 0, 'COMMA', 0, 'POINT')}"></span>
                                     </div>
                                 </div>
                             </div>
@@ -394,8 +393,7 @@
                             </div>
                             <div class="mb-3">
                                 <strong>Net Total:</strong>
-                                <span class="price-highlight"
-                                      th:text="${'$' + #numbers.formatDecimal(quotation.netTotal,1,2)}">$0.00</span>
+                                <span class="price-highlight" th:text="'$' + ${#numbers.formatDecimal(quotation.netTotal, 0, 'COMMA', 0, 'POINT')}">$0</span>
                             </div>
                             <div class="action-buttons">
                                 <a th:href="@{/quotation/detail/{id}(id=${quotation.quotationID})}"

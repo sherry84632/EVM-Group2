@@ -211,7 +211,7 @@
                         </div>
                     </div>
                     <!-- Line Items -->
-                    <div class="detail-card" th:if="${details != null and !details.empty}">
+                    <div class="detail-card" th:if="${details != null and !details.isEmpty()}">
                         <h5><i class="fas fa-list me-2"></i>Line Items <span th:if="${!quotationLocked}">(Edit then press Update Quotation)</span><span th:if="${quotationLocked}">(Locked)</span></h5>
                         <div class="table-responsive">
                             <table class="table table-striped align-middle">
@@ -220,9 +220,9 @@
                                     <th>Model</th>
                                     <th>Version</th>
                                     <th>Color</th>
-                                    <th>Unit Price (VND)</th>
+                                    <th>Unit Price ($)</th>
                                     <th>Quantity</th>
-                                    <th>Subtotal (VND)</th>
+                                    <th>Subtotal ($)</th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -250,6 +250,76 @@
                         <button type="submit" class="btn btn-primary" th:disabled="${quotationLocked}"><i class="fas fa-save me-1"></i>Update Quotation</button>
                     </div>
                 </form>
+
+                <!-- Apply Dealer Discount Section -->
+                <div class="detail-card" th:if="${activeDiscounts != null and !activeDiscounts.isEmpty()}">
+                    <h5><i class="fas fa-tags me-2"></i>Apply Dealer Discount <span th:if="${quotationLocked}">(Locked)</span></h5>
+                    <div th:if="${appliedDealerDiscount != null}" class="alert alert-info mb-3">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <strong>Applied Promotion:</strong> <span th:text="${appliedDealerDiscount.promotionName}"></span>
+                        (<span th:text="${appliedDealerDiscount.discountPercent}"></span>% for model
+                        <span th:text="${appliedDealerDiscount.vehicleModel?.modelName ?: 'N/A'}"></span>)
+                        <button th:if="${!quotationLocked}" class="btn btn-sm btn-outline-danger float-end"
+                                th:onclick="'window.location.href=\'/quotation/detail/' + ${quotation.quotationID} + '?discountId=0\''">
+                            <i class="fas fa-times me-1"></i>Remove
+                        </button>
+                    </div>
+
+                    <div th:if="${!quotationLocked}" class="promo-select-wrapper border rounded p-3" style="max-height:200px; overflow-y:auto;">
+                        <p class="text-muted mb-2"><small>Select a promotion to apply model-specific discount:</small></p>
+                        <div class="list-group">
+                            <a th:each="disc : ${activeDiscounts}"
+                               th:href="@{/quotation/detail/{id}(id=${quotation.quotationID}, discountId=${disc.adjustmentID})}"
+                               class="list-group-item list-group-item-action"
+                               th:classappend="${appliedDealerDiscount != null and appliedDealerDiscount.adjustmentID == disc.adjustmentID} ? 'active' : ''">
+                                <div class="d-flex w-100 justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-1" th:text="${disc.promotionName}">Promotion Name</h6>
+                                        <small>
+                                            <span class="promo-badge" th:text="${disc.discountPercent + '%'}"></span>
+                                            off for <strong th:text="${disc.vehicleModel?.modelName ?: 'All Models'}"></strong>
+                                        </small>
+                                    </div>
+                                    <small class="text-muted">
+                                        <span th:text="${#temporals.format(disc.startDate, 'dd/MM/yyyy')}"></span> -
+                                        <span th:text="${disc.endDate != null ? #temporals.format(disc.endDate, 'dd/MM/yyyy') : 'No end'}"></span>
+                                    </small>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div th:if="${quotationLocked}" class="alert alert-secondary">
+                        <i class="fas fa-lock me-2"></i>Promotion cannot be changed - quotation is locked.
+                    </div>
+                </div>
+
+                <!-- Price Summary with Applied Discounts -->
+                <div class="detail-card" th:if="${details != null and !details.isEmpty()}">
+                    <h5><i class="fas fa-calculator me-2"></i>Price Summary</h5>
+                    <div class="final-total-box">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="fw-bold">Gross Total:</span>
+                            <span th:text="${lineLevelGross != null ? ('$' + #numbers.formatDecimal(lineLevelGross, 0, 'COMMA', 0, 'POINT')) : 'N/A'}"></span>
+                        </div>
+                        <div th:if="${promotionApplied}" class="d-flex justify-content-between mb-2 text-success">
+                            <span>After Line Discount (<span th:text="${lineLevelDiscountPercent}"></span>%):</span>
+                            <span th:text="'$' + ${#numbers.formatDecimal(lineLevelNet, 0, 'COMMA', 0, 'POINT')}"></span>
+                        </div>
+                        <div th:if="${baseDiscountPercent != null and baseDiscountPercent > 0}" class="d-flex justify-content-between mb-2 text-info">
+                            <span>Base Discount (<span th:text="${baseDiscountPercent}"></span>%):</span>
+                            <span>Applied on top</span>
+                        </div>
+                        <hr/>
+                        <div class="d-flex justify-content-between">
+                            <span class="price-highlight">Final Net Total:</span>
+                            <span class="price-highlight" th:text="'$' + ${#numbers.formatDecimal(finalNetTotal, 0, 'COMMA', 0, 'POINT')}"></span>
+                        </div>
+                        <div th:if="${finalCombinedDiscountPercent != null and finalCombinedDiscountPercent > 0}" class="text-end mt-1">
+                            <small class="text-muted">Total Discount: <span th:text="${#numbers.formatDecimal(finalCombinedDiscountPercent, 1, 2)}"></span>%</small>
+                        </div>
+                    </div>
+                </div>
                 <!-- Actions -->
                 <div class="detail-card">
                     <h5><i class="fas fa-cogs me-2"></i>Actions</h5>
@@ -287,7 +357,7 @@
                         <a th:href="@{/quotation/list}" class="btn btn-outline-secondary">
                             <i class="fas fa-list me-2"></i>Back to List
                         </a>
-                        <a th:if="${quotationLocked}" th:href="@{/quotation/new(vehicleId=${details != null and !details.empty ? details.get(0).version?.model?.modelID : 0})}" class="btn btn-success"><i class="fas fa-plus me-1"></i>New Quotation</a>
+                        <a th:if="${quotationLocked}" th:href="@{/quotation/new(vehicleId=${details != null and !details.isEmpty() ? details.get(0).version?.model?.modelID : 0})}" class="btn btn-success"><i class="fas fa-plus me-1"></i>New Quotation</a>
                     </div>
                 </div>
             </div>

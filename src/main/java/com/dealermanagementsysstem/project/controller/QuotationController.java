@@ -324,9 +324,10 @@ public class QuotationController {
                 double lineFinal = lineAfterLine * (1 - baseDiscountPct/100.0);
                 d.setFinalNetAfterAll(java.math.BigDecimal.valueOf(lineFinal));
             }
+            // Always set gross and net for display
+            model.addAttribute("lineLevelGross", grossAll);
+            model.addAttribute("lineLevelNet", afterLine);
             if (promotionAppliedFlag) {
-                model.addAttribute("lineLevelGross", grossAll);
-                model.addAttribute("lineLevelNet", afterLine);
                 model.addAttribute("lineLevelDiscountPercent", appliedLineDiscountPercent);
             }
             model.addAttribute("promotionApplied", promotionAppliedFlag);

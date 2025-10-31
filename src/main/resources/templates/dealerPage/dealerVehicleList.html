@@ -81,12 +81,20 @@
                             <input type="number" min="1" value="1" class="form-control form-control-sm per-vehicle-qty" th:data-vid="${vehicle.vehicleID}" />
                         </div>
                         <div class="vehicle-image-container">
-                            <img th:if="${vehicle.version != null and vehicle.version.model != null and vehicle.version.model.modelID != null}"
-                                 th:src="@{/evm/vehicle/modelImage/{modelId}(modelId=${vehicle.version.model.modelID})}"
-                                 alt="Model Image"
-                                 class="vehicle-image-bbg"
-                                 onload="this.nextElementSibling?.style.display='none';"
-                                 onerror="this.style.display='none'; this.nextElementSibling?.style.display='block';"/>
+                            <a th:if="${vehicle.vehicleID != null}"
+                               th:href="@{/evm/vehicle/detail/{id}(id=${vehicle.vehicleID})}"
+                               target="_blank"
+                               style="display: block; cursor: pointer;">
+                                <img th:if="${vehicle.version != null and vehicle.version.model != null and vehicle.version.model.modelID != null}"
+                                     th:src="@{/evm/vehicle/modelImage/{modelId}(modelId=${vehicle.version.model.modelID})}"
+                                     alt="Model Image"
+                                     class="vehicle-image-bbg"
+                                     style="cursor: pointer; transition: transform 0.3s ease;"
+                                     onmouseover="this.style.transform='scale(1.05)'"
+                                     onmouseout="this.style.transform='scale(1)'"
+                                     onload="this.nextElementSibling?.style.display='none';"
+                                     onerror="this.style.display='none'; this.nextElementSibling?.style.display='block';"/>
+                            </a>
                         </div>
                     </div>
                 </div>

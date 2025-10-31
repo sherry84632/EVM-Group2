@@ -17,7 +17,7 @@
         <td th:text="${c.saleOrder?.saleOrderID}"></td>
         <td th:text="${#dates.format(c.contractDate,'dd/MM/yyyy')}"></td>
         <td th:text="${c.status}"></td>
-        <td th:text="${#numbers.formatDecimal(c.totalAmount,0,'COMMA',0,'POINT') + ' VND'}"></td>
+        <td th:text="'$' + ${#numbers.formatDecimal(c.totalAmount,0,'COMMA',0,'POINT')}"></td>
         <td><a th:href="@{/contract/detail/{id}(id=${c.contractID})}" class="btn btn-sm btn-outline-primary">View</a></td>
     </tr>
     </tbody>
