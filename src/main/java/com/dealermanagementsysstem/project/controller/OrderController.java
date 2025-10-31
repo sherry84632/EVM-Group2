@@ -142,6 +142,9 @@ public class OrderController {
         DAOVehicle vehicleDAO = new DAOVehicle();
         double baseDiscountPct = quotation.getDiscountPercent()!=null ? quotation.getDiscountPercent() : 0.0; // primitive
 
+        // 🔹 Track shortages để tạo 1 PO duy nhất cho tất cả xe thiếu
+        List<ShortageInfo> shortages = new ArrayList<>();
+
         if (quotation.getQuotationDetails() != null && !quotation.getQuotationDetails().isEmpty()) {
             for (DTOQuotationDetail qd : quotation.getQuotationDetails()) {
                 int lineQty = qd.getQuantity();
@@ -153,22 +156,13 @@ public class OrderController {
                 if (versionId != null && colorId != null) {
                     vehicleIds = inventoryDAO.getAvailableVehicleIdsFromInventory(dealerID, versionId, colorId, lineQty);
 
-                    // Nếu không đủ xe trong inventory
+                    // Nếu không đủ xe trong inventory - GHI NHẬN SHORTAGE
                     if (vehicleIds.size() < lineQty) {
-                        // Auto-create purchase order for missing vehicles
                         int shortage = lineQty - vehicleIds.size();
-                        try {
-                            int poId = createPurchaseOrderForShortage(dealerID, staffID, versionId, colorId, shortage);
-                            if (poId > 0) {
-                                ra.addFlashAttribute("message", "⚠️ Không đủ xe trong kho. Hệ thống đã tự động tạo đơn hàng mua #" + poId + " cho " + shortage + " xe còn thiếu. Vui lòng chờ EVM xử lý và thử lại sau.");
-                                ra.addFlashAttribute("statusType", "INFO");
-                            } else {
-                                ra.addFlashAttribute("error", "Không đủ xe (Version="+versionId+", Color="+colorId+") trong kho. Cần " + lineQty + ", chỉ có " + vehicleIds.size() + " xe. Không thể tạo đơn hàng mua tự động.");
-                            }
-                        } catch (Exception e) {
-                            ra.addFlashAttribute("error", "Không đủ xe (Version="+versionId+", Color="+colorId+") trong kho. Cần " + lineQty + ", chỉ có " + vehicleIds.size() + " xe. Lỗi tạo đơn hàng mua: " + e.getMessage());
-                        }
-                        return "redirect:/quotation/detail/" + quotationID;
+                        shortages.add(new ShortageInfo(versionId, colorId, shortage,
+                                      qd.getVersion()!=null ? qd.getVersion().getVersionName() : "N/A",
+                                      qd.getColor()!=null ? qd.getColor().getColorName() : "N/A"));
+                        continue; // Skip detail này, không tạo SaleOrderDetail
                     }
                 }
                 // Determine unit net price (after discount). Prefer qd.getFinalNetAfterAll per line, else apply base discount.
@@ -214,6 +208,29 @@ public class OrderController {
             }
             for (int i=0;i<qtyFallback;i++){ details.add(sod); computedTotalQty += 1; computedTotalAmount = computedTotalAmount.add(sod.getPrice()); }
         }
+
+        // 🔹 XỬ LÝ SHORTAGES - Tạo 1 PurchaseOrder duy nhất cho tất cả xe thiếu
+        if (!shortages.isEmpty()) {
+            try {
+                int poId = createPurchaseOrderForMultipleShortages(dealerID, staffID, shortages);
+                if (poId > 0) {
+                    StringBuilder msg = new StringBuilder("⚠️ Không đủ xe trong kho. Hệ thống đã tự động tạo đơn hàng mua #" + poId + " cho:\n");
+                    for (ShortageInfo s : shortages) {
+                        msg.append("  • ").append(s.qty).append(" xe ")
+                           .append(s.versionName).append(" (").append(s.colorName).append(")\n");
+                    }
+                    msg.append("Vui lòng chờ EVM xử lý và thử lại sau.");
+                    ra.addFlashAttribute("message", msg.toString());
+                    ra.addFlashAttribute("statusType", "INFO");
+                } else {
+                    ra.addFlashAttribute("error", "Không đủ xe trong kho và không thể tạo đơn hàng mua tự động.");
+                }
+            } catch (Exception e) {
+                ra.addFlashAttribute("error", "Không đủ xe trong kho. Lỗi tạo đơn hàng mua: " + e.getMessage());
+            }
+            return "redirect:/quotation/detail/" + quotationID;
+        }
+
         order.setTotalQuantity(computedTotalQty);
         order.setTotalAmount(computedTotalAmount);
         order.setDetail(details);
@@ -340,8 +357,78 @@ public class OrderController {
     }
 
     // ======================================================
-    // 🔧 HELPER: Tạo Purchase Order cho xe thiếu
+    // 🔧 HELPER: Tạo Purchase Order cho NHIỀU loại xe thiếu (1 PO với nhiều details)
     // ======================================================
+    private int createPurchaseOrderForMultipleShortages(int dealerID, int staffID, List<ShortageInfo> shortages) {
+        try {
+            if (shortages == null || shortages.isEmpty()) {
+                return -1;
+            }
+
+            // Calculate total amount for all shortages
+            java.math.BigDecimal totalAmount = java.math.BigDecimal.ZERO;
+            for (ShortageInfo shortage : shortages) {
+                java.math.BigDecimal unitPrice = purchaseOrderDetailDAO.computeUnitPrice(shortage.versionId, dealerID);
+                if (unitPrice == null) unitPrice = java.math.BigDecimal.ZERO;
+                totalAmount = totalAmount.add(unitPrice.multiply(java.math.BigDecimal.valueOf(shortage.qty)));
+            }
+
+            // Create purchase order
+            DTOPurchaseOrder order = new DTOPurchaseOrder();
+            DTODealer dealer = new DTODealer();
+            dealer.setDealerID(dealerID);
+            order.setDealer(dealer);
+
+            DTODealerStaff staff = new DTODealerStaff();
+            staff.setStaffID(staffID);
+            order.setStaff(staff);
+
+            order.setStatus(PurchaseOrderStatus.REQUESTED);
+            order.setCreatedAt(new java.sql.Timestamp(System.currentTimeMillis()));
+            order.setTotalAmount(totalAmount);
+            order.setEvmID(1);
+
+            // Insert purchase order and get ID
+            int poId = purchaseOrderDAO.insertPurchaseOrder(order);
+            if (poId <= 0) {
+                System.err.println("❌ Failed to create purchase order for shortages");
+                return -1;
+            }
+
+            // Insert ALL details
+            int successCount = 0;
+            for (ShortageInfo shortage : shortages) {
+                java.math.BigDecimal unitPrice = purchaseOrderDetailDAO.computeUnitPrice(shortage.versionId, dealerID);
+                if (unitPrice == null) unitPrice = java.math.BigDecimal.ZERO;
+
+                boolean detailSuccess = purchaseOrderDetailDAO.insertOrderDetail(
+                    poId, shortage.colorId, shortage.versionId, shortage.qty, unitPrice
+                );
+
+                if (detailSuccess) {
+                    successCount++;
+                    System.out.println("  ✅ Added detail: " + shortage.qty + " xe " +
+                                     shortage.versionName + " (" + shortage.colorName + ")");
+                } else {
+                    System.err.println("  ❌ Failed to add detail for version=" + shortage.versionId);
+                }
+            }
+
+            System.out.println("✅ Auto-created Purchase Order #" + poId + " with " +
+                             successCount + "/" + shortages.size() + " details");
+            return poId;
+
+        } catch (Exception e) {
+            System.err.println("❌ Error creating purchase order for multiple shortages: " + e.getMessage());
+            e.printStackTrace();
+            return -1;
+        }
+    }
+
+    // ======================================================
+    // 🔧 HELPER: Tạo Purchase Order cho xe thiếu (DEPRECATED - dùng createPurchaseOrderForMultipleShortages)
+    // ======================================================
+    @Deprecated
     private int createPurchaseOrderForShortage(int dealerID, int staffID, int versionId, int colorId, int shortageQty) {
         try {
             // Get model ID from version
@@ -433,4 +520,22 @@ public class OrderController {
         return "redirect:/saleorder/detail/"+saleOrderID;
     }
 
+    // ======================================================
+    // 📦 HELPER CLASS: Thông tin về xe thiếu
+    // ======================================================
+    private static class ShortageInfo {
+        int versionId;
+        int colorId;
+        int qty;
+        String versionName;
+        String colorName;
+
+        ShortageInfo(int versionId, int colorId, int qty, String versionName, String colorName) {
+            this.versionId = versionId;
+            this.colorId = colorId;
+            this.qty = qty;
+            this.versionName = versionName;
+            this.colorName = colorName;
+        }
+    }
 }
