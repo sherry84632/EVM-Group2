@@ -102,7 +102,7 @@
         }
     </style>
 </head>
-<body class="bg-light" th:classappend="${promotionApplied} ? 'promotion-active' : ''">
+<body style="overflow: hidden" class="bg-light" th:classappend="${promotionApplied} ? 'promotion-active' : ''">
 <div class="d-flex">
     <div th:replace="~{mainPage/navBarFragment :: navBar}"></div>
     <div class="mainContent flex-grow-1 p-3" style="overflow: hidden">
@@ -124,7 +124,7 @@
             </ol>
         </nav>
 
-        <div style="overflow-y: auto; overflow-x: hidden; height: 95vh;">
+        <div style="overflow-y: auto; overflow-x: hidden; height: 90vh;">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2><i class="fas fa-file-invoice-dollar me-2"></i>Quotation Details</h2>
                 <a href="/quotation/list" class="btn btn-outline-secondary">

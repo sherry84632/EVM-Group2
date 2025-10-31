@@ -131,7 +131,6 @@ public class SecurityConfig {
                 .csrfTokenRepository(org.springframework.security.web.csrf.CookieCsrfTokenRepository.withHttpOnlyFalse())
                 .ignoringRequestMatchers("/test", "/health", "/api/test/**", "/evm/vehicle/create")
             )
-            .addFilterAfter(new com.dealermanagementsysstem.project.configuration.CsrfTokenExposeFilter(), org.springframework.security.web.csrf.CsrfFilter.class)
             .authorizeHttpRequests(authz -> authz
                 // Public endpoints
                 .requestMatchers("/", "/login", "/success", "/test", "/health", "/api/test/**", "/css/**", "/js/**", "/images/**", "/static/**", "/scripts/**").permitAll()
