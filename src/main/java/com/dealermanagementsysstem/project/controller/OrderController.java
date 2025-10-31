@@ -306,16 +306,15 @@ public class OrderController {
             }
         }
 
-        // ✅ XỬ LÝ KHI COMPLETED - ĐÁNH DẤU XE LÀ SOLD VÀ XÓA KHỎI INVENTORY
+        // ✅ XỬ LÝ KHI COMPLETED - CHỈ ĐÁNH DẤU XE LÀ SOLD (KHÔNG XÓA ĐỂ GIỮ VIN)
         if (newStatus == SaleOrderStatus.COMPLETED) {
             if (order.getDetail() != null) {
                 for (DTOSaleOrderDetail detail : order.getDetail()) {
                     Integer vehicleId = detail.getVehicle() != null ? detail.getVehicle().getVehicleID() : null;
                     if (vehicleId != null) {
-                        // Đánh dấu SOLD trước khi xóa
+                        // CHỈ đánh dấu SOLD, KHÔNG xóa khỏi inventory để giữ VIN cho sale order detail
                         inventoryDAO.markVehicleAsSold(vehicleId);
-                        // Sau đó xóa khỏi inventory (xe đã bán)
-                        inventoryDAO.removeVehicleByID(vehicleId);
+                        // NOTE: Không gọi removeVehicleByID() vì sẽ mất VIN trong sale order detail
                     }
                 }
             }
@@ -328,7 +327,7 @@ public class OrderController {
 
             String message = switch (newStatus) {
                 case CANCELLED -> "❌ Đơn hàng đã bị hủy. Các xe đã được hoàn trả vào kho.";
-                case COMPLETED -> "✅ Đơn hàng đã hoàn thành. Các xe đã được xóa khỏi kho.";
+                case COMPLETED -> "✅ Đơn hàng đã hoàn thành. Các xe đã được đánh dấu là SOLD.";
                 default -> "✅ Cập nhật trạng thái thành công: " + status.toUpperCase();
             };
 
