@@ -29,6 +29,7 @@ public class DealerPriceAdjustmentController {
     @GetMapping
     public String showDiscountManagementPage(
             @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "vehicleSearch", required = false) String vehicleSearch,
             Model model
     ) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -40,6 +41,7 @@ public class DealerPriceAdjustmentController {
             return "dealerPage/createADealerDiscount";
         }
 
+        // Lấy danh sách discount
         List<DTODealerPriceAdjustment> discounts;
         if (keyword != null && !keyword.trim().isEmpty()) {
             discounts = daoDiscount.searchByPromotionNameAndDealer(keyword, dealerID);
@@ -48,10 +50,16 @@ public class DealerPriceAdjustmentController {
             discounts = daoDiscount.getDiscountsByDealer(dealerID);
         }
 
-        // Add vehicle models to the model for dropdown
+        // Lấy danh sách mẫu xe để chọn
         List<DTOVehicleModel> vehicleModels = daoVehicleModel.getAllModels();
-        model.addAttribute("vehicleModels", vehicleModels);
+        if (vehicleSearch != null && !vehicleSearch.trim().isEmpty()) {
+            vehicleModels = vehicleModels.stream()
+                .filter(v -> v.getModelName().toLowerCase().contains(vehicleSearch.toLowerCase()))
+                .toList();
+            model.addAttribute("vehicleSearch", vehicleSearch);
+        }
 
+        model.addAttribute("vehicleModels", vehicleModels);
         model.addAttribute("discounts", discounts);
         model.addAttribute("discount", new DTODealerPriceAdjustment());
         return "dealerPage/createADealerDiscount";
@@ -106,8 +114,9 @@ public class DealerPriceAdjustmentController {
 
         // ✅ Load lại danh sách discount của dealer đó
         List<DTODealerPriceAdjustment> discounts = daoDiscount.getDiscountsByDealer(dealerID);
+        List<DTOVehicleModel> vehicleModels = daoVehicleModel.getAllModels();
         model.addAttribute("discounts", discounts);
-        model.addAttribute("discount", new DTODealerPriceAdjustment());
+        model.addAttribute("vehicleModels", vehicleModels);
         return "dealerPage/createADealerDiscount";
     }
 }

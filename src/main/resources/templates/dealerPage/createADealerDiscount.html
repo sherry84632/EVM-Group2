@@ -13,67 +13,8 @@
           crossorigin="anonymous" referrerpolicy="no-referrer"/>
     <link rel="stylesheet" href="/css/discountManagement.css">
     <link rel="stylesheet" href="/css/discountScrollBox.css">
-    <style>
-        .breadcrumb {
-            background: rgba(255, 255, 255, 0.9);
-            border-radius: 12px;
-            padding: 12px 20px;
-            margin-bottom: 24px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-            border: 1px solid rgba(0, 0, 0, 0.05);
-        }
-
-        .breadcrumb-item {
-            font-size: 14px;
-            font-weight: 500;
-        }
-
-        .breadcrumb-item a {
-            color: #6c757d;
-            text-decoration: none;
-            transition: color 0.2s ease;
-        }
-
-        .breadcrumb-item a:hover {
-            color: #007bff;
-        }
-
-        .breadcrumb-item.active {
-            color: #495057;
-            font-weight: 600;
-        }
-
-        .breadcrumb-item + .breadcrumb-item::before {
-            content: "›";
-            color: #adb5bd;
-            font-weight: bold;
-            margin: 0 8px;
-        }
-
-        /* Styles for the vehicle model dropdown */
-        .form-select {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            font-size: 1rem;
-            line-height: 1.5;
-            color: #495057;
-            background-color: #fff;
-            border: 1px solid #ced4da;
-            border-radius: 0.375rem;
-            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-        }
-
-        .form-select:focus {
-            border-color: #80bdff;
-            outline: 0;
-            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-        }
-
-        .form-select option {
-            padding: 0.5rem;
-        }
-    </style>
-
+    <link rel="stylesheet" href="/css/vehicleListBox.css">
+    <link rel="stylesheet" href="/css/breadScrumbNav.css">
 </head>
 
 <body class="bg-gradient2-custom" style="overflow:hidden;">
@@ -95,7 +36,6 @@
                         Home
                     </a>
                 </li>
-
                 <li class="breadcrumb-item active" aria-current="page">
                     <i class="fas fa-list me-1"></i>
                     Create Discount
@@ -103,13 +43,14 @@
             </ol>
         </nav>
 
-
-        <div class="left-column">
-
+        <div class="d-flex flex-column">
+            <!-- Form Section -->
             <div class="form-wrapper">
                 <h1>Create Discount</h1>
                 <form id="promotionForm" action="/discount/insert" method="post">
                     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                    <input type="hidden" id="selectedModelId" name="modelID" required>
+
                     <div class="form-group">
                         <label for="promoName">Promotion Name</label>
                         <input type="text" id="promoName" name="promotionName" placeholder="Enter promotion name" required>
@@ -131,17 +72,6 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="modelID">Apply for model:</label>
-                        <select id="modelID" name="modelID" required class="form-select">
-                            <option value="">Select a vehicle model</option>
-                            <option th:each="model : ${vehicleModels}"
-                                    th:value="${model.modelID}"
-                                    th:text="${model.modelName}">
-                            </option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
                         <label for="note">Note</label>
                         <textarea id="note" name="notes" placeholder="Enter any additional notes..."></textarea>
                     </div>
@@ -150,30 +80,52 @@
                 </form>
             </div>
 
-        </div>
+            <!-- Vehicle List Section -->
+            <div class="vehicle-list-box">
+                <h1>Select Vehicle Model</h1>
+                <div class="vehicle-search">
+                    <form action="/discount" method="get" class="mb-3">
+                        <div class="input-group">
+                            <input type="text"
+                                   name="vehicleSearch"
+                                   class="form-control"
+                                   placeholder="Search vehicles..."
+                                   th:value="${vehicleSearch}">
+                            <button class="btn btn-primary" type="submit">Search</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="scroll-box-vehicle">
+                    <div class="vehicle-grid">
+                        <div th:each="vehicle : ${vehicleModels}" class="vehicle-card"
+                             th:data-model-id="${vehicle.modelID}"
+                             th:data-model-name="${vehicle.modelName}"
+                             onclick="selectVehicle(this)">
+                            <div class="vehicle-name" th:text="${vehicle.modelName}">Vehicle Name</div>
+                            <div class="vehicle-info">
+                                Model ID: <span th:text="${vehicle.modelID}"></span>
+                            </div>
+                            <input type="radio" name="vehicleSelection" th:value="${vehicle.modelID}" class="select-checkbox">
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-        <div class="right-column">
-
+            <!-- Discount List Section -->
             <div class="discount-list-box">
-
                 <h1>Discount Management</h1>
-
                 <form id="searchDiscountForm" action="/discount">
                     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
                     <div class="form-group">
                         <label for="searchKeyword">Search by promotion name:</label>
                         <input type="text" id="searchKeyword" name="keyword" placeholder="Enter promotion name" required th:value="${keyword}">
                     </div>
-
                     <button type="submit" class="submit-btn">Search</button>
                 </form>
 
                 <h1>Discount List</h1>
-
                 <div class="scroll-box-discount">
                     <div class="discount-grid">
-
-                        <!-- Discount Card Template - Copy and paste this block for each discount -->
                         <div th:each="discount : ${discounts}">
                             <a href="/dealerShowDiscountDetailTest" style="text-decoration: none;">
                                 <div class="discount-card">
@@ -197,20 +149,47 @@
                                 </div>
                             </a>
                         </div>
-
                     </div>
                 </div>
-
             </div>
-
         </div>
-
     </div>
-
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="/scripts/navBarMenuProject.js"></script>
+<script>
+function selectVehicle(card) {
+    // Get data from attributes
+    const modelId = card.dataset.modelId;
+
+    // Update hidden input
+    document.getElementById('selectedModelId').value = modelId;
+
+    // Remove selected class from all cards
+    document.querySelectorAll('.vehicle-card').forEach(c => {
+        c.classList.remove('selected');
+    });
+
+    // Add selected class to clicked card
+    card.classList.add('selected');
+
+    // Check the radio button
+    card.querySelector('input[type="radio"]').checked = true;
+}
+
+// Set minimum date for date inputs to today
+window.addEventListener('load', function() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('startDate').min = today;
+    document.getElementById('endDate').min = today;
+});
+
+// Validate end date is after start date
+document.getElementById('startDate').addEventListener('change', function() {
+    document.getElementById('endDate').min = this.value;
+});
+</script>
 
 </body>
 
