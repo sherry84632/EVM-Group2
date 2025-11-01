@@ -1,9 +1,6 @@
 package com.dealermanagementsysstem.project.controller;
 
-import com.dealermanagementsysstem.project.Model.DAODealer;
-import com.dealermanagementsysstem.project.Model.DAODiscountPolicy;
-import com.dealermanagementsysstem.project.Model.DTODiscountPolicy;
-import com.dealermanagementsysstem.project.Model.DiscountPolicyStatus;
+import com.dealermanagementsysstem.project.Model.*;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -19,6 +16,7 @@ import java.util.List;
 public class DealerDiscountPolicyController {
 
     private final DAODiscountPolicy daoPolicy = new DAODiscountPolicy();
+    private final DAODealer daoDealer = new DAODealer();
 
     // ✅ Trang hiển thị list + search + form
     @GetMapping
@@ -34,6 +32,10 @@ public class DealerDiscountPolicyController {
         } else {
             policies = daoPolicy.getAllPolicies();
         }
+
+        // Add dealer list for dropdown
+        List<DTODealer> dealers = daoDealer.getAllDealers();
+        model.addAttribute("dealers", dealers);
 
         model.addAttribute("policies", policies);
         model.addAttribute("newPolicy", new DTODiscountPolicy());
