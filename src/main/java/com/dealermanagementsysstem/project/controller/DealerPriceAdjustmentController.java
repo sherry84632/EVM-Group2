@@ -1,10 +1,6 @@
 package com.dealermanagementsysstem.project.controller;
 
-import com.dealermanagementsysstem.project.Model.DAODealerPriceAdjustment;
-import com.dealermanagementsysstem.project.Model.DAOAccount;
-import com.dealermanagementsysstem.project.Model.DTODealerPriceAdjustment;
-import com.dealermanagementsysstem.project.Model.DTODealer;
-import com.dealermanagementsysstem.project.Model.DTOVehicleModel;
+import com.dealermanagementsysstem.project.Model.*;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -21,10 +17,12 @@ public class DealerPriceAdjustmentController {
 
     private final DAODealerPriceAdjustment daoDiscount;
     private final DAOAccount daoAccount;
+    private final DAOVehicleModel daoVehicleModel;
 
     public DealerPriceAdjustmentController() {
         this.daoDiscount = new DAODealerPriceAdjustment();
         this.daoAccount = new DAOAccount();
+        this.daoVehicleModel = new DAOVehicleModel();
     }
 
     // ✅ Trang quản lý Discount (list + form + search)
@@ -47,9 +45,12 @@ public class DealerPriceAdjustmentController {
             discounts = daoDiscount.searchByPromotionNameAndDealer(keyword, dealerID);
             model.addAttribute("keyword", keyword);
         } else {
-            System.out.println(daoAccount.getDealerIdByEmail(email));
             discounts = daoDiscount.getDiscountsByDealer(dealerID);
         }
+
+        // Add vehicle models to the model for dropdown
+        List<DTOVehicleModel> vehicleModels = daoVehicleModel.getAllModels();
+        model.addAttribute("vehicleModels", vehicleModels);
 
         model.addAttribute("discounts", discounts);
         model.addAttribute("discount", new DTODealerPriceAdjustment());
