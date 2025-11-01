@@ -33,11 +33,6 @@
             transition: all 0.3s ease;
         }
 
-        .form-wrapper:hover, .vehicle-list-box:hover, .discount-list-box:hover {
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12);
-            transform: translateY(-2px);
-        }
-
         .form-wrapper h1, .vehicle-list-box h1, .discount-list-box h1 {
             font-size: 1.5rem;
             font-weight: 700;
@@ -319,12 +314,12 @@
 
                             <button type="submit" class="submit-btn">Create</button>
                         </form>
+
                     </div>
                 </div>
-            </div>
 
-            <div class="right-column">
                 <div class="discount-list-box">
+
                     <h1>Select Vehicle Model</h1>
                     <div class="vehicle-search">
                         <form action="/discount" method="get" class="mb-3">
@@ -360,45 +355,50 @@
                             </div>
                         </div>
                     </div>
+
                 </div>
+
             </div>
 
-            <div class="discount-list-box">
-                <h1>Discount Management</h1>
-                <form id="searchDiscountForm" action="/discount">
-                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                    <div class="form-group">
-                        <label for="searchKeyword">Search by promotion name:</label>
-                        <input type="text" id="searchKeyword" name="keyword" placeholder="Enter promotion name" required th:value="${keyword}">
-                    </div>
-                    <button type="submit" class="submit-btn">Search</button>
-                </form>
+            <div class="right-column">
 
-                <h1>Discount List</h1>
-                <div class="scroll-box-discount">
-                    <div class="discount-grid">
-                        <div th:each="discount : ${discounts}">
-                            <a href="/dealerShowDiscountDetailTest" style="text-decoration: none;">
-                                <div class="discount-card">
-                                    <div class="discount-name">
-                                        <span th:text="${discount.promotionName}"></span>
+                <div class="discount-list-box">
+                    <h1>Discount Management</h1>
+                    <form id="searchDiscountForm" action="/discount">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                        <div class="form-group">
+                            <label for="searchKeyword">Search by promotion name:</label>
+                            <input type="text" id="searchKeyword" name="keyword" placeholder="Enter promotion name" required th:value="${keyword}">
+                        </div>
+                        <button type="submit" class="submit-btn">Search</button>
+                    </form>
+
+                    <h1>Discount List</h1>
+                    <div class="scroll-box-discount">
+                        <div class="discount-grid">
+                            <div th:each="discount : ${discounts}">
+                                <a href="/dealerShowDiscountDetailTest" style="text-decoration: none;">
+                                    <div class="discount-card">
+                                        <div class="discount-name">
+                                            <span th:text="${discount.promotionName}"></span>
+                                        </div>
+                                        <div class="discount-info">
+                                            <div class="info-row">
+                                                <span class="info-label">Discount</span>
+                                                <span class="percent-badge" th:text="${discount.discountPercent}"></span>
+                                            </div>
+                                            <div class="info-row">
+                                                <span class="info-label">Start Date</span>
+                                                <span class="date-value" th:text="${discount.startDate}"></span>
+                                            </div>
+                                            <div class="info-row">
+                                                <span class="info-label">End Date</span>
+                                                <span class="date-value" th:text="${discount.endDate}"></span>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div class="discount-info">
-                                        <div class="info-row">
-                                            <span class="info-label">Discount</span>
-                                            <span class="percent-badge" th:text="${discount.discountPercent}"></span>
-                                        </div>
-                                        <div class="info-row">
-                                            <span class="info-label">Start Date</span>
-                                            <span class="date-value" th:text="${discount.startDate}"></span>
-                                        </div>
-                                        <div class="info-row">
-                                            <span class="info-label">End Date</span>
-                                            <span class="date-value" th:text="${discount.endDate}"></span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </a>
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
