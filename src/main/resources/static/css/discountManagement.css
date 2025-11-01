@@ -1,7 +1,7 @@
 .mainContentVer {
-    justify-items: start; /* align items to the left horizontally */
-    align-items: start;   /* align items to the top vertically */
-    justify-content: start; /* ensure grid stays aligned to top-left */
+    justify-items: start;
+    align-items: start;
+    justify-content: start;
     align-content: start;
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -13,14 +13,7 @@
     padding: 20px;
 }
 
-.right-column {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    align-items: flex-start;
-}
-
+.right-column,
 .left-column {
     width: 100%;
     display: flex;
@@ -30,91 +23,34 @@
 }
 
 .form-wrapper {
-    background: linear-gradient(135deg, #ffffff 0%, #f0f0f0 100%);
+    background: #ffffff;
     padding: 50px;
     border-radius: 20px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1),
-    0 0 40px rgba(0, 0, 0, 0.05),
-    inset 0 1px 0 rgba(0, 0, 0, 0.1);
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    animation: slideUp 0.8s ease-out;
-    position: relative;
-    overflow: hidden;
+    border: 1px solid #ccc;
     width: 100%;
-}
-
-.form-wrapper::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.05), transparent);
-    animation: shimmer 3s infinite;
-    pointer-events: none;
 }
 
 .discount-list-box {
     display: grid;
     gap: 20px;
     grid-auto-rows: max-content;
-    background: linear-gradient(135deg, #ffffff 0%, #f0f0f0 100%);
+    background: #ffffff;
     padding: 50px;
     border-radius: 20px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1),
-    0 0 40px rgba(0, 0, 0, 0.05),
-    inset 0 1px 0 rgba(0, 0, 0, 0.1);
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    animation: slideUp 0.8s ease-out;
-    position: relative;
-    overflow: hidden;
+    border: 1px solid #ccc;
     width: 100%;
     height: auto;
 }
 
-.discount-list-box::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.05), transparent);
-    animation: shimmer 3s infinite;
-    pointer-events: none;
-}
-
 .discount-list-box-list {
-    background: linear-gradient(135deg, #ffffff 0%, #f0f0f0 100%);
+    background: #ffffff;
     padding: 50px;
     border-radius: 20px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1),
-    0 0 40px rgba(0, 0, 0, 0.05),
-    inset 0 1px 0 rgba(0, 0, 0, 0.1);
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    animation: slideUp 0.8s ease-out;
-    position: relative;
-    overflow-y: auto;
-    overflow-x: hidden;
+    border: 1px solid #ccc;
     width: 100%;
     height: 800px;
-}
-
-@keyframes shimmer {
-    0% { left: -100%; }
-    100% { left: 100%; }
-}
-
-@keyframes slideUp {
-    from {
-        opacity: 0;
-        transform: translateY(30px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 h1 {
@@ -123,27 +59,11 @@ h1 {
     text-align: center;
     font-size: 32px;
     font-weight: 600;
-    background: linear-gradient(135deg, #000000 0%, #404040 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    animation: fadeIn 0.6s ease-out;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
 }
 
 .form-group {
     margin-bottom: 25px;
-    animation: slideUp 0.8s ease-out backwards;
 }
-
-.form-group:nth-child(2) { animation-delay: 0.1s; }
-.form-group:nth-child(3) { animation-delay: 0.2s; }
-.form-group:nth-child(4) { animation-delay: 0.3s; }
-.form-group:nth-child(5) { animation-delay: 0.4s; }
 
 label {
     display: block;
@@ -155,33 +75,34 @@ label {
     letter-spacing: 1px;
 }
 
-input, textarea {
+input,
+textarea {
     width: 100%;
     height: 35px;
     padding: 14px 16px;
-    border: 2px solid rgba(0, 0, 0, 0.15);
+    border: 2px solid #ccc;
     border-radius: 10px;
-    background: rgba(0, 0, 0, 0.03);
+    background: #fafafa;
     color: #333;
     font-size: 14px;
-    transition: all 0.3s ease;
     font-family: inherit;
 }
 
-input::placeholder, textarea::placeholder {
-    color: rgba(0, 0, 0, 0.4);
+input::placeholder,
+textarea::placeholder {
+    color: #888;
 }
 
-input:focus, textarea:focus {
+input:focus,
+textarea:focus {
     outline: none;
-    border-color: rgba(0, 0, 0, 0.4);
-    background: rgba(0, 0, 0, 0.06);
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1),
-    inset 0 0 20px rgba(0, 0, 0, 0.02);
+    border-color: #666;
+    background: #fff;
 }
 
-input[type="date"], input[type="number"] {
-    color-scheme: dark;
+input[type="date"],
+input[type="number"] {
+    color-scheme: light;
 }
 
 textarea {
@@ -192,7 +113,7 @@ textarea {
 .submit-btn {
     width: 100%;
     padding: 16px;
-    background: linear-gradient(135deg, #000000 0%, #2a2a2a 100%);
+    background: #222;
     color: #fff;
     border: none;
     border-radius: 10px;
@@ -201,34 +122,10 @@ textarea {
     text-transform: uppercase;
     letter-spacing: 1px;
     cursor: pointer;
-    transition: all 0.4s ease;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-    animation: slideUp 0.8s ease-out 0.5s backwards;
-}
-
-.submit-btn::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: rgba(255, 255, 255, 0.2);
-    transition: left 0.5s ease;
+    transition: background 0.3s ease;
+    background: #000000;
 }
 
 .submit-btn:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
-    background: linear-gradient(135deg, #1a1a1a 0%, #3a3a3a 100%);
-}
-
-.submit-btn:hover::before {
-    left: 100%;
-}
-
-.submit-btn:active {
-    transform: translateY(-1px);
+    background: #ff7d37;
 }
