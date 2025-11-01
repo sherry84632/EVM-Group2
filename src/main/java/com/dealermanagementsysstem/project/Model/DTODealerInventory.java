@@ -1,8 +1,15 @@
 package com.dealermanagementsysstem.project.Model;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.util.Date;
 
+@NoArgsConstructor
+@AllArgsConstructor
+@Data
 @Entity
 @Table(name = "DealerInventory")
 public class DTODealerInventory {
@@ -33,70 +40,4 @@ public class DTODealerInventory {
     @Column(name = "CostPrice")
     private java.math.BigDecimal costPrice; // Giá cost sau chiết khấu từ EVM
 
-    public DTODealerInventory() {}
-
-    public DTODealerInventory(int dealerInventoryID, DTODealer dealer, DTOVehicle vehicle, 
-                              Date receivedDate, DealerInventoryStatus status) {
-        this.dealerInventoryID = dealerInventoryID;
-        this.dealer = dealer;
-        this.vehicle = vehicle;
-        this.receivedDate = receivedDate;
-        this.status = status;
-    }
-
-    public int getDealerInventoryID() {
-        return dealerInventoryID;
-    }
-
-    public void setDealerInventoryID(int dealerInventoryID) {
-        this.dealerInventoryID = dealerInventoryID;
-    }
-
-    public DTODealer getDealer() {
-        return dealer;
-    }
-
-    public void setDealer(DTODealer dealer) {
-        this.dealer = dealer;
-    }
-
-    public String getVin() {
-        return vin;
-    }
-
-    public void setVin(String vin) {
-        this.vin = vin;
-    }
-
-    public DTOVehicle getVehicle() {
-        return vehicle;
-    }
-
-    public void setVehicle(DTOVehicle vehicle) {
-        this.vehicle = vehicle;
-    }
-
-    public Date getReceivedDate() {
-        return receivedDate;
-    }
-
-    public void setReceivedDate(Date receivedDate) {
-        this.receivedDate = receivedDate;
-    }
-
-    public DealerInventoryStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(DealerInventoryStatus status) {
-        this.status = status;
-    }
-
-    public java.math.BigDecimal getCostPrice() {
-        return costPrice;
-    }
-
-    public void setCostPrice(java.math.BigDecimal costPrice) {
-        this.costPrice = costPrice;
-    }
 }
