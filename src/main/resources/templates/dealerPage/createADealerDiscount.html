@@ -15,6 +15,245 @@
     <link rel="stylesheet" href="/css/discountScrollBox.css">
     <link rel="stylesheet" href="/css/vehicleListBox.css">
     <link rel="stylesheet" href="/css/breadScrumbNav.css">
+    <style>
+        /* Main content layout */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+
+        /* Box styles */
+        .form-wrapper, .vehicle-list-box, .discount-list-box {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            padding: 35px;
+            transition: all 0.3s ease;
+        }
+
+        .form-wrapper:hover, .vehicle-list-box:hover, .discount-list-box:hover {
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12);
+            transform: translateY(-2px);
+        }
+
+        .form-wrapper h1, .vehicle-list-box h1, .discount-list-box h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #007bff;
+            display: inline-block;
+        }
+
+        .discount-list-box {
+            grid-column: 1 / -1;
+        }
+
+        /* Vehicle card styles */
+        .vehicle-card {
+            position: relative;
+            padding: 15px;
+            padding-bottom: 50px;
+            background: linear-gradient(135deg, #fff 0%, #f8f9ff 100%);
+            border: 2px solid #e3e6f0;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .vehicle-card:hover {
+            border-color: #80bdff;
+            box-shadow: 0 6px 15px rgba(0, 123, 255, 0.15);
+            transform: translateY(-3px);
+        }
+
+        .vehicle-card.selected {
+            border-color: #007bff;
+            background: linear-gradient(135deg, #e7f3ff 0%, #cfe7ff 100%);
+            box-shadow: 0 8px 20px rgba(0, 123, 255, 0.25);
+        }
+
+        .card-content {
+            cursor: pointer;
+        }
+
+        .vehicle-name {
+            font-size: 1.15em;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .vehicle-info {
+            font-size: 0.9em;
+            color: #6c757d;
+        }
+
+        .select-checkbox {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .detail-btn {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            padding: 6px 12px;
+            font-size: 0.85rem;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .detail-btn:hover {
+            transform: scale(1.05);
+        }
+
+        /* Scroll boxes */
+        .scroll-box-vehicle, .scroll-box-discount {
+            max-height: 450px;
+            overflow-y: auto;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            border: 1px solid #dee2e6;
+        }
+
+        .scroll-box-vehicle::-webkit-scrollbar,
+        .scroll-box-discount::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .scroll-box-vehicle::-webkit-scrollbar-track,
+        .scroll-box-discount::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .scroll-box-vehicle::-webkit-scrollbar-thumb,
+        .scroll-box-discount::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+
+        .scroll-box-vehicle::-webkit-scrollbar-thumb:hover,
+        .scroll-box-discount::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* Vehicle image in modal */
+        .vehicle-image-container {
+            width: 100%;
+            margin-bottom: 20px;
+            text-align: center;
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 15px;
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .vehicle-image-container img {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .vehicle-image-container .no-image {
+            color: #6c757d;
+            font-style: italic;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .vehicle-image-container .no-image i {
+            font-size: 3rem;
+            opacity: 0.3;
+        }
+
+        /* Vehicle detail modal styles */
+        .vehicle-detail-content {
+            padding: 10px;
+        }
+
+        .detail-row {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+
+        .detail-row strong {
+            display: block;
+            color: #495057;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .detail-row span, .detail-row p {
+            color: #2c3e50;
+            font-size: 1em;
+            font-weight: 500;
+        }
+
+        #modalDescription {
+            margin-top: 5px;
+            padding: 12px;
+            background: white;
+            border-radius: 6px;
+            white-space: pre-wrap;
+            line-height: 1.6;
+        }
+
+        /* Search box styling */
+        .vehicle-search {
+            margin-bottom: 20px;
+        }
+
+        .vehicle-search .input-group {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .vehicle-search .form-control {
+            border: none;
+            padding: 12px 15px;
+            font-size: 0.95em;
+        }
+
+        .vehicle-search .form-control:focus {
+            box-shadow: none;
+        }
+
+        .vehicle-search .btn-primary {
+            border: none;
+            padding: 12px 25px;
+            font-weight: 600;
+        }
+
+        /* Responsive design */
+        @media (max-width: 992px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 
 <body class="bg-gradient2-custom" style="overflow:hidden;">
@@ -43,8 +282,7 @@
             </ol>
         </nav>
 
-        <div class="d-flex flex-column">
-            <!-- Form Section -->
+        <div class="content-grid">
             <div class="form-wrapper">
                 <h1>Create Discount</h1>
                 <form id="promotionForm" action="/discount/insert" method="post">
@@ -80,7 +318,6 @@
                 </form>
             </div>
 
-            <!-- Vehicle List Section -->
             <div class="vehicle-list-box">
                 <h1>Select Vehicle Model</h1>
                 <div class="vehicle-search">
@@ -91,28 +328,36 @@
                                    class="form-control"
                                    placeholder="Search vehicles..."
                                    th:value="${vehicleSearch}">
-                            <button class="btn btn-primary" type="submit">Search</button>
+                            <button class="btn btn-primary" type="submit">
+                                <i class="fas fa-search me-1"></i> Search
+                            </button>
                         </div>
                     </form>
                 </div>
                 <div class="scroll-box-vehicle">
                     <div class="vehicle-grid">
-                        <div th:each="vehicle : ${vehicleModels}" class="vehicle-card"
-                             th:data-model-id="${vehicle.modelID}"
-                             th:data-model-name="${vehicle.modelName}"
-                             onclick="selectVehicle(this)">
-                            <div class="vehicle-name" th:text="${vehicle.modelName}">Vehicle Name</div>
-                            <div class="vehicle-info">
-                                Model ID: <span th:text="${vehicle.modelID}"></span>
+                        <div th:each="vehicle : ${vehicleModels}"
+                             class="vehicle-card"
+                             th:attr="data-model-id=${vehicle.modelID}">
+                            <div class="card-content" th:onclick="'selectVehicle(this.parentElement)'">
+                                <div class="vehicle-name" th:text="${vehicle.modelName}">Vehicle Name</div>
+                                <div class="vehicle-info">
+                                    <i class="fas fa-hashtag me-1"></i>
+                                    Model ID: <span th:text="${vehicle.modelID}"></span>
+                                </div>
+                                <input type="radio" name="vehicleSelection" th:value="${vehicle.modelID}" class="select-checkbox">
                             </div>
-                            <input type="radio" name="vehicleSelection" th:value="${vehicle.modelID}" class="select-checkbox">
+                            <button type="button" class="btn btn-info btn-sm detail-btn"
+                                    th:attr="onclick='showVehicleDetail(' + ${vehicle.modelID} + ')'">
+                                <i class="fas fa-info-circle"></i> Detail
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Discount List Section -->
-            <div class="discount-list-box">
+        <div class="discount-list-box">
                 <h1>Discount Management</h1>
                 <form id="searchDiscountForm" action="/discount">
                     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
@@ -153,6 +398,57 @@
                 </div>
             </div>
         </div>
+
+        <!-- Vehicle Detail Modal -->
+        <div class="modal fade" id="vehicleDetailModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-car me-2"></i>Vehicle Details
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="vehicle-detail-content">
+                            <!-- Vehicle Image -->
+                            <div class="vehicle-image-container" id="vehicleImageContainer">
+                                <div class="no-image">
+                                    <i class="fas fa-image"></i>
+                                    <span>Loading image...</span>
+                                </div>
+                            </div>
+
+                            <!-- Vehicle Information -->
+                            <div class="detail-row">
+                                <strong>Model Name:</strong>
+                                <span id="modalModelName"></span>
+                            </div>
+                            <div class="detail-row">
+                                <strong>Brand:</strong>
+                                <span id="modalBrand"></span>
+                            </div>
+                            <div class="detail-row">
+                                <strong>Year:</strong>
+                                <span id="modalYear"></span>
+                            </div>
+                            <div class="detail-row">
+                                <strong>Body Type:</strong>
+                                <span id="modalBodyType"></span>
+                            </div>
+                            <div class="detail-row">
+                                <strong>Base Price:</strong>
+                                <span id="modalBasePrice"></span>
+                            </div>
+                            <div class="detail-row">
+                                <strong>Description:</strong>
+                                <p id="modalDescription"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -160,8 +456,8 @@
 <script src="/scripts/navBarMenuProject.js"></script>
 <script>
 function selectVehicle(card) {
-    // Get data from attributes
-    const modelId = card.dataset.modelId;
+    // Get model ID from data attribute
+    const modelId = card.getAttribute('data-model-id');
 
     // Update hidden input
     document.getElementById('selectedModelId').value = modelId;
@@ -176,6 +472,58 @@ function selectVehicle(card) {
 
     // Check the radio button
     card.querySelector('input[type="radio"]').checked = true;
+}
+
+// Initialize modal
+const vehicleModal = new bootstrap.Modal(document.getElementById('vehicleDetailModal'));
+
+// Function to show vehicle details with image
+async function showVehicleDetail(modelId) {
+    try {
+        // Show modal immediately with loading state
+        vehicleModal.show();
+
+        const imageContainer = document.getElementById('vehicleImageContainer');
+        imageContainer.innerHTML = '<div class="no-image"><i class="fas fa-spinner fa-spin"></i><span>Loading...</span></div>';
+
+        // Fetch vehicle details
+        const response = await fetch(`/discount/vehicle-detail/${modelId}`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch vehicle details');
+        }
+
+        const data = await response.json();
+
+        // Update modal content
+        document.getElementById('modalModelName').textContent = data.modelName;
+        document.getElementById('modalBrand').textContent = data.brand || 'N/A';
+        document.getElementById('modalYear').textContent = data.year || 'N/A';
+        document.getElementById('modalBodyType').textContent = data.bodyType || 'N/A';
+        document.getElementById('modalBasePrice').textContent = new Intl.NumberFormat('vi-VN', {
+            style: 'currency',
+            currency: 'VND'
+        }).format(data.basePrice || 0);
+        document.getElementById('modalDescription').textContent = data.description || 'No description available';
+
+        // Load image
+        if (data.hasImage) {
+            const img = document.createElement('img');
+            img.src = `/discount/vehicle-image/${modelId}`;
+            img.alt = data.modelName;
+            img.onerror = function() {
+                imageContainer.innerHTML = '<div class="no-image"><i class="fas fa-image"></i><span>Image not available</span></div>';
+            };
+            imageContainer.innerHTML = '';
+            imageContainer.appendChild(img);
+        } else {
+            imageContainer.innerHTML = '<div class="no-image"><i class="fas fa-image"></i><span>No image available</span></div>';
+        }
+
+    } catch (error) {
+        console.error('Error fetching vehicle details:', error);
+        alert('Failed to load vehicle details. Please try again.');
+        vehicleModal.hide();
+    }
 }
 
 // Set minimum date for date inputs to today

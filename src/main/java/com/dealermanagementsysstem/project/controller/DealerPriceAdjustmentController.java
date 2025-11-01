@@ -2,6 +2,10 @@ package com.dealermanagementsysstem.project.controller;
 
 import com.dealermanagementsysstem.project.Model.*;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
@@ -9,7 +13,9 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Controller
 @RequestMapping("/discount")
@@ -118,5 +124,44 @@ public class DealerPriceAdjustmentController {
         model.addAttribute("discounts", discounts);
         model.addAttribute("vehicleModels", vehicleModels);
         return "dealerPage/createADealerDiscount";
+    }
+
+    // ✅ API endpoint to get vehicle details
+    @GetMapping("/vehicle-detail/{modelId}")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> getVehicleDetail(@PathVariable int modelId) {
+        DTOVehicleModel vehicle = daoVehicleModel.getModelById(modelId);
+
+        if (vehicle == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("modelId", vehicle.getModelID());
+        response.put("modelName", vehicle.getModelName());
+        response.put("brand", vehicle.getBrand());
+        response.put("year", vehicle.getYear());
+        response.put("bodyType", vehicle.getBodyType());
+        response.put("basePrice", vehicle.getBasePrice());
+        response.put("description", vehicle.getDescription());
+        response.put("hasImage", vehicle.getModelImage() != null);
+
+        return ResponseEntity.ok(response);
+    }
+
+    // ✅ API endpoint to get vehicle image
+    @GetMapping("/vehicle-image/{modelId}")
+    public ResponseEntity<byte[]> getVehicleImage(@PathVariable int modelId) {
+        DTOVehicleModel vehicle = daoVehicleModel.getModelById(modelId);
+
+        if (vehicle == null || vehicle.getModelImage() == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.IMAGE_JPEG); // or IMAGE_PNG depending on your stored format
+        headers.setContentLength(vehicle.getModelImage().length);
+
+        return new ResponseEntity<>(vehicle.getModelImage(), headers, HttpStatus.OK);
     }
 }
