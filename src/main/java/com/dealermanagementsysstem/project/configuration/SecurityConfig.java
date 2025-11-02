@@ -146,6 +146,9 @@ public class SecurityConfig {
                                "/evmOrderList", "/evmOrderHistory", "/vehicleDistributionManagement",
                                "/getVehicleList").hasAnyRole("ADMIN", "EVM", "EVMSTAFF")
                 
+                // Account Management (ADMIN and EVMSTAFF only)
+                .requestMatchers("/account/**").hasAnyRole("ADMIN", "EVMSTAFF")
+
                 // EVM Vehicle management endpoints
                 .requestMatchers(HttpMethod.GET, "/evm/vehicle/create").hasAnyRole("ADMIN", "EVM", "EVMSTAFF")
                 .requestMatchers("/evm/vehicle/create", "/evm/vehicle/edit/**", "/evm/vehicle/delete/**").hasAnyRole("ADMIN", "EVM", "EVMSTAFF")
