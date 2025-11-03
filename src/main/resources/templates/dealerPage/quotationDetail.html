@@ -281,8 +281,8 @@
                                         </small>
                                     </div>
                                     <small class="text-muted">
-                                        <span th:text="${#temporals.format(disc.startDate, 'dd/MM/yyyy')}"></span> -
-                                        <span th:text="${disc.endDate != null ? #temporals.format(disc.endDate, 'dd/MM/yyyy') : 'No end'}"></span>
+                                        <span th:text="${disc.startDate != null ? #dates.format(disc.startDate, 'dd/MM/yyyy') : 'N/A'}"></span> -
+                                        <span th:text="${disc.endDate != null ? #dates.format(disc.endDate, 'dd/MM/yyyy') : 'No end'}"></span>
                                     </small>
                                 </div>
                             </a>

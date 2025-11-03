@@ -360,13 +360,13 @@
                         </div>
                     </div>
 
-                    <!-- VAT 10% -->
+                    <!-- VAT (configurable rate, default 10%) -->
                     <div class="info-row" style="border: none; font-size: 1rem; color: #6c757d;">
                         <div class="info-label">
-                            <i class="fa-solid fa-percent me-2"></i>VAT (10%):
+                            <i class="fa-solid fa-percent me-2"></i>VAT (<span th:text="${vatRate != null ? vatRate : 10}">10</span>%):
                         </div>
                         <div class="info-value" style="font-weight: 600;">
-                            <span th:with="vatAmount=${order.totalAmount != null ? order.totalAmount * 0.10 : 0}"
+                            <span th:with="vatAmount=${order.totalAmount != null ? order.totalAmount * (vatRate != null ? vatRate : 10) / 100.0 : 0}"
                                   th:text="${#numbers.formatCurrency(vatAmount)}">$0.00</span>
                         </div>
                     </div>
@@ -379,7 +379,7 @@
                             <i class="fa-solid fa-money-bill-wave me-2"></i>Total Amount:
                         </div>
                         <div class="info-value" style="color: #28a745;">
-                            <span th:with="grandTotal=${order.totalAmount != null ? order.totalAmount * 1.10 : 0}"
+                            <span th:with="grandTotal=${order.totalAmount != null ? order.totalAmount * (1 + (vatRate != null ? vatRate : 10) / 100.0) : 0}"
                                   th:text="${#numbers.formatCurrency(grandTotal)}">$0.00</span>
                         </div>
                     </div>
@@ -392,7 +392,7 @@
                             <span th:if="${order.policyDiscountPercent != null and order.policyDiscountPercent > 0}">
                                 Thanks to your dealer partnership, you receive a <strong th:text="${order.policyDiscountPercent + '%'}"></strong> discount on this order!
                             </span>
-                            The total includes 10% VAT as per regulations.
+                            The total includes <strong th:text="${vatRate != null ? vatRate : 10}">10</strong>% VAT as per regulations.
                         </p>
                     </div>
                 </div>

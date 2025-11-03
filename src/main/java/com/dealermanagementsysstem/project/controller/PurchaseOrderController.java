@@ -1,6 +1,7 @@
 package com.dealermanagementsysstem.project.controller;
 
 import com.dealermanagementsysstem.project.Model.*;
+import com.dealermanagementsysstem.project.configuration.BusinessConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
@@ -30,6 +31,9 @@ public class PurchaseOrderController {
 
     @Autowired
     private DAODealerInventory daoDealerInventory;
+
+    @Autowired
+    private BusinessConfig businessConfig;
 
     /**
      * 🔹 Trang chọn nhiều xe để đặt hàng (giống getVehicleListToCreateQuotation)
@@ -255,6 +259,9 @@ public class PurchaseOrderController {
             }
 
             model.addAttribute("order", order);
+
+            // Add VAT rate from configuration (configurable, default 10%)
+            model.addAttribute("vatRate", businessConfig.getVat().getRate());
 
             // Load danh sach xe da ve kho cho don hang nay
             List<DTODealerInventory> inventoryVehicles = daoDealerInventory.getInventoryByPurchaseOrderId(id);

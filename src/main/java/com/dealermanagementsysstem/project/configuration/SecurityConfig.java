@@ -127,8 +127,8 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .csrf(csrf -> csrf
-                // Use cookie-based CSRF token so multiple tabs consistently get the latest token
-                .csrfTokenRepository(org.springframework.security.web.csrf.CookieCsrfTokenRepository.withHttpOnlyFalse())
+                // Use default HttpSession-based CSRF token repository for better stability
+                // This avoids cookie sync issues and token expiration problems
                 .ignoringRequestMatchers("/test", "/health", "/api/test/**", "/evm/vehicle/create")
             )
             .authorizeHttpRequests(authz -> authz

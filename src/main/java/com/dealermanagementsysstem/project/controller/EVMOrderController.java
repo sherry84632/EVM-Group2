@@ -95,61 +95,94 @@ public class EVMOrderController {
         daoDelivery.createDelivery(del); // ignore result
     }
 
-    // 🔹 Xử lý đơn hàng (phê duyệt / từ chối)
+    // Process order (approve / reject) with improved error handling
     @PostMapping("/process/{id}")
     public String processOrder(@PathVariable int id,
                                @RequestParam("actionType") String actionType,
                                RedirectAttributes redirectAttributes) {
 
-        System.out.println("🔍 Processing order ID: " + id);
-        System.out.println("📋 Action Type: " + actionType);
+        System.out.println("🔍 Processing order ID: " + id + ", Action: " + actionType);
 
-        // ✅ Map action type to correct enum value (case insensitive)
-        PurchaseOrderStatus newStatus;
-        if (actionType.equalsIgnoreCase("Approve") || actionType.equalsIgnoreCase("APPROVED")) {
-            newStatus = PurchaseOrderStatus.APPROVED;
-        } else if (actionType.equalsIgnoreCase("Reject") || actionType.equalsIgnoreCase("REJECTED") || actionType.equalsIgnoreCase("Cancel")) {
-            newStatus = PurchaseOrderStatus.CANCELLED;
-        } else {
-            System.out.println("❌ Invalid action type: " + actionType);
-            redirectAttributes.addFlashAttribute("message", "❌ Invalid action!");
+        try {
+            // Validate action type
+            PurchaseOrderStatus newStatus;
+            if (actionType.equalsIgnoreCase("Approve") || actionType.equalsIgnoreCase("APPROVED")) {
+                newStatus = PurchaseOrderStatus.APPROVED;
+            } else if (actionType.equalsIgnoreCase("Reject") || actionType.equalsIgnoreCase("REJECTED") || actionType.equalsIgnoreCase("Cancel")) {
+                newStatus = PurchaseOrderStatus.CANCELLED;
+            } else {
+                System.out.println("❌ Invalid action type: " + actionType);
+                redirectAttributes.addFlashAttribute("message", "Invalid action type!");
+                redirectAttributes.addFlashAttribute("statusType", "error");
+                return "redirect:/evm/orders/list";
+            }
+
+            // Fetch order
+            DTOPurchaseOrder order = purchaseOrderDAO.getPurchaseOrderById(id);
+            if (order == null) {
+                System.out.println("❌ Order not found with ID: " + id);
+                redirectAttributes.addFlashAttribute("message", "Order not found!");
+                redirectAttributes.addFlashAttribute("statusType", "error");
+                return "redirect:/evm/orders/list";
+            }
+
+            // Check if order can be processed (not already approved/cancelled)
+            if (order.getStatus() == PurchaseOrderStatus.APPROVED) {
+                System.out.println("⚠️ Order already approved: " + id);
+                redirectAttributes.addFlashAttribute("message", "Order is already approved!");
+                redirectAttributes.addFlashAttribute("statusType", "warning");
+                return "redirect:/evm/orders/list";
+            }
+
+            if (order.getStatus() == PurchaseOrderStatus.CANCELLED) {
+                System.out.println("⚠️ Order already cancelled: " + id);
+                redirectAttributes.addFlashAttribute("message", "Order is already cancelled!");
+                redirectAttributes.addFlashAttribute("statusType", "warning");
+                return "redirect:/evm/orders/list";
+            }
+
+            System.out.println("📦 Order found - DealerID: " + order.getDealer().getDealerID() + ", Current Status: " + order.getStatus());
+
+            // Update status
+            boolean updated = purchaseOrderDAO.updatePurchaseOrderStatus(id, newStatus);
+            if (!updated) {
+                System.out.println("❌ Failed to update order status");
+                redirectAttributes.addFlashAttribute("message", "Failed to update order status!");
+                redirectAttributes.addFlashAttribute("statusType", "error");
+                return "redirect:/evm/orders/list";
+            }
+
+            System.out.println("✅ Updated status to: " + newStatus);
+
+            // Create delivery record if approved
+            if (newStatus == PurchaseOrderStatus.APPROVED) {
+                try {
+                    System.out.println("📦 Order approved - creating delivery record");
+                    ensureDeliveryCreated(id);
+                    System.out.println("✅ Delivery record created successfully");
+                } catch (Exception e) {
+                    System.out.println("⚠️ Warning: Failed to create delivery record - " + e.getMessage());
+                    e.printStackTrace();
+                    // Don't fail the whole operation, just log warning
+                }
+            }
+
+            // Success message
+            String msg = (newStatus == PurchaseOrderStatus.APPROVED)
+                    ? "✅ Order has been approved successfully!"
+                    : "❌ Order has been rejected!";
+            redirectAttributes.addFlashAttribute("message", msg);
+            redirectAttributes.addFlashAttribute("statusType", newStatus.name());
+
+            return "redirect:/evm/orders/list";
+
+        } catch (Exception e) {
+            System.out.println("❌ ERROR processing order " + id + ": " + e.getMessage());
+            e.printStackTrace();
+            redirectAttributes.addFlashAttribute("message", "Error processing order: " + e.getMessage());
             redirectAttributes.addFlashAttribute("statusType", "error");
             return "redirect:/evm/orders/list";
         }
-
-        // ✅ Lấy chi tiết đơn hàng TRƯỚC KHI update status
-        DTOPurchaseOrder order = purchaseOrderDAO.getPurchaseOrderById(id);
-
-        if (order == null) {
-            System.out.println("❌ Không tìm thấy đơn hàng với ID: " + id);
-            redirectAttributes.addFlashAttribute("message", "❌ Order not found!");
-            redirectAttributes.addFlashAttribute("statusType", "error");
-            return "redirect:/evm/orders/list";
-        }
-
-        System.out.println("📦 Order found - DealerID: " + order.getDealer().getDealerID() + ", Status: " + order.getStatus());
-
-        // Update status
-        order.setStatus(newStatus);
-        purchaseOrderDAO.updatePurchaseOrderStatus(order.getPurchaseOrderId(), newStatus);
-        System.out.println("✅ Updated status to: " + newStatus);
-
-        // ✅ Khi đơn hàng được Approved, chỉ tạo Delivery record - KHÔNG tạo xe ngay
-        // Xe sẽ được tạo và thêm vào inventory khi Delivery status chuyển sang DELIVERED
-        if (newStatus == PurchaseOrderStatus.APPROVED) {
-            System.out.println("📦 Đơn hàng được approved - tạo delivery record");
-            ensureDeliveryCreated(order.getPurchaseOrderId());
-            System.out.println("✅ Delivery record created. Xe sẽ được thêm vào inventory khi delivery status = DELIVERED");
-        }
-
-        // 🔹 Gửi flash message về lại evmOrderList
-        String msg = (newStatus == PurchaseOrderStatus.APPROVED)
-                ? "✅ The order has been approved successfully!"
-                : "❌ The order has been rejected!";
-        redirectAttributes.addFlashAttribute("message", msg);
-        redirectAttributes.addFlashAttribute("statusType", newStatus.name());
-
-        return "redirect:/evm/orders/list";
     }
 
     @PostMapping("/delivery/{orderId}/status")

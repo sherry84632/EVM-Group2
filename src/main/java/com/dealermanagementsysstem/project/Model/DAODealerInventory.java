@@ -432,7 +432,7 @@ public class DAODealerInventory {
                         try {
                             dto.setStatus(DealerInventoryStatus.valueOf(statusStr));
                         } catch (IllegalArgumentException e) {
-                            dto.setStatus(DealerInventoryStatus.IN_STOCK);
+                            dto.setStatus(DealerInventoryStatus.AVAILABLE);
                         }
                     }
 
@@ -671,8 +671,8 @@ public class DAODealerInventory {
                     VALUES (?, ?, YEAR(GETDATE()), ?, 'IN_STOCK', GETDATE(), GETDATE())
                 """;
         String sqlInsertInventory = """
-                    INSERT INTO DealerInventory (DealerID, VehicleID, VIN, ReceivedDate, Status, CostPrice) 
-                    VALUES (?, ?, ?, GETDATE(), 'AVAILABLE', ?)
+                    INSERT INTO DealerInventory (DealerID, VehicleID, VIN, ReceivedDate, Status, CostPrice, PurchaseOrderID) 
+                    VALUES (?, ?, ?, GETDATE(), 'AVAILABLE', ?, ?)
                 """;
         String sqlGetLatestDelivery = "SELECT TOP 1 DeliveryID FROM Delivery WHERE PurchaseOrderID = ? ORDER BY DeliveryID DESC";
         String sqlInsertDeliveryDetail = "INSERT INTO DeliveryDetail (DeliveryID, VehicleID) VALUES (?, ?)";
@@ -706,6 +706,8 @@ public class DAODealerInventory {
                     psInventory.setString(3, vin);
                     // ✅ Lưu giá cost (sau chiết khấu)
                     psInventory.setBigDecimal(4, costPrice);
+                    // ✅ Lưu PurchaseOrderID để link xe với đơn hàng
+                    psInventory.setInt(5, purchaseOrderId);
                     psInventory.executeUpdate();
                 }
 

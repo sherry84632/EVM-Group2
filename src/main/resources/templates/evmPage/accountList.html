@@ -97,7 +97,7 @@
                                         <i class="fa-solid fa-ban"></i> Inactive
                                     </span>
                                 </td>
-                                <td th:text="${account.createdAt != null ? #temporals.format(account.createdAt, 'dd/MM/yyyy HH:mm') : 'N/A'}"></td>
+                                <td th:text="${account.createdAt != null ? #dates.format(account.createdAt, 'dd/MM/yyyy HH:mm') : 'N/A'}"></td>
                                 <td>
                                     <div class="btn-group" role="group">
                                         <a th:href="@{/account/detail/{id}(id=${account.accountId})}"

@@ -91,11 +91,11 @@
                     </div>
                     <div class="info-row">
                         <span class="info-label">Birth:</span>
-                        <span class="info-value" th:text="${#temporals.format(customer.birthDate, 'dd/MM/yyyy')}">-</span>
+                        <span class="info-value" th:text="${customer.birthDate != null ? #dates.format(customer.birthDate, 'dd/MM/yyyy') : 'N/A'}">-</span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Created:</span>
-                        <span class="info-value" th:text="${#temporals.format(customer.createdAt, 'dd/MM/yyyy HH:mm')}">-</span>
+                        <span class="info-value" th:text="${customer.createdAt != null ? #dates.format(customer.createdAt, 'dd/MM/yyyy HH:mm') : 'N/A'}">-</span>
                     </div>
                 </div>
 
