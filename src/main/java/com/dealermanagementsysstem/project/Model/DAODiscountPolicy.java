@@ -37,14 +37,17 @@ public class DAODiscountPolicy {
 
     // ✅ Create Discount Policy
     public boolean createDiscountPolicy(DTODiscountPolicy dto) {
-        // NOTE: DiscountPercent column removed from query (column may not exist yet)
-        // After migration, can add it back
-        String sql = "INSERT INTO DiscountPolicy " +
+        // Try with DiscountPercent first (after migration)
+        String sqlWithDiscount = "INSERT INTO DiscountPolicy " +
+                "(DealerID, PolicyName, Description, DiscountPercent, HangPercent, DailyPercent, StartDate, EndDate, Status, CreatedAt, LevelID) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), ?)";
+
+        // Fallback without DiscountPercent (before migration)
+        String sqlWithoutDiscount = "INSERT INTO DiscountPolicy " +
                 "(DealerID, PolicyName, Description, HangPercent, DailyPercent, StartDate, EndDate, Status, CreatedAt, LevelID) " +
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), ?)";
 
-        try (Connection conn = DBUtils.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = DBUtils.getConnection()) {
 
             Integer levelID = getLevelIdByDealerId(dto.getDealer().getDealerID());
             if (levelID == null) {
@@ -52,17 +55,43 @@ public class DAODiscountPolicy {
                 return false;
             }
 
-            ps.setInt(1, dto.getDealer().getDealerID());
-            ps.setString(2, dto.getPolicyName());
-            ps.setString(3, dto.getDescription());
-            ps.setBigDecimal(4, dto.getHangPercent());
-            ps.setBigDecimal(5, dto.getDailyPercent());
-            ps.setDate(6, Date.valueOf(dto.getStartDate()));
-            ps.setDate(7, dto.getEndDate() != null ? Date.valueOf(dto.getEndDate()) : null);
-            ps.setString(8, dto.getStatus().toString());
-            ps.setInt(9, levelID);
+            // Try with DiscountPercent first
+            try (PreparedStatement ps = conn.prepareStatement(sqlWithDiscount)) {
+                ps.setInt(1, dto.getDealer().getDealerID());
+                ps.setString(2, dto.getPolicyName());
+                ps.setString(3, dto.getDescription());
+                ps.setBigDecimal(4, dto.getDiscountPercent());
+                ps.setBigDecimal(5, dto.getHangPercent());
+                ps.setBigDecimal(6, dto.getDailyPercent());
+                ps.setDate(7, Date.valueOf(dto.getStartDate()));
+                ps.setDate(8, dto.getEndDate() != null ? Date.valueOf(dto.getEndDate()) : null);
+                ps.setString(9, dto.getStatus().toString());
+                ps.setInt(10, levelID);
 
-            return ps.executeUpdate() > 0;
+                return ps.executeUpdate() > 0;
+
+            } catch (SQLException e) {
+                // If DiscountPercent column doesn't exist, try without it
+                if (e.getMessage() != null && e.getMessage().contains("DiscountPercent")) {
+                    System.out.println("⚠️ DiscountPercent column not found, using fallback SQL");
+
+                    try (PreparedStatement ps = conn.prepareStatement(sqlWithoutDiscount)) {
+                        ps.setInt(1, dto.getDealer().getDealerID());
+                        ps.setString(2, dto.getPolicyName());
+                        ps.setString(3, dto.getDescription());
+                        ps.setBigDecimal(4, dto.getHangPercent());
+                        ps.setBigDecimal(5, dto.getDailyPercent());
+                        ps.setDate(6, Date.valueOf(dto.getStartDate()));
+                        ps.setDate(7, dto.getEndDate() != null ? Date.valueOf(dto.getEndDate()) : null);
+                        ps.setString(8, dto.getStatus().toString());
+                        ps.setInt(9, levelID);
+
+                        return ps.executeUpdate() > 0;
+                    }
+                } else {
+                    throw e; // Re-throw if different error
+                }
+            }
 
         } catch (Exception e) {
             System.out.println("❌ Error creating Discount Policy: " + e.getMessage());
@@ -178,29 +207,62 @@ public class DAODiscountPolicy {
 
     // ✅ Update Discount Policy
     public boolean updateDiscountPolicy(DTODiscountPolicy dto) {
-        // NOTE: DiscountPercent column removed from query (column may not exist yet)
-        // After migration, can add it back
-        String sql = "UPDATE DiscountPolicy SET " +
+        // Try with DiscountPercent first (after migration)
+        String sqlWithDiscount = "UPDATE DiscountPolicy SET " +
+                "PolicyName = ?, Description = ?, DiscountPercent = ?, HangPercent = ?, DailyPercent = ?, " +
+                "StartDate = ?, EndDate = ?, Status = ? " +
+                "WHERE PolicyID = ?";
+
+        // Fallback without DiscountPercent (before migration)
+        String sqlWithoutDiscount = "UPDATE DiscountPolicy SET " +
                 "PolicyName = ?, Description = ?, HangPercent = ?, DailyPercent = ?, " +
                 "StartDate = ?, EndDate = ?, Status = ? " +
                 "WHERE PolicyID = ?";
 
-        try (Connection conn = DBUtils.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = DBUtils.getConnection()) {
 
-            ps.setString(1, dto.getPolicyName());
-            ps.setString(2, dto.getDescription());
-            ps.setBigDecimal(3, dto.getHangPercent());
-            ps.setBigDecimal(4, dto.getDailyPercent());
-            ps.setDate(5, Date.valueOf(dto.getStartDate()));
-            ps.setDate(6, dto.getEndDate() != null ? Date.valueOf(dto.getEndDate()) : null);
-            ps.setString(7, dto.getStatus().toString());
-            ps.setInt(8, dto.getPolicyID());
+            // Try with DiscountPercent first
+            try (PreparedStatement ps = conn.prepareStatement(sqlWithDiscount)) {
+                ps.setString(1, dto.getPolicyName());
+                ps.setString(2, dto.getDescription());
+                ps.setBigDecimal(3, dto.getDiscountPercent());
+                ps.setBigDecimal(4, dto.getHangPercent());
+                ps.setBigDecimal(5, dto.getDailyPercent());
+                ps.setDate(6, Date.valueOf(dto.getStartDate()));
+                ps.setDate(7, dto.getEndDate() != null ? Date.valueOf(dto.getEndDate()) : null);
+                ps.setString(8, dto.getStatus().toString());
+                ps.setInt(9, dto.getPolicyID());
 
-            int rows = ps.executeUpdate();
-            if (rows > 0) {
-                System.out.println("✅ Updated Discount Policy ID: " + dto.getPolicyID());
-                return true;
+                int rows = ps.executeUpdate();
+                if (rows > 0) {
+                    System.out.println("✅ Updated Discount Policy ID: " + dto.getPolicyID() + " (with DiscountPercent)");
+                    return true;
+                }
+
+            } catch (SQLException e) {
+                // If DiscountPercent column doesn't exist, try without it
+                if (e.getMessage() != null && e.getMessage().contains("DiscountPercent")) {
+                    System.out.println("⚠️ DiscountPercent column not found, using fallback SQL");
+
+                    try (PreparedStatement ps = conn.prepareStatement(sqlWithoutDiscount)) {
+                        ps.setString(1, dto.getPolicyName());
+                        ps.setString(2, dto.getDescription());
+                        ps.setBigDecimal(3, dto.getHangPercent());
+                        ps.setBigDecimal(4, dto.getDailyPercent());
+                        ps.setDate(5, Date.valueOf(dto.getStartDate()));
+                        ps.setDate(6, dto.getEndDate() != null ? Date.valueOf(dto.getEndDate()) : null);
+                        ps.setString(7, dto.getStatus().toString());
+                        ps.setInt(8, dto.getPolicyID());
+
+                        int rows = ps.executeUpdate();
+                        if (rows > 0) {
+                            System.out.println("✅ Updated Discount Policy ID: " + dto.getPolicyID() + " (without DiscountPercent)");
+                            return true;
+                        }
+                    }
+                } else {
+                    throw e; // Re-throw if different error
+                }
             }
 
         } catch (Exception e) {
