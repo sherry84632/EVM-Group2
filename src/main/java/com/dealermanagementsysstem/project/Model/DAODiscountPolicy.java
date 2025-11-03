@@ -1,11 +1,22 @@
 package com.dealermanagementsysstem.project.Model;
 
 import utils.DBUtils;
+import java.math.BigDecimal;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
 public class DAODiscountPolicy {
+
+    // Helper method to safely get DiscountPercent (may not exist in older databases)
+    private BigDecimal getDiscountPercentSafely(ResultSet rs) {
+        try {
+            return rs.getBigDecimal("DiscountPercent");
+        } catch (SQLException e) {
+            // Column doesn't exist - migration not run yet, return null
+            return null;
+        }
+    }
 
     // ✅ Lấy LevelID theo DealerID
     private Integer getLevelIdByDealerId(int dealerId) {
@@ -24,10 +35,12 @@ public class DAODiscountPolicy {
         return null;
     }
 
-    // ✅ Tạo Discount Policy mới
+    // ✅ Create Discount Policy
     public boolean createDiscountPolicy(DTODiscountPolicy dto) {
+        // NOTE: DiscountPercent column removed from query (column may not exist yet)
+        // After migration, can add it back
         String sql = "INSERT INTO DiscountPolicy " +
-                "(DealerID, PolicyName, Description, StartDate, EndDate, HangPercent, DailyPercent, Status, CreatedAt, LevelID) " +
+                "(DealerID, PolicyName, Description, HangPercent, DailyPercent, StartDate, EndDate, Status, CreatedAt, LevelID) " +
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), ?)";
 
         try (Connection conn = DBUtils.getConnection();
@@ -35,24 +48,24 @@ public class DAODiscountPolicy {
 
             Integer levelID = getLevelIdByDealerId(dto.getDealer().getDealerID());
             if (levelID == null) {
-                System.out.println("⚠️ Không tìm thấy LevelID cho DealerID: " + dto.getDealer().getDealerID());
+                System.out.println("⚠️ Could not find LevelID for DealerID: " + dto.getDealer().getDealerID());
                 return false;
             }
 
             ps.setInt(1, dto.getDealer().getDealerID());
             ps.setString(2, dto.getPolicyName());
             ps.setString(3, dto.getDescription());
-            ps.setDate(4, Date.valueOf(dto.getStartDate()));
-            ps.setDate(5, Date.valueOf(dto.getEndDate()));
-            ps.setBigDecimal(6, dto.getHangPercent());
-            ps.setBigDecimal(7, dto.getDailyPercent());
+            ps.setBigDecimal(4, dto.getHangPercent());
+            ps.setBigDecimal(5, dto.getDailyPercent());
+            ps.setDate(6, Date.valueOf(dto.getStartDate()));
+            ps.setDate(7, dto.getEndDate() != null ? Date.valueOf(dto.getEndDate()) : null);
             ps.setString(8, dto.getStatus().toString());
             ps.setInt(9, levelID);
 
             return ps.executeUpdate() > 0;
 
         } catch (Exception e) {
-            System.out.println("❌ Lỗi khi thêm Discount Policy: " + e.getMessage());
+            System.out.println("❌ Error creating Discount Policy: " + e.getMessage());
             e.printStackTrace();
         }
         return false;
@@ -75,12 +88,13 @@ public class DAODiscountPolicy {
                 dto.setDealer(daoDealer.getDealerById(rs.getInt("DealerID")));
                 dto.setPolicyName(rs.getString("PolicyName"));
                 dto.setDescription(rs.getString("Description"));
-                dto.setStartDate(rs.getDate("StartDate").toLocalDate());
-                dto.setEndDate(rs.getDate("EndDate").toLocalDate());
+                dto.setDiscountPercent(getDiscountPercentSafely(rs)); // ✅ Use helper
                 dto.setHangPercent(rs.getBigDecimal("HangPercent"));
                 dto.setDailyPercent(rs.getBigDecimal("DailyPercent"));
+                dto.setStartDate(rs.getDate("StartDate").toLocalDate());
+                dto.setEndDate(rs.getDate("EndDate") != null ? rs.getDate("EndDate").toLocalDate() : null);
                 dto.setStatus(DiscountPolicyStatus.valueOf(rs.getString("Status").toUpperCase()));
-                dto.setCreationDate(rs.getDate("CreatedAt")); // ✅ đúng tên cột
+                dto.setCreationDate(rs.getDate("CreatedAt"));
                 dto.setLevelID(rs.getInt("LevelID"));
                 list.add(dto);
             }
@@ -110,10 +124,144 @@ public class DAODiscountPolicy {
                 dto.setDealer(daoDealer.getDealerById(rs.getInt("DealerID")));
                 dto.setPolicyName(rs.getString("PolicyName"));
                 dto.setDescription(rs.getString("Description"));
-                dto.setStartDate(rs.getDate("StartDate").toLocalDate());
-                dto.setEndDate(rs.getDate("EndDate").toLocalDate());
+                dto.setDiscountPercent(getDiscountPercentSafely(rs)); // ✅ Use helper
                 dto.setHangPercent(rs.getBigDecimal("HangPercent"));
                 dto.setDailyPercent(rs.getBigDecimal("DailyPercent"));
+                dto.setStartDate(rs.getDate("StartDate").toLocalDate());
+                dto.setEndDate(rs.getDate("EndDate") != null ? rs.getDate("EndDate").toLocalDate() : null);
+                dto.setStatus(DiscountPolicyStatus.valueOf(rs.getString("Status").toUpperCase()));
+                dto.setCreationDate(rs.getDate("CreatedAt"));
+                dto.setLevelID(rs.getInt("LevelID"));
+                list.add(dto);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    // ✅ Get Discount Policy by ID
+    public DTODiscountPolicy getPolicyById(int policyId) {
+        String sql = "SELECT * FROM DiscountPolicy WHERE PolicyID = ?";
+        DAODealer daoDealer = new DAODealer();
+
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, policyId);
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                DTODiscountPolicy dto = new DTODiscountPolicy();
+                dto.setPolicyID(rs.getInt("PolicyID"));
+                dto.setDealer(daoDealer.getDealerById(rs.getInt("DealerID")));
+                dto.setPolicyName(rs.getString("PolicyName"));
+                dto.setDescription(rs.getString("Description"));
+                dto.setDiscountPercent(getDiscountPercentSafely(rs)); // ✅ Use helper
+                dto.setHangPercent(rs.getBigDecimal("HangPercent"));
+                dto.setDailyPercent(rs.getBigDecimal("DailyPercent"));
+                dto.setStartDate(rs.getDate("StartDate").toLocalDate());
+                dto.setEndDate(rs.getDate("EndDate") != null ? rs.getDate("EndDate").toLocalDate() : null);
+                dto.setStatus(DiscountPolicyStatus.valueOf(rs.getString("Status").toUpperCase()));
+                dto.setCreationDate(rs.getDate("CreatedAt"));
+                dto.setLevelID(rs.getInt("LevelID"));
+                return dto;
+            }
+
+        } catch (Exception e) {
+            System.out.println("❌ Error getting policy by ID: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    // ✅ Update Discount Policy
+    public boolean updateDiscountPolicy(DTODiscountPolicy dto) {
+        // NOTE: DiscountPercent column removed from query (column may not exist yet)
+        // After migration, can add it back
+        String sql = "UPDATE DiscountPolicy SET " +
+                "PolicyName = ?, Description = ?, HangPercent = ?, DailyPercent = ?, " +
+                "StartDate = ?, EndDate = ?, Status = ? " +
+                "WHERE PolicyID = ?";
+
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, dto.getPolicyName());
+            ps.setString(2, dto.getDescription());
+            ps.setBigDecimal(3, dto.getHangPercent());
+            ps.setBigDecimal(4, dto.getDailyPercent());
+            ps.setDate(5, Date.valueOf(dto.getStartDate()));
+            ps.setDate(6, dto.getEndDate() != null ? Date.valueOf(dto.getEndDate()) : null);
+            ps.setString(7, dto.getStatus().toString());
+            ps.setInt(8, dto.getPolicyID());
+
+            int rows = ps.executeUpdate();
+            if (rows > 0) {
+                System.out.println("✅ Updated Discount Policy ID: " + dto.getPolicyID());
+                return true;
+            }
+
+        } catch (Exception e) {
+            System.out.println("❌ Error updating Discount Policy: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    // ✅ Delete Discount Policy
+    public boolean deleteDiscountPolicy(int policyId) {
+        String sql = "DELETE FROM DiscountPolicy WHERE PolicyID = ?";
+
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, policyId);
+            int rows = ps.executeUpdate();
+
+            if (rows > 0) {
+                System.out.println("✅ Deleted Discount Policy ID: " + policyId);
+                return true;
+            } else {
+                System.out.println("⚠️ No policy found with ID: " + policyId);
+            }
+
+        } catch (SQLException e) {
+            // Check if it's a foreign key constraint violation
+            if (e.getMessage() != null && e.getMessage().contains("REFERENCE constraint")) {
+                System.out.println("⚠️ Cannot delete policy ID " + policyId + ": Referenced by other records");
+                throw new RuntimeException("Cannot delete policy: Still referenced by purchase orders or other data", e);
+            }
+            System.out.println("❌ Error deleting Discount Policy: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    // ✅ Get Policies by Dealer ID
+    public List<DTODiscountPolicy> getPoliciesByDealerId(int dealerId) {
+        List<DTODiscountPolicy> list = new ArrayList<>();
+        String sql = "SELECT * FROM DiscountPolicy WHERE DealerID = ? ORDER BY CreatedAt DESC";
+        DAODealer daoDealer = new DAODealer();
+
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, dealerId);
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+                DTODiscountPolicy dto = new DTODiscountPolicy();
+                dto.setPolicyID(rs.getInt("PolicyID"));
+                dto.setDealer(daoDealer.getDealerById(rs.getInt("DealerID")));
+                dto.setPolicyName(rs.getString("PolicyName"));
+                dto.setDescription(rs.getString("Description"));
+                dto.setDiscountPercent(getDiscountPercentSafely(rs)); // ✅ Use helper
+                dto.setHangPercent(rs.getBigDecimal("HangPercent"));
+                dto.setDailyPercent(rs.getBigDecimal("DailyPercent"));
+                dto.setStartDate(rs.getDate("StartDate").toLocalDate());
+                dto.setEndDate(rs.getDate("EndDate") != null ? rs.getDate("EndDate").toLocalDate() : null);
                 dto.setStatus(DiscountPolicyStatus.valueOf(rs.getString("Status").toUpperCase()));
                 dto.setCreationDate(rs.getDate("CreatedAt"));
                 dto.setLevelID(rs.getInt("LevelID"));

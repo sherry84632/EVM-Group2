@@ -24,12 +24,15 @@ public class DTODiscountPolicy {
     @Column(name = "Description")
     private String description;
     
+    @Column(name = "DiscountPercent")
+    private BigDecimal discountPercent; // Discount for dealer (e.g., 25%)
+
     @Column(name = "HangPercent")
-    private BigDecimal hangPercent;
-    
+    private BigDecimal hangPercent; // Manufacturer share (e.g., 95%)
+
     @Column(name = "DailyPercent")
-    private BigDecimal dailyPercent;
-    
+    private BigDecimal dailyPercent; // Dealer reward (e.g., 5%)
+
     @Column(name = "StartDate")
     private LocalDate startDate;
     
@@ -92,6 +95,9 @@ public class DTODiscountPolicy {
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+
+    public BigDecimal getDiscountPercent() { return discountPercent; }
+    public void setDiscountPercent(BigDecimal discountPercent) { this.discountPercent = discountPercent; }
 
     public BigDecimal getHangPercent() { return hangPercent; }
     public void setHangPercent(BigDecimal hangPercent) { this.hangPercent = hangPercent; }

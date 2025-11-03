@@ -335,64 +335,138 @@
                 </table>
             </div>
 
-            <!-- 🔥 INVOICE BREAKDOWN - Hóa đơn chi tiết -->
+            <!-- 🔥 INVOICE BREAKDOWN -->
             <div class="detail-card" th:if="${order.orderDetails != null and !#lists.isEmpty(order.orderDetails)}">
                 <h3><i class="fa-solid fa-file-invoice-dollar"></i> Invoice Breakdown</h3>
 
-                <div style="background: #f8f9fa; padding: 20px; border-radius: 10px;">
-                    <!-- Subtotal (tổng trước thuế) -->
-                    <div class="info-row" style="border: none; font-size: 1.1rem;">
-                        <div class="info-label">Subtotal (Before Tax):</div>
-                        <div class="info-value" style="font-weight: 600; color: #495057;">
-                            <span th:text="${order.totalAmount != null ? #numbers.formatCurrency(order.totalAmount) : '$0.00'}"></span>
-                        </div>
-                    </div>
+                <div style="background: white; color: #2d3748; padding: 25px; border-radius: 10px; border: 1px solid #e2e8f0;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="border-bottom: 2px solid #cbd5e0;">
+                                <th style="text-align: left; padding: 10px 0; font-weight: 600; color: #2d3748;">Item</th>
+                                <th style="text-align: left; padding: 10px 0; font-weight: 600; color: #2d3748;">Description</th>
+                                <th style="text-align: right; padding: 10px 0; font-weight: 600; color: #2d3748;">Amount (USD)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- 1. Subtotal (Before Tax) -->
+                            <tr>
+                                <td style="padding: 12px 0; color: #2d3748;">
+                                    <strong>Subtotal (Before Tax)</strong>
+                                </td>
+                                <td style="padding: 12px 0; color: #718096;">
+                                    Base price
+                                </td>
+                                <td style="padding: 12px 0; text-align: right; font-weight: 600; color: #2d3748;">
+                                    <span th:text="${order.totalAmount != null ? #numbers.formatDecimal(order.totalAmount, 1, 2) : '0.00'}"></span>
+                                </td>
+                            </tr>
 
-                    <!-- Dealer Discount Policy -->
-                    <div class="info-row" style="border: none; font-size: 1rem; color: #28a745;"
-                         th:if="${order.policyDiscountPercent != null and order.policyDiscountPercent > 0}">
-                        <div class="info-label">
-                            <i class="fa-solid fa-gift me-2"></i>Dealer Discount Applied:
-                        </div>
-                        <div class="info-value" style="font-weight: 600;">
-                            <span th:text="${order.policyDiscountPercent + '%'}"></span>
-                            <span th:if="${order.policyName != null}"> (<span th:text="${order.policyName}"></span>)</span>
-                        </div>
-                    </div>
+                            <!-- 2. Dealer Discount -->
+                            <tr th:if="${order.policyDiscountPercent != null and order.policyDiscountPercent > 0}">
+                                <td style="padding: 12px 0; color: #2d3748;">
+                                    <strong>Dealer Discount (<span th:text="${order.policyDiscountPercent}"></span>%)</strong>
+                                </td>
+                                <td style="padding: 12px 0; color: #718096;">
+                                    Discount for dealer
+                                </td>
+                                <td style="padding: 12px 0; text-align: right; font-weight: 600; color: #e53e3e;">
+                                    <span th:with="dealerDiscount=${order.totalAmount != null and order.policyDiscountPercent != null ? -(order.totalAmount * order.policyDiscountPercent / 100.0) : 0}"
+                                          th:text="${#numbers.formatDecimal(dealerDiscount, 1, 2)}"></span>
+                                </td>
+                            </tr>
 
-                    <!-- VAT (configurable rate, default 10%) -->
-                    <div class="info-row" style="border: none; font-size: 1rem; color: #6c757d;">
-                        <div class="info-label">
-                            <i class="fa-solid fa-percent me-2"></i>VAT (<span th:text="${vatRate != null ? vatRate : 10}">10</span>%):
-                        </div>
-                        <div class="info-value" style="font-weight: 600;">
-                            <span th:with="vatAmount=${order.totalAmount != null ? order.totalAmount * (vatRate != null ? vatRate : 10) / 100.0 : 0}"
-                                  th:text="${#numbers.formatCurrency(vatAmount)}">$0.00</span>
-                        </div>
-                    </div>
+                            <!-- 3. Subtotal after Discount -->
+                            <tr style="border-bottom: 1px solid #e2e8f0;">
+                                <td style="padding: 12px 0; color: #2d3748;">
+                                    <strong>Subtotal after Discount</strong>
+                                </td>
+                                <td style="padding: 12px 0; color: #718096;">
+                                    After discount applied
+                                </td>
+                                <td style="padding: 12px 0; text-align: right; font-weight: 600; color: #3182ce;">
+                                    <span th:with="subtotalAfterDiscount=${order.totalAmount != null and order.policyDiscountPercent != null ? order.totalAmount * (1 - order.policyDiscountPercent / 100.0) : order.totalAmount}"
+                                          th:text="${#numbers.formatDecimal(subtotalAfterDiscount, 1, 2)}"></span>
+                                </td>
+                            </tr>
 
-                    <hr style="margin: 20px 0; border-top: 2px solid #dee2e6;">
+                            <!-- 4. Dealer Reward (%) -->
+                            <tr>
+                                <td style="padding: 12px 0; color: #2d3748;">
+                                    <strong>Dealer Reward (<span th:text="${order.dealerRewardPercent != null ? order.dealerRewardPercent : 5}">5</span>%)</strong>
+                                </td>
+                                <td style="padding: 12px 0; color: #718096;">
+                                    Additional reward for dealer, based on subtotal after discount
+                                </td>
+                                <td style="padding: 12px 0; text-align: right; font-weight: 600; color: #38a169;">
+                                    <span th:with="subtotalAfterDiscount=${order.totalAmount != null and order.policyDiscountPercent != null ? order.totalAmount * (1 - order.policyDiscountPercent / 100.0) : order.totalAmount},
+                                                  rewardPercent=${order.dealerRewardPercent != null ? order.dealerRewardPercent : 5.0},
+                                                  dealerReward=${subtotalAfterDiscount * rewardPercent / 100.0}"
+                                          th:text="${#numbers.formatDecimal(dealerReward, 1, 2)}"></span>
+                                </td>
+                            </tr>
 
-                    <!-- Grand Total (Tổng cuối cùng) -->
-                    <div class="info-row" style="border: none; font-size: 1.5rem; font-weight: 700;">
-                        <div class="info-label" style="color: #000;">
-                            <i class="fa-solid fa-money-bill-wave me-2"></i>Total Amount:
-                        </div>
-                        <div class="info-value" style="color: #28a745;">
-                            <span th:with="grandTotal=${order.totalAmount != null ? order.totalAmount * (1 + (vatRate != null ? vatRate : 10) / 100.0) : 0}"
-                                  th:text="${#numbers.formatCurrency(grandTotal)}">$0.00</span>
-                        </div>
-                    </div>
+                            <!-- 5. Manufacturer Share (%) -->
+                            <tr style="border-bottom: 1px solid #e2e8f0;">
+                                <td style="padding: 12px 0; color: #2d3748;">
+                                    <strong>Manufacturer Share (<span th:text="${order.manufacturerSharePercent != null ? order.manufacturerSharePercent : 95}">95</span>%)</strong>
+                                </td>
+                                <td style="padding: 12px 0; color: #718096;">
+                                    Remaining share for manufacturer
+                                </td>
+                                <td style="padding: 12px 0; text-align: right; font-weight: 600; color: #dd6b20;">
+                                    <span th:with="subtotalAfterDiscount=${order.totalAmount != null and order.policyDiscountPercent != null ? order.totalAmount * (1 - order.policyDiscountPercent / 100.0) : order.totalAmount},
+                                                  manufacturerPercent=${order.manufacturerSharePercent != null ? order.manufacturerSharePercent : 95.0},
+                                                  manufacturerShare=${subtotalAfterDiscount * manufacturerPercent / 100.0}"
+                                          th:text="${#numbers.formatDecimal(manufacturerShare, 1, 2)}"></span>
+                                </td>
+                            </tr>
+
+                            <!-- 6. VAT (10%) -->
+                            <tr>
+                                <td style="padding: 12px 0; color: #2d3748;">
+                                    <strong>VAT (<span th:text="${vatRate != null ? vatRate : 10}"></span>%)</strong>
+                                </td>
+                                <td style="padding: 12px 0; color: #718096;">
+                                    Tax on total amount
+                                </td>
+                                <td style="padding: 12px 0; text-align: right; font-weight: 600; color: #4a5568;">
+                                    <span th:with="subtotalAfterDiscount=${order.totalAmount != null and order.policyDiscountPercent != null ? order.totalAmount * (1 - order.policyDiscountPercent / 100.0) : order.totalAmount},
+                                                  vatAmount=${subtotalAfterDiscount * (vatRate != null ? vatRate : 10) / 100.0}"
+                                          th:text="${#numbers.formatDecimal(vatAmount, 1, 2)}"></span>
+                                </td>
+                            </tr>
+
+                            <!-- 7. Total Amount -->
+                            <tr style="border-top: 2px solid #38a169;">
+                                <td style="padding: 15px 0; color: #2d3748;">
+                                    <strong style="font-size: 1.2rem;">Total Amount</strong>
+                                </td>
+                                <td style="padding: 15px 0; color: #718096;">
+                                    Final payment total
+                                </td>
+                                <td style="padding: 15px 0; text-align: right; font-weight: 700; font-size: 1.2rem; color: #38a169;">
+                                    <span th:with="subtotalAfterDiscount=${order.totalAmount != null and order.policyDiscountPercent != null ? order.totalAmount * (1 - order.policyDiscountPercent / 100.0) : order.totalAmount},
+                                                  vatAmount=${subtotalAfterDiscount * (vatRate != null ? vatRate : 10) / 100.0},
+                                                  totalAmount=${subtotalAfterDiscount + vatAmount}"
+                                          th:text="${#numbers.formatDecimal(totalAmount, 1, 2)}"></span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
 
                     <!-- Summary Note -->
-                    <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 5px;">
-                        <p style="margin: 0; font-size: 0.95rem; color: #856404;">
+                    <div style="margin-top: 20px; padding: 15px; background: #fffbeb; border-left: 4px solid #fbbf24; border-radius: 5px;">
+                        <p style="margin: 0; font-size: 0.9rem; color: #78350f;">
                             <i class="fa-solid fa-info-circle me-2"></i>
                             <strong>Note:</strong>
                             <span th:if="${order.policyDiscountPercent != null and order.policyDiscountPercent > 0}">
-                                Thanks to your dealer partnership, you receive a <strong th:text="${order.policyDiscountPercent + '%'}"></strong> discount on this order!
+                                Dealer receives <strong th:text="${order.policyDiscountPercent + '%'}"></strong> discount
+                                <span th:if="${order.policyName != null}"> (<span th:text="${order.policyName}"></span>)</span>
+                                plus <strong th:text="${order.dealerRewardPercent != null ? order.dealerRewardPercent + '%' : '5%'}">5%</strong> reward on discounted price.
                             </span>
-                            The total includes <strong th:text="${vatRate != null ? vatRate : 10}">10</strong>% VAT as per regulations.
+                            Manufacturer receives <strong th:text="${order.manufacturerSharePercent != null ? order.manufacturerSharePercent + '%' : '95%'}">95%</strong> of remaining share.
+                            VAT <strong th:text="${vatRate != null ? vatRate : 10}"></strong>% applied on total after discount.
                         </p>
                     </div>
                 </div>

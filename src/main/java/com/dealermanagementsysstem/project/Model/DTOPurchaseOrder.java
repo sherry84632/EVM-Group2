@@ -51,6 +51,12 @@ public class DTOPurchaseOrder {
     private Double policyDiscountPercent;
 
     @Transient
+    private Double dealerRewardPercent; // DailyPercent from DiscountPolicy
+
+    @Transient
+    private Double manufacturerSharePercent; // HangPercent from DiscountPolicy
+
+    @Transient
     private String approvedByStaffName;
 
     @Transient
@@ -176,6 +182,22 @@ public class DTOPurchaseOrder {
 
     public void setPolicyDiscountPercent(Double policyDiscountPercent) {
         this.policyDiscountPercent = policyDiscountPercent;
+    }
+
+    public Double getDealerRewardPercent() {
+        return dealerRewardPercent;
+    }
+
+    public void setDealerRewardPercent(Double dealerRewardPercent) {
+        this.dealerRewardPercent = dealerRewardPercent;
+    }
+
+    public Double getManufacturerSharePercent() {
+        return manufacturerSharePercent;
+    }
+
+    public void setManufacturerSharePercent(Double manufacturerSharePercent) {
+        this.manufacturerSharePercent = manufacturerSharePercent;
     }
 
     public String getApprovedByStaffName() {

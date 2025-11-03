@@ -77,11 +77,23 @@ public class DAOPurchaseOrder {
                 dto.setStaff(staff);
                 // Policy from DiscountPolicy
                 dto.setPolicyName(rs.getString("PolicyName"));
-                // Use HangPercent if not null else DailyPercent else null for discount percent
-                Double policyPercent = null;
-                if (rs.getBigDecimal("HangPercent") != null) policyPercent = rs.getBigDecimal("HangPercent").doubleValue();
-                else if (rs.getBigDecimal("DailyPercent") != null) policyPercent = rs.getBigDecimal("DailyPercent").doubleValue();
-                dto.setPolicyDiscountPercent(policyPercent);
+
+                // Set policy discount percent (fallback strategy since DiscountPercent column may not exist)
+                Double adjustmentDiscount = rs.getObject("AdjustmentDiscountPercent", Double.class);
+                Double hangPercent = rs.getObject("HangPercent", Double.class);
+                Double dailyPercent = rs.getObject("DailyPercent", Double.class);
+
+                // Use adjustment discount if available, else fallback to HangPercent
+                if (adjustmentDiscount != null) {
+                    dto.setPolicyDiscountPercent(adjustmentDiscount);
+                } else if (hangPercent != null) {
+                    dto.setPolicyDiscountPercent(hangPercent);
+                }
+
+                // Set dealer reward and manufacturer share
+                dto.setDealerRewardPercent(dailyPercent != null ? dailyPercent : 5.0);
+                dto.setManufacturerSharePercent(hangPercent != null ? hangPercent : 95.0);
+
                 if (dto.getStatus() == PurchaseOrderStatus.APPROVED) dto.setApprovedByStaffName(staff.getFullName());
                 // hydrate delivery summary
                 Timestamp deliveryDate = rs.getTimestamp("LatestDeliveryDate");
@@ -187,10 +199,22 @@ public class DAOPurchaseOrder {
 
                     // Promotion / Policy info
                     dto.setPolicyName(rs.getString("PolicyName"));
-                    Double policyPercent = null;
-                    if (rs.getBigDecimal("HangPercent") != null) policyPercent = rs.getBigDecimal("HangPercent").doubleValue();
-                    else if (rs.getBigDecimal("DailyPercent") != null) policyPercent = rs.getBigDecimal("DailyPercent").doubleValue();
-                    dto.setPolicyDiscountPercent(policyPercent);
+
+                    // Get discount-related percentages (DiscountPercent not in query)
+                    Double adjustmentDiscount = rs.getObject("AdjustmentDiscountPercent", Double.class);
+                    Double hangPercent = rs.getObject("HangPercent", Double.class);
+                    Double dailyPercent = rs.getObject("DailyPercent", Double.class);
+
+                    // Set policyDiscountPercent: Adjustment > HangPercent fallback
+                    if (adjustmentDiscount != null) {
+                        dto.setPolicyDiscountPercent(adjustmentDiscount);
+                    } else if (hangPercent != null) {
+                        dto.setPolicyDiscountPercent(hangPercent);
+                    }
+
+                    // Set dealer reward and manufacturer share percentages
+                    dto.setDealerRewardPercent(dailyPercent != null ? dailyPercent : 5.0);
+                    dto.setManufacturerSharePercent(hangPercent != null ? hangPercent : 95.0);
 
                     if (dto.getStatus() == PurchaseOrderStatus.APPROVED) dto.setApprovedByStaffName(staff.getFullName());
 
