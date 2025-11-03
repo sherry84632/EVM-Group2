@@ -28,6 +28,9 @@ public class PurchaseOrderController {
     @Autowired
     private DAOVehicle daoVehicle;
 
+    @Autowired
+    private DAODealerInventory daoDealerInventory;
+
     /**
      * 🔹 Trang chọn nhiều xe để đặt hàng (giống getVehicleListToCreateQuotation)
      */
@@ -240,27 +243,36 @@ public class PurchaseOrderController {
     }
 
     /**
-     * 🔹 Trang chi tiết đơn hàng
+     * Show order detail page with inventory vehicles (vehicles received in stock with VIN numbers)
      */
     @GetMapping("/detail/{id}")
     public String showOrderDetail(@PathVariable int id, Model model) {
         try {
             DTOPurchaseOrder order = daoPurchaseOrder.getPurchaseOrderById(id);
             if (order == null) {
-                model.addAttribute("message", "❌ Order not found!");
+                model.addAttribute("message", "Order not found!");
                 return "dealerPage/orderStatusList";
             }
+
             model.addAttribute("order", order);
+
+            // Load danh sach xe da ve kho cho don hang nay
+            List<DTODealerInventory> inventoryVehicles = daoDealerInventory.getInventoryByPurchaseOrderId(id);
+            model.addAttribute("inventoryVehicles", inventoryVehicles);
+
+            System.out.println("Loaded " + (inventoryVehicles != null ? inventoryVehicles.size() : 0)
+                             + " inventory vehicles for order #" + id);
+
             return "dealerPage/orderDetail";
         } catch (Exception e) {
             e.printStackTrace();
-            model.addAttribute("message", "⚠️ Error loading order details: " + e.getMessage());
+            model.addAttribute("message", "Error loading order details: " + e.getMessage());
             return "dealerPage/orderStatusList";
         }
     }
 
     /**
-     * 🔹 API: Lấy đơn hàng theo ID (JSON)
+     * API: Get order by ID (JSON)
      */
     @ResponseBody
     @GetMapping("/api/{id}")
@@ -269,7 +281,7 @@ public class PurchaseOrderController {
     }
 
     /**
-     * 🔹 API: Cập nhật trạng thái đơn hàng
+     * API: Update order status
      */
     @ResponseBody
     @PutMapping("/api/{id}/status")
@@ -279,7 +291,7 @@ public class PurchaseOrderController {
     }
 
     /**
-     * 🔹 API: Xóa đơn hàng
+     * API: Delete order
      */
     @ResponseBody
     @DeleteMapping("/api/{id}")
@@ -287,7 +299,6 @@ public class PurchaseOrderController {
         int result = daoPurchaseOrder.deletePurchaseOrder(id);
         return result > 0 ? "Deleted successfully" : "Delete failed";
     }
-
 
 
 }

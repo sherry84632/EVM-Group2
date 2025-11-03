@@ -392,6 +392,115 @@ public class DAODealerInventory {
         public Integer getPurchaseOrderId(){return purchaseOrderId;} public void setPurchaseOrderId(Integer p){purchaseOrderId=p;}
     }
 
+    // 🔥 NEW METHOD: Lấy danh sách xe đã về kho theo PurchaseOrderID
+    /**
+     * Get all inventory vehicles for a specific purchase order
+     * @param purchaseOrderId The purchase order ID
+     * @return List of vehicles in dealer inventory for this order
+     */
+    public List<DTODealerInventory> getInventoryByPurchaseOrderId(int purchaseOrderId) {
+        List<DTODealerInventory> list = new ArrayList<>();
+        String sql = """
+                SELECT di.DealerInventoryID, di.DealerID, di.VIN, di.ReceivedDate, di.Status, di.CostPrice, di.PurchaseOrderID,
+                       v.VehicleID, v.ManufactureYear, v.EngineNumber, v.Status AS VehicleStatus,
+                       vc.ColorID, vc.ColorName,
+                       vv.VersionID, vv.VersionName,
+                       vm.ModelID, vm.ModelName, vm.BasePrice
+                FROM DealerInventory di
+                LEFT JOIN Vehicle v ON di.VehicleID = v.VehicleID
+                LEFT JOIN VehicleColor vc ON v.ColorID = vc.ColorID
+                LEFT JOIN VehicleVersion vv ON v.VersionID = vv.VersionID
+                LEFT JOIN VehicleModel vm ON vv.ModelID = vm.ModelID
+                WHERE di.PurchaseOrderID = ?
+                ORDER BY di.ReceivedDate DESC
+                """;
+
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, purchaseOrderId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    DTODealerInventory dto = new DTODealerInventory();
+                    dto.setDealerInventoryID(rs.getInt("DealerInventoryID"));
+                    dto.setVin(rs.getString("VIN"));
+                    dto.setReceivedDate(rs.getDate("ReceivedDate"));
+
+                    String statusStr = rs.getString("Status");
+                    if (statusStr != null) {
+                        try {
+                            dto.setStatus(DealerInventoryStatus.valueOf(statusStr));
+                        } catch (IllegalArgumentException e) {
+                            dto.setStatus(DealerInventoryStatus.IN_STOCK);
+                        }
+                    }
+
+                    dto.setCostPrice(rs.getBigDecimal("CostPrice"));
+
+                    // Set dealer
+                    DTODealer dealer = new DTODealer();
+                    dealer.setDealerID(rs.getInt("DealerID"));
+                    dto.setDealer(dealer);
+
+                    // Set vehicle with full details
+                    DTOVehicle vehicle = new DTOVehicle();
+                    vehicle.setVehicleID(rs.getInt("VehicleID"));
+                    vehicle.setManufactureYear(rs.getInt("ManufactureYear"));
+                    vehicle.setEngineNumber(rs.getString("EngineNumber"));
+
+                    String vehicleStatus = rs.getString("VehicleStatus");
+                    if (vehicleStatus != null) {
+                        try {
+                            vehicle.setStatus(VehicleStatus.valueOf(vehicleStatus));
+                        } catch (IllegalArgumentException e) {
+                            vehicle.setStatus(VehicleStatus.IN_STOCK);
+                        }
+                    }
+
+                    // Set color
+                    String colorName = rs.getString("ColorName");
+                    if (colorName != null) {
+                        DTOVehicleColor color = new DTOVehicleColor();
+                        color.setColorID(rs.getInt("ColorID"));
+                        color.setColorName(colorName);
+                        vehicle.setColor(color);
+                        dto.setColorName(colorName); // Set transient field
+                    }
+
+                    // Set version and model
+                    String versionName = rs.getString("VersionName");
+                    if (versionName != null) {
+                        DTOVehicleVersion version = new DTOVehicleVersion();
+                        version.setVersionID(rs.getInt("VersionID"));
+                        version.setVersionName(versionName);
+
+                        String modelName = rs.getString("ModelName");
+                        if (modelName != null) {
+                            DTOVehicleModel model = new DTOVehicleModel();
+                            model.setModelID(rs.getInt("ModelID"));
+                            model.setModelName(modelName);
+                            model.setBasePrice(rs.getBigDecimal("BasePrice"));
+                            version.setModel(model);
+                            dto.setModelName(modelName); // Set transient field
+                        }
+
+                        vehicle.setVersion(version);
+                        dto.setVersionName(versionName); // Set transient field
+                    }
+
+                    dto.setVehicle(vehicle);
+                    list.add(dto);
+                }
+            }
+
+        } catch (SQLException e) {
+            log.error("Error fetching inventory for purchaseOrderId={}", purchaseOrderId, e);
+        }
+
+        return list;
+    }
+
     // ✅ Chỉ thêm inventory khi đơn hàng hãng đã giao thành công
     public boolean addWhenDeliveryCompleted(int purchaseOrderId, int dealerID, int colorID, int versionID, int quantity) {
         String checkDelivered = "SELECT TOP 1 1 FROM Delivery WHERE PurchaseOrderID = ? AND DeliveryStatus = 'DELIVERED'";

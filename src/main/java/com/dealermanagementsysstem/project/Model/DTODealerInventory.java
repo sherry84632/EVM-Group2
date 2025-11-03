@@ -33,6 +33,20 @@ public class DTODealerInventory {
     @Column(name = "CostPrice")
     private java.math.BigDecimal costPrice; // Giá cost sau chiết khấu từ EVM
 
+    @ManyToOne
+    @JoinColumn(name = "PurchaseOrderID", referencedColumnName = "PurchaseOrderID")
+    private DTOPurchaseOrder purchaseOrder;
+
+    // Transient fields for UI display
+    @Transient
+    private String modelName;
+
+    @Transient
+    private String versionName;
+
+    @Transient
+    private String colorName;
+
     public DTODealerInventory() {}
 
     public DTODealerInventory(int dealerInventoryID, DTODealer dealer, DTOVehicle vehicle, 
@@ -98,5 +112,37 @@ public class DTODealerInventory {
 
     public void setCostPrice(java.math.BigDecimal costPrice) {
         this.costPrice = costPrice;
+    }
+
+    public DTOPurchaseOrder getPurchaseOrder() {
+        return purchaseOrder;
+    }
+
+    public void setPurchaseOrder(DTOPurchaseOrder purchaseOrder) {
+        this.purchaseOrder = purchaseOrder;
+    }
+
+    public String getModelName() {
+        return modelName;
+    }
+
+    public void setModelName(String modelName) {
+        this.modelName = modelName;
+    }
+
+    public String getVersionName() {
+        return versionName;
+    }
+
+    public void setVersionName(String versionName) {
+        this.versionName = versionName;
+    }
+
+    public String getColorName() {
+        return colorName;
+    }
+
+    public void setColorName(String colorName) {
+        this.colorName = colorName;
     }
 }

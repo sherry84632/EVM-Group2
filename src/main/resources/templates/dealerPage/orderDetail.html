@@ -333,8 +333,118 @@
                         </tr>
                     </tbody>
                 </table>
-                <div class="total-amount">
-                    Total: <span th:text="${order.totalAmount != null ? #numbers.formatCurrency(order.totalAmount) : '$0.00'}"></span>
+            </div>
+
+            <!-- 🔥 INVOICE BREAKDOWN - Hóa đơn chi tiết -->
+            <div class="detail-card" th:if="${order.orderDetails != null and !#lists.isEmpty(order.orderDetails)}">
+                <h3><i class="fa-solid fa-file-invoice-dollar"></i> Invoice Breakdown</h3>
+
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 10px;">
+                    <!-- Subtotal (tổng trước thuế) -->
+                    <div class="info-row" style="border: none; font-size: 1.1rem;">
+                        <div class="info-label">Subtotal (Before Tax):</div>
+                        <div class="info-value" style="font-weight: 600; color: #495057;">
+                            <span th:text="${order.totalAmount != null ? #numbers.formatCurrency(order.totalAmount) : '$0.00'}"></span>
+                        </div>
+                    </div>
+
+                    <!-- Dealer Discount Policy -->
+                    <div class="info-row" style="border: none; font-size: 1rem; color: #28a745;"
+                         th:if="${order.policyDiscountPercent != null and order.policyDiscountPercent > 0}">
+                        <div class="info-label">
+                            <i class="fa-solid fa-gift me-2"></i>Dealer Discount Applied:
+                        </div>
+                        <div class="info-value" style="font-weight: 600;">
+                            <span th:text="${order.policyDiscountPercent + '%'}"></span>
+                            <span th:if="${order.policyName != null}"> (<span th:text="${order.policyName}"></span>)</span>
+                        </div>
+                    </div>
+
+                    <!-- VAT 10% -->
+                    <div class="info-row" style="border: none; font-size: 1rem; color: #6c757d;">
+                        <div class="info-label">
+                            <i class="fa-solid fa-percent me-2"></i>VAT (10%):
+                        </div>
+                        <div class="info-value" style="font-weight: 600;">
+                            <span th:with="vatAmount=${order.totalAmount != null ? order.totalAmount * 0.10 : 0}"
+                                  th:text="${#numbers.formatCurrency(vatAmount)}">$0.00</span>
+                        </div>
+                    </div>
+
+                    <hr style="margin: 20px 0; border-top: 2px solid #dee2e6;">
+
+                    <!-- Grand Total (Tổng cuối cùng) -->
+                    <div class="info-row" style="border: none; font-size: 1.5rem; font-weight: 700;">
+                        <div class="info-label" style="color: #000;">
+                            <i class="fa-solid fa-money-bill-wave me-2"></i>Total Amount:
+                        </div>
+                        <div class="info-value" style="color: #28a745;">
+                            <span th:with="grandTotal=${order.totalAmount != null ? order.totalAmount * 1.10 : 0}"
+                                  th:text="${#numbers.formatCurrency(grandTotal)}">$0.00</span>
+                        </div>
+                    </div>
+
+                    <!-- Summary Note -->
+                    <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 5px;">
+                        <p style="margin: 0; font-size: 0.95rem; color: #856404;">
+                            <i class="fa-solid fa-info-circle me-2"></i>
+                            <strong>Note:</strong>
+                            <span th:if="${order.policyDiscountPercent != null and order.policyDiscountPercent > 0}">
+                                Thanks to your dealer partnership, you receive a <strong th:text="${order.policyDiscountPercent + '%'}"></strong> discount on this order!
+                            </span>
+                            The total includes 10% VAT as per regulations.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 🔥 INVENTORY VEHICLES - Danh sách VIN xe đã về kho -->
+            <div class="detail-card" th:if="${inventoryVehicles != null and !#lists.isEmpty(inventoryVehicles)}">
+                <h3><i class="fa-solid fa-warehouse me-2"></i> Vehicles Received in Inventory</h3>
+
+                <div class="alert alert-success" role="alert">
+                    <i class="fa-solid fa-check-circle me-2"></i>
+                    <strong>Good news!</strong> The following vehicles have been delivered to your inventory:
+                </div>
+
+                <table class="table-modern">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>VIN</th>
+                            <th>Model</th>
+                            <th>Version</th>
+                            <th>Color</th>
+                            <th>Status</th>
+                            <th>Received Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="vehicle, iterStat : ${inventoryVehicles}">
+                            <td th:text="${iterStat.count}"></td>
+                            <td style="font-family: monospace; font-weight: bold; color: #007bff;">
+                                <span th:text="${vehicle.vin ?: 'N/A'}"></span>
+                            </td>
+                            <td th:text="${vehicle.modelName ?: 'N/A'}"></td>
+                            <td th:text="${vehicle.versionName ?: 'N/A'}"></td>
+                            <td th:text="${vehicle.colorName ?: 'N/A'}"></td>
+                            <td>
+                                <span class="badge"
+                                      th:classappend="${vehicle.status != null and vehicle.status.name() == 'IN_STOCK'} ? 'bg-success' : 'bg-warning'"
+                                      th:text="${vehicle.status != null ? vehicle.status.name() : 'PENDING'}">
+                                </span>
+                            </td>
+                            <td th:text="${vehicle.receivedDate != null ? #dates.format(vehicle.receivedDate, 'dd/MM/yyyy HH:mm') : 'N/A'}"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="detail-card" th:if="${inventoryVehicles == null or #lists.isEmpty(inventoryVehicles)}">
+                <div class="text-center text-muted py-4">
+                    <i class="fa-solid fa-hourglass-half fa-3x mb-3" style="color: #6c757d;"></i>
+                    <h5>Vehicles Not Yet Delivered</h5>
+                    <p>Once the vehicles are shipped and received, they will appear here with their VIN numbers.</p>
                 </div>
             </div>
 
