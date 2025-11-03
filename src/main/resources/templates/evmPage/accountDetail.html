@@ -84,6 +84,55 @@
                                 <small class="text-muted">(Encrypted)</small>
                             </td>
                         </tr>
+
+                        <!-- DealerStaff Information (only if role is DEALERSTAFF and data exists) -->
+                        <tr th:if="${account.role.name() == 'DEALERSTAFF' and account.dealerStaff != null}">
+                            <th colspan="2" class="bg-light">
+                                <h6 class="mb-0 text-primary">
+                                    <i class="fa-solid fa-user-tie"></i> Dealer Staff Information
+                                </h6>
+                            </th>
+                        </tr>
+                        <tr th:if="${account.role.name() == 'DEALERSTAFF' and account.dealerStaff != null}">
+                            <th>
+                                <i class="fa-solid fa-id-card"></i> Staff ID
+                            </th>
+                            <td th:text="${account.dealerStaff.staffID}"></td>
+                        </tr>
+                        <tr th:if="${account.role.name() == 'DEALERSTAFF' and account.dealerStaff != null}">
+                            <th>
+                                <i class="fa-solid fa-user"></i> Full Name
+                            </th>
+                            <td th:text="${account.dealerStaff.fullName}"></td>
+                        </tr>
+                        <tr th:if="${account.role.name() == 'DEALERSTAFF' and account.dealerStaff != null}">
+                            <th>
+                                <i class="fa-solid fa-briefcase"></i> Position
+                            </th>
+                            <td th:text="${account.dealerStaff.position ?: 'N/A'}"></td>
+                        </tr>
+                        <tr th:if="${account.role.name() == 'DEALERSTAFF' and account.dealerStaff != null}">
+                            <th>
+                                <i class="fa-solid fa-phone"></i> Phone
+                            </th>
+                            <td th:text="${account.dealerStaff.phone ?: 'N/A'}"></td>
+                        </tr>
+                        <tr th:if="${account.role.name() == 'DEALERSTAFF' and account.dealerStaff != null}">
+                            <th>
+                                <i class="fa-solid fa-envelope"></i> Staff Email
+                            </th>
+                            <td th:text="${account.dealerStaff.email ?: 'N/A'}"></td>
+                        </tr>
+                        <tr th:if="${account.role.name() == 'DEALERSTAFF' and account.dealerStaff != null and account.dealerStaff.dealer != null}">
+                            <th>
+                                <i class="fa-solid fa-building"></i> Dealer
+                            </th>
+                            <td>
+                                <strong th:text="${account.dealerStaff.dealer.dealerName}"></strong><br>
+                                <small class="text-muted" th:text="${account.dealerStaff.dealer.address}"></small>
+                            </td>
+                        </tr>
+
                         <tr>
                             <th>
                                 <i class="fa-solid fa-calendar-plus"></i> Created At

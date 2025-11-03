@@ -147,6 +147,84 @@
                         </div>
                     </div>
 
+                    <!-- ============================================ -->
+                    <!-- DEALER STAFF INFORMATION (shown only if role = DEALERSTAFF) -->
+                    <!-- ============================================ -->
+                    <div id="dealerStaffSection" th:style="${account.role.name() == 'DEALERSTAFF'} ? 'display: block;' : 'display: none;'">
+                        <hr>
+                        <h5 class="text-primary mb-3">
+                            <i class="fa-solid fa-user-tie"></i> Dealer Staff Information
+                        </h5>
+
+                        <!-- Staff Full Name -->
+                        <div class="mb-3">
+                            <label for="staffFullName" class="form-label">
+                                <i class="fa-solid fa-user"></i> Full Name <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" id="staffFullName" name="staffFullName"
+                                   th:value="${account.dealerStaff != null} ? ${account.dealerStaff.fullName} : ''"
+                                   placeholder="Enter staff full name">
+                        </div>
+
+                        <!-- Staff Position -->
+                        <div class="mb-3">
+                            <label for="staffPosition" class="form-label">
+                                <i class="fa-solid fa-briefcase"></i> Position
+                            </label>
+                            <input type="text" class="form-control" id="staffPosition" name="staffPosition"
+                                   th:value="${account.dealerStaff != null} ? ${account.dealerStaff.position} : ''"
+                                   placeholder="Sales (default if left empty)">
+                            <small class="form-text text-muted">Leave empty to auto-fill as "Sales"</small>
+                        </div>
+
+                        <!-- Staff Phone -->
+                        <div class="mb-3">
+                            <label for="staffPhone" class="form-label">
+                                <i class="fa-solid fa-phone"></i> Phone Number
+                            </label>
+                            <input type="tel" class="form-control" id="staffPhone" name="staffPhone"
+                                   th:value="${account.dealerStaff != null} ? ${account.dealerStaff.phone} : ''"
+                                   placeholder="Enter phone number">
+                        </div>
+
+                        <!-- Staff Email -->
+                        <div class="mb-3">
+                            <label for="staffEmail" class="form-label">
+                                <i class="fa-solid fa-envelope"></i> Staff Email
+                            </label>
+                            <input type="email" class="form-control" id="staffEmail" name="staffEmail"
+                                   th:value="${account.dealerStaff != null} ? ${account.dealerStaff.email} : ''"
+                                   placeholder="Staff email address">
+                            <small class="form-text text-muted">Leave blank to use the same email as account</small>
+                        </div>
+
+                        <!-- Dealer Selection -->
+                        <div class="mb-3">
+                            <label for="dealerId" class="form-label">
+                                <i class="fa-solid fa-building"></i> Dealer <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select" id="dealerId" name="dealerId">
+                                <option value="">-- Select Dealer --</option>
+                                <option th:each="dealer : ${dealers}"
+                                        th:value="${dealer.dealerID}"
+                                        th:text="${dealer.dealerName + ' - ' + dealer.address}"
+                                        th:selected="${account.dealerStaff != null and account.dealerStaff.dealer != null and account.dealerStaff.dealer.dealerID == dealer.dealerID}">
+                                </option>
+                            </select>
+                        </div>
+
+                        <!-- Show Staff ID if exists -->
+                        <div class="mb-3" th:if="${account.dealerStaff != null}">
+                            <label class="form-label">
+                                <i class="fa-solid fa-id-card"></i> Staff ID
+                            </label>
+                            <input type="text" class="form-control"
+                                   th:value="${account.dealerStaff.staffID}"
+                                   readonly>
+                            <small class="form-text text-muted">Auto-generated, cannot be changed</small>
+                        </div>
+                    </div>
+
                     <!-- Buttons -->
                     <div class="d-flex gap-2 justify-content-end">
                         <a href="/account/list" class="btn btn-secondary">
@@ -191,7 +269,10 @@ function togglePassword() {
 // Real-time email validation feedback
 document.addEventListener('DOMContentLoaded', function() {
     const emailInput = document.getElementById('email');
+    const roleSelect = document.getElementById('role');
+    const dealerStaffSection = document.getElementById('dealerStaffSection');
 
+    // Email validation
     emailInput.addEventListener('input', function() {
         const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
@@ -199,6 +280,31 @@ document.addEventListener('DOMContentLoaded', function() {
             this.classList.remove('is-valid', 'is-invalid');
         } else if (emailRegex.test(this.value)) {
             this.classList.remove('is-invalid');
+            this.classList.add('is-valid');
+        } else {
+            this.classList.remove('is-valid');
+            this.classList.add('is-invalid');
+        }
+    });
+
+    // Show/hide dealer staff section based on role
+    roleSelect.addEventListener('change', function() {
+        if (this.value === 'DEALERSTAFF') {
+            dealerStaffSection.style.display = 'block';
+            // Make fields required
+            document.getElementById('staffFullName').required = true;
+            document.getElementById('dealerId').required = true;
+        } else {
+            dealerStaffSection.style.display = 'none';
+            // Remove required
+            document.getElementById('staffFullName').required = false;
+            document.getElementById('dealerId').required = false;
+        }
+    });
+
+    // Trigger change event on page load
+    roleSelect.dispatchEvent(new Event('change'));
+});
             this.classList.add('is-valid');
         } else {
             this.classList.remove('is-valid');

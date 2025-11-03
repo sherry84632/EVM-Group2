@@ -177,10 +177,18 @@ public class DAOAccount {
     }
 
     /**
-     * Get account by ID
+     * Get account by ID with DealerStaff information
      */
     public DTOAccount getAccountById(int accountId) {
-        String sql = "SELECT AccountID, Username, Password, Role, IsActive, Email, CreatedAt, UpdatedAt FROM Account WHERE AccountID = ?";
+        String sql = """
+            SELECT a.AccountID, a.Username, a.Password, a.Role, a.IsActive, a.Email, a.CreatedAt, a.UpdatedAt,
+                   ds.StaffID, ds.FullName, ds.Position, ds.Phone as StaffPhone, ds.Email as StaffEmail,
+                   d.DealerID, d.DealerName, d.Address, d.Phone as DealerPhone, d.Email as DealerEmail
+            FROM Account a
+            LEFT JOIN DealerStaff ds ON ds.AccountID = a.AccountID
+            LEFT JOIN Dealer d ON d.DealerID = ds.DealerID
+            WHERE a.AccountID = ?
+        """;
 
         try (Connection con = DBUtils.getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
@@ -198,6 +206,30 @@ public class DAOAccount {
                     account.setEmail(rs.getString("Email"));
                     account.setCreatedAt(rs.getTimestamp("CreatedAt"));
                     account.setUpdatedAt(rs.getTimestamp("UpdatedAt"));
+
+                    // Load DealerStaff relationship if exists
+                    if (rs.getString("FullName") != null) {
+                        DTODealerStaff dealerStaff = new DTODealerStaff();
+                        dealerStaff.setStaffID(rs.getInt("StaffID"));
+                        dealerStaff.setFullName(rs.getString("FullName"));
+                        dealerStaff.setPosition(rs.getString("Position"));
+                        dealerStaff.setPhone(rs.getString("StaffPhone"));
+                        dealerStaff.setEmail(rs.getString("StaffEmail"));
+
+                        // Load Dealer relationship through DealerStaff if exists
+                        if (rs.getString("DealerName") != null) {
+                            DTODealer dealer = new DTODealer();
+                            dealer.setDealerID(rs.getInt("DealerID"));
+                            dealer.setDealerName(rs.getString("DealerName"));
+                            dealer.setAddress(rs.getString("Address"));
+                            dealer.setPhone(rs.getString("DealerPhone"));
+                            dealer.setEmail(rs.getString("DealerEmail"));
+                            dealerStaff.setDealer(dealer);
+                        }
+
+                        account.setDealerStaff(dealerStaff);
+                    }
+
                     return account;
                 }
             }
