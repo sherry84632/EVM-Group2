@@ -6,6 +6,9 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="/css/mainPageStyle.css">
     <link rel="stylesheet" href="/css/iconStyle.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"
+          integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw=="
+          crossorigin="anonymous" referrerpolicy="no-referrer"/>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <style>.stat-card{min-height:96px}</style>
     <script>
@@ -26,9 +29,8 @@
         function onExport(){window.location.href='/dealer/reports/inventory/export.csv';}
         window.addEventListener('DOMContentLoaded',()=>{qs('apply').addEventListener('click',loadData);qs('export').addEventListener('click',onExport);loadData();});
     </script>
-"""
 </head>
-<body class="bg-gradient2-custom">
+<body class="bg-gradient2-custom" style="overflow: hidden">
 <div class="d-flex">
     <div th:replace="~{mainPage/navBarFragment :: navBar}"></div>
     <div class="mainContent flex-grow-1 p-3">
