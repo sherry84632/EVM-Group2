@@ -160,7 +160,7 @@
                                     <th class="text-end">Purchase Orders</th>
                                     <th class="text-end">Sale Orders</th>
                                     <th class="text-end">Vehicles Sold</th>
-                                    <th class="text-end">Total Revenue (₫)</th>
+                                    <th class="text-end">Total Revenue (USD)</th>
                                     <th class="text-end">Inventory</th>
                                 </tr>
                                 </thead>
@@ -210,7 +210,7 @@ const topDealerData = topDealers.map(d => Number(d.revenue || 0));
 if (document.getElementById('topDealersRevenueChart')) {
   new Chart(document.getElementById('topDealersRevenueChart'), {
     type: 'bar',
-    data: { labels: topDealerLabels, datasets: [{ label: 'Revenue (₫)', data: topDealerData, backgroundColor: '#0d6efd' }]},
+    data: { labels: topDealerLabels, datasets: [{ label: 'Revenue (USD)', data: topDealerData, backgroundColor: '#0d6efd' }]},
     options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
   });
 }

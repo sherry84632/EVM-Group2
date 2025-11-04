@@ -13,7 +13,7 @@
     <style>.stat-card{min-height:96px}</style>
     <script>
         function qs(id){return document.getElementById(id);} async function fetchJson(u){const r=await fetch(u,{credentials:'include'});return await r.json();}
-        function formatCurrency(value){if(!value)return '₫0';const num=typeof value==='string'?parseFloat(value):value;return '₫'+num.toLocaleString('vi-VN',{minimumFractionDigits:0,maximumFractionDigits:0});}
+        function formatCurrency(value){if(!value)return '$0.00';const num=typeof value==='string'?parseFloat(value):value;return '$'+num.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
         function buildParams(){const from=qs('from').value;const to=qs('to').value;const p=new URLSearchParams();if(from)p.append('from',from);if(to)p.append('to',to);return p.toString();}
         let bar;
         async function loadData(){
