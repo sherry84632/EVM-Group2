@@ -267,6 +267,21 @@ public class PurchaseOrderController {
             List<DTODealerInventory> inventoryVehicles = daoDealerInventory.getInventoryByPurchaseOrderId(id);
             model.addAttribute("inventoryVehicles", inventoryVehicles);
 
+            // Calculate payment summary
+            if (order.getOrderDetails() != null && !order.getOrderDetails().isEmpty()) {
+                long totalItems = order.getOrderDetails().size();
+                long paidItems = order.getOrderDetails().stream()
+                        .filter(d -> "PAID".equals(d.getPaymentStatus()))
+                        .count();
+                long unpaidItems = totalItems - paidItems;
+                boolean allPaid = unpaidItems == 0;
+
+                model.addAttribute("paymentTotalItems", totalItems);
+                model.addAttribute("paymentPaidItems", paidItems);
+                model.addAttribute("paymentUnpaidItems", unpaidItems);
+                model.addAttribute("paymentAllPaid", allPaid);
+            }
+
             System.out.println("Loaded " + (inventoryVehicles != null ? inventoryVehicles.size() : 0)
                              + " inventory vehicles for order #" + id);
 

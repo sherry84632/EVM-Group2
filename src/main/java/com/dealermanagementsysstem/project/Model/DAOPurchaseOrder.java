@@ -145,7 +145,7 @@ public class DAOPurchaseOrder {
                 """;
 
         String sqlDetail = """
-                SELECT pod.PODetailID, pod.PurchaseOrderID, pod.ColorID, pod.VersionID, pod.UnitPrice, pod.Quantity, pod.Subtotal,
+                SELECT pod.PODetailID, pod.PurchaseOrderID, pod.ColorID, pod.VersionID, pod.UnitPrice, pod.Quantity, pod.Subtotal, pod.PaymentStatus,
                        vc.ColorID AS DetailColorID, vc.ColorName,
                        vv.VersionID AS DetailVersionID, vv.VersionName,
                        vm.ModelID, vm.ModelName, vm.BasePrice,
@@ -230,6 +230,10 @@ public class DAOPurchaseOrder {
                                 d.setUnitPrice(drs.getBigDecimal("UnitPrice"));
                                 d.setQuantity(drs.getInt("Quantity"));
                                 d.setSubtotal(drs.getBigDecimal("Subtotal"));
+
+                                // ✅ Set PaymentStatus
+                                String paymentStatus = drs.getString("PaymentStatus");
+                                d.setPaymentStatus(paymentStatus != null ? paymentStatus : "UNPAID");
 
                                 // ✅ Set BasePrice (giá gốc)
                                 BigDecimal basePrice = drs.getBigDecimal("BasePrice");

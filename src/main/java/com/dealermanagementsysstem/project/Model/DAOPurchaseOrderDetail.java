@@ -20,7 +20,7 @@ public class DAOPurchaseOrderDetail {
         if (finalUnitPrice == null || finalUnitPrice.compareTo(BigDecimal.ZERO) == 0) {
             finalUnitPrice = computeUnitPrice(versionId, null); // no dealer filter
         }
-        String sql = "INSERT INTO PurchaseOrderDetail (PurchaseOrderID, ColorID, VersionID, Quantity, UnitPrice, Subtotal) VALUES (?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO PurchaseOrderDetail (PurchaseOrderID, ColorID, VersionID, Quantity, UnitPrice, Subtotal, PaymentStatus) VALUES (?, ?, ?, ?, ?, ?, 'UNPAID')";
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
@@ -104,4 +104,84 @@ public class DAOPurchaseOrderDetail {
 
     // Optionally expose list retrieval if needed (placeholder)
     public List<DTOPurchaseOrderDetail> placeholder() { return new ArrayList<>(); }
+
+    /**
+     * Update payment status for a specific purchase order detail
+     */
+    public boolean updatePaymentStatus(int poDetailId, String paymentStatus) {
+        String sql = "UPDATE PurchaseOrderDetail SET PaymentStatus = ? WHERE PODetailID = ?";
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, paymentStatus);
+            ps.setInt(2, poDetailId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * Update payment status for all details of a purchase order
+     */
+    public boolean updatePaymentStatusByPurchaseOrderId(int purchaseOrderId, String paymentStatus) {
+        String sql = "UPDATE PurchaseOrderDetail SET PaymentStatus = ? WHERE PurchaseOrderID = ?";
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, paymentStatus);
+            ps.setInt(2, purchaseOrderId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * Check if all order details for a purchase order are paid
+     */
+    public boolean areAllDetailsPaid(int purchaseOrderId) {
+        String sql = "SELECT COUNT(*) as UnpaidCount FROM PurchaseOrderDetail WHERE PurchaseOrderID = ? AND PaymentStatus = 'UNPAID'";
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, purchaseOrderId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("UnpaidCount") == 0;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    /**
+     * Get payment summary for a purchase order
+     */
+    public String getPaymentSummary(int purchaseOrderId) {
+        String sql = """
+            SELECT 
+                COUNT(*) as TotalItems,
+                SUM(CASE WHEN PaymentStatus = 'PAID' THEN 1 ELSE 0 END) as PaidItems,
+                SUM(CASE WHEN PaymentStatus = 'UNPAID' THEN 1 ELSE 0 END) as UnpaidItems
+            FROM PurchaseOrderDetail 
+            WHERE PurchaseOrderID = ?
+        """;
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, purchaseOrderId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    int total = rs.getInt("TotalItems");
+                    int paid = rs.getInt("PaidItems");
+                    int unpaid = rs.getInt("UnpaidItems");
+                    return paid + "/" + total + " items paid (" + unpaid + " unpaid)";
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return "N/A";
+    }
 }
