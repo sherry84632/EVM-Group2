@@ -20,9 +20,9 @@
         function qs(id) { return document.getElementById(id); }
 
         function formatCurrency(value) {
-            if (!value) return '₫0';
+            if (!value) return '$0.00';
             const num = typeof value === 'string' ? parseFloat(value) : value;
-            return '₫' + num.toLocaleString('vi-VN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+            return '$' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
 
         function buildParams() {
