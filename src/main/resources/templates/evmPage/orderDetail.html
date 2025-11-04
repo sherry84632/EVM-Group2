@@ -558,10 +558,6 @@
                         <span class="info-value" th:text="${order.actualDeliveryDate != null ? #dates.format(order.actualDeliveryDate,'dd/MM/yyyy') : '-'}">-</span>
                     </div>
                     <div class="info-row">
-                        <span class="info-label">Delivery Method:</span>
-                        <span class="info-value" th:text="${order.deliveryMethod ?: '-'}">-</span>
-                    </div>
-                    <div class="info-row">
                         <span class="info-label">Shipping Status:</span>
                         <span class="info-value" th:text="${order.shippingStatus ?: (order.status.name()=='APPROVED' ? 'PLANNED' : '-')} ">-</span>
                     </div>
