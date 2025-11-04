@@ -169,7 +169,7 @@
             <span th:text="${error}"></span>
         </div>
 
-        <div class="mainContentVer" style="height: 80vh">
+        <div class="mainContentVer" style="height: 90vh">
 
             <!-- LEFT COLUMN: Form -->
             <div class="left-column">
@@ -310,14 +310,13 @@
                                         <span class="status-badge"
                                               th:classappend="${p.status != null and p.status.name() == 'ACTIVE' ? 'status-active' : (p.status != null and p.status.name() == 'INACTIVE' ? 'status-inactive' : 'status-expired')}"
                                               th:text="${p.status != null ? p.status.name() : 'ACTIVE'}">ACTIVE</span>
-                                        <span class="status-badge" style="background: #17a2b8; margin-left: 5px;">
-                                            <i class="fas fa-building"></i>
-                                            <span th:text="${p.dealer?.dealerName}">Dealer</span>
-                                        </span>
                                     </div>
 
                                     <!-- Percentages -->
                                     <div class="discount-info">
+                                        <div class="info-row">
+                                            <span class="info-label" th:text="${p.dealer?.dealerName}"></span>
+                                        </div>
                                         <div class="info-row">
                                             <span class="info-label">Dealer Discount</span>
                                             <span class="percent-badge percent-badge-discount"
