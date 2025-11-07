@@ -27,8 +27,18 @@ public class DealerReportController {
 
     private Integer resolveDealerIdOrNull() {
         String email = SecurityUtil.getCurrentUserEmail();
-        if (email == null) return null;
-        return daoAccount.getDealerIdByEmail(email);
+        if (email == null) {
+            System.out.println("⚠️ DealerReportController: No user email found in session");
+            return null;
+        }
+
+        Integer dealerId = daoAccount.getDealerIdByEmail(email);
+        if (dealerId == null) {
+            System.out.println("⚠️ DealerReportController: No dealer found for email: " + email);
+            // For dealer reports, dealer ID is REQUIRED
+            // If null is returned, queries will return ALL dealers' data (security issue!)
+        }
+        return dealerId;
     }
 
     private java.sql.Date toSql(LocalDate d) { return d != null ? java.sql.Date.valueOf(d) : null; }
@@ -56,6 +66,10 @@ public class DealerReportController {
             @RequestParam(value = "from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(value = "to", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
         Integer dealerId = resolveDealerIdOrNull();
+        if (dealerId == null) {
+            System.out.println("❌ salesKpis: No dealer found for current user - returning empty");
+            return new HashMap<>(); // Return empty instead of querying all dealers
+        }
         return dao.getSalesKpis(dealerId, toSql(from), toSql(to));
     }
 
@@ -65,6 +79,7 @@ public class DealerReportController {
             @RequestParam(value = "from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(value = "to", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
         Integer dealerId = resolveDealerIdOrNull();
+        if (dealerId == null) return new ArrayList<>();
         return dao.getSalesByMonth(dealerId, toSql(from), toSql(to));
     }
 
@@ -74,6 +89,7 @@ public class DealerReportController {
             @RequestParam(value = "from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(value = "to", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
         Integer dealerId = resolveDealerIdOrNull();
+        if (dealerId == null) return new HashMap<>();
         return dao.getOrderStatusDistribution(dealerId, toSql(from), toSql(to));
     }
 
@@ -84,6 +100,7 @@ public class DealerReportController {
             @RequestParam(value = "to", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam(value = "limit", required = false, defaultValue = "5") int limit) {
         Integer dealerId = resolveDealerIdOrNull();
+        if (dealerId == null) return new ArrayList<>();
         return dao.getTopVehicleColorsSold(dealerId, toSql(from), toSql(to), limit);
     }
 
@@ -94,6 +111,7 @@ public class DealerReportController {
             @RequestParam(value = "to", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam(value = "status", required = false) String status) {
         Integer dealerId = resolveDealerIdOrNull();
+        if (dealerId == null) return new ArrayList<>();
         return dao.getSalesTable(dealerId, toSql(from), toSql(to), status);
     }
 
@@ -128,6 +146,7 @@ public class DealerReportController {
             @RequestParam(value = "from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(value = "to", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
         Integer dealerId = resolveDealerIdOrNull();
+        if (dealerId == null) return new HashMap<>();
         return dao.getInventoryKpis(dealerId, toSql(from), toSql(to));
     }
 
@@ -135,6 +154,7 @@ public class DealerReportController {
     @ResponseBody
     public List<Map<String, Object>> inventoryByColor() {
         Integer dealerId = resolveDealerIdOrNull();
+        if (dealerId == null) return new ArrayList<>();
         return dao.getInventoryByColor(dealerId);
     }
 
@@ -142,6 +162,7 @@ public class DealerReportController {
     @ResponseBody
     public List<Map<String, Object>> inventoryByVersion() {
         Integer dealerId = resolveDealerIdOrNull();
+        if (dealerId == null) return new ArrayList<>();
         return dao.getInventoryByVersion(dealerId);
     }
 
@@ -180,6 +201,7 @@ public class DealerReportController {
             @RequestParam(value = "from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(value = "to", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
         Integer dealerId = resolveDealerIdOrNull();
+        if (dealerId == null) return new HashMap<>();
         return dao.getPurchaseOrderKpis(dealerId, toSql(from), toSql(to));
     }
 
@@ -189,6 +211,7 @@ public class DealerReportController {
             @RequestParam(value = "from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(value = "to", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
         Integer dealerId = resolveDealerIdOrNull();
+        if (dealerId == null) return new HashMap<>();
         return dao.getPurchaseOrderStatusDistribution(dealerId, toSql(from), toSql(to));
     }
 
@@ -199,6 +222,7 @@ public class DealerReportController {
             @RequestParam(value = "from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(value = "to", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
         Integer dealerId = resolveDealerIdOrNull();
+        if (dealerId == null) return new HashMap<>();
         return dao.getDiscountEffectiveness(dealerId, toSql(from), toSql(to));
     }
 }

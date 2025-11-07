@@ -35,6 +35,37 @@ public class QuotationController {
 
     private static final Logger log = LoggerFactory.getLogger(QuotationController.class);
 
+    /**
+     * Helper method to get dealer ID from current logged-in user
+     * Returns null if user is not associated with a dealer (EVM/Admin)
+     */
+    private Integer getDealerIdFromSession() {
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth == null) {
+                log.warn("⚠️ No authentication found");
+                return null;
+            }
+
+            String email = auth.getName();
+            if (email == null) {
+                log.warn("⚠️ No email found in authentication");
+                return null;
+            }
+
+            Integer dealerId = daoAccount.getDealerIdByEmail(email);
+            if (dealerId == null) {
+                log.info("⚠️ No dealer found for email: {} (likely EVM/Admin user)", email);
+            } else {
+                log.debug("✅ Found dealerId={} for email={}", dealerId, email);
+            }
+            return dealerId;
+        } catch (Exception e) {
+            log.error("❌ Error getting dealer ID from session", e);
+            return null;
+        }
+    }
+
     // ✅ Hiển thị form báo giá
     @GetMapping("/new")
     public String showQuotationForm(
@@ -231,24 +262,36 @@ public class QuotationController {
     // 🔥 CORE FLOW STEP 3: List all quotations (for dealer to review) - FILTERED BY DEALER
     @GetMapping("/list")
     public String listQuotations(Model model, HttpSession session) {
-    log.debug("Loading quotations list");
+        log.info("========== QUOTATION LIST REQUEST ==========");
 
         try {
-            // Get current logged-in account
-            DTOAccount loggedInAccount = (DTOAccount) session.getAttribute("loggedInAccount");
+            // ✅ Get dealer ID from logged-in user's email
+            Integer dealerId = getDealerIdFromSession();
+
+            log.info("🔍 Resolved dealerId from session: {}", dealerId);
 
             List<DTOQuotation> quotations;
 
             // Filter by dealer if user is DEALER or DEALERSTAFF
-            if (loggedInAccount != null && loggedInAccount.getDealerStaff() != null
-                && loggedInAccount.getDealerStaff().getDealer() != null) {
-                int dealerID = loggedInAccount.getDealerStaff().getDealer().getDealerID();
-                quotations = dao.getQuotationsByDealerId(dealerID);
+            if (dealerId != null) {
+                log.info("🎯 Calling dao.getQuotationsByDealerId({})", dealerId);
+                quotations = dao.getQuotationsByDealerId(dealerId);
+
+                // Log each quotation's dealer ID for verification
+                log.info("📋 Retrieved {} quotations:", quotations.size());
+                for (DTOQuotation q : quotations) {
+                    log.info("   - QuotationID={}, DealerID={}, Customer={}",
+                        q.getQuotationID(),
+                        q.getDealer() != null ? q.getDealer().getDealerID() : "NULL",
+                        q.getCustomer() != null ? q.getCustomer().getFullName() : "NULL");
+                }
+
                 model.addAttribute("dealerFiltered", true);
-                model.addAttribute("dealerID", dealerID);
-                log.info("Filtered quotations by dealerID={}, size={}", dealerID, quotations.size());
+                model.addAttribute("dealerID", dealerId);
+                log.info("✅ Filtered quotations by dealerID={}, size={}", dealerId, quotations.size());
             } else {
                 // Admin/EVM - show all quotations
+                log.info("⚠️ No dealer found - showing all quotations (EVM/Admin)");
                 quotations = dao.getAllQuotations();
                 model.addAttribute("dealerFiltered", false);
                 log.info("Loaded all quotations size={}", quotations.size());

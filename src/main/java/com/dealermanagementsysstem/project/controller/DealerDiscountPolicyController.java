@@ -32,17 +32,16 @@ public class DealerDiscountPolicyController {
             Model model,
             HttpSession session
     ) {
-        // Get current logged-in account
-        DTOAccount loggedInAccount = (DTOAccount) session.getAttribute("loggedInAccount");
-
         List<DTODiscountPolicy> policies;
 
-        // Determine dealer ID for filtering
-        Integer dealerIdFilter = null;
-        if (loggedInAccount != null && loggedInAccount.getDealerStaff() != null
-            && loggedInAccount.getDealerStaff().getDealer() != null) {
-            dealerIdFilter = loggedInAccount.getDealerStaff().getDealer().getDealerID();
+        // ✅ Get dealer ID from logged-in user's email
+        Integer dealerIdFilter = getDealerIdFromSession();
+
+        if (dealerIdFilter != null) {
             model.addAttribute("dealerFiltered", true);
+            System.out.println("✅ Filtering discount policies for DealerID: " + dealerIdFilter);
+        } else {
+            System.out.println("⚠️ No dealer found for current user - showing all policies");
         }
 
         // Get policies with optional filtering
@@ -55,8 +54,10 @@ public class DealerDiscountPolicyController {
             model.addAttribute("keyword", keyword);
         } else {
             if (dealerIdFilter != null) {
+                // ✅ Only show this dealer's policies
                 policies = daoPolicy.getPoliciesByDealerId(dealerIdFilter);
             } else {
+                // For EVM/Admin - show all
                 policies = daoPolicy.getAllPolicies();
             }
         }
@@ -85,6 +86,24 @@ public class DealerDiscountPolicyController {
         model.addAttribute("policies", policies);
         model.addAttribute("newPolicy", new DTODiscountPolicy());
         return "evmPage/evmDiscountPolicyManagement";
+    }
+
+    /**
+     * Helper method to get dealer ID from current logged-in user
+     * Returns null if user is not associated with a dealer (EVM/Admin)
+     */
+    private Integer getDealerIdFromSession() {
+        String email = SecurityUtil.getCurrentUserEmail();
+        if (email == null) {
+            System.out.println("⚠️ No user email found in session");
+            return null;
+        }
+
+        Integer dealerId = daoAccount.getDealerIdByEmail(email);
+        if (dealerId == null) {
+            System.out.println("⚠️ No dealer found for email: " + email);
+        }
+        return dealerId;
     }
 
     // ✅ CREATE - Create new Discount Policy
