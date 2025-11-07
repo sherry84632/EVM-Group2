@@ -7,6 +7,7 @@ import com.dealermanagementsysstem.project.Model.DAODealer;
 import com.dealermanagementsysstem.project.Model.DTOCustomer;
 import com.dealermanagementsysstem.project.Model.DTOTestDrive;
 import com.dealermanagementsysstem.project.Model.DTOAccount;
+import com.dealermanagementsysstem.project.Model.DTODealer;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -76,7 +77,24 @@ public class CustomerController {
     @PostMapping("/customer/save")
     public String saveCustomer(@ModelAttribute("customer") DTOCustomer c,
                                @RequestParam(value = "testDriveSchedule", required = false) String testDriveSchedule,
+                               HttpSession session,
                                RedirectAttributes redirectAttributes) {
+
+        // ✅ Lấy dealerID từ account đang đăng nhập (fix bug default = 1)
+        DTOAccount loggedInAccount = (DTOAccount) session.getAttribute("loggedInAccount");
+        if (loggedInAccount != null && loggedInAccount.getDealerStaff() != null
+            && loggedInAccount.getDealerStaff().getDealer() != null) {
+            int dealerID = loggedInAccount.getDealerStaff().getDealer().getDealerID();
+
+            // Set dealerID vào customer
+            DTODealer dealer = new DTODealer();
+            dealer.setDealerID(dealerID);
+            c.setDealer(dealer);
+
+            System.out.println("✅ Creating customer for DealerID=" + dealerID);
+        } else {
+            System.out.println("⚠️ No dealer found in session, customer will have DealerID=NULL");
+        }
 
         // ✅ Lưu customer và lấy customerID
         int newCustomerID = daoCustomer.insertCustomer(c);
@@ -97,15 +115,18 @@ public class CustomerController {
                         }
                     }
 
-                    // ✅ Lấy dealerID từ customer (mặc định là 1 nếu không có)
+                    // ✅ Lấy dealerID từ customer (đã được set từ session ở trên)
                     Integer dealerID = (c.getDealer() != null && c.getDealer().getDealerID() > 0)
                                       ? c.getDealer().getDealerID()
-                                      : 1; // Default dealer
+                                      : null; // Không dùng default nữa
 
                     // ✅ Lấy staffID từ dealer (staff đầu tiên của dealer)
-                    Integer staffID = daoDealer.getFirstStaffIdByDealerId(dealerID);
-                    if (staffID == null) {
-                        System.out.println("⚠️ No staff found for DealerID=" + dealerID + ", TestDrive will have StaffID=NULL");
+                    Integer staffID = null;
+                    if (dealerID != null) {
+                        staffID = daoDealer.getFirstStaffIdByDealerId(dealerID);
+                        if (staffID == null) {
+                            System.out.println("⚠️ No staff found for DealerID=" + dealerID + ", TestDrive will have StaffID=NULL");
+                        }
                     }
 
                     // ✅ Tạo test drive với đầy đủ thông tin

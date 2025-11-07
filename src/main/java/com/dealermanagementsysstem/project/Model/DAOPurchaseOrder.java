@@ -409,54 +409,69 @@ public class DAOPurchaseOrder {
         return -1;
     }
 
-    // Lấy DealerID theo email (tự động tạo nếu chưa có)
+    // ✅ Lấy DealerID theo email từ Account → DealerStaff → Dealer
+    // KHÔNG tự động tạo dealer mới (đã fix bug tạo dealer ID=13 thay vì dùng ID=12)
     public int getDealerIdByEmail(String email) {
-        String selectSql = "SELECT DealerID FROM Dealer WHERE Email = ?";
-        String insertSql = "INSERT INTO Dealer (dealerName, address, phone, email, EvmID, LevelID, PolicyID) VALUES (?, NULL, NULL, ?, NULL, 1, NULL)";
-        try (Connection conn = DBUtils.getConnection()) {
-            try (PreparedStatement ps = conn.prepareStatement(selectSql)) {
-                ps.setString(1, email);
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) return rs.getInt("DealerID");
+        // ✅ Tìm theo quan hệ Account → DealerStaff → Dealer (ĐÚNG)
+        String sql = """
+            SELECT d.DealerID
+            FROM Account a
+            JOIN DealerStaff ds ON ds.AccountID = a.AccountID
+            JOIN Dealer d ON d.DealerID = ds.DealerID
+            WHERE a.Email = ?
+            """;
+
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, email);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    int dealerId = rs.getInt("DealerID");
+                    System.out.println("✅ Found DealerID=" + dealerId + " for email=" + email);
+                    return dealerId;
                 }
             }
-            try (PreparedStatement ps = conn.prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS)) {
-                ps.setString(1, email.split("@")[0]);
-                ps.setString(2, email);
-                ps.executeUpdate();
-                try (ResultSet rs = ps.getGeneratedKeys()) {
-                    if (rs.next()) return rs.getInt(1);
-                }
-            }
-        } catch (SQLException e) { e.printStackTrace(); }
+        } catch (SQLException e) {
+            System.err.println("❌ Error getting DealerID for email: " + email);
+            e.printStackTrace();
+        }
+
+        // ❌ KHÔNG tìm thấy dealer → Trả về -1 (không tự động tạo nữa)
+        System.err.println("⚠️ No dealer found for email: " + email + ". Cannot create purchase order.");
         return -1;
     }
 
-    // ✅ Lấy StaffID theo email (tự động tạo nếu chưa có)
+    // ✅ Lấy StaffID theo email từ Account → DealerStaff
+    // KHÔNG tự động tạo staff mới (đã fix bug)
     public int getStaffIdByEmail(String email) {
-        String selectSql = "SELECT StaffID FROM DealerStaff WHERE Email = ?";
-        String insertSql = "INSERT INTO DealerStaff (DealerID, FullName, Position, Email) VALUES (?, ?, ?, ?)";
-        try (Connection conn = DBUtils.getConnection()) {
-            try (PreparedStatement ps = conn.prepareStatement(selectSql)) {
-                ps.setString(1, email);
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) return rs.getInt("StaffID");
+        // ✅ Tìm theo quan hệ Account → DealerStaff (ĐÚNG)
+        String sql = """
+            SELECT ds.StaffID
+            FROM Account a
+            JOIN DealerStaff ds ON ds.AccountID = a.AccountID
+            WHERE a.Email = ?
+            """;
+
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, email);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    int staffId = rs.getInt("StaffID");
+                    System.out.println("✅ Found StaffID=" + staffId + " for email=" + email);
+                    return staffId;
                 }
             }
-            int dealerId = getDealerIdByEmail(email);
-            if (dealerId > 0) {
-                try (PreparedStatement ps = conn.prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS)) {
-                    ps.setInt(1, dealerId);
-                    ps.setString(2, "Staff " + email.split("@")[0]);
-                    ps.setString(3, "Sales");
-                    ps.setString(4, email);
-                    ps.executeUpdate();
-                    try (ResultSet rs = ps.getGeneratedKeys()) { if (rs.next()) return rs.getInt(1); }
-                }
-            }
-        } catch (SQLException e) { e.printStackTrace(); }
+        } catch (SQLException e) {
+            System.err.println("❌ Error getting StaffID for email: " + email);
+            e.printStackTrace();
+        }
+
+        // ❌ KHÔNG tìm thấy staff → Trả về -1 (không tự động tạo nữa)
+        System.err.println("⚠️ No staff found for email: " + email + ". Cannot create purchase order.");
         return -1;
     }
+
     // 🔹 Lấy danh sách đơn hàng theo DealerID
     public List<DTOPurchaseOrder> getPurchaseOrdersByDealerId(int dealerId) {
         List<DTOPurchaseOrder> list = new ArrayList<>();
