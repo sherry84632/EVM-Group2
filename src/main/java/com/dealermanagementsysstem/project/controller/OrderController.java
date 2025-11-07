@@ -27,9 +27,41 @@ public class OrderController {
     // 1️⃣  DANH SÁCH TẤT CẢ SALE ORDER
     // ======================================================
     @GetMapping
-    public String listSaleOrders(Model model) {
-        List<DTOSaleOrder> orders = dao.getAllSaleOrders();
+    public String listSaleOrders(
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "status", required = false) String status,
+            @RequestParam(value = "from", required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate from,
+            @RequestParam(value = "to", required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate to,
+            Model model) {
+        List<DTOSaleOrder> all = dao.getAllSaleOrders();
+        List<DTOSaleOrder> orders = new java.util.ArrayList<>();
+
+        for (DTOSaleOrder o : all) {
+            boolean ok = true;
+            // keyword by customer name
+            if (keyword != null && !keyword.trim().isEmpty()) {
+                String name = (o.getCustomer()!=null && o.getCustomer().getFullName()!=null) ? o.getCustomer().getFullName() : "";
+                ok = name.toLowerCase().contains(keyword.trim().toLowerCase());
+            }
+            // status filter
+            if (ok && status != null && !status.isBlank()) {
+                ok = (o.getStatus()!=null && o.getStatus().name().equalsIgnoreCase(status));
+            }
+            // date range filter
+            if (ok && (from != null || to != null)) {
+                java.time.LocalDate created = o.getCreatedAt()!=null ? o.getCreatedAt().toLocalDateTime().toLocalDate() : null;
+                if (created == null) ok = false;
+                if (ok && from != null && created.isBefore(from)) ok = false;
+                if (ok && to != null && created.isAfter(to)) ok = false;
+            }
+            if (ok) orders.add(o);
+        }
+
         model.addAttribute("orders", orders);
+        model.addAttribute("keyword", keyword != null ? keyword : "");
+        model.addAttribute("status", status != null ? status : "");
+        model.addAttribute("from", from);
+        model.addAttribute("to", to);
         return "dealerPage/dealerCustomerOrderList";
     }
 
