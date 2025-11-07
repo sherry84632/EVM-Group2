@@ -85,16 +85,37 @@ public class QuotationController {
         }
         log.debug("Vehicle found ID={}", vehicle.getVehicleID());
 
-        // 2️⃣ Lấy thông tin dealer từ session (debug)
-        DTOAccount account = (DTOAccount) session.getAttribute("user");
-    log.trace("Session user username={} dealerId={}", account != null ? account.getUsername() : null, account != null ? account.getDealerStaff().getStaffID() : null);
+        // 2️⃣ Lấy thông tin dealer từ session - USE RELIABLE METHOD
+        System.out.println("\n========== DEALER LOADING DEBUG ==========");
+        System.out.println("📍 Method: showQuotationForm() for VehicleID=" + vehicleId);
+
+        // Get authentication info
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String currentUserEmail = (auth != null && auth.isAuthenticated()) ? auth.getName() : "NOT_AUTHENTICATED";
+        System.out.println("🔐 Current User Email: " + currentUserEmail);
+
+        Integer dealerId = getDealerIdFromSession();
+        System.out.println("🔍 Dealer ID from getDealerIdFromSession(): " + (dealerId != null ? dealerId : "❌ NULL"));
 
         DTODealer dealer = null;
-        if (account != null && account.getDealerStaff() != null && account.getDealerStaff().getDealer()!=null) {
-            dealer = dao.getDealerByID(account.getDealerStaff().getDealer().getDealerID());
-            // load active discounts for the dealer if page needs them later
-            model.addAttribute("activeDiscounts", daoDealerPriceAdjustment.getActiveDiscountsByDealer(dealer.getDealerID()));
+        if (dealerId != null && dealerId > 0) {
+            dealer = dao.getDealerByID(dealerId);
+            if (dealer != null) {
+                System.out.println("✅ SUCCESS: Loaded dealer from DB");
+                System.out.println("   ├─ Dealer ID: " + dealer.getDealerID());
+                System.out.println("   ├─ Dealer Name: " + dealer.getDealerName());
+                System.out.println("   └─ Will filter customers by this dealer");
+                // load active discounts for the dealer if page needs them later
+                model.addAttribute("activeDiscounts", daoDealerPriceAdjustment.getActiveDiscountsByDealer(dealer.getDealerID()));
+            } else {
+                System.out.println("❌ ERROR: Dealer not found in DB for ID=" + dealerId);
+                System.out.println("   └─ This should NOT happen! Check Dealer table.");
+            }
         } else {
+            System.out.println("⚠️ WARNING: No dealer ID found in session");
+            System.out.println("   ├─ User email: " + currentUserEmail);
+            System.out.println("   ├─ Likely Admin/EVM user (no dealer assigned)");
+            System.out.println("   └─ Will load ALL customers (no filter)");
             // No dealer in session: load dealer list so user can pick in the form instead of redirecting to login
             try {
                 List<DTODealer> dealerList = daoDealer.getAllDealers();
@@ -104,6 +125,7 @@ public class QuotationController {
                 log.error("Failed to load dealer list", ex);
             }
         }
+        System.out.println("==========================================\n");
 
         // 3️⃣ Ngày tạo báo giá
         Timestamp createdAt = Timestamp.valueOf(LocalDateTime.now());
@@ -113,18 +135,68 @@ public class QuotationController {
             DAOCustomer customerDAO = new DAOCustomer();
             List<DTOCustomer> customerList;
 
+            // 🔍 DEBUG: Log dealer information
+            System.out.println("\n========== CUSTOMER LOADING DEBUG ==========");
+            System.out.println("📍 Loading customers for quotation form");
+            System.out.println("🔍 Dealer object status: " + (dealer != null ? "✅ EXISTS" : "❌ NULL"));
+
+            if (dealer != null) {
+                System.out.println("   ├─ Dealer ID: " + dealer.getDealerID());
+                System.out.println("   └─ Dealer Name: " + dealer.getDealerName());
+            }
+
             // ✅ Filter customers by dealer if dealer is logged in
             if (dealer != null && dealer.getDealerID() > 0) {
-                customerList = customerDAO.getCustomersByDealerId(dealer.getDealerID());
-                log.debug("Loaded customers for DealerID={}, count={}", dealer.getDealerID(), customerList.size());
+                int targetDealerId = dealer.getDealerID();
+                System.out.println("\n📊 SQL Query: SELECT * FROM Customer WHERE DealerID = " + targetDealerId);
+
+                customerList = customerDAO.getCustomersByDealerId(targetDealerId);
+
+                System.out.println("✅ FILTERED RESULT:");
+                System.out.println("   ├─ Found " + customerList.size() + " customers for DealerID=" + targetDealerId);
+
+                if (customerList.size() > 0) {
+                    System.out.println("   ├─ Sample customers:");
+                    int sampleCount = Math.min(3, customerList.size());
+                    for (int i = 0; i < sampleCount; i++) {
+                        DTOCustomer c = customerList.get(i);
+                        System.out.println("   │  " + (i+1) + ". " + c.getFullName() + " (ID=" + c.getCustomerID() + ")");
+                    }
+                    if (customerList.size() > 3) {
+                        System.out.println("   │  ... and " + (customerList.size() - 3) + " more");
+                    }
+                } else {
+                    System.out.println("   └─ ⚠️ NO CUSTOMERS FOUND for this dealer!");
+                    System.out.println("      → Check if Customer table has records with DealerID=" + targetDealerId);
+                }
+
+                log.debug("Loaded customers for DealerID={}, count={}", targetDealerId, customerList.size());
             } else {
                 // Admin/EVM: show all customers
+                System.out.println("\n📊 SQL Query: SELECT * FROM Customer (no WHERE clause)");
+
                 customerList = customerDAO.getAllCustomers();
+
+                System.out.println("⚠️ NO FILTER APPLIED:");
+                System.out.println("   ├─ Loaded ALL " + customerList.size() + " customers from database");
+                System.out.println("   ├─ Reason: dealer is " + (dealer == null ? "NULL" : "ID=" + dealer.getDealerID()));
+                System.out.println("   └─ This is normal for Admin/EVM users");
+
+                if (customerList.size() > 0 && dealer == null) {
+                    System.out.println("\n⚠️ IMPORTANT: If you are a DEALER user, this is WRONG!");
+                    System.out.println("   → Your account may not be linked to a dealer");
+                    System.out.println("   → Check database: Account → DealerStaff → Dealer relationship");
+                }
+
                 log.debug("Loaded all customers (no dealer filter), count={}", customerList.size());
             }
 
+            System.out.println("========== END CUSTOMER DEBUG ==========\n");
             model.addAttribute("customerList", customerList);
         } catch (Exception ex) {
+            System.err.println("\n❌ EXCEPTION while loading customer list:");
+            System.err.println("   Error: " + ex.getMessage());
+            ex.printStackTrace();
             log.error("Failed loading customer list", ex);
         }
 
@@ -178,14 +250,19 @@ public class QuotationController {
                 return "dealerPage/quotationForm";
             }
 
-            // Get customer
+            // Get customer - FILTERED BY DEALER for security
             DAOCustomer customerDAO = new DAOCustomer();
-            DTOCustomer customer = customerDAO.getAllCustomers().stream()
-                    .filter(c -> c.getCustomerID() == customerID)
-                    .findFirst()
-                    .orElse(null);
+            DTOCustomer customer = customerDAO.getCustomerById(customerID);
+
+            // ✅ Validate customer belongs to this dealer (security check)
             if (customer == null) {
                 model.addAttribute("error", "Customer not found.");
+                return "dealerPage/quotationForm";
+            }
+            if (customer.getDealer() != null && customer.getDealer().getDealerID() != resolvedDealerId) {
+                log.warn("⚠️ Security: Dealer {} attempted to create quotation for customer {} belonging to dealer {}",
+                         resolvedDealerId, customerID, customer.getDealer().getDealerID());
+                model.addAttribute("error", "Customer does not belong to your dealership.");
                 return "dealerPage/quotationForm";
             }
 
@@ -838,13 +915,14 @@ public class QuotationController {
     }
 
     private DTOAccount resolveSessionAccount(HttpSession session) {
-        DTOAccount acc = (DTOAccount) session.getAttribute("user");
+        // ✅ FIX: Use correct session attribute name 'loggedInAccount' (not 'user')
+        DTOAccount acc = (DTOAccount) session.getAttribute("loggedInAccount");
         if (acc == null) {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName())) {
                 DTOAccount dbAcc = daoAccount.findAccountByEmail(auth.getName());
                 if (dbAcc != null) {
-                    session.setAttribute("user", dbAcc);
+                    session.setAttribute("loggedInAccount", dbAcc); // ✅ Fixed attribute name
                     acc = dbAcc;
                     log.debug("Hydrated session user from auth principal={} accountId={}", auth.getName(), dbAcc.getAccountId());
                 }
@@ -889,8 +967,23 @@ public class QuotationController {
         // Vehicles list for selection
         java.util.List<DTOVehicle> vehicles = vehicleDAO.getVehicles();
         model.addAttribute("vehicles", vehicles);
-        // Customers list
-        try { DAOCustomer cDao = new DAOCustomer(); model.addAttribute("customerList", cDao.getAllCustomers()); } catch (Exception ignored) {}
+
+        // Customers list - FILTERED BY DEALER
+        try {
+            DAOCustomer cDao = new DAOCustomer();
+            java.util.List<DTOCustomer> customerList;
+            if (dealer != null && dealer.getDealerID() > 0) {
+                customerList = cDao.getCustomersByDealerId(dealer.getDealerID());
+                log.debug("Loaded customers for multi-quotation, DealerID={}, count={}", dealer.getDealerID(), customerList.size());
+            } else {
+                customerList = cDao.getAllCustomers();
+                log.debug("Loaded all customers for multi-quotation (Admin/EVM), count={}", customerList.size());
+            }
+            model.addAttribute("customerList", customerList);
+        } catch (Exception ex) {
+            log.error("Failed loading customer list for multi-quotation", ex);
+        }
+
         if (dealer != null) model.addAttribute("dealer", dealer);
         model.addAttribute("nowTs", java.time.LocalDateTime.now());
         return "dealerPage/quotationCreateMulti";
