@@ -108,12 +108,22 @@ public class QuotationController {
         // 3️⃣ Ngày tạo báo giá
         Timestamp createdAt = Timestamp.valueOf(LocalDateTime.now());
 
-        // 4️⃣ Load customers for selection
+        // 4️⃣ Load customers for selection - FILTERED BY DEALER
         try {
             DAOCustomer customerDAO = new DAOCustomer();
-            List<DTOCustomer> customerList = customerDAO.getAllCustomers();
+            List<DTOCustomer> customerList;
+
+            // ✅ Filter customers by dealer if dealer is logged in
+            if (dealer != null && dealer.getDealerID() > 0) {
+                customerList = customerDAO.getCustomersByDealerId(dealer.getDealerID());
+                log.debug("Loaded customers for DealerID={}, count={}", dealer.getDealerID(), customerList.size());
+            } else {
+                // Admin/EVM: show all customers
+                customerList = customerDAO.getAllCustomers();
+                log.debug("Loaded all customers (no dealer filter), count={}", customerList.size());
+            }
+
             model.addAttribute("customerList", customerList);
-            log.debug("Loaded customers count={}", customerList.size());
         } catch (Exception ex) {
             log.error("Failed loading customer list", ex);
         }

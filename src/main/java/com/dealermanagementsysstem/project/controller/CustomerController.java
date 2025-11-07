@@ -177,7 +177,31 @@ public class CustomerController {
     // ✅ Cập nhật Customer
     @PostMapping("/customer/update")
     public String updateCustomer(@ModelAttribute("customer") DTOCustomer c,
+                                 HttpSession session,
                                  RedirectAttributes redirectAttributes) {
+
+        // ✅ IMPORTANT: Preserve dealerID from existing customer (fix bug: dealerID → NULL after update)
+        // Form doesn't submit dealerID, so we need to get it from the existing record
+        DTOCustomer existingCustomer = daoCustomer.getCustomerById(c.getCustomerID());
+        if (existingCustomer != null && existingCustomer.getDealer() != null) {
+            // Preserve existing dealer
+            c.setDealer(existingCustomer.getDealer());
+            System.out.println("✅ Preserving DealerID=" + existingCustomer.getDealer().getDealerID() + " for customer update");
+        } else {
+            // Fallback: try to get from session (same as create)
+            DTOAccount loggedInAccount = (DTOAccount) session.getAttribute("loggedInAccount");
+            if (loggedInAccount != null && loggedInAccount.getDealerStaff() != null
+                && loggedInAccount.getDealerStaff().getDealer() != null) {
+                int dealerID = loggedInAccount.getDealerStaff().getDealer().getDealerID();
+                DTODealer dealer = new DTODealer();
+                dealer.setDealerID(dealerID);
+                c.setDealer(dealer);
+                System.out.println("⚠️ No existing dealer, using session DealerID=" + dealerID);
+            } else {
+                System.out.println("⚠️ Cannot determine dealerID for customer update");
+            }
+        }
+
         boolean success = daoCustomer.updateCustomer(c);
 
         if (success) {
