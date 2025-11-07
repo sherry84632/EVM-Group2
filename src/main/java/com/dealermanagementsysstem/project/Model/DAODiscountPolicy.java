@@ -35,7 +35,7 @@ public class DAODiscountPolicy {
         return null;
     }
 
-    // ✅ Create Discount Policy
+    // ✅ Create Discount Policy and auto-update Dealer.PolicyID
     public boolean createDiscountPolicy(DTODiscountPolicy dto) {
         // Try with DiscountPercent first (after migration)
         String sqlWithDiscount = "INSERT INTO DiscountPolicy " +
@@ -47,6 +47,9 @@ public class DAODiscountPolicy {
                 "(DealerID, PolicyName, Description, HangPercent, DailyPercent, StartDate, EndDate, Status, CreatedAt, LevelID) " +
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), ?)";
 
+        // SQL to update Dealer.PolicyID
+        String sqlUpdateDealer = "UPDATE Dealer SET PolicyID = ? WHERE DealerID = ?";
+
         try (Connection conn = DBUtils.getConnection()) {
 
             Integer levelID = getLevelIdByDealerId(dto.getDealer().getDealerID());
@@ -55,8 +58,10 @@ public class DAODiscountPolicy {
                 return false;
             }
 
+            int newPolicyId = -1;
+
             // Try with DiscountPercent first
-            try (PreparedStatement ps = conn.prepareStatement(sqlWithDiscount)) {
+            try (PreparedStatement ps = conn.prepareStatement(sqlWithDiscount, Statement.RETURN_GENERATED_KEYS)) {
                 ps.setInt(1, dto.getDealer().getDealerID());
                 ps.setString(2, dto.getPolicyName());
                 ps.setString(3, dto.getDescription());
@@ -68,14 +73,24 @@ public class DAODiscountPolicy {
                 ps.setString(9, dto.getStatus().toString());
                 ps.setInt(10, levelID);
 
-                return ps.executeUpdate() > 0;
+                int rowsAffected = ps.executeUpdate();
+
+                if (rowsAffected > 0) {
+                    // Get generated PolicyID
+                    try (ResultSet rs = ps.getGeneratedKeys()) {
+                        if (rs.next()) {
+                            newPolicyId = rs.getInt(1);
+                            System.out.println("✅ Policy created with ID: " + newPolicyId);
+                        }
+                    }
+                }
 
             } catch (SQLException e) {
                 // If DiscountPercent column doesn't exist, try without it
                 if (e.getMessage() != null && e.getMessage().contains("DiscountPercent")) {
                     System.out.println("⚠️ DiscountPercent column not found, using fallback SQL");
 
-                    try (PreparedStatement ps = conn.prepareStatement(sqlWithoutDiscount)) {
+                    try (PreparedStatement ps = conn.prepareStatement(sqlWithoutDiscount, Statement.RETURN_GENERATED_KEYS)) {
                         ps.setInt(1, dto.getDealer().getDealerID());
                         ps.setString(2, dto.getPolicyName());
                         ps.setString(3, dto.getDescription());
@@ -86,10 +101,37 @@ public class DAODiscountPolicy {
                         ps.setString(8, dto.getStatus().toString());
                         ps.setInt(9, levelID);
 
-                        return ps.executeUpdate() > 0;
+                        int rowsAffected = ps.executeUpdate();
+
+                        if (rowsAffected > 0) {
+                            // Get generated PolicyID
+                            try (ResultSet rs = ps.getGeneratedKeys()) {
+                                if (rs.next()) {
+                                    newPolicyId = rs.getInt(1);
+                                    System.out.println("✅ Policy created with ID: " + newPolicyId);
+                                }
+                            }
+                        }
                     }
                 } else {
                     throw e; // Re-throw if different error
+                }
+            }
+
+            // ✅ Auto-update Dealer.PolicyID if policy was created successfully
+            if (newPolicyId > 0) {
+                try (PreparedStatement psUpdate = conn.prepareStatement(sqlUpdateDealer)) {
+                    psUpdate.setInt(1, newPolicyId);
+                    psUpdate.setInt(2, dto.getDealer().getDealerID());
+                    int updated = psUpdate.executeUpdate();
+
+                    if (updated > 0) {
+                        System.out.println("✅ Dealer PolicyID updated to: " + newPolicyId + " for DealerID: " + dto.getDealer().getDealerID());
+                        return true;
+                    } else {
+                        System.out.println("⚠️ Policy created but Dealer.PolicyID update failed");
+                        return true; // Policy still created successfully
+                    }
                 }
             }
 
@@ -205,7 +247,7 @@ public class DAODiscountPolicy {
         return null;
     }
 
-    // ✅ Update Discount Policy
+    // ✅ Update Discount Policy and auto-update Dealer.PolicyID
     public boolean updateDiscountPolicy(DTODiscountPolicy dto) {
         // Try with DiscountPercent first (after migration)
         String sqlWithDiscount = "UPDATE DiscountPolicy SET " +
@@ -219,7 +261,12 @@ public class DAODiscountPolicy {
                 "StartDate = ?, EndDate = ?, Status = ? " +
                 "WHERE PolicyID = ?";
 
+        // SQL to update Dealer.PolicyID
+        String sqlUpdateDealer = "UPDATE Dealer SET PolicyID = ? WHERE DealerID = ?";
+
         try (Connection conn = DBUtils.getConnection()) {
+
+            boolean updated = false;
 
             // Try with DiscountPercent first
             try (PreparedStatement ps = conn.prepareStatement(sqlWithDiscount)) {
@@ -236,7 +283,7 @@ public class DAODiscountPolicy {
                 int rows = ps.executeUpdate();
                 if (rows > 0) {
                     System.out.println("✅ Updated Discount Policy ID: " + dto.getPolicyID() + " (with DiscountPercent)");
-                    return true;
+                    updated = true;
                 }
 
             } catch (SQLException e) {
@@ -257,13 +304,28 @@ public class DAODiscountPolicy {
                         int rows = ps.executeUpdate();
                         if (rows > 0) {
                             System.out.println("✅ Updated Discount Policy ID: " + dto.getPolicyID() + " (without DiscountPercent)");
-                            return true;
+                            updated = true;
                         }
                     }
                 } else {
                     throw e; // Re-throw if different error
                 }
             }
+
+            // ✅ Auto-update Dealer.PolicyID if policy was updated successfully
+            if (updated && dto.getDealer() != null) {
+                try (PreparedStatement psUpdate = conn.prepareStatement(sqlUpdateDealer)) {
+                    psUpdate.setInt(1, dto.getPolicyID());
+                    psUpdate.setInt(2, dto.getDealer().getDealerID());
+                    int updatedDealer = psUpdate.executeUpdate();
+
+                    if (updatedDealer > 0) {
+                        System.out.println("✅ Dealer PolicyID updated to: " + dto.getPolicyID() + " for DealerID: " + dto.getDealer().getDealerID());
+                    }
+                }
+            }
+
+            return updated;
 
         } catch (Exception e) {
             System.out.println("❌ Error updating Discount Policy: " + e.getMessage());
@@ -272,21 +334,45 @@ public class DAODiscountPolicy {
         return false;
     }
 
-    // ✅ Delete Discount Policy
+    // ✅ Delete Discount Policy and set Dealer.PolicyID to NULL
     public boolean deleteDiscountPolicy(int policyId) {
-        String sql = "DELETE FROM DiscountPolicy WHERE PolicyID = ?";
+        String sqlGetDealer = "SELECT DealerID FROM DiscountPolicy WHERE PolicyID = ?";
+        String sqlDelete = "DELETE FROM DiscountPolicy WHERE PolicyID = ?";
+        String sqlUpdateDealer = "UPDATE Dealer SET PolicyID = NULL WHERE PolicyID = ?";
 
-        try (Connection conn = DBUtils.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = DBUtils.getConnection()) {
 
-            ps.setInt(1, policyId);
-            int rows = ps.executeUpdate();
+            // First, get the DealerID associated with this policy
+            Integer dealerId = null;
+            try (PreparedStatement ps = conn.prepareStatement(sqlGetDealer)) {
+                ps.setInt(1, policyId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        dealerId = rs.getInt("DealerID");
+                    }
+                }
+            }
 
-            if (rows > 0) {
-                System.out.println("✅ Deleted Discount Policy ID: " + policyId);
-                return true;
-            } else {
-                System.out.println("⚠️ No policy found with ID: " + policyId);
+            // Update Dealer.PolicyID to NULL before deleting policy
+            if (dealerId != null) {
+                try (PreparedStatement psUpdate = conn.prepareStatement(sqlUpdateDealer)) {
+                    psUpdate.setInt(1, policyId);
+                    psUpdate.executeUpdate();
+                    System.out.println("✅ Set Dealer.PolicyID to NULL for DealerID: " + dealerId);
+                }
+            }
+
+            // Now delete the policy
+            try (PreparedStatement ps = conn.prepareStatement(sqlDelete)) {
+                ps.setInt(1, policyId);
+                int rows = ps.executeUpdate();
+
+                if (rows > 0) {
+                    System.out.println("✅ Deleted Discount Policy ID: " + policyId);
+                    return true;
+                } else {
+                    System.out.println("⚠️ No policy found with ID: " + policyId);
+                }
             }
 
         } catch (SQLException e) {

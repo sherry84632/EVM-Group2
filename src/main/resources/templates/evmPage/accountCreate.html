@@ -111,6 +111,61 @@
                     </div>
 
                     <!-- ============================================ -->
+                    <!-- DEALER INFORMATION (shown only if role = DEALER) -->
+                    <!-- ============================================ -->
+                    <div id="dealerSection" style="display: none;">
+                        <hr>
+                        <h5 class="text-success mb-3">
+                            <i class="fa-solid fa-store"></i> Dealer Company Information
+                        </h5>
+
+                        <!-- Dealer Name -->
+                        <div class="mb-3">
+                            <label for="dealerName" class="form-label">
+                                <i class="fa-solid fa-building"></i> Dealer Name <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" id="dealerName" name="dealerName"
+                                   placeholder="Enter dealer company name">
+                        </div>
+
+                        <!-- Dealer Address -->
+                        <div class="mb-3">
+                            <label for="dealerAddress" class="form-label">
+                                <i class="fa-solid fa-map-marker-alt"></i> Address
+                            </label>
+                            <input type="text" class="form-control" id="dealerAddress" name="dealerAddress"
+                                   placeholder="Enter dealer address (optional)">
+                        </div>
+
+                        <!-- Dealer Phone -->
+                        <div class="mb-3">
+                            <label for="dealerPhone" class="form-label">
+                                <i class="fa-solid fa-phone"></i> Phone Number <span class="text-danger">*</span>
+                            </label>
+                            <input type="tel" class="form-control" id="dealerPhone" name="dealerPhone"
+                                   placeholder="Enter dealer phone number" pattern="[0-9]{10,11}">
+                            <small class="form-text text-muted">Must be unique. Format: 10-11 digits</small>
+                        </div>
+
+                        <!-- Dealer Email -->
+                        <div class="mb-3">
+                            <label for="dealerEmail" class="form-label">
+                                <i class="fa-solid fa-envelope"></i> Dealer Email <span class="text-danger">*</span>
+                            </label>
+                            <input type="email" class="form-control" id="dealerEmail" name="dealerEmail"
+                                   placeholder="Enter dealer email"
+                                   pattern="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}">
+                            <small class="form-text text-muted">Must be unique and valid format</small>
+                        </div>
+
+
+                        <div class="alert alert-info">
+                            <i class="fa-solid fa-info-circle"></i>
+                            <strong>Note:</strong> A DealerStaff account with "Owner" position will be automatically created and linked to this dealer.
+                        </div>
+                    </div>
+
+                    <!-- ============================================ -->
                     <!-- DEALER STAFF INFORMATION (shown only if role = DEALERSTAFF) -->
                     <!-- ============================================ -->
                     <div id="dealerStaffSection" style="display: none;">
@@ -150,11 +205,11 @@
                         <!-- Staff Email (optional, defaults to account email) -->
                         <div class="mb-3">
                             <label for="staffEmail" class="form-label">
-                                <i class="fa-solid fa-envelope"></i> Staff Email
+                                <i class="fa-solid fa-envelope"></i> Staff Email <span class="text-danger">*</span>
                             </label>
                             <input type="email" class="form-control" id="staffEmail" name="staffEmail"
                                    placeholder="Leave blank to use account email">
-                            <small class="form-text text-muted">Leave blank to use the same email as account</small>
+                            <small class="form-text text-muted">Required for DEALERSTAFF role</small>
                         </div>
 
                         <!-- Dealer Selection -->
@@ -212,6 +267,7 @@ function togglePassword() {
 document.addEventListener('DOMContentLoaded', function() {
     const emailInput = document.getElementById('email');
     const roleSelect = document.getElementById('role');
+    const dealerSection = document.getElementById('dealerSection');
     const dealerStaffSection = document.getElementById('dealerStaffSection');
 
     // Email validation
@@ -229,23 +285,52 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Show/hide dealer staff section based on role
+    // Show/hide sections based on role
     roleSelect.addEventListener('change', function() {
-        if (this.value === 'DEALERSTAFF') {
+        const selectedRole = this.value;
+
+        // Hide all sections first
+        dealerSection.style.display = 'none';
+        dealerStaffSection.style.display = 'none';
+
+        // Remove all required attributes
+        document.getElementById('dealerName').required = false;
+        document.getElementById('dealerPhone').required = false;
+        document.getElementById('dealerEmail').required = false;
+        document.getElementById('staffFullName').required = false;
+        document.getElementById('staffEmail').required = false;
+        document.getElementById('dealerId').required = false;
+
+        if (selectedRole === 'DEALER') {
+            // Show dealer section
+            dealerSection.style.display = 'block';
+            // Make dealer fields required
+            document.getElementById('dealerName').required = true;
+            document.getElementById('dealerPhone').required = true;
+            document.getElementById('dealerEmail').required = true;
+
+
+        } else if (selectedRole === 'DEALERSTAFF') {
+            // Show dealer staff section
             dealerStaffSection.style.display = 'block';
-            // Make fields required
+            // Make staff fields required
             document.getElementById('staffFullName').required = true;
+            document.getElementById('staffEmail').required = true;
             document.getElementById('dealerId').required = true;
-        } else {
-            dealerStaffSection.style.display = 'none';
-            // Remove required
-            document.getElementById('staffFullName').required = false;
-            document.getElementById('dealerId').required = false;
         }
     });
 
-    // Trigger change event on page load in case role is pre-selected
+    // Trigger change event on page load
     roleSelect.dispatchEvent(new Event('change'));
+
+    // Auto-fill dealer email from account email
+    emailInput.addEventListener('input', function() {
+        if (roleSelect.value === 'DEALER') {
+            document.getElementById('dealerEmail').value = this.value;
+        } else if (roleSelect.value === 'DEALERSTAFF') {
+            document.getElementById('staffEmail').value = this.value;
+        }
+    });
 });
 </script>
 

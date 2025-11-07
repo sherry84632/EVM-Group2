@@ -14,6 +14,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Controller
@@ -31,6 +32,7 @@ public class AccountController {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
 
     // ✅ Redirect /account to /account/list
     @GetMapping({"", "/"})
@@ -71,6 +73,15 @@ public class AccountController {
             @RequestParam("password") String password,
             @RequestParam("role") String roleStr,
             @RequestParam(value = "isActive", defaultValue = "false") boolean isActive,
+
+            // DEALER fields (for DEALER role)
+            @RequestParam(value = "dealerName", required = false) String dealerName,
+            @RequestParam(value = "dealerAddress", required = false) String dealerAddress,
+            @RequestParam(value = "dealerPhone", required = false) String dealerPhone,
+            @RequestParam(value = "dealerEmail", required = false) String dealerEmail,
+            @RequestParam(value = "levelId", required = false) Integer levelId,
+            @RequestParam(value = "evmId", required = false) Integer evmId,
+
             // DealerStaff fields (only for DEALERSTAFF role)
             @RequestParam(value = "staffFullName", required = false) String staffFullName,
             @RequestParam(value = "staffPosition", required = false) String staffPosition,
@@ -120,7 +131,39 @@ public class AccountController {
 
         // Additional validation for DEALERSTAFF role
         Role role = Role.valueOf(roleStr);
-        if (role == Role.DEALERSTAFF) {
+
+        if (role == Role.DEALER) {
+            // Validation for DEALER role
+            if (dealerName == null || dealerName.trim().isEmpty()) {
+                model.addAttribute("errorMessage", "❌ Dealer Name is required for Dealer role!");
+                model.addAttribute("roles", Role.values());
+                loadDealersForForm(model);
+                return "evmPage/accountCreate";
+            }
+            if (dealerPhone == null || dealerPhone.trim().isEmpty()) {
+                model.addAttribute("errorMessage", "❌ Dealer Phone is required for Dealer role!");
+                model.addAttribute("roles", Role.values());
+                loadDealersForForm(model);
+                return "evmPage/accountCreate";
+            }
+            if (dealerEmail == null || dealerEmail.trim().isEmpty()) {
+                model.addAttribute("errorMessage", "❌ Dealer Email is required for Dealer role!");
+                model.addAttribute("roles", Role.values());
+                loadDealersForForm(model);
+                return "evmPage/accountCreate";
+            }
+            if (!isValidEmail(dealerEmail)) {
+                model.addAttribute("errorMessage", "❌ Dealer Email format is invalid!");
+                model.addAttribute("roles", Role.values());
+                loadDealersForForm(model);
+                return "evmPage/accountCreate";
+            }
+            // Set default levelId to 1 if not provided
+            if (levelId == null || levelId <= 0) {
+                levelId = 1; // Default to Level 1 (Bronze)
+            }
+        } else if (role == Role.DEALERSTAFF) {
+            // Validation for DEALERSTAFF role
             if (staffFullName == null || staffFullName.trim().isEmpty()) {
                 model.addAttribute("errorMessage", "❌ Full Name is required for Dealer Staff!");
                 model.addAttribute("roles", Role.values());
@@ -169,8 +212,68 @@ public class AccountController {
                 return "evmPage/accountCreate";
             }
 
-            // 2. Create DealerStaff if role is DEALERSTAFF
-            if (role == Role.DEALERSTAFF) {
+            // 2. Create Dealer if role is DEALER
+            if (role == Role.DEALER) {
+                DTODealer dealer = new DTODealer();
+                dealer.setDealerName(dealerName.trim());
+                dealer.setAddress(dealerAddress != null ? dealerAddress.trim() : "");
+                dealer.setPhone(dealerPhone.trim());
+                dealer.setEmail(dealerEmail.trim());
+
+                // Set default levelId to 1 if not provided (already done in validation)
+                dealer.setLevelID(levelId);
+
+                // Set policyID to 0 (will be NULL in database)
+                dealer.setPolicyID(0);
+
+                // Set default evmID to 1 (or 0 for NULL in database)
+                dealer.setEvmID(evmId != null ? evmId : 1);
+
+                int newDealerId = daoDealer.insertDealer(dealer);
+
+                if (newDealerId <= 0) {
+                    // Rollback: delete the account we just created
+                    daoAccount.deleteAccount(accountId);
+                    model.addAttribute("errorMessage", "❌ Failed to create dealer record!");
+                    model.addAttribute("roles", Role.values());
+                    loadDealersForForm(model);
+                    return "evmPage/accountCreate";
+                }
+
+                // 3. Create DealerStaff for the Dealer owner (the account itself becomes a staff)
+                DTODealerStaff ownerStaff = new DTODealerStaff();
+                ownerStaff.setFullName(dealerName.trim() + " Owner"); // Default name
+                ownerStaff.setPosition("Owner");
+                ownerStaff.setPhone(dealerPhone.trim());
+                ownerStaff.setEmail(dealerEmail.trim());
+
+                // Set account reference
+                DTOAccount accountRef = new DTOAccount();
+                accountRef.setAccountId(accountId);
+                ownerStaff.setAccount(accountRef);
+
+                // Set dealer reference (the newly created dealer)
+                DTODealer dealerRef = new DTODealer();
+                dealerRef.setDealerID(newDealerId);
+                ownerStaff.setDealer(dealerRef);
+
+                int staffId = daoDealerStaff.insertDealerStaff(ownerStaff);
+
+                if (staffId <= 0) {
+                    // Rollback: delete dealer and account
+                    daoDealer.deleteDealer(newDealerId);
+                    daoAccount.deleteAccount(accountId);
+                    model.addAttribute("errorMessage", "❌ Failed to create dealer staff record!");
+                    model.addAttribute("roles", Role.values());
+                    loadDealersForForm(model);
+                    return "evmPage/accountCreate";
+                }
+
+                redirectAttributes.addFlashAttribute("successMessage",
+                    "✅ Dealer Account created successfully! (Dealer ID: " + newDealerId + ", Account ID: " + accountId + ")");
+
+            } else if (role == Role.DEALERSTAFF) {
+                // 2. Create DealerStaff if role is DEALERSTAFF
                 DTODealerStaff staff = new DTODealerStaff();
                 staff.setFullName(staffFullName.trim());
                 staff.setPosition(staffPosition); // DAO will auto-fill "Sales" if null/empty
@@ -467,8 +570,10 @@ public class AccountController {
      */
     private void loadDealersForForm(Model model) {
         try {
+            // Load dealers for DEALERSTAFF role
             List<DTODealer> dealers = daoDealer.getAllDealers();
             model.addAttribute("dealers", dealers);
+
         } catch (Exception e) {
             System.out.println("⚠️ Could not load dealers: " + e.getMessage());
         }

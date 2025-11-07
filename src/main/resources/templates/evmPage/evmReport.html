@@ -87,7 +87,7 @@
                 <div class="card shadow-sm stat-card">
                     <div class="card-body">
                         <div class="text-muted small">💰 Total Revenue</div>
-                        <div class="fs-3 fw-semibold text-success" th:text="${#numbers.formatCurrency(kpis['totalRevenue'] ?: 0)}">$0.00</div>
+                        <div class="fs-3 fw-semibold text-success" th:text="${'$' + #numbers.formatDecimal(kpis['totalRevenue'] ?: 0, 1, 0)}">$0</div>
                     </div>
                 </div>
             </div>
@@ -170,7 +170,7 @@
                                     <td class="text-end" th:text="${r.purchaseOrders}">0</td>
                                     <td class="text-end" th:text="${r.saleOrders}">0</td>
                                     <td class="text-end" th:text="${r.vehiclesSold}">0</td>
-                                    <td class="text-end" th:text="${#numbers.formatCurrency(r.totalRevenue)}">$0.00</td>
+                                    <td class="text-end" th:text="${'$' + #numbers.formatDecimal(r.totalRevenue, 1, 0)}">$0</td>
                                     <td class="text-end" th:text="${r.inventory}">0</td>
                                 </tr>
                                 </tbody>

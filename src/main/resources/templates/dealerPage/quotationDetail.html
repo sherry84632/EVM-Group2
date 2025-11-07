@@ -236,7 +236,7 @@
                                     <td>
                                         <input type="number" min="1" class="form-control form-control-sm" name="quantities" th:value="${detail.quantity}" th:disabled="${quotationLocked}" />
                                     </td>
-                                    <td th:text="${#numbers.formatDecimal(detail.subtotal,0,'COMMA',0,'POINT')}"></td>
+                                    <td th:text="${#numbers.formatDecimal(detail.subtotal, 1, 0)}"></td>
                                     <input type="hidden" name="detailIds" th:value="${detail.quotationDetailID}" />
                                 </tr>
                                 </tbody>
@@ -316,7 +316,7 @@
                             <span class="price-highlight" th:text="'$' + ${#numbers.formatDecimal(finalNetTotal, 0, 'COMMA', 0, 'POINT')}"></span>
                         </div>
                         <div th:if="${finalCombinedDiscountPercent != null and finalCombinedDiscountPercent > 0}" class="text-end mt-1">
-                            <small class="text-muted">Total Discount: <span th:text="${#numbers.formatDecimal(finalCombinedDiscountPercent, 1, 2)}"></span>%</small>
+                            <small class="text-muted">Total Discount: <span th:text="${#numbers.formatDecimal(finalCombinedDiscountPercent, 1, 0)}"></span>%</small>
                         </div>
                     </div>
                 </div>

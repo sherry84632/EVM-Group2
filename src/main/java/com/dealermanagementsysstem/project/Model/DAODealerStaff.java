@@ -245,5 +245,53 @@ public class DAODealerStaff {
         }
         return list;
     }
+    
+    /**
+     * Get all staff for a specific dealer with their account information
+     */
+    public List<DTODealerStaff> getStaffsByDealerId(int dealerId) {
+        List<DTODealerStaff> list = new ArrayList<>();
+        String sql = """
+            SELECT ds.StaffID, ds.FullName, ds.Position, ds.Phone, ds.Email, ds.AccountID, ds.DealerID,
+                   a.Username, a.Email as AccountEmail, a.IsActive
+            FROM DealerStaff ds
+            LEFT JOIN Account a ON ds.AccountID = a.AccountID
+            WHERE ds.DealerID = ?
+            ORDER BY ds.StaffID DESC
+        """;
+
+        try (Connection con = DBUtils.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setInt(1, dealerId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    DTODealerStaff staff = new DTODealerStaff();
+                    staff.setStaffID(rs.getInt("StaffID"));
+                    staff.setFullName(rs.getString("FullName"));
+                    staff.setPosition(rs.getString("Position"));
+                    staff.setPhone(rs.getString("Phone"));
+                    staff.setEmail(rs.getString("Email"));
+
+                    // Set account if exists
+                    if (rs.getObject("AccountID") != null) {
+                        DTOAccount account = new DTOAccount();
+                        account.setAccountId(rs.getInt("AccountID"));
+                        account.setUsername(rs.getString("Username"));
+                        account.setEmail(rs.getString("AccountEmail"));
+                        account.setActive(rs.getBoolean("IsActive"));
+                        staff.setAccount(account);
+                    }
+
+                    list.add(staff);
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("❌ Failed to get staff for dealer ID: " + dealerId);
+            e.printStackTrace();
+        }
+        return list;
+    }
 }
 

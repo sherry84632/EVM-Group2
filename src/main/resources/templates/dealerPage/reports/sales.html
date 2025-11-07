@@ -20,9 +20,9 @@
         function qs(id) { return document.getElementById(id); }
 
         function formatCurrency(value) {
-            if (!value) return '$0.00';
+            if (!value) return '$0';
             const num = typeof value === 'string' ? parseFloat(value) : value;
-            return '$' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            return '$' + Math.round(num).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
         }
 
         function buildParams() {

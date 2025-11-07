@@ -279,7 +279,7 @@
                 <div class="info-row">
                     <div class="info-label">Total Amount:</div>
                     <div class="info-value">
-                        <strong th:text="${order.totalAmount != null ? #numbers.formatCurrency(order.totalAmount) : '$0.00'}"></strong>
+                        <strong th:text="${order.totalAmount != null ? ('$' + #numbers.formatDecimal(order.totalAmount, 1, 0)) : '$0'}"></strong>
                     </div>
                 </div>
             </div>
@@ -426,7 +426,7 @@
                             <td th:text="${detail.quantity}"></td>
                             <!-- Base Price -->
                             <td style="text-decoration: line-through; color: #999;">
-                                <span th:if="${detail.basePrice != null}" th:text="${#numbers.formatCurrency(detail.basePrice)}">$0.00</span>
+                                <span th:if="${detail.basePrice != null}" th:text="${'$' + #numbers.formatDecimal(detail.basePrice, 1, 0)}">$0</span>
                                 <span th:unless="${detail.basePrice != null}">-</span>
                             </td>
                             <!-- Discount -->
@@ -435,18 +435,18 @@
                                     <strong th:text="${detail.discountPercent + '%'}">-</strong>
                                     <br/>
                                     <small th:if="${detail.discountAmount != null}">
-                                        (-<span th:text="${#numbers.formatCurrency(detail.discountAmount)}">$0</span>)
+                                        (-<span th:text="${'$' + #numbers.formatDecimal(detail.discountAmount, 1, 0)}">$0</span>)
                                     </small>
                                 </span>
                                 <span th:unless="${detail.discountPercent != null and detail.discountPercent > 0}">-</span>
                             </td>
                             <!-- Unit Price After Discount -->
                             <td style="font-weight: bold; color: #007bff;">
-                                <span th:text="${detail.unitPrice != null ? #numbers.formatCurrency(detail.unitPrice) : '$0.00'}"></span>
+                                <span th:text="${detail.unitPrice != null ? ('$' + #numbers.formatDecimal(detail.unitPrice, 1, 0)) : '$0'}"></span>
                             </td>
                             <!-- Subtotal -->
                             <td style="font-weight: bold;">
-                                <span th:text="${detail.subtotal != null ? #numbers.formatCurrency(detail.subtotal) : '$0.00'}"></span>
+                                <span th:text="${detail.subtotal != null ? ('$' + #numbers.formatDecimal(detail.subtotal, 1, 0)) : '$0'}"></span>
                             </td>
                             <!-- Payment Status -->
                             <td>
@@ -484,7 +484,7 @@
                                     Base price before any discounts
                                 </td>
                                 <td style="padding: 15px 0; text-align: right; font-weight: 600; color: #2d3748; font-size: 1.05rem;">
-                                    $<span th:text="${order.totalAmount != null ? #numbers.formatDecimal(order.totalAmount, 1, 2) : '0.00'}">206,250.00</span>
+                                    $<span th:text="${order.totalAmount != null ? #numbers.formatDecimal(order.totalAmount, 1, 0) : '0'}">206,250</span>
                                 </td>
                             </tr>
 
@@ -492,7 +492,7 @@
                             <tr th:if="${order.policyDiscountPercent != null and order.policyDiscountPercent > 0}">
                                 <td style="padding: 15px 0; color: #2d3748;">
                                     <strong>Dealer Discount
-                                        (<span th:text="${#numbers.formatDecimal(order.policyDiscountPercent, 1, 2)}">25.00</span>%)
+                                        (<span th:text="${#numbers.formatDecimal(order.policyDiscountPercent, 1, 0)}">25</span>%)
                                     </strong>
                                 </td>
                                 <td style="padding: 15px 0; color: #718096; font-size: 0.9rem;">
@@ -500,7 +500,7 @@
                                 </td>
                                 <td style="padding: 15px 0; text-align: right; font-weight: 600; color: #e53e3e; font-size: 1.05rem;">
                                     -$<span th:with="dealerDiscount=${order.totalAmount != null and order.policyDiscountPercent != null ? (order.totalAmount * order.policyDiscountPercent / 100.0) : 0}"
-                                          th:text="${#numbers.formatDecimal(dealerDiscount, 1, 2)}">51,562.50</span>
+                                          th:text="${#numbers.formatDecimal(dealerDiscount, 1, 0)}">51,563</span>
                                 </td>
                             </tr>
 
@@ -514,7 +514,7 @@
                                 </td>
                                 <td style="padding: 15px 0; text-align: right; font-weight: 600; color: #3182ce; font-size: 1.05rem;">
                                     $<span th:with="subtotalAfterDiscount=${order.totalAmount != null and order.policyDiscountPercent != null ? order.totalAmount * (1 - order.policyDiscountPercent / 100.0) : order.totalAmount}"
-                                          th:text="${#numbers.formatDecimal(subtotalAfterDiscount, 1, 2)}">154,687.50</span>
+                                          th:text="${#numbers.formatDecimal(subtotalAfterDiscount, 1, 0)}">154,688</span>
                                 </td>
                             </tr>
 
@@ -522,7 +522,7 @@
                             <tr>
                                 <td style="padding: 15px 0; color: #2d3748;">
                                     <strong>Dealer Reward
-                                        (<span th:text="${order.dealerRewardPercent != null ? #numbers.formatDecimal(order.dealerRewardPercent, 1, 2) : '5.00'}">5.00</span>%)
+                                        (<span th:text="${order.dealerRewardPercent != null ? #numbers.formatDecimal(order.dealerRewardPercent, 1, 0) : '5'}">5</span>%)
                                     </strong>
                                 </td>
                                 <td style="padding: 15px 0; color: #718096; font-size: 0.9rem;">
@@ -532,7 +532,7 @@
                                     $<span th:with="subtotalAfterDiscount=${order.totalAmount != null and order.policyDiscountPercent != null ? order.totalAmount * (1 - order.policyDiscountPercent / 100.0) : order.totalAmount},
                                                   rewardPercent=${order.dealerRewardPercent != null ? order.dealerRewardPercent : 5.0},
                                                   dealerReward=${subtotalAfterDiscount * rewardPercent / 100.0}"
-                                          th:text="${#numbers.formatDecimal(dealerReward, 1, 2)}">7,734.38</span>
+                                          th:text="${#numbers.formatDecimal(dealerReward, 1, 0)}">7,734</span>
                                 </td>
                             </tr>
 
@@ -540,7 +540,7 @@
                             <tr style="border-bottom: 1px solid #e2e8f0;">
                                 <td style="padding: 15px 0; color: #2d3748;">
                                     <strong>Manufacturer Share
-                                        (<span th:text="${order.manufacturerSharePercent != null ? #numbers.formatDecimal(order.manufacturerSharePercent, 1, 2) : '95.00'}">95.00</span>%)
+                                        (<span th:text="${order.manufacturerSharePercent != null ? #numbers.formatDecimal(order.manufacturerSharePercent, 1, 0) : '95'}">95</span>%)
                                     </strong>
                                 </td>
                                 <td style="padding: 15px 0; color: #718096; font-size: 0.9rem;">
@@ -550,7 +550,7 @@
                                     $<span th:with="subtotalAfterDiscount=${order.totalAmount != null and order.policyDiscountPercent != null ? order.totalAmount * (1 - order.policyDiscountPercent / 100.0) : order.totalAmount},
                                                   manufacturerPercent=${order.manufacturerSharePercent != null ? order.manufacturerSharePercent : 95.0},
                                                   manufacturerShare=${subtotalAfterDiscount * manufacturerPercent / 100.0}"
-                                          th:text="${#numbers.formatDecimal(manufacturerShare, 1, 2)}">146,953.12</span>
+                                          th:text="${#numbers.formatDecimal(manufacturerShare, 1, 0)}">146,953</span>
                                 </td>
                             </tr>
 
@@ -566,7 +566,7 @@
                                     $<span th:with="subtotalAfterDiscount=${order.totalAmount != null and order.policyDiscountPercent != null ? order.totalAmount * (1 - order.policyDiscountPercent / 100.0) : order.totalAmount},
                                                   vat=${vatRate != null ? vatRate : 10},
                                                   vatAmount=${subtotalAfterDiscount * vat / 100.0}"
-                                          th:text="${#numbers.formatDecimal(vatAmount, 1, 2)}">15,468.75</span>
+                                          th:text="${#numbers.formatDecimal(vatAmount, 1, 0)}">15,469</span>
                                 </td>
                             </tr>
 
@@ -583,7 +583,7 @@
                                                   vat=${vatRate != null ? vatRate : 10},
                                                   vatAmount=${subtotalAfterDiscount * vat / 100.0},
                                                   totalAmount=${subtotalAfterDiscount + vatAmount}"
-                                          th:text="${#numbers.formatDecimal(totalAmount, 1, 2)}"></span>
+                                          th:text="${#numbers.formatDecimal(totalAmount, 1, 0)}"></span>
                                 </td>
                             </tr>
                         </tbody>

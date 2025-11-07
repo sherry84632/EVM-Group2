@@ -110,7 +110,7 @@
 
                             <div class="col-md-2">
                                 <p class="mb-1"><strong>Total:</strong></p>
-                                <p class="mb-0 fw-bold text-primary" th:text="${#numbers.formatCurrency(order.totalAmount)}">$0.00</p>
+                                <p class="mb-0 fw-bold text-primary" th:text="${'$' + #numbers.formatDecimal(order.totalAmount, 1, 0)}">$0</p>
                             </div>
 
                             <div class="col-md-2">

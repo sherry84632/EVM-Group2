@@ -330,7 +330,7 @@
                             <td th:text="${detail.quantity}">-</td>
                             <!-- Base Price -->
                             <td th:if="${detail.basePrice != null}" class="text-muted" style="text-decoration: line-through;">
-                                <span th:text="${#numbers.formatCurrency(detail.basePrice)}">$0.00</span>
+                                <span th:text="${'$' + #numbers.formatDecimal(detail.basePrice, 1, 0)}">$0</span>
                             </td>
                             <td th:unless="${detail.basePrice != null}">-</td>
                             <!-- Discount -->
@@ -338,17 +338,17 @@
                                 <span th:text="${detail.discountPercent + '%'}">-</span>
                                 <br/>
                                 <small th:if="${detail.discountAmount != null}">
-                                    (-<span th:text="${#numbers.formatCurrency(detail.discountAmount)}">$0.00</span>)
+                                    (-<span th:text="${'$' + #numbers.formatDecimal(detail.discountAmount, 1, 0)}">$0</span>)
                                 </small>
                             </td>
                             <td th:unless="${detail.discountPercent != null and detail.discountPercent > 0}">-</td>
                             <!-- Unit Price After Discount -->
                             <td class="fw-bold text-primary">
-                                <span th:text="${#numbers.formatCurrency(detail.unitPrice)}">$0.00</span>
+                                <span th:text="${'$' + #numbers.formatDecimal(detail.unitPrice, 1, 0)}">$0</span>
                             </td>
                             <!-- Subtotal -->
                             <td class="fw-bold">
-                                <span th:text="${#numbers.formatCurrency(detail.subtotal)}">$0.00</span>
+                                <span th:text="${'$' + #numbers.formatDecimal(detail.subtotal, 1, 0)}">$0</span>
                             </td>
                             <!-- Payment Status -->
                             <td>
@@ -458,7 +458,7 @@
                             <!-- ✅ Giá gốc (BasePrice) -->
                             <div class="info-row" th:if="${detail.basePrice != null}">
                                 <span class="info-label">Base Price:</span>
-                                <span class="info-value text-muted" style="text-decoration: line-through;" th:text="${#numbers.formatCurrency(detail.basePrice)}">$0.00</span>
+                                <span class="info-value text-muted" style="text-decoration: line-through;" th:text="${'$' + #numbers.formatDecimal(detail.basePrice, 1, 0)}">$0</span>
                             </div>
                             <!-- ✅ Chiết khấu -->
                             <div class="info-row" th:if="${detail.discountPercent != null and detail.discountPercent > 0}">
@@ -466,18 +466,18 @@
                                 <span class="info-value text-success">
                                     <span th:text="${detail.discountPercent + '%'}">-</span>
                                     <span th:if="${detail.discountAmount != null}">
-                                        (-<span th:text="${#numbers.formatCurrency(detail.discountAmount)}">$0.00</span>)
+                                        (-<span th:text="${'$' + #numbers.formatDecimal(detail.discountAmount, 1, 0)}">$0</span>)
                                     </span>
                                 </span>
                             </div>
                             <!-- ✅ Giá sau chiết khấu (Unit Price) -->
                             <div class="info-row">
                                 <span class="info-label">Unit Price (After Discount):</span>
-                                <span class="info-value fw-bold text-primary" th:text="${#numbers.formatCurrency(detail.unitPrice)}">$0.00</span>
+                                <span class="info-value fw-bold text-primary" th:text="${'$' + #numbers.formatDecimal(detail.unitPrice, 1, 0)}">$0</span>
                             </div>
                             <div class="info-row">
                                 <span class="info-label">Subtotal:</span>
-                                <span class="info-value fw-bold" th:text="${#numbers.formatCurrency(detail.subtotal)}">$0.00</span>
+                                <span class="info-value fw-bold" th:text="${'$' + #numbers.formatDecimal(detail.subtotal, 1, 0)}">$0</span>
                             </div>
                             <hr th:if="${!detailStat.last}">
                         </div>
@@ -529,15 +529,15 @@
                         </div>
                         <div class="price-row">
                             <span class="price-label">Unit Price:</span>
-                            <span class="price-value" th:text="${#numbers.formatCurrency(order.primaryUnitPrice)}">$0.00</span>
+                            <span class="price-value" th:text="${'$' + #numbers.formatDecimal(order.primaryUnitPrice, 1, 0)}">$0</span>
                         </div>
                         <div class="price-row">
                             <span class="price-label">Subtotal:</span>
-                            <span class="price-value" th:text="${#numbers.formatCurrency(order.primarySubtotal)}">$0.00</span>
+                            <span class="price-value" th:text="${'$' + #numbers.formatDecimal(order.primarySubtotal, 1, 0)}">$0</span>
                         </div>
                         <div class="price-row total-price">
                             <span class="price-label">Total Amount:</span>
-                            <span class="price-value" th:text="${#numbers.formatCurrency(order.totalAmount)}">$0.00</span>
+                            <span class="price-value" th:text="${'$' + #numbers.formatDecimal(order.totalAmount, 1, 0)}">$0</span>
                         </div>
                         <div class="price-row total-price" th:unless="${order.totalAmount != null}">
                             <span class="price-label">Order Total Price:</span>

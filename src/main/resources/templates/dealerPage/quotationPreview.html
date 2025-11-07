@@ -227,7 +227,7 @@
                             </div>
                             <div class="info-row">
                                 <span class="info-label">Base Unit Price:</span>
-                                <span class="info-value">$<span th:text="${#numbers.formatDecimal(quotation.firstUnitPrice,1,2)}"></span></span>
+                                <span class="info-value">$<span th:text="${#numbers.formatDecimal(quotation.firstUnitPrice, 1, 0)}"></span></span>
                             </div>
                         </div>
                     </div>
@@ -254,8 +254,8 @@
                                 <tr th:each="detail : ${details}">
                                     <td th:text="${detail.modelName} + ' - ' + ${detail.colorName}"></td>
                                     <td th:text="${detail.quantity}"></td>
-                                    <td>$<span th:text="${#numbers.formatDecimal(detail.unitPrice, 1, 2)}"></span></td>
-                                    <td>$<span th:text="${#numbers.formatDecimal(detail.unitPrice * detail.quantity, 1, 2)}"></span></td>
+                                    <td>$<span th:text="${#numbers.formatDecimal(detail.unitPrice, 1, 0)}"></span></td>
+                                    <td>$<span th:text="${#numbers.formatDecimal(detail.unitPrice * detail.quantity, 1, 0)}"></span></td>
                                 </tr>
                                 </tbody>
                             </table>
@@ -270,7 +270,7 @@
                         <div class="col-md-6">
                             <div class="info-row">
                                 <span class="info-label">Base Price:</span>
-                                <span class="info-value">$<span th:text="${#numbers.formatDecimal(quotation.vehicle.basePrice, 1, 2)}"></span></span>
+                                <span class="info-value">$<span th:text="${#numbers.formatDecimal(quotation.vehicle.basePrice, 1, 0)}"></span></span>
                             </div>
                             <div class="info-row">
                                 <span class="info-label">Manufacturer Discount:</span>
@@ -284,15 +284,15 @@
                         <div class="col-md-6">
                             <div class="info-row">
                                 <span class="info-label">Subtotal:</span>
-                                <span class="info-value">$<span th:text="${#numbers.formatDecimal(quotation.totalPrice, 1, 2)}"></span></span>
+                                <span class="info-value">$<span th:text="${#numbers.formatDecimal(quotation.totalPrice, 1, 0)}"></span></span>
                             </div>
                             <div class="info-row">
                                 <span class="info-label">Tax (10%):</span>
-                                <span class="info-value">$<span th:text="${#numbers.formatDecimal(quotation.totalPrice * 0.1, 1, 2)}"></span></span>
+                                <span class="info-value">$<span th:text="${#numbers.formatDecimal(quotation.totalPrice * 0.1, 1, 0)}"></span></span>
                             </div>
                             <div class="info-row total-row">
                                 <span class="info-label">Total Amount:</span>
-                                <span class="info-value">$<span th:text="${#numbers.formatDecimal(quotation.totalPrice * 1.1, 1, 2)}"></span></span>
+                                <span class="info-value">$<span th:text="${#numbers.formatDecimal(quotation.totalPrice * 1.1, 1, 0)}"></span></span>
                             </div>
                         </div>
                     </div>
@@ -301,7 +301,7 @@
                 <!-- Total Amount -->
                 <div class="total-section">
                     <h5>Total Amount</h5>
-                    <div class="total-amount">$<span th:text="${#numbers.formatDecimal(quotation.totalPrice * 1.1, 1, 2)}"></span></div>
+                    <div class="total-amount">$<span th:text="${#numbers.formatDecimal(quotation.totalPrice * 1.1, 1, 0)}"></span></div>
                     <small class="text-muted">Including 10% tax</small>
                 </div>
 
