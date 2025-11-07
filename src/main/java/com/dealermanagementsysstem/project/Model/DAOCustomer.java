@@ -114,17 +114,17 @@ public class DAOCustomer {
             UPDATE Customer 
             SET DealerID=?, FullName=?, Phone=?, Email=?, Address=?, CreatedAt=?, UpdatedAt=?, BirthDate=?, Note=?, VehicleInterest=? 
             WHERE CustomerID=?
+        """;
+
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
             // ✅ DealerID must be set by controller (no default value)
             if (c.getDealer() != null && c.getDealer().getDealerID() > 0) {
                 ps.setInt(1, c.getDealer().getDealerID());
             } else {
                 ps.setNull(1, java.sql.Types.INTEGER); // Allow NULL if no dealer assigned
             }
-
-        try (Connection conn = DBUtils.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setInt(1, c.getDealer() != null ? c.getDealer().getDealerID() : 1); // Default dealer if null
             ps.setString(2, c.getFullName());
             ps.setString(3, c.getPhone());
             ps.setString(4, c.getEmail());
