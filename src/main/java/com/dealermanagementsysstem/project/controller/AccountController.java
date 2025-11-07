@@ -127,6 +127,18 @@ public class AccountController {
                 loadDealersForForm(model);
                 return "evmPage/accountCreate";
             }
+            if (staffEmail == null || staffEmail.trim().isEmpty()) {
+                model.addAttribute("errorMessage", "❌ Staff Email is required for Dealer Staff!");
+                model.addAttribute("roles", Role.values());
+                loadDealersForForm(model);
+                return "evmPage/accountCreate";
+            }
+            if (!isValidEmail(staffEmail)) {
+                model.addAttribute("errorMessage", "❌ Staff Email format is invalid!");
+                model.addAttribute("roles", Role.values());
+                loadDealersForForm(model);
+                return "evmPage/accountCreate";
+            }
             if (dealerId == null || dealerId <= 0) {
                 model.addAttribute("errorMessage", "❌ Please select a Dealer for Dealer Staff!");
                 model.addAttribute("roles", Role.values());

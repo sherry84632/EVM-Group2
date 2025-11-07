@@ -335,4 +335,40 @@ public class DAODiscountPolicy {
         }
         return list;
     }
+
+    // ✅ Search Policies by Name and Dealer ID
+    public List<DTODiscountPolicy> searchPolicyByNameAndDealer(String keyword, int dealerId) {
+        List<DTODiscountPolicy> list = new ArrayList<>();
+        String sql = "SELECT * FROM DiscountPolicy WHERE PolicyName LIKE ? AND DealerID = ? ORDER BY CreatedAt DESC";
+        DAODealer daoDealer = new DAODealer();
+
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, "%" + keyword + "%");
+            ps.setInt(2, dealerId);
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+                DTODiscountPolicy dto = new DTODiscountPolicy();
+                dto.setPolicyID(rs.getInt("PolicyID"));
+                dto.setDealer(daoDealer.getDealerById(rs.getInt("DealerID")));
+                dto.setPolicyName(rs.getString("PolicyName"));
+                dto.setDescription(rs.getString("Description"));
+                dto.setDiscountPercent(getDiscountPercentSafely(rs)); // ✅ Use helper
+                dto.setHangPercent(rs.getBigDecimal("HangPercent"));
+                dto.setDailyPercent(rs.getBigDecimal("DailyPercent"));
+                dto.setStartDate(rs.getDate("StartDate").toLocalDate());
+                dto.setEndDate(rs.getDate("EndDate") != null ? rs.getDate("EndDate").toLocalDate() : null);
+                dto.setStatus(DiscountPolicyStatus.valueOf(rs.getString("Status").toUpperCase()));
+                dto.setCreationDate(rs.getDate("CreatedAt"));
+                dto.setLevelID(rs.getInt("LevelID"));
+                list.add(dto);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
 }

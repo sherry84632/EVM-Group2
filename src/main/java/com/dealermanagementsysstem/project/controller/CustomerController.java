@@ -6,6 +6,8 @@ import com.dealermanagementsysstem.project.Model.DAOVehicle;
 import com.dealermanagementsysstem.project.Model.DAODealer;
 import com.dealermanagementsysstem.project.Model.DTOCustomer;
 import com.dealermanagementsysstem.project.Model.DTOTestDrive;
+import com.dealermanagementsysstem.project.Model.DTOAccount;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -38,13 +40,29 @@ public class CustomerController {
         return "redirect:/customer/list";
     }
 
-    // ✅ Hiển thị danh sách khách hàng (Better List)
+    // ✅ Hiển thị danh sách khách hàng (Better List) - FILTERED BY DEALER
     @GetMapping("/customer/list")
-    public String listCustomers(Model model) {
-        List<DTOCustomer> customerList = daoCustomer.getAllCustomers();
+    public String listCustomers(Model model, HttpSession session) {
+        // Get current logged-in account
+        DTOAccount loggedInAccount = (DTOAccount) session.getAttribute("loggedInAccount");
+
+        List<DTOCustomer> customerList;
+
+        // Filter by dealer if user is DEALER or DEALERSTAFF
+        if (loggedInAccount != null && loggedInAccount.getDealerStaff() != null
+            && loggedInAccount.getDealerStaff().getDealer() != null) {
+            int dealerID = loggedInAccount.getDealerStaff().getDealer().getDealerID();
+            customerList = daoCustomer.getCustomersByDealerId(dealerID);
+            model.addAttribute("dealerFiltered", true);
+            model.addAttribute("dealerID", dealerID);
+        } else {
+            // Admin/EVM - show all customers
+            customerList = daoCustomer.getAllCustomers();
+            model.addAttribute("dealerFiltered", false);
+        }
+
         model.addAttribute("customers", customerList);
         return "dealerPage/betterCustomerListFinal";
-                // ✅ Giao diện chính
     }
 
     // ✅ Form tạo mới Customer
@@ -166,17 +184,41 @@ public class CustomerController {
     }
 
 
-    // ✅ Tìm kiếm Customer
+    // ✅ Tìm kiếm Customer - FILTERED BY DEALER
     @GetMapping("/customer/search")
-    public String searchCustomer(@RequestParam(value = "keyword", required = false, defaultValue = "") String keyword, Model model) {
+    public String searchCustomer(@RequestParam(value = "keyword", required = false, defaultValue = "") String keyword,
+                                 Model model, HttpSession session) {
+        // Get current logged-in account
+        DTOAccount loggedInAccount = (DTOAccount) session.getAttribute("loggedInAccount");
+
         List<DTOCustomer> customerList;
 
-        // Nếu keyword trống hoặc null → Hiển thị full list
+        // Nếu keyword trống hoặc null → Hiển thị full list (filtered by dealer)
         if (keyword == null || keyword.trim().isEmpty()) {
-            customerList = daoCustomer.getAllCustomers();
-            System.out.println("ℹ️ Search with empty keyword → Returning all customers (" + customerList.size() + " found)");
+            // Filter by dealer if user is DEALER or DEALERSTAFF
+            if (loggedInAccount != null && loggedInAccount.getDealerStaff() != null
+                && loggedInAccount.getDealerStaff().getDealer() != null) {
+                int dealerID = loggedInAccount.getDealerStaff().getDealer().getDealerID();
+                customerList = daoCustomer.getCustomersByDealerId(dealerID);
+                model.addAttribute("dealerFiltered", true);
+                model.addAttribute("dealerID", dealerID);
+            } else {
+                customerList = daoCustomer.getAllCustomers();
+                model.addAttribute("dealerFiltered", false);
+            }
+            System.out.println("ℹ️ Search with empty keyword → Returning customers (" + customerList.size() + " found)");
         } else {
-            customerList = daoCustomer.searchCustomer(keyword.trim());
+            // Search with keyword - also filter by dealer
+            if (loggedInAccount != null && loggedInAccount.getDealerStaff() != null
+                && loggedInAccount.getDealerStaff().getDealer() != null) {
+                int dealerID = loggedInAccount.getDealerStaff().getDealer().getDealerID();
+                customerList = daoCustomer.searchCustomerByDealerId(keyword.trim(), dealerID);
+                model.addAttribute("dealerFiltered", true);
+                model.addAttribute("dealerID", dealerID);
+            } else {
+                customerList = daoCustomer.searchCustomer(keyword.trim());
+                model.addAttribute("dealerFiltered", false);
+            }
             System.out.println("🔍 Search for: '" + keyword + "' → Found " + customerList.size() + " customers");
         }
 

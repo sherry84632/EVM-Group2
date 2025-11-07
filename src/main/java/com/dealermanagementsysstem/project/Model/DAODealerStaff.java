@@ -14,6 +14,12 @@ public class DAODealerStaff {
      * Returns the generated StaffID
      */
     public int insertDealerStaff(DTODealerStaff staff) {
+        // Validate email is not empty
+        if (staff.getEmail() == null || staff.getEmail().trim().isEmpty()) {
+            System.out.println("❌ DealerStaff email cannot be empty!");
+            throw new IllegalArgumentException("DealerStaff email cannot be empty");
+        }
+
         String sql = "INSERT INTO DealerStaff (FullName, Position, Phone, Email, AccountID, DealerID) VALUES (?, ?, ?, ?, ?, ?)";
 
         try (Connection con = DBUtils.getConnection();
@@ -27,7 +33,7 @@ public class DAODealerStaff {
             }
             ps.setString(2, position);
             ps.setString(3, staff.getPhone());
-            ps.setString(4, staff.getEmail());
+            ps.setString(4, staff.getEmail().trim());
 
             if (staff.getAccount() != null) {
                 ps.setInt(5, staff.getAccount().getAccountId());

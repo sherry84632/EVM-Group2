@@ -1,6 +1,9 @@
 package com.dealermanagementsysstem.project.controller;
 
 import com.dealermanagementsysstem.project.Model.*;
+import com.dealermanagementsysstem.project.util.SecurityUtil;
+import jakarta.servlet.http.HttpSession;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -19,24 +22,65 @@ public class DealerDiscountPolicyController {
     private final DAODiscountPolicy daoPolicy = new DAODiscountPolicy();
     private final DAODealer daoDealer = new DAODealer();
 
-    // ✅ Show list page with search
+    @Autowired
+    private DAOAccount daoAccount;
+
+    // ✅ Show list page with search - FILTERED BY DEALER
     @GetMapping
     public String showDiscountPolicyPage(
             @RequestParam(value = "keyword", required = false) String keyword,
-            Model model
+            Model model,
+            HttpSession session
     ) {
+        // Get current logged-in account
+        DTOAccount loggedInAccount = (DTOAccount) session.getAttribute("loggedInAccount");
+
         List<DTODiscountPolicy> policies;
 
-        if (keyword != null && !keyword.trim().isEmpty()) {
-            policies = daoPolicy.searchPolicyByName(keyword);
-            model.addAttribute("keyword", keyword);
-        } else {
-            policies = daoPolicy.getAllPolicies();
+        // Determine dealer ID for filtering
+        Integer dealerIdFilter = null;
+        if (loggedInAccount != null && loggedInAccount.getDealerStaff() != null
+            && loggedInAccount.getDealerStaff().getDealer() != null) {
+            dealerIdFilter = loggedInAccount.getDealerStaff().getDealer().getDealerID();
+            model.addAttribute("dealerFiltered", true);
         }
 
-        // Add dealer list for dropdown
-        List<DTODealer> dealers = daoDealer.getAllDealers();
-        model.addAttribute("dealers", dealers);
+        // Get policies with optional filtering
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            if (dealerIdFilter != null) {
+                policies = daoPolicy.searchPolicyByNameAndDealer(keyword, dealerIdFilter);
+            } else {
+                policies = daoPolicy.searchPolicyByName(keyword);
+            }
+            model.addAttribute("keyword", keyword);
+        } else {
+            if (dealerIdFilter != null) {
+                policies = daoPolicy.getPoliciesByDealerId(dealerIdFilter);
+            } else {
+                policies = daoPolicy.getAllPolicies();
+            }
+        }
+
+        // Add dealer list for dropdown (only for admin/EVM)
+        if (dealerIdFilter == null) {
+            try {
+                List<DTODealer> dealers = daoDealer.getAllDealers();
+                model.addAttribute("dealers", dealers);
+            } catch (Exception e) {
+                System.out.println("⚠️ Could not load dealers: " + e.getMessage());
+            }
+        } else {
+            // For dealer staff, only show their dealer
+            try {
+                DTODealer currentDealer = daoDealer.getDealerById(dealerIdFilter);
+                if (currentDealer != null) {
+                    model.addAttribute("dealers", List.of(currentDealer));
+                    model.addAttribute("currentDealerId", dealerIdFilter);
+                }
+            } catch (Exception e) {
+                System.out.println("⚠️ Could not load dealer: " + e.getMessage());
+            }
+        }
 
         model.addAttribute("policies", policies);
         model.addAttribute("newPolicy", new DTODiscountPolicy());

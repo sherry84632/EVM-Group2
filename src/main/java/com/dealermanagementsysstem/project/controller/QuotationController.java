@@ -228,17 +228,35 @@ public class QuotationController {
         }
     }
 
-    // 🔥 CORE FLOW STEP 3: List all quotations (for dealer to review)
+    // 🔥 CORE FLOW STEP 3: List all quotations (for dealer to review) - FILTERED BY DEALER
     @GetMapping("/list")
-    public String listQuotations(Model model) {
+    public String listQuotations(Model model, HttpSession session) {
     log.debug("Loading quotations list");
 
         try {
-            List<DTOQuotation> quotations = dao.getAllQuotations();
+            // Get current logged-in account
+            DTOAccount loggedInAccount = (DTOAccount) session.getAttribute("loggedInAccount");
+
+            List<DTOQuotation> quotations;
+
+            // Filter by dealer if user is DEALER or DEALERSTAFF
+            if (loggedInAccount != null && loggedInAccount.getDealerStaff() != null
+                && loggedInAccount.getDealerStaff().getDealer() != null) {
+                int dealerID = loggedInAccount.getDealerStaff().getDealer().getDealerID();
+                quotations = dao.getQuotationsByDealerId(dealerID);
+                model.addAttribute("dealerFiltered", true);
+                model.addAttribute("dealerID", dealerID);
+                log.info("Filtered quotations by dealerID={}, size={}", dealerID, quotations.size());
+            } else {
+                // Admin/EVM - show all quotations
+                quotations = dao.getAllQuotations();
+                model.addAttribute("dealerFiltered", false);
+                log.info("Loaded all quotations size={}", quotations.size());
+            }
+
             model.addAttribute("quotations", quotations);
             model.addAttribute("message", "Found " + quotations.size() + " quotations");
             
-            log.info("Loaded quotations size={}", quotations.size());
             return "dealerPage/quotationList";
         } catch (Exception e) {
             log.error("Error loading quotations", e);

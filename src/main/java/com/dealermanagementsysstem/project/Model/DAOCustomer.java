@@ -274,5 +274,87 @@ public class DAOCustomer {
         return c;
     }
 
-    // ✅ Lấy Customer theo ID (for CreateController)
+    // ✅ Lấy danh sách Customer theo DealerID
+    public List<DTOCustomer> getCustomersByDealerId(int dealerId) {
+        List<DTOCustomer> list = new ArrayList<>();
+        String sql = "SELECT * FROM Customer WHERE DealerID = ? ORDER BY CreatedAt DESC";
+
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, dealerId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    DTOCustomer c = new DTOCustomer();
+                    c.setCustomerID(rs.getInt("CustomerID"));
+                    c.setFullName(rs.getString("FullName"));
+                    c.setPhone(rs.getString("Phone"));
+                    c.setEmail(rs.getString("Email"));
+                    c.setAddress(rs.getString("Address"));
+
+                    Timestamp createdAt = rs.getTimestamp("CreatedAt");
+                    c.setCreatedAt(createdAt != null ? createdAt.toLocalDateTime() : null);
+
+                    Date birthDate = rs.getDate("BirthDate");
+                    c.setBirthDate(birthDate != null ? birthDate.toLocalDate() : null);
+
+                    c.setNote(rs.getString("Note"));
+
+                    Timestamp updatedAt = rs.getTimestamp("UpdatedAt");
+                    c.setUpdatedAt(updatedAt != null ? updatedAt.toLocalDateTime() : null);
+
+                    c.setVehicleInterest(rs.getString("VehicleInterest"));
+                    list.add(c);
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("❌ Failed to get customers by dealer ID: " + dealerId);
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    // ✅ Tìm kiếm Customer theo keyword và DealerID
+    public List<DTOCustomer> searchCustomerByDealerId(String keyword, int dealerId) {
+        List<DTOCustomer> list = new ArrayList<>();
+        String sql = "SELECT * FROM Customer WHERE (FullName LIKE ? OR Phone LIKE ?) AND DealerID = ?";
+
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, "%" + keyword + "%");
+            ps.setString(2, "%" + keyword + "%");
+            ps.setInt(3, dealerId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    DTOCustomer c = new DTOCustomer();
+                    c.setCustomerID(rs.getInt("CustomerID"));
+                    c.setFullName(rs.getString("FullName"));
+                    c.setPhone(rs.getString("Phone"));
+                    c.setEmail(rs.getString("Email"));
+                    c.setAddress(rs.getString("Address"));
+
+                    Timestamp createdAt = rs.getTimestamp("CreatedAt");
+                    c.setCreatedAt(createdAt != null ? createdAt.toLocalDateTime() : null);
+
+                    Date birthDate = rs.getDate("BirthDate");
+                    c.setBirthDate(birthDate != null ? birthDate.toLocalDate() : null);
+
+                    c.setNote(rs.getString("Note"));
+
+                    Timestamp updatedAt = rs.getTimestamp("UpdatedAt");
+                    c.setUpdatedAt(updatedAt != null ? updatedAt.toLocalDateTime() : null);
+
+                    c.setVehicleInterest(rs.getString("VehicleInterest"));
+                    list.add(c);
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("❌ Failed to search customer by dealer ID: " + dealerId);
+            e.printStackTrace();
+        }
+        return list;
+    }
 }
