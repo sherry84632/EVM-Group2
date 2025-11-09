@@ -20,8 +20,8 @@ public class PageConfig implements WebMvcConfigurer {
         // Note: /evmOrderHistory is now handled by EVMOrderController
         registry.addViewController("/dealerCustomerManagement").setViewName("dealerPage/customerManagement");
         registry.addViewController("/dealerCustomerList").setViewName("dealerPage/customerList");
-        registry.addViewController("/dealerCreateANewCustomer").setViewName("dealerPage/createANewCustomer");
-        registry.addViewController("/dealerCustomerDetail").setViewName("dealerPage/customerDetail");
+        registry.addViewController("/dealerCreateANewCustomer").setViewName("redirect:/customer/create");
+        registry.addViewController("/dealerCustomerDetail").setViewName("redirect:/customer/edit/{id}");
         registry.addViewController("/dealerVehiclesInformation").setViewName("dealerPage/vehiclesInformation");
         registry.addViewController("/dealerCustomerOrderFunctionPage").setViewName("dealerPage/customerOrder");
         registry.addViewController("/dealerCreateACustomerOrderPage").setViewName("dealerPage/createACustomerOrder");

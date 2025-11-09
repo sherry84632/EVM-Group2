@@ -1,204 +1,161 @@
 package com.dealermanagementsysstem.project.controller;
 
-import com.dealermanagementsysstem.project.Model.DAOCustomer;
-import com.dealermanagementsysstem.project.Model.DAOTestDrive;
-import com.dealermanagementsysstem.project.Model.DAOVehicle;
-import com.dealermanagementsysstem.project.Model.DAODealer;
+
 import com.dealermanagementsysstem.project.Model.DTOCustomer;
 import com.dealermanagementsysstem.project.Model.DTOTestDrive;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.dealermanagementsysstem.project.dto.CustomerForm;
+import com.dealermanagementsysstem.project.mapper.CustomerMapper;
+import com.dealermanagementsysstem.project.service.CustomerService;
+import com.dealermanagementsysstem.project.service.TestDriveService;
+import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.Date;
 import java.util.List;
 
 @Controller
 public class CustomerController {
 
-    @Autowired
-    private DAOCustomer daoCustomer;
+    private static final Logger log = LoggerFactory.getLogger(CustomerController.class);
 
-    @Autowired
-    private DAOTestDrive daoTestDrive;
 
-    @Autowired
-    private DAOVehicle daoVehicle;
+    private final CustomerService customerService;
+    private final TestDriveService testDriveService;
+    private final CustomerMapper customerMapper;
 
-    @Autowired
-    private DAODealer daoDealer;
+    public CustomerController(CustomerService customerService, TestDriveService testDriveService, CustomerMapper customerMapper) {
+        this.customerService = customerService;
+        this.testDriveService = testDriveService;
+        this.customerMapper = customerMapper;
+    }
 
-    // ✅ Khi người dùng vào /customer → tự động chuyển hướng tới /customer/list
     @GetMapping({"/customer", "/customer/"})
     public String redirectCustomerToList() {
         return "redirect:/customer/list";
     }
 
-    // ✅ Hiển thị danh sách khách hàng (Better List)
     @GetMapping("/customer/list")
     public String listCustomers(Model model) {
-        List<DTOCustomer> customerList = daoCustomer.getAllCustomers();
-        model.addAttribute("customers", customerList);
+        model.addAttribute("customers", customerService.getCustomers());
         return "dealerPage/betterCustomerListFinal";
-                // ✅ Giao diện chính
     }
 
-    // ✅ Form tạo mới Customer
     @GetMapping("/customer/create")
     public String showCreateForm(Model model) {
-        model.addAttribute("customer", new DTOCustomer());
+        if (!model.containsAttribute("customerForm")) {
+            model.addAttribute("customerForm", new CustomerForm());
+        }
         return "dealerPage/createANewCustomer";
     }
 
-    // ✅ Lưu customer mới
     @PostMapping("/customer/save")
-    public String saveCustomer(@ModelAttribute("customer") DTOCustomer c,
+    public String saveCustomer(@Valid @ModelAttribute("customerForm") CustomerForm customerForm,
+                               BindingResult bindingResult,
                                @RequestParam(value = "testDriveSchedule", required = false) String testDriveSchedule,
-                               RedirectAttributes redirectAttributes) {
+                               RedirectAttributes redirectAttributes,
+                               Model model) {
 
-        // ✅ Lưu customer và lấy customerID
-        int newCustomerID = daoCustomer.insertCustomer(c);
-
-        if (newCustomerID > 0) {
-            // ✅ Nếu có test drive schedule, lưu vào bảng TestDrive
-            if (testDriveSchedule != null && !testDriveSchedule.isEmpty()) {
-                try {
-                    LocalDateTime testDateTime = LocalDateTime.parse(testDriveSchedule);
-                    Date testDate = Date.from(testDateTime.atZone(ZoneId.systemDefault()).toInstant());
-
-                    // ✅ Tìm VehicleID từ vehicleInterest (nếu có)
-                    Integer vehicleID = null;
-                    if (c.getVehicleInterest() != null && !c.getVehicleInterest().trim().isEmpty()) {
-                        vehicleID = daoVehicle.findAvailableVehicleByModelName(c.getVehicleInterest());
-                        if (vehicleID == null) {
-                            System.out.println("⚠️ No available vehicle found for: " + c.getVehicleInterest());
-                        }
-                    }
-
-                    // ✅ Lấy dealerID từ customer (mặc định là 1 nếu không có)
-                    Integer dealerID = (c.getDealer() != null && c.getDealer().getDealerID() > 0)
-                                      ? c.getDealer().getDealerID()
-                                      : 1; // Default dealer
-
-                    // ✅ Lấy staffID từ dealer (staff đầu tiên của dealer)
-                    Integer staffID = daoDealer.getFirstStaffIdByDealerId(dealerID);
-                    if (staffID == null) {
-                        System.out.println("⚠️ No staff found for DealerID=" + dealerID + ", TestDrive will have StaffID=NULL");
-                    }
-
-                    // ✅ Tạo test drive với đầy đủ thông tin
-                    boolean testDriveSaved = daoTestDrive.insertTestDrive(
-                        newCustomerID, testDate, vehicleID, dealerID, staffID
-                    );
-
-                    if (testDriveSaved) {
-                        if (vehicleID != null) {
-                            redirectAttributes.addFlashAttribute("successMessage",
-                                "✅ Customer and Test Drive added successfully with vehicle!");
-                        } else {
-                            redirectAttributes.addFlashAttribute("successMessage",
-                                "✅ Customer and Test Drive added successfully (vehicle will be assigned later)!");
-                        }
-                    } else {
-                        redirectAttributes.addFlashAttribute("successMessage",
-                            "✅ Customer added but test drive failed to save!");
-                    }
-                } catch (Exception e) {
-                    System.out.println("⚠️ Failed to save test drive: " + e.getMessage());
-                    e.printStackTrace();
-                    redirectAttributes.addFlashAttribute("successMessage",
-                        "✅ Customer added successfully but test drive failed!");
-                }
-            } else {
-                redirectAttributes.addFlashAttribute("successMessage", "✅ Customer added successfully!");
-            }
-        } else {
-            redirectAttributes.addFlashAttribute("errorMessage", "❌ Failed to add customer!");
+        if (bindingResult.hasErrors()) {
+            return "dealerPage/createANewCustomer";
         }
 
-        return "redirect:/customer/list"; // ✅ Quay lại danh sách
+        try {
+            customerService.createCustomerWithTestDrive(customerForm, testDriveSchedule);
+            redirectAttributes.addFlashAttribute("successMessage", "✅ Customer saved successfully");
+            return "redirect:/customer/list";
+        } catch (Exception e) {
+            log.error("Error creating customer: {}", e.getMessage(), e);
+            model.addAttribute("errorMessage", "❌ Failed to save customer: " + e.getMessage());
+            return "dealerPage/createANewCustomer";
+        }
     }
 
-    // ✅ Mở trang chỉnh sửa Customer
     @GetMapping("/customer/edit/{id}")
     public String editCustomer(@PathVariable("id") int id, Model model, RedirectAttributes redirectAttributes) {
-        DTOCustomer customer = daoCustomer.getCustomerById(id);
-        if (customer == null) {
-            redirectAttributes.addFlashAttribute("errorMessage", "❌ Customer not found!");
+        try {
+            DTOCustomer customer = customerService.getCustomer(id);
+            model.addAttribute("customerForm", customerMapper.toCustomerForm(customer));
+            model.addAttribute("customer", customer);
+            model.addAttribute("CustomerID", id);
+            return "dealerPage/customerEdit";
+        } catch (Exception e) {
+            log.error("Error loading customer for edit: {}", e.getMessage(), e);
+            redirectAttributes.addFlashAttribute("errorMessage", "❌ Customer not found: " + e.getMessage());
             return "redirect:/customer/list";
         }
-        model.addAttribute("customer", customer);
-        return "dealerPage/customerEdit";
     }
 
-    // ✅ Cập nhật Customer
-    @PostMapping("/customer/update")
-    public String updateCustomer(@ModelAttribute("customer") DTOCustomer c,
-                                 RedirectAttributes redirectAttributes) {
-        boolean success = daoCustomer.updateCustomer(c);
-
-        if (success) {
-            redirectAttributes.addFlashAttribute("successMessage", "✅ Customer updated successfully!");
-        } else {
-            redirectAttributes.addFlashAttribute("errorMessage", "❌ Failed to update customer!");
+    @PostMapping("/customer/update/{id}")
+    public String updateCustomer(@PathVariable("id") Integer id,
+                                 @Valid @ModelAttribute("customerForm") CustomerForm customerForm,
+                                 BindingResult bindingResult,
+                                 RedirectAttributes redirectAttributes,
+                                 Model model) {
+        if (bindingResult.hasErrors()) {
+            return prepareEditView(id, customerForm, model, redirectAttributes);
         }
 
-        return "redirect:/customer/list"; // ✅ Trở về danh sách
+        if (id == null || id <= 0) {
+            log.error("Invalid customer ID: {}", id);
+            redirectAttributes.addFlashAttribute("errorMessage", "❌ Invalid customer ID");
+            return "redirect:/customer/list";
+        }
+
+        try {
+            customerService.updateCustomer(id, customerForm);
+            redirectAttributes.addFlashAttribute("successMessage", "✅ Customer updated successfully");
+            return "redirect:/customer/list";
+        } catch (com.dealermanagementsysstem.project.exception.BusinessException e) {
+            log.error("Business exception updating customer {}: {}", id, e.getMessage(), e);
+            model.addAttribute("errorMessage", "❌ " + e.getMessage());
+            return prepareEditView(id, customerForm, model, redirectAttributes);
+        } catch (Exception e) {
+            log.error("Unexpected error updating customer {}: {}", id, e.getMessage(), e);
+            redirectAttributes.addFlashAttribute("errorMessage", "❌ Failed to update customer: " + e.getMessage());
+            return "redirect:/customer/edit/" + id;
+        }
     }
 
-    // ✅ Xóa Customer (POST chuẩn RESTful)
+    private String prepareEditView(Integer id, CustomerForm customerForm, Model model, RedirectAttributes redirectAttributes) {
+        try {
+            DTOCustomer customer = customerService.getCustomer(id);
+            model.addAttribute("customer", customer);
+            model.addAttribute("customerForm", customerForm);
+            model.addAttribute("CustomerID", id);
+            return "dealerPage/customerEdit";
+        } catch (Exception e) {
+            log.error("Error preparing edit view: {}", e.getMessage(), e);
+            redirectAttributes.addFlashAttribute("errorMessage", "❌ Customer not found: " + e.getMessage());
+            return "redirect:/customer/list";
+        }
+    }
+
     @PostMapping("/customer/delete/{id}")
-    public String deleteCustomer(@PathVariable("id") int id,
-                                 RedirectAttributes redirectAttributes) {
-        boolean success = daoCustomer.deleteCustomer(id);
-
-        if (success) {
-            redirectAttributes.addFlashAttribute("successMessage", "🗑️ Customer deleted successfully!");
-        } else {
-            redirectAttributes.addFlashAttribute("errorMessage", "❌ Failed to delete customer!");
-        }
-
-        return "redirect:/customer/list"; // ✅ Quay về danh sách
+    public String deleteCustomer(@PathVariable("id") int id, RedirectAttributes redirectAttributes) {
+        customerService.deleteCustomer(id);
+        redirectAttributes.addFlashAttribute("successMessage", "🗑️ Customer deleted successfully!");
+        return "redirect:/customer/list";
     }
 
-
-    // ✅ Tìm kiếm Customer
     @GetMapping("/customer/search")
     public String searchCustomer(@RequestParam(value = "keyword", required = false, defaultValue = "") String keyword, Model model) {
-        List<DTOCustomer> customerList;
-
-        // Nếu keyword trống hoặc null → Hiển thị full list
-        if (keyword == null || keyword.trim().isEmpty()) {
-            customerList = daoCustomer.getAllCustomers();
-            System.out.println("ℹ️ Search with empty keyword → Returning all customers (" + customerList.size() + " found)");
-        } else {
-            customerList = daoCustomer.searchCustomer(keyword.trim());
-            System.out.println("🔍 Search for: '" + keyword + "' → Found " + customerList.size() + " customers");
-        }
-
+        List<DTOCustomer> customerList = customerService.searchCustomer(keyword);
         model.addAttribute("customers", customerList);
         model.addAttribute("keyword", keyword);
         return "dealerPage/betterCustomerListFinal";
     }
-    // ✅ Hiển thị chi tiết khách hàng
+
     @GetMapping("/customer/detail/{id}")
-    public String showCustomerDetail(@PathVariable("id") int id, Model model, RedirectAttributes redirectAttributes) {
-        DTOCustomer customer = daoCustomer.getCustomerById(id);
-        if (customer == null) {
-            redirectAttributes.addFlashAttribute("errorMessage", "❌ Customer not found!");
-            return "redirect:/customer/list";
-        }
-
-        // ✅ Lấy test drive schedule (nếu có)
-        DTOTestDrive testDrive = daoTestDrive.getTestDriveByCustomerId(id);
-
+    public String showCustomerDetail(@PathVariable("id") int id, Model model) {
+        DTOCustomer customer = customerService.getCustomer(id);
+        DTOTestDrive testDrive = testDriveService.findByCustomerID(id);
         model.addAttribute("customer", customer);
-        model.addAttribute("testDrive", testDrive); // ✅ Thêm test drive vào model
-
+        model.addAttribute("testDrive", testDrive);
         return "dealerPage/customerDetail";
     }
 

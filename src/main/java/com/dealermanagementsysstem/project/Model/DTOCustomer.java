@@ -1,17 +1,21 @@
 package com.dealermanagementsysstem.project.Model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @NoArgsConstructor
 @AllArgsConstructor
-@Data
+@Getter
+@Setter
 @Entity
+@Builder
+@ToString(exclude = "testDrives")
 @Table(name = "Customer")
 public class DTOCustomer {
 
@@ -35,12 +39,14 @@ public class DTOCustomer {
     @Column(name = "Address")
     private String address;
 
-    @Column(name = "CreatedAt")
+    @Column(name = "CreatedAt",updatable = false)
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @CreationTimestamp
     private LocalDateTime createdAt;
     
     @Column(name = "UpdatedAt")
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @UpdateTimestamp
     private LocalDateTime updatedAt;
 
     @Column(name = "BirthDate")
@@ -53,4 +59,6 @@ public class DTOCustomer {
     @Column(name = "VehicleInterest")
     private String vehicleInterest;
 
+    @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL,fetch = FetchType.LAZY)
+    private List<DTOTestDrive> testDrives;
 }
