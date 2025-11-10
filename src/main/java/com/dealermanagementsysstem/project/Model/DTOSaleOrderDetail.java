@@ -1,15 +1,8 @@
 package com.dealermanagementsysstem.project.Model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
 import java.math.BigDecimal;
 
-@NoArgsConstructor
-@AllArgsConstructor
-@Data
 @Entity
 @Table(name = "SaleOrderDetail")
 public class DTOSaleOrderDetail {
@@ -40,5 +33,77 @@ public class DTOSaleOrderDetail {
     // Transient field - not stored in DB, loaded from DealerInventory
     private transient String vin;
 
+    // === CONSTRUCTORS ===
 
+    public DTOSaleOrderDetail() {
+    }
+
+    public DTOSaleOrderDetail(int soDetailID, DTOSaleOrder saleOrder, DTOVehicle vehicle,
+                              BigDecimal price, DTODiscountPolicy discountPolicy) {
+        this.soDetailID = soDetailID;
+        this.saleOrder = saleOrder;
+        this.vehicle = vehicle;
+        this.price = price;
+        this.discountPolicy = discountPolicy;
+    }
+
+
+    // === GETTERS / SETTERS ===
+
+    public DTOSaleOrder getSaleOrder() {
+        return saleOrder;
+    }
+
+    public void setSaleOrder(DTOSaleOrder saleOrder) {
+        this.saleOrder = saleOrder;
+    }
+
+    public int getSoDetailID() {
+        return soDetailID;
+    }
+
+    public void setSoDetailID(int soDetailID) {
+        this.soDetailID = soDetailID;
+    }
+
+    public DTODiscountPolicy getDiscountPolicy() {
+        return discountPolicy;
+    }
+
+    public void setDiscountPolicy(DTODiscountPolicy discountPolicy) {
+        this.discountPolicy = discountPolicy;
+    }
+
+
+    public DTOVehicle getVehicle() {
+        return vehicle;
+    }
+
+    public void setVehicle(DTOVehicle vehicle) {
+        this.vehicle = vehicle;
+    }
+
+    public BigDecimal getPrice() {
+        return price;
+    }
+
+    public void setPrice(BigDecimal price) {
+        this.price = price;
+    }
+
+    public Integer getQuantity() {
+        return quantity != null ? quantity : 1;
+    }
+
+    public void setQuantity(Integer quantity) {
+        this.quantity = quantity;
+    }
+
+    public String getVin() {
+        return vin;
+    }
+
+    public void setVin(String vin) {
+        this.vin = vin;
+    }
 }

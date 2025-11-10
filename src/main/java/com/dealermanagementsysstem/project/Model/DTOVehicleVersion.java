@@ -1,31 +1,24 @@
 package com.dealermanagementsysstem.project.Model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
 import java.util.List;
 
-@NoArgsConstructor
-@AllArgsConstructor
-@Data
 @Entity
 @Table(name = "VehicleVersion")
 public class DTOVehicleVersion {
-
+    
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "VersionID")
     private int versionID;
-
+    
     @ManyToOne
     @JoinColumn(name = "ModelID", referencedColumnName = "ModelID")
     private DTOVehicleModel model;
-
+    
     @Column(name = "VersionName")
     private String versionName;
-
+    
     @Column(name = "Engine")
     private String engine;
 
@@ -34,9 +27,72 @@ public class DTOVehicleVersion {
 
     @OneToMany(mappedBy = "version")
     private List<DTOVehicle> vehicles;
-
+    
     @OneToMany(mappedBy = "version")
     private List<DTOPurchaseOrderDetail> purchaseOrderDetails;
+    
+    public DTOVehicleVersion() {
+    }
+    
+    public DTOVehicleVersion(int versionID, DTOVehicleModel model, String versionName) {
+        this.versionID = versionID;
+        this.model = model;
+        this.versionName = versionName;
+    }
+    
+    public int getVersionID() {
+        return versionID;
+    }
+    
+    public void setVersionID(int versionID) {
+        this.versionID = versionID;
+    }
+    
+    public DTOVehicleModel getModel() {
+        return model;
+    }
+    
+    public void setModel(DTOVehicleModel model) {
+        this.model = model;
+    }
+    
+    public String getVersionName() {
+        return versionName;
+    }
+    
+    public void setVersionName(String versionName) {
+        this.versionName = versionName;
+    }
+    
+    public String getEngine() {
+        return engine;
+    }
 
+    public void setEngine(String engine) {
+        this.engine = engine;
+    }
 
+    public String getTransmission() {
+        return transmission;
+    }
+
+    public void setTransmission(String transmission) {
+        this.transmission = transmission;
+    }
+
+    public List<DTOVehicle> getVehicles() {
+        return vehicles;
+    }
+    
+    public void setVehicles(List<DTOVehicle> vehicles) {
+        this.vehicles = vehicles;
+    }
+    
+    public List<DTOPurchaseOrderDetail> getPurchaseOrderDetails() {
+        return purchaseOrderDetails;
+    }
+    
+    public void setPurchaseOrderDetails(List<DTOPurchaseOrderDetail> purchaseOrderDetails) {
+        this.purchaseOrderDetails = purchaseOrderDetails;
+    }
 }

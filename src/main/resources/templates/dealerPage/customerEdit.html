@@ -126,54 +126,39 @@ r<!DOCTYPE html>
 
         <!-- Form -->
         <div class="form-card">
-            <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
-                <i class="fas fa-exclamation-circle me-2"></i>
-                <span th:text="${errorMessage}"></span>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-            <form th:action="@{/customer/update/{id}(id=${CustomerID})}" th:object="${customerForm}" method="post">
-                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+            <form th:action="@{/customer/update}" th:object="${customer}" method="post">
                 <input type="hidden" th:field="*{customerID}"/>
-                
-                <div th:if="${#fields.hasErrors('*')}" class="alert alert-danger mb-3">
-                    <i class="fas fa-exclamation-circle me-2"></i>
-                    <strong>Please fix the following errors:</strong>
-                    <ul class="mb-0 mt-2">
-                        <li th:each="err : ${#fields.errors('*')}" th:text="${err}"></li>
-                    </ul>
-                </div>
 
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label">Full Name</label>
                         <input type="text" th:field="*{fullName}" class="form-control" required>
-                        <div class="text-danger small" th:if="${#fields.hasErrors('fullName')}" th:errors="*{fullName}"></div>
                     </div>
 
                     <div class="col-md-6">
                         <label class="form-label">Phone</label>
                         <input type="text" th:field="*{phone}" class="form-control">
-                        <div class="text-danger small" th:if="${#fields.hasErrors('phone')}" th:errors="*{phone}"></div>
                     </div>
 
                     <div class="col-md-6">
                         <label class="form-label">Email</label>
-                        <input type="email" th:field="*{email}" class="form-control" required>
-                        <div class="text-danger small" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></div>
+                        <input type="email" th:field="*{email}" class="form-control">
                     </div>
 
                     <div class="col-md-6">
                         <label class="form-label">Address</label>
-                        <input type="text" th:field="*{address}" class="form-control" required>
-                        <div class="text-danger small" th:if="${#fields.hasErrors('address')}" th:errors="*{address}"></div>
+                        <input type="text" th:field="*{address}" class="form-control">
                     </div>
 
                     <div class="col-md-6">
                         <label class="form-label">Birth Date</label>
                         <input type="date" th:field="*{birthDate}" class="form-control">
-                        <div class="text-danger small" th:if="${#fields.hasErrors('birthDate')}" th:errors="*{birthDate}"></div>
                     </div>
 
+                    <div class="col-md-6">
+                        <label class="form-label">Vehicle Interest</label>
+                        <input type="text" th:field="*{vehicleInterest}" class="form-control">
+                    </div>
 
                     <div class="col-12">
                         <label class="form-label">Note</label>

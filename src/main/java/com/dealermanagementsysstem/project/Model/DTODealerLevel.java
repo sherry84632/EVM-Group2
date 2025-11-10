@@ -1,13 +1,7 @@
 package com.dealermanagementsysstem.project.Model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
-@NoArgsConstructor
-@AllArgsConstructor
-@Data
 @Entity
 @Table(name = "DealerLevel")
 public class DTODealerLevel {
@@ -26,5 +20,39 @@ public class DTODealerLevel {
     @Column(name = "MaxOrderValue")
     private java.math.BigDecimal maxOrderValue;
 
+    public DTODealerLevel() {
+    }
+
+    public int getLevelID() {
+        return levelID;
+    }
+
+    public void setLevelID(int levelID) {
+        this.levelID = levelID;
+    }
+
+    public String getLevelName() {
+        return levelName;
+    }
+
+    public void setLevelName(String levelName) {
+        this.levelName = levelName;
+    }
+
+    public java.math.BigDecimal getMinOrderValue() {
+        return minOrderValue;
+    }
+
+    public void setMinOrderValue(java.math.BigDecimal minOrderValue) {
+        this.minOrderValue = minOrderValue;
+    }
+
+    public java.math.BigDecimal getMaxOrderValue() {
+        return maxOrderValue;
+    }
+
+    public void setMaxOrderValue(java.math.BigDecimal maxOrderValue) {
+        this.maxOrderValue = maxOrderValue;
+    }
 }
 

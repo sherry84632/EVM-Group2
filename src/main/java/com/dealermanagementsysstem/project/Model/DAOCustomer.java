@@ -1,7 +1,6 @@
 package com.dealermanagementsysstem.project.Model;
 
 import utils.DBUtils;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -13,8 +12,8 @@ import java.sql.SQLException;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import org.springframework.stereotype.Repository;
+
 
 
 import org.springframework.stereotype.Repository;
@@ -64,9 +63,9 @@ public class DAOCustomer {
     // ✅ Thêm mới Customer - trả về customerID
     public int insertCustomer(DTOCustomer c) {
         String sql = """
-                    INSERT INTO Customer (DealerID, FullName, Phone, Email, Address, CreatedAt, UpdatedAt, BirthDate, Note, VehicleInterest)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """;
+            INSERT INTO Customer (DealerID, FullName, Phone, Email, Address, CreatedAt, UpdatedAt, BirthDate, Note, VehicleInterest)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """;
 
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -80,14 +79,15 @@ public class DAOCustomer {
             ps.setString(2, c.getFullName());
             ps.setString(3, c.getPhone());
             ps.setString(4, c.getEmail());
-            ps.setNString(5, c.getAddress());
+            ps.setString(5, c.getAddress());
 
+            // ✅ LocalDateTime -> Timestamp
             ps.setTimestamp(6, c.getCreatedAt() != null ? Timestamp.valueOf(c.getCreatedAt()) : null);
             ps.setTimestamp(7, c.getUpdatedAt() != null ? Timestamp.valueOf(c.getUpdatedAt()) : null);
 
             ps.setDate(8, c.getBirthDate() != null ? java.sql.Date.valueOf(c.getBirthDate()) : null);
-            ps.setNString(9, c.getNote());
-            ps.setNString(10, c.getVehicleInterest());
+            ps.setString(9, c.getNote());
+            ps.setString(10, c.getVehicleInterest());
 
             int rows = ps.executeUpdate();
             if (rows > 0) {
@@ -111,10 +111,10 @@ public class DAOCustomer {
     // ✅ Cập nhật Customer
     public boolean updateCustomer(DTOCustomer c) {
         String sql = """
-                    UPDATE Customer 
-                    SET DealerID=?, FullName=?, Phone=?, Email=?, Address=?, CreatedAt=?, UpdatedAt=?, BirthDate=?, Note=?, VehicleInterest=? 
-                    WHERE CustomerID=?
-                """;
+            UPDATE Customer 
+            SET DealerID=?, FullName=?, Phone=?, Email=?, Address=?, CreatedAt=?, UpdatedAt=?, BirthDate=?, Note=?, VehicleInterest=? 
+            WHERE CustomerID=?
+        """;
 
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -128,12 +128,12 @@ public class DAOCustomer {
             ps.setString(2, c.getFullName());
             ps.setString(3, c.getPhone());
             ps.setString(4, c.getEmail());
-            ps.setNString(5, c.getAddress());
+            ps.setString(5, c.getAddress());
             ps.setTimestamp(6, c.getCreatedAt() != null ? Timestamp.valueOf(c.getCreatedAt()) : null);
             ps.setTimestamp(7, c.getUpdatedAt() != null ? Timestamp.valueOf(c.getUpdatedAt()) : null);
             ps.setDate(8, c.getBirthDate() != null ? java.sql.Date.valueOf(c.getBirthDate()) : null);
-            ps.setNString(9, c.getNote());
-            ps.setNString(10, c.getVehicleInterest());
+            ps.setString(9, c.getNote());
+            ps.setString(10, c.getVehicleInterest());
             ps.setInt(11, c.getCustomerID());
 
             int updated = ps.executeUpdate();
@@ -211,7 +211,7 @@ public class DAOCustomer {
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            ps.setNString(1, "%" + keyword + "%");
+            ps.setString(1, "%" + keyword + "%");
             ps.setString(2, "%" + keyword + "%");
 
             try (ResultSet rs = ps.executeQuery()) {
@@ -237,7 +237,6 @@ public class DAOCustomer {
                     c.setVehicleInterest(rs.getString("VehicleInterest"));
                     list.add(c);
                 }
-
             }
         } catch (SQLException e) {
             System.out.println("❌ Failed to search customer!");

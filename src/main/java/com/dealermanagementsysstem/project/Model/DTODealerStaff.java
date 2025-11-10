@@ -1,13 +1,7 @@
 package com.dealermanagementsysstem.project.Model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
-@NoArgsConstructor
-@AllArgsConstructor
-@Data
 @Entity
 @Table(name = "DealerStaff")
 public class DTODealerStaff {
@@ -37,4 +31,69 @@ public class DTODealerStaff {
     @JoinColumn(name = "DealerID", referencedColumnName = "DealerID")
     private DTODealer dealer;
 
+    // === CONSTRUCTORS ===
+
+    public DTODealerStaff() {
+    }
+
+    // === GETTERS / SETTERS ===
+
+    public int getStaffID() {
+        return staffID;
+    }
+
+    public void setStaffID(int staffID) {
+        this.staffID = staffID;
+    }
+
+
+
+
+    public String getFullName() {
+        return fullName;
+    }
+
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
+    }
+
+    public String getPosition() {
+        return position;
+    }
+
+    public void setPosition(String position) {
+        this.position = position;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public DTOAccount getAccount() {
+        return account;
+    }
+
+    public void setAccount(DTOAccount account) {
+        this.account = account;
+    }
+
+    public DTODealer getDealer() {
+        return dealer;
+    }
+
+    public void setDealer(DTODealer dealer) {
+        this.dealer = dealer;
+    }
 }

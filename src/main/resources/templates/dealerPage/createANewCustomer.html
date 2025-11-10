@@ -82,73 +82,56 @@
             <h2>Create a New Customer</h2>
         </div>
 
-        <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
-            <i class="fas fa-exclamation-circle me-2"></i>
-            <strong th:text="${errorMessage}"></strong>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-
         <div class="create-vehicle-form-container">
 
-            <!-- ✅ Bind to CustomerForm -->
-            <form action="/customer/save" method="post" th:object="${customerForm}">
+            <!-- ✅ action khớp controller -->
+            <form action="/customer/save" method="post">
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
                 <input type="hidden" name="returnUrl" th:value="${returnUrl}" />
-                
-                <div th:if="${#fields.hasErrors('*')}" class="alert alert-danger mb-3">
-                    <i class="fas fa-exclamation-circle me-2"></i>
-                    <strong>Please fix the following errors:</strong>
-                    <ul class="mb-0 mt-2">
-                        <li th:each="err : ${#fields.errors('*')}" th:text="${err}"></li>
-                    </ul>
-                </div>
 
                 <div class="create-vehicle-form-row">
                     <label>Full Name</label>
-                    <input th:field="*{fullName}" type="text" class="create-vehicle-form-input mb-1" required>
-                    <div class="text-danger small" th:if="${#fields.hasErrors('fullName')}" th:errors="*{fullName}"></div>
+                    <input name="fullName" type="text" class="create-vehicle-form-input mb-1" required>
                 </div>
 
                 <div class="create-vehicle-form-row">
                     <label>Email</label>
-                    <input th:field="*{email}" type="email" class="create-vehicle-form-input mb-1" required>
-                    <div class="text-danger small" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></div>
+                    <input name="email" type="email" class="create-vehicle-form-input mb-1" required>
                 </div>
 
                 <div class="create-vehicle-form-row">
                     <label>Phone Number</label>
-                    <input th:field="*{phone}" type="text" class="create-vehicle-form-input mb-1" required>
-                    <div class="text-danger small" th:if="${#fields.hasErrors('phone')}" th:errors="*{phone}"></div>
+                    <input name="phone" type="text" class="create-vehicle-form-input mb-1" required>
                 </div>
 
                 <div class="create-vehicle-form-row">
                     <label>Address</label>
-                    <input th:field="*{address}" type="text" class="create-vehicle-form-input mb-1" required>
-                    <div class="text-danger small" th:if="${#fields.hasErrors('address')}" th:errors="*{address}"></div>
+                    <input name="address" type="text" class="create-vehicle-form-input mb-1" required>
                 </div>
 
                 <div class="create-vehicle-form-row">
                     <label>Birth Date</label>
-                    <input th:field="*{birthDate}" type="date" class="create-vehicle-form-input mb-1" required>
-                    <div class="text-danger small" th:if="${#fields.hasErrors('birthDate')}" th:errors="*{birthDate}"></div>
+                    <input name="birthDate" type="date" class="create-vehicle-form-input mb-1" required>
+                </div>
+
+                <div class="create-vehicle-form-row">
+                    <label>Created At</label>
+                    <input name="createdAt" type="datetime-local" class="create-vehicle-form-input mb-1" required>
                 </div>
 
                 <div class="create-vehicle-form-row">
                     <label>Note</label>
-                    <input th:field="*{note}" type="text" class="create-vehicle-form-input mb-1">
-                    <div class="text-danger small" th:if="${#fields.hasErrors('note')}" th:errors="*{note}"></div>
+                    <input name="note" type="text" class="create-vehicle-form-input mb-1">
                 </div>
 
                 <div class="create-vehicle-form-row">
                     <label>Test Drive Schedule</label>
-                    <input th:field="*{testDriveSchedule}" name="testDriveSchedule" type="datetime-local" class="create-vehicle-form-input mb-1">
-                    <div class="text-danger small" th:if="${#fields.hasErrors('testDriveSchedule')}" th:errors="*{testDriveSchedule}"></div>
+                    <input name="testDriveSchedule" type="datetime-local" class="create-vehicle-form-input mb-1">
                 </div>
 
                 <div class="create-vehicle-form-row">
                     <label>Vehicle of Interest</label>
-                    <input th:field="*{vehicleInterest}" type="text" class="create-vehicle-form-input mb-1">
-                    <div class="text-danger small" th:if="${#fields.hasErrors('vehicleInterest')}" th:errors="*{vehicleInterest}"></div>
+                    <input name="vehicleInterest" type="text" class="create-vehicle-form-input mb-1">
                 </div>
 
                 <div class="create-vehicle-form-row">
