@@ -555,7 +555,7 @@
                     <div class="col-md-6">
                         <p><strong>Year:</strong> <span th:text="${vehicle.manufactureYear}"></span></p>
                         <p><strong>Color:</strong> <span th:text="${vehicle.colorName}"></span></p>
-                        <p><strong>Base Price:</strong> $<span th:text="${#numbers.formatDecimal(vehicle.basePrice, 1, 2)}"></span></p>
+                        <p><strong>Base Price:</strong> $<span th:text="${#numbers.formatDecimal(vehicle.basePrice, 1, 0)}"></span></p>
                     </div>
                 </div>
             </div>
@@ -660,7 +660,7 @@
                                 <div class="col-md-6">
                                     <div class="price-item">
                                         <span class="price-label">Base Price:</span>
-                                        <span class="price-value" id="basePrice">$<span th:text="${#numbers.formatDecimal(vehicle.basePrice, 1, 2)}"></span></span>
+                                        <span class="price-value" id="basePrice">$<span th:text="${#numbers.formatDecimal(vehicle.basePrice, 1, 0)}"></span></span>
                                     </div>
                                     <div class="price-item">
                                         <span class="price-label">Discount:</span>
@@ -668,7 +668,7 @@
                                     </div>
                                     <div class="price-item">
                                         <span class="price-label">Unit Price:</span>
-                                        <span class="price-value final" id="finalPrice">$<span th:text="${#numbers.formatDecimal(vehicle.basePrice, 1, 2)}"></span></span>
+                                        <span class="price-value final" id="finalPrice">$<span th:text="${#numbers.formatDecimal(vehicle.basePrice, 1, 0)}"></span></span>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
@@ -678,7 +678,7 @@
                                     </div>
                                     <div class="price-item total-row">
                                         <span class="price-label">Total Amount:</span>
-                                        <span class="price-value total" id="totalAmount">$<span th:text="${#numbers.formatDecimal(vehicle.basePrice, 1, 2)}"></span></span>
+                                        <span class="price-value total" id="totalAmount">$<span th:text="${#numbers.formatDecimal(vehicle.basePrice, 1, 0)}"></span></span>
                                     </div>
                                 </div>
                             </div>
@@ -699,11 +699,11 @@
                                 </div>
                                 <div class="col-md-6">
                                     <h6>Pricing Summary</h6>
-                                    <p><strong>Base Price:</strong> $<span id="previewBasePrice" th:text="${#numbers.formatDecimal(vehicle.basePrice, 1, 2)}"></span></p>
+                                    <p><strong>Base Price:</strong> $<span id="previewBasePrice" th:text="${#numbers.formatDecimal(vehicle.basePrice, 1, 0)}"></span></p>
                                     <p><strong>Discount:</strong> <span id="previewDiscount">0%</span></p>
-                                    <p><strong>Final Price:</strong> $<span id="previewFinalPrice" th:text="${#numbers.formatDecimal(vehicle.basePrice, 1, 2)}"></span></p>
+                                    <p><strong>Final Price:</strong> $<span id="previewFinalPrice" th:text="${#numbers.formatDecimal(vehicle.basePrice, 1, 0)}"></span></p>
                                     <p><strong>Quantity:</strong> <span id="previewQuantity">1</span></p>
-                                    <p><strong>Total:</strong> $<span id="previewTotal" th:text="${#numbers.formatDecimal(vehicle.basePrice, 1, 2)}"></span></p>
+                                    <p><strong>Total:</strong> $<span id="previewTotal" th:text="${#numbers.formatDecimal(vehicle.basePrice, 1, 0)}"></span></p>
                                 </div>
                             </div>
                         </div>

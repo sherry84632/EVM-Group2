@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title>Dealer Sales Report</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/mainPageStyle.css">
+    <link rel="stylesheet" href="/css/iconStyle.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"
+          integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw=="
+          crossorigin="anonymous" referrerpolicy="no-referrer"/>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>.stat-card{min-height:96px}</style>
+    <script>
+        async function fetchJson(url) {
+            const res = await fetch(url, { credentials: 'include' });
+            return await res.json();
+        }
+
+        function qs(id) { return document.getElementById(id); }
+
+        function formatCurrency(value) {
+            if (!value) return '$0';
+            const num = typeof value === 'string' ? parseFloat(value) : value;
+            return '$' + Math.round(num).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+        }
+
+        function buildParams() {
+            const from = qs('from').value; const to = qs('to').value; const status = qs('status').value;
+            const params = new URLSearchParams();
+            if (from) params.append('from', from); if (to) params.append('to', to); if (status) params.append('status', status);
+            return params.toString();
+        }
+
+        let salesBarChart, statusPieChart, colorBarChart;
+
+        async function loadData() {
+            const p = buildParams();
+            const kpis = await fetchJson(`/dealer/reports/sales/kpis?${p}`);
+            qs('kpiRevenue').innerText = formatCurrency(kpis.totalRevenue ?? 0);
+            qs('kpiOrders').innerText = (kpis.totalOrders ?? 0);
+            qs('kpiVehicles').innerText = (kpis.totalVehicles ?? 0);
+
+            const byMonth = await fetchJson(`/dealer/reports/sales/by-month?${p}`);
+            const labels = byMonth.map(r => r.yearMonth);
+            const revenue = byMonth.map(r => r.revenue);
+            const vehicles = byMonth.map(r => r.vehicles);
+            const barCtx = qs('salesByMonth');
+            if (salesBarChart) salesBarChart.destroy();
+            salesBarChart = new Chart(barCtx, {
+                type: 'bar', data: { labels, datasets: [
+                    { label: 'Revenue', data: revenue, backgroundColor: 'rgba(54,162,235,0.6)' },
+                    { label: 'Vehicles', data: vehicles, backgroundColor: 'rgba(255,159,64,0.6)', yAxisID: 'y1' }
+                ] },
+                options: { responsive: true, scales: { y: { beginAtZero: true }, y1: { beginAtZero: true, position: 'right' } } }
+            });
+
+            const status = await fetchJson(`/dealer/reports/sales/status-distribution?${p}`);
+            const statusLabels = Object.keys(status);
+            const statusData = Object.values(status);
+            const pieCtx = qs('statusPie');
+            if (statusPieChart) statusPieChart.destroy();
+            statusPieChart = new Chart(pieCtx, {
+                type: 'pie', data: { labels: statusLabels, datasets: [{ data: statusData, backgroundColor: ['#36a2eb','#4bc0c0','#9966ff','#ff9f40','#ff6384','#c9cbcf'] }] }
+            });
+
+            const topColors = await fetchJson(`/dealer/reports/sales/top-colors?${p}`);
+            const colorLabels = topColors.map(r => r.color || 'N/A');
+            const colorData = topColors.map(r => r.count);
+            const colorCtx = qs('topColors');
+            if (colorBarChart) colorBarChart.destroy();
+            colorBarChart = new Chart(colorCtx, {
+                type: 'bar', data: { labels: colorLabels, datasets: [{ label: 'Units', data: colorData, backgroundColor: 'rgba(75,192,192,0.6)' }] },
+                options: { responsive: true, scales: { y: { beginAtZero: true } } }
+            });
+
+            const rows = await fetchJson(`/dealer/reports/sales/table?${p}`);
+            const tbody = qs('tableBody');
+            tbody.innerHTML = '';
+            rows.forEach(r => {
+                const tr = document.createElement('tr');
+                const dateStr = r.createdAt ? new Date(r.createdAt).toLocaleDateString('vi-VN') : '';
+                tr.innerHTML = `<td>${r.saleOrderId}</td><td>${dateStr}</td><td>${r.customerName ?? ''}</td><td>${r.status}</td><td class="text-end">${r.quantity}</td><td class="text-end">${formatCurrency(r.totalAmount ?? 0)}</td>`;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function onExport() {
+            const p = buildParams();
+            window.location.href = `/dealer/reports/sales/export.csv?${p}`;
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            qs('apply').addEventListener('click', loadData);
+            qs('export').addEventListener('click', onExport);
+            loadData();
+        });
+    </script>
+</head>
+<body class="bg-gradient2-custom">
+<div class="d-flex">
+    <div th:replace="~{mainPage/navBarFragment :: navBar}"></div>
+    <div class="mainContent flex-grow-1 p-3" style="overflow-y: auto; overflow-x: hidden; height: 97vh;">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3 class="mb-0">Sales Report</h3>
+            <button id="export" class="btn btn-outline-secondary btn-sm">Export CSV</button>
+        </div>
+
+        <form class="card shadow-sm mb-3">
+            <div class="card-body">
+                <div class="row g-2 align-items-end">
+                    <div class="col-6 col-md-3">
+                        <label class="form-label">From</label>
+                        <input type="date" id="from" class="form-control" />
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <label class="form-label">To</label>
+                        <input type="date" id="to" class="form-control" />
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label class="form-label">Status</label>
+                        <select id="status" class="form-select">
+                            <option value="">All</option>
+                            <option>CREATED</option>
+                            <option>CONTRACT_SIGNED</option>
+                            <option>PROCESSING</option>
+                            <option>SHIPPED</option>
+                            <option>COMPLETED</option>
+                            <option>CANCELLED</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-3 d-grid">
+                        <button type="button" id="apply" class="btn btn-primary">Apply</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <div class="row g-3 mb-3">
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="card shadow-sm stat-card"><div class="card-body"><div class="text-muted small">💰 Total Revenue</div><div class="fs-3 fw-semibold text-success" id="kpiRevenue">0</div></div></div>
+            </div>
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="card shadow-sm stat-card"><div class="card-body"><div class="text-muted small">🧾 Total Orders</div><div class="fs-3 fw-semibold" id="kpiOrders">0</div></div></div>
+            </div>
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="card shadow-sm stat-card"><div class="card-body"><div class="text-muted small">🚗 Vehicles Sold</div><div class="fs-3 fw-semibold" id="kpiVehicles">0</div></div></div>
+            </div>
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="card shadow-sm stat-card"><div class="card-body"><div class="text-muted small">Order Status</div><div class="small text-muted">See chart</div></div></div>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-12 col-xl-8">
+                <div class="card shadow-sm h-100"><div class="card-header">Sales by Month</div><div class="card-body"><canvas id="salesByMonth" style="height:120px"></canvas></div></div>
+            </div>
+            <div class="col-12 col-xl-4">
+                <div class="card shadow-sm h-100"><div class="card-header">Order Status</div><div class="card-body"><canvas id="statusPie" style="height:120px"></canvas></div></div>
+            </div>
+        </div>
+
+        <div class="row g-3 mt-3">
+            <div class="col-12 col-xl-6">
+                <div class="card shadow-sm h-100"><div class="card-header">Top Colors</div><div class="card-body"><canvas id="topColors" style="height:120px"></canvas></div></div>
+            </div>
+            <div class="col-12 col-xl-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header">Orders</div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Order ID</th>
+                                        <th>Created At</th>
+                                        <th>Customer</th>
+                                        <th>Status</th>
+                                        <th class="text-end">Qty</th>
+                                        <th class="text-end">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</html>
+
+

@@ -1,5 +1,5 @@
 <div id="sideBar" th:fragment="navBar" class="mainSideBar d-flex flex-column flex-shrink-0 p-3 text-white">
-    <img src="images/logo.png" style="width: 100%;">
+    <img th:src="@{/images/logo.png}" style="width: 100%;">
     <hr>
     <ul class="nav nav-pills flex-column mb-auto">
         <li>
@@ -14,7 +14,7 @@
             </a>
         </li>
         <li>
-            <a href="#" class="nav-link text-white">
+            <a href="/profile" class="nav-link text-white">
                 <i class="fa-solid fa-user"></i>
                 Profile
             </a>
@@ -25,12 +25,6 @@
 <!--                AI Planning-->
 <!--            </a>-->
 <!--        </li>-->
-        <li>
-            <a href="#" class="nav-link text-white">
-                <i class="fa-solid fa-bell"></i>
-                Notifications
-            </a>
-        </li>
         <li>
             <a href="/logout" class="nav-link text-white">
                 <i class="fa-solid fa-right-from-bracket"></i>

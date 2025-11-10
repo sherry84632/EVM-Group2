@@ -63,21 +63,50 @@ public class DAODealer {
         return null;
     }
 
-    // 🟢 Thêm Dealer mới
-    public void insertDealer(DTODealer d) throws SQLException {
+    // 🟢 Thêm Dealer mới - Returns generated DealerID
+    public int insertDealer(DTODealer d) {
         String sql = "INSERT INTO Dealer (DealerName, Address, Phone, Email, EvmID, LevelID, PolicyID) VALUES (?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = DBUtils.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+             PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             ps.setString(1, d.getDealerName());
-            ps.setString(2, d.getAddress());
+            ps.setString(2, d.getAddress() != null ? d.getAddress() : "");
             ps.setString(3, d.getPhone());
             ps.setString(4, d.getEmail());
-            ps.setInt(5, d.getEvmID());
+
+            // Handle nullable EvmID (0 = null)
+            if (d.getEvmID() > 0) {
+                ps.setInt(5, d.getEvmID());
+            } else {
+                ps.setNull(5, Types.INTEGER);
+            }
+
             ps.setInt(6, d.getLevelID());
-            ps.setInt(7, d.getPolicyID());
-            ps.executeUpdate();
+
+            // Handle nullable PolicyID (0 = null)
+            if (d.getPolicyID() > 0) {
+                ps.setInt(7, d.getPolicyID());
+            } else {
+                ps.setNull(7, Types.INTEGER);
+            }
+
+            int rowsAffected = ps.executeUpdate();
+
+            if (rowsAffected > 0) {
+                try (ResultSet rs = ps.getGeneratedKeys()) {
+                    if (rs.next()) {
+                        int dealerId = rs.getInt(1);
+                        System.out.println("✅ Dealer created successfully with ID: " + dealerId);
+                        return dealerId;
+                    }
+                }
+            }
+
+        } catch (SQLException e) {
+            System.out.println("❌ Error inserting dealer: " + e.getMessage());
+            e.printStackTrace();
         }
+        return -1; // Failed
     }
 
     // Cập nhật Dealer

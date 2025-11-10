@@ -100,6 +100,66 @@
             border: 2px solid rgba(255, 193, 7, 0.5);
         }
 
+        .payment-badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 15px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+
+        .payment-paid {
+            background: rgba(40, 167, 69, 0.2);
+            color: #155724;
+            border: 2px solid rgba(40, 167, 69, 0.5);
+        }
+
+        .payment-unpaid {
+            background: rgba(220, 53, 69, 0.2);
+            color: #721c24;
+            border: 2px solid rgba(220, 53, 69, 0.5);
+        }
+
+        .payment-alert {
+            background: linear-gradient(135deg, #fff5e6 0%, #ffe0b3 100%);
+            border-left: 4px solid #ff9800;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .payment-success-alert {
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            border-left: 4px solid #4caf50;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .btn-pay {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+        }
+
+        .btn-pay:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+        }
+
+        .btn-pay:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
         .status-approved {
             background: rgba(40, 167, 69, 0.2);
             color: #155724;
@@ -188,7 +248,7 @@
     <div th:replace="~{mainPage/navBarFragment :: navBar}"></div>
 
     <!-- Main content -->
-    <div class="mainContent flex-grow-1">
+    <div class="mainContent flex-grow-1" style="overflow-y: auto; overflow-x: hidden; height: 97vh">
         <div class="order-detail-container">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2><i class="fa-solid fa-file-invoice me-2"></i>Order Details #<span th:text="${order.purchaseOrderId}"></span></h2>
@@ -219,8 +279,65 @@
                 <div class="info-row">
                     <div class="info-label">Total Amount:</div>
                     <div class="info-value">
-                        <strong th:text="${order.totalAmount != null ? #numbers.formatCurrency(order.totalAmount) : '$0.00'}"></strong>
+                        <strong th:text="${order.totalAmount != null ? ('$' + #numbers.formatDecimal(order.totalAmount, 1, 0)) : '$0'}"></strong>
                     </div>
+                </div>
+            </div>
+
+            <!-- Payment Status Card -->
+            <div class="detail-card" th:if="${paymentTotalItems != null}">
+                <h3><i class="fa-solid fa-credit-card"></i> Payment Status</h3>
+
+                <!-- Payment Summary -->
+                <div class="info-row">
+                    <div class="info-label">Total Items:</div>
+                    <div class="info-value" th:text="${paymentTotalItems}">0</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Paid Items:</div>
+                    <div class="info-value">
+                        <span th:text="${paymentPaidItems}">0</span>
+                        <span class="payment-badge payment-paid" th:if="${paymentPaidItems > 0}">
+                            <i class="fa-solid fa-check"></i> PAID
+                        </span>
+                    </div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Unpaid Items:</div>
+                    <div class="info-value">
+                        <span th:text="${paymentUnpaidItems}">0</span>
+                        <span class="payment-badge payment-unpaid" th:if="${paymentUnpaidItems > 0}">
+                            <i class="fa-solid fa-exclamation-triangle"></i> UNPAID
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Payment Alert for REQUESTED orders -->
+                <div th:if="${order.status.name() == 'REQUESTED'}">
+                    <div class="payment-alert" th:if="${!paymentAllPaid}">
+                        <h5 style="color: #e65100; margin-bottom: 10px;">
+                            <i class="fa-solid fa-exclamation-circle"></i> Payment Pending
+                        </h5>
+                        <p style="margin: 0; color: #5d4037;">
+                            Please complete the payment for this order. EVM will confirm payment receipt before approving the order.
+                            You have <strong th:text="${paymentUnpaidItems}">0</strong> unpaid item(s).
+                        </p>
+                    </div>
+
+                    <div class="payment-success-alert" th:if="${paymentAllPaid}">
+                        <h5 style="color: #2e7d32; margin-bottom: 10px;">
+                            <i class="fa-solid fa-check-circle"></i> Payment Received
+                        </h5>
+                        <p style="margin: 0; color: #1b5e20;">
+                            EVM has confirmed receipt of payment for all items. This order is ready for approval.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Info for non-REQUESTED orders -->
+                <div th:if="${order.status.name() != 'REQUESTED'}" class="alert alert-info" style="margin-top: 15px;">
+                    <i class="fa-solid fa-info-circle"></i>
+                    Payment confirmation is managed by EVM for REQUESTED orders.
                 </div>
             </div>
 
@@ -297,18 +414,19 @@
                             <th>Discount</th>
                             <th>Unit Price</th>
                             <th>Subtotal</th>
+                            <th>Payment Status</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr th:each="detail, iterStat : ${order.orderDetails}">
                             <td th:text="${iterStat.count}"></td>
-                            <td th:text="${detail.modelName ?: detail.version?.model?.modelName ?: 'N/A'}"></td>
-                            <td th:text="${detail.versionName ?: detail.version?.versionName ?: 'N/A'}"></td>
-                            <td th:text="${detail.colorName ?: detail.color?.colorName ?: 'N/A'}"></td>
+                            <td th:text="${detail.modelName != null ? detail.modelName : (detail.version != null and detail.version.model != null ? detail.version.model.modelName : 'N/A')}"></td>
+                            <td th:text="${detail.versionName != null ? detail.versionName : (detail.version != null ? detail.version.versionName : 'N/A')}"></td>
+                            <td th:text="${detail.colorName != null ? detail.colorName : (detail.color != null ? detail.color.colorName : 'N/A')}"></td>
                             <td th:text="${detail.quantity}"></td>
                             <!-- Base Price -->
                             <td style="text-decoration: line-through; color: #999;">
-                                <span th:if="${detail.basePrice != null}" th:text="${#numbers.formatCurrency(detail.basePrice)}">$0.00</span>
+                                <span th:if="${detail.basePrice != null}" th:text="${'$' + #numbers.formatDecimal(detail.basePrice, 1, 0)}">$0</span>
                                 <span th:unless="${detail.basePrice != null}">-</span>
                             </td>
                             <!-- Discount -->
@@ -317,24 +435,224 @@
                                     <strong th:text="${detail.discountPercent + '%'}">-</strong>
                                     <br/>
                                     <small th:if="${detail.discountAmount != null}">
-                                        (-<span th:text="${#numbers.formatCurrency(detail.discountAmount)}">$0</span>)
+                                        (-<span th:text="${'$' + #numbers.formatDecimal(detail.discountAmount, 1, 0)}">$0</span>)
                                     </small>
                                 </span>
                                 <span th:unless="${detail.discountPercent != null and detail.discountPercent > 0}">-</span>
                             </td>
                             <!-- Unit Price After Discount -->
                             <td style="font-weight: bold; color: #007bff;">
-                                <span th:text="${detail.unitPrice != null ? #numbers.formatCurrency(detail.unitPrice) : '$0.00'}"></span>
+                                <span th:text="${detail.unitPrice != null ? ('$' + #numbers.formatDecimal(detail.unitPrice, 1, 0)) : '$0'}"></span>
                             </td>
                             <!-- Subtotal -->
                             <td style="font-weight: bold;">
-                                <span th:text="${detail.subtotal != null ? #numbers.formatCurrency(detail.subtotal) : '$0.00'}"></span>
+                                <span th:text="${detail.subtotal != null ? ('$' + #numbers.formatDecimal(detail.subtotal, 1, 0)) : '$0'}"></span>
+                            </td>
+                            <!-- Payment Status -->
+                            <td>
+                                <span class="payment-badge"
+                                      th:classappend="${detail.paymentStatus == 'PAID' ? 'payment-paid' : 'payment-unpaid'}"
+                                      th:text="${detail.paymentStatus != null ? detail.paymentStatus : 'UNPAID'}">
+                                </span>
                             </td>
                         </tr>
                     </tbody>
                 </table>
-                <div class="total-amount">
-                    Total: <span th:text="${order.totalAmount != null ? #numbers.formatCurrency(order.totalAmount) : '$0.00'}"></span>
+            </div>
+
+            <!-- 🔥 INVOICE BREAKDOWN -->
+            <div class="detail-card" th:if="${order.orderDetails != null and !#lists.isEmpty(order.orderDetails)}">
+                <h3><i class="fa-solid fa-file-invoice-dollar"></i> Invoice Breakdown</h3>
+
+                <!-- Invoice Table -->
+                <div style="background: white; padding: 30px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="border-bottom: 2px solid #cbd5e0;">
+                                <th style="text-align: left; padding: 12px 0; font-weight: 700; color: #1a202c; font-size: 0.95rem;">Item</th>
+                                <th style="text-align: left; padding: 12px 0; font-weight: 700; color: #1a202c; font-size: 0.95rem;">Description</th>
+                                <th style="text-align: right; padding: 12px 0; font-weight: 700; color: #1a202c; font-size: 0.95rem;">Amount (USD)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- 1. Subtotal (Before Tax) -->
+                            <tr>
+                                <td style="padding: 15px 0; color: #2d3748;">
+                                    <strong>Subtotal (Before Tax)</strong>
+                                </td>
+                                <td style="padding: 15px 0; color: #718096; font-size: 0.9rem;">
+                                    Base price before any discounts
+                                </td>
+                                <td style="padding: 15px 0; text-align: right; font-weight: 600; color: #2d3748; font-size: 1.05rem;">
+                                    $<span th:text="${order.totalAmount != null ? #numbers.formatDecimal(order.totalAmount, 1, 0) : '0'}">206,250</span>
+                                </td>
+                            </tr>
+
+                            <!-- 2. Dealer Discount -->
+                            <tr th:if="${order.policyDiscountPercent != null and order.policyDiscountPercent > 0}">
+                                <td style="padding: 15px 0; color: #2d3748;">
+                                    <strong>Dealer Discount
+                                        (<span th:text="${#numbers.formatDecimal(order.policyDiscountPercent, 1, 0)}">25</span>%)
+                                    </strong>
+                                </td>
+                                <td style="padding: 15px 0; color: #718096; font-size: 0.9rem;">
+                                    Discount applied for dealer
+                                </td>
+                                <td style="padding: 15px 0; text-align: right; font-weight: 600; color: #e53e3e; font-size: 1.05rem;">
+                                    -$<span th:with="dealerDiscount=${order.totalAmount != null and order.policyDiscountPercent != null ? (order.totalAmount * order.policyDiscountPercent / 100.0) : 0}"
+                                          th:text="${#numbers.formatDecimal(dealerDiscount, 1, 0)}">51,563</span>
+                                </td>
+                            </tr>
+
+                            <!-- 3. Subtotal after Discount -->
+                            <tr style="border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0;">
+                                <td style="padding: 15px 0; color: #2d3748;">
+                                    <strong>Subtotal after Discount</strong>
+                                </td>
+                                <td style="padding: 15px 0; color: #718096; font-size: 0.9rem;">
+                                    Price after dealer discount
+                                </td>
+                                <td style="padding: 15px 0; text-align: right; font-weight: 600; color: #3182ce; font-size: 1.05rem;">
+                                    $<span th:with="subtotalAfterDiscount=${order.totalAmount != null and order.policyDiscountPercent != null ? order.totalAmount * (1 - order.policyDiscountPercent / 100.0) : order.totalAmount}"
+                                          th:text="${#numbers.formatDecimal(subtotalAfterDiscount, 1, 0)}">154,688</span>
+                                </td>
+                            </tr>
+
+                            <!-- 4. Dealer Reward -->
+                            <tr>
+                                <td style="padding: 15px 0; color: #2d3748;">
+                                    <strong>Dealer Reward
+                                        (<span th:text="${order.dealerRewardPercent != null ? #numbers.formatDecimal(order.dealerRewardPercent, 1, 0) : '5'}">5</span>%)
+                                    </strong>
+                                </td>
+                                <td style="padding: 15px 0; color: #718096; font-size: 0.9rem;">
+                                    Commission for dealer on discounted price
+                                </td>
+                                <td style="padding: 15px 0; text-align: right; font-weight: 600; color: #38a169; font-size: 1.05rem;">
+                                    $<span th:with="subtotalAfterDiscount=${order.totalAmount != null and order.policyDiscountPercent != null ? order.totalAmount * (1 - order.policyDiscountPercent / 100.0) : order.totalAmount},
+                                                  rewardPercent=${order.dealerRewardPercent != null ? order.dealerRewardPercent : 5.0},
+                                                  dealerReward=${subtotalAfterDiscount * rewardPercent / 100.0}"
+                                          th:text="${#numbers.formatDecimal(dealerReward, 1, 0)}">7,734</span>
+                                </td>
+                            </tr>
+
+                            <!-- 5. Manufacturer Share -->
+                            <tr style="border-bottom: 1px solid #e2e8f0;">
+                                <td style="padding: 15px 0; color: #2d3748;">
+                                    <strong>Manufacturer Share
+                                        (<span th:text="${order.manufacturerSharePercent != null ? #numbers.formatDecimal(order.manufacturerSharePercent, 1, 0) : '95'}">95</span>%)
+                                    </strong>
+                                </td>
+                                <td style="padding: 15px 0; color: #718096; font-size: 0.9rem;">
+                                    Remaining revenue for manufacturer
+                                </td>
+                                <td style="padding: 15px 0; text-align: right; font-weight: 600; color: #dd6b20; font-size: 1.05rem;">
+                                    $<span th:with="subtotalAfterDiscount=${order.totalAmount != null and order.policyDiscountPercent != null ? order.totalAmount * (1 - order.policyDiscountPercent / 100.0) : order.totalAmount},
+                                                  manufacturerPercent=${order.manufacturerSharePercent != null ? order.manufacturerSharePercent : 95.0},
+                                                  manufacturerShare=${subtotalAfterDiscount * manufacturerPercent / 100.0}"
+                                          th:text="${#numbers.formatDecimal(manufacturerShare, 1, 0)}">146,953</span>
+                                </td>
+                            </tr>
+
+                            <!-- 6. VAT -->
+                            <tr>
+                                <td style="padding: 15px 0; color: #2d3748;">
+                                    <strong>VAT (<span th:text="${vatRate != null ? vatRate : 10}">10</span>%)</strong>
+                                </td>
+                                <td style="padding: 15px 0; color: #718096; font-size: 0.9rem;">
+                                    Tax applied on subtotal after discount
+                                </td>
+                                <td style="padding: 15px 0; text-align: right; font-weight: 600; color: #4a5568; font-size: 1.05rem;">
+                                    $<span th:with="subtotalAfterDiscount=${order.totalAmount != null and order.policyDiscountPercent != null ? order.totalAmount * (1 - order.policyDiscountPercent / 100.0) : order.totalAmount},
+                                                  vat=${vatRate != null ? vatRate : 10},
+                                                  vatAmount=${subtotalAfterDiscount * vat / 100.0}"
+                                          th:text="${#numbers.formatDecimal(vatAmount, 1, 0)}">15,469</span>
+                                </td>
+                            </tr>
+
+                            <!-- 7. Total Amount -->
+                            <tr style="border-top: 3px solid #38a169; background: #f7fafc;">
+                                <td style="padding: 20px 0; color: #1a202c;">
+                                    <strong style="font-size: 1.25rem;">Total Amount</strong>
+                                </td>
+                                <td style="padding: 20px 0; color: #718096; font-size: 0.9rem;">
+                                    Final payment amount
+                                </td>
+                                <td style="padding: 20px 0; text-align: right; font-weight: 700; font-size: 1.4rem; color: #38a169;">
+                                    $<span th:with="subtotalAfterDiscount=${order.totalAmount != null and order.policyDiscountPercent != null ? order.totalAmount * (1 - order.policyDiscountPercent / 100.0) : order.totalAmount},
+                                                  vat=${vatRate != null ? vatRate : 10},
+                                                  vatAmount=${subtotalAfterDiscount * vat / 100.0},
+                                                  totalAmount=${subtotalAfterDiscount + vatAmount}"
+                                          th:text="${#numbers.formatDecimal(totalAmount, 1, 0)}"></span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <!-- Summary Note -->
+                    <div style="margin-top: 20px; padding: 15px; background: #fffbeb; border-left: 4px solid #fbbf24; border-radius: 5px;">
+                        <p style="margin: 0; font-size: 0.9rem; color: #78350f;">
+                            <i class="fa-solid fa-info-circle me-2"></i>
+                            <strong>Note:</strong>
+                            <span th:if="${order.policyDiscountPercent != null and order.policyDiscountPercent > 0}">
+                                Dealer receives <strong th:text="${order.policyDiscountPercent + '%'}"></strong> discount
+                                <span th:if="${order.policyName != null}"> (<span th:text="${order.policyName}"></span>)</span>
+                                plus <strong th:text="${order.dealerRewardPercent != null ? order.dealerRewardPercent + '%' : '5%'}">5%</strong> reward on discounted price.
+                            </span>
+                            Manufacturer receives <strong th:text="${order.manufacturerSharePercent != null ? order.manufacturerSharePercent + '%' : '95%'}">95%</strong> of remaining share.
+                            VAT <strong th:text="${vatRate != null ? vatRate : 10}"></strong>% applied on total after discount.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 🔥 INVENTORY VEHICLES - Danh sách VIN xe đã về kho -->
+            <div class="detail-card" th:if="${inventoryVehicles != null and !#lists.isEmpty(inventoryVehicles)}">
+                <h3><i class="fa-solid fa-warehouse me-2"></i> Vehicles Received in Inventory</h3>
+
+                <div class="alert alert-success" role="alert">
+                    <i class="fa-solid fa-check-circle me-2"></i>
+                    <strong>Good news!</strong> The following vehicles have been delivered to your inventory:
+                </div>
+
+                <table class="table-modern">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>VIN</th>
+                            <th>Model</th>
+                            <th>Version</th>
+                            <th>Color</th>
+                            <th>Status</th>
+                            <th>Received Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="vehicle, iterStat : ${inventoryVehicles}">
+                            <td th:text="${iterStat.count}"></td>
+                            <td style="font-family: monospace; font-weight: bold; color: #007bff;">
+                                <span th:text="${vehicle.vin ?: 'N/A'}"></span>
+                            </td>
+                            <td th:text="${vehicle.modelName ?: 'N/A'}"></td>
+                            <td th:text="${vehicle.versionName ?: 'N/A'}"></td>
+                            <td th:text="${vehicle.colorName ?: 'N/A'}"></td>
+                            <td>
+                                <span class="badge"
+                                      th:classappend="${vehicle.status != null and vehicle.status.name() == 'IN_STOCK'} ? 'bg-success' : 'bg-warning'"
+                                      th:text="${vehicle.status != null ? vehicle.status.name() : 'PENDING'}">
+                                </span>
+                            </td>
+                            <td th:text="${vehicle.receivedDate != null ? #dates.format(vehicle.receivedDate, 'dd/MM/yyyy HH:mm') : 'N/A'}"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="detail-card" th:if="${inventoryVehicles == null or #lists.isEmpty(inventoryVehicles)}">
+                <div class="text-center text-muted py-4">
+                    <i class="fa-solid fa-hourglass-half fa-3x mb-3" style="color: #6c757d;"></i>
+                    <h5>Vehicles Not Yet Delivered</h5>
+                    <p>Once the vehicles are shipped and received, they will appear here with their VIN numbers.</p>
                 </div>
             </div>
 

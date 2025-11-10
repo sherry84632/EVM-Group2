@@ -30,12 +30,15 @@ public class DTODiscountPolicy {
 
     @Column(name = "Description")
     private String description;
+    
+    @Column(name = "DiscountPercent")
+    private BigDecimal discountPercent; // Discount for dealer (e.g., 25%)
 
     @Column(name = "HangPercent")
-    private BigDecimal hangPercent;
+    private BigDecimal hangPercent; // Manufacturer share (e.g., 95%)
 
     @Column(name = "DailyPercent")
-    private BigDecimal dailyPercent;
+    private BigDecimal dailyPercent; // Dealer reward (e.g., 5%)
 
     @Column(name = "StartDate")
     private LocalDate startDate;

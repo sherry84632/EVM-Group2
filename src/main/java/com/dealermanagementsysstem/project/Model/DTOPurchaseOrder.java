@@ -61,6 +61,12 @@ public class DTOPurchaseOrder {
     private Double policyDiscountPercent;
 
     @Transient
+    private Double dealerRewardPercent; // DailyPercent from DiscountPolicy
+
+    @Transient
+    private Double manufacturerSharePercent; // HangPercent from DiscountPolicy
+
+    @Transient
     private String approvedByStaffName;
 
     @Transient

@@ -91,11 +91,11 @@
                     </div>
                     <div class="info-row">
                         <span class="info-label">Birth:</span>
-                        <span class="info-value" th:text="${#temporals.format(customer.birthDate, 'dd/MM/yyyy')}">-</span>
+                        <span class="info-value" th:text="${customer.birthDate != null ? #temporals.format(customer.birthDate, 'dd/MM/yyyy') : 'N/A'}">-</span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Created:</span>
-                        <span class="info-value" th:text="${#temporals.format(customer.createdAt, 'dd/MM/yyyy HH:mm')}">-</span>
+                        <span class="info-value" th:text="${customer.createdAt != null ? #temporals.format(customer.createdAt, 'dd/MM/yyyy HH:mm') : 'N/A'}">-</span>
                     </div>
                 </div>
 
@@ -152,7 +152,7 @@
                         </div>
                         <div class="info-row">
                             <span class="info-label">Price:</span>
-                            <span class="info-value" th:text="${#numbers.formatCurrency(testDrive.vehicle.version?.model?.basePrice)}">-</span>
+                            <span class="info-value" th:text="${testDrive.vehicle.version?.model?.basePrice != null ? ('$' + #numbers.formatDecimal(testDrive.vehicle.version.model.basePrice, 1, 0)) : '-'}">-</span>
                         </div>
                     </div>
 

@@ -40,6 +40,9 @@ public class DTOPurchaseOrderDetail {
     @Column(name = "Subtotal")
     private java.math.BigDecimal subtotal;
 
+    @Column(name = "PaymentStatus")
+    private String paymentStatus; // UNPAID, PAID
+
     // Transient fields for template display
     @Transient
     private String modelName;

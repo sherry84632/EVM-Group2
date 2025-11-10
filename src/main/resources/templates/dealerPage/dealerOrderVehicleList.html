@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Choose Vehicles to Order</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/mainPageStyle.css">
+    <link rel="stylesheet" href="/css/iconStyle.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"
+          integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw=="
+          crossorigin="anonymous" referrerpolicy="no-referrer"/>
+    <link rel="stylesheet" href="/css/inentoryScrollBox.css">
+    <link rel="stylesheet" href="/css/dealerVehicleQuotation.css" />
+    <style>
+        .order-header {
+            background: linear-gradient(135deg, #ff7d37 0%, #d55600 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .order-header h2 {
+            margin: 0;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .dv-card.selected {
+            border: 3px solid #667eea;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+            transform: translateY(-5px);
+        }
+
+        .submit-order-btn {
+            background: linear-gradient(135deg, #ff7d37 0%, #d55600 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .submit-order-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .dv-selected-counter {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            border: 2px solid rgba(102, 126, 234, 0.3);
+        }
+    </style>
+</head>
+
+<body class="bg-gradient2-custom" style="overflow: hidden;">
+
+<button class="mobile-menu-toggle" id="menuToggleBtn">
+    <i class="fa-solid fa-bars"></i>
+</button>
+
+<div class="d-flex">
+
+    <div th:replace="~{mainPage/navBarFragment :: navBar}"></div>
+
+    <div class="mainContent flex-grow-1 p-3 dealer-vehicle-page-wrapper" style="overflow: hidden">
+
+        <div class="order-header">
+            <h2>
+                <i class="fas fa-shopping-cart"></i>
+                Choose Vehicles to Order
+            </h2>
+            <p class="mb-0 mt-2">Select multiple vehicles and specify quantities for your order</p>
+        </div>
+
+        <form method="post" id="bulkOrderForm" class="dv-toolbar" th:action="@{/orderdealer/createMultiple}">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+
+            <div class="flex-grow-1 d-flex align-items-center gap-3">
+                <div id="selectedCount" class="dv-selected-counter">
+                    <i class="fas fa-check-circle"></i> 0 vehicle selected
+                </div>
+                <div id="vehicleDynamicInputs"></div>
+            </div>
+
+            <div class="text-end">
+                <a href="/orderdealer" class="btn btn-outline-secondary rounded-pill me-2">
+                    <i class="fas fa-arrow-left"></i> Back to Orders
+                </a>
+                <button type="submit" class="submit-order-btn">
+                    <i class="fas fa-paper-plane"></i>
+                    <span>Create Order</span>
+                </button>
+            </div>
+        </form>
+
+        <div style="overflow-y: auto; overflow-x: hidden; width: 100%; height: 70vh">
+
+            <div class="dv-grid" id="vehicleGrid" th:if="${vehicleList != null and !vehicleList.isEmpty()}">
+
+                <div th:each="vehicle : ${vehicleList}" class="dv-card">
+                    <div class="dv-checkbox-wrapper">
+                        <input type="checkbox" class="form-check-input vehicle-select-checkbox"
+                               th:data-vid="${vehicle.vehicleID}" />
+                    </div>
+
+                    <div class="dv-model-name">
+                        <i class="fas fa-car-side text-primary"></i>
+                        <span th:text="${vehicle.version != null and vehicle.version.model != null ? vehicle.version.model.modelName : 'Unknown Model'}"></span>
+                    </div>
+
+                    <div class="dv-meta">
+                        <div class="dv-meta-row">
+                            <span class="dv-label"><i class="fas fa-cog"></i> Version</span>
+                            <span class="dv-value">
+                                <span class="dv-badge" th:text="${vehicle.version != null ? vehicle.version.versionName : 'N/A'}"></span>
+                            </span>
+                        </div>
+
+                        <div class="dv-meta-row">
+                            <span class="dv-label"><i class="fas fa-calendar-alt"></i> Year</span>
+                            <span class="dv-value">
+                                <span class="dv-year-tag" th:text="${vehicle.manufactureYear}"></span>
+                            </span>
+                        </div>
+
+                        <div class="dv-meta-row">
+                            <span class="dv-label"><i class="fas fa-dollar-sign"></i> Base Price</span>
+                            <span class="dv-value">
+                                <span class="dv-price-tag" th:text="${#numbers.formatDecimal(vehicle.basePrice != null ? vehicle.basePrice : 0, 0, 'COMMA', 0, 'POINT') + ' VND'}"></span>
+                            </span>
+                        </div>
+
+                        <div class="dv-meta-row" th:if="${vehicle.color != null}">
+                            <span class="dv-label"><i class="fas fa-palette"></i> Color</span>
+                            <span class="dv-value">
+                                <span class="dv-badge" th:text="${vehicle.color.colorName}"></span>
+                            </span>
+                        </div>
+
+                        <div class="dv-meta-row">
+                            <span class="dv-label"><i class="fas fa-hashtag"></i> Quantity</span>
+                            <input type="number" min="1" value="1"
+                                   class="form-control form-control-sm per-vehicle-qty"
+                                   th:data-vid="${vehicle.vehicleID}"
+                                   style="max-width: 100px;" />
+                        </div>
+
+                        <div class="vehicle-image-container">
+                            <a th:if="${vehicle.vehicleID != null}"
+                               th:href="@{/evm/vehicle/detail/{id}(id=${vehicle.vehicleID})}"
+                               target="_blank"
+                               style="display: block; cursor: pointer;">
+                                <img th:if="${vehicle.version != null and vehicle.version.model != null and vehicle.version.model.modelID != null}"
+                                     th:src="@{/evm/vehicle/modelImage/{modelId}(modelId=${vehicle.version.model.modelID})}"
+                                     alt="Model Image"
+                                     class="vehicle-image-bbg"
+                                     style="cursor: pointer; transition: transform 0.3s ease; max-height: 180px; width: 100%; object-fit: cover; border-radius: 8px;"
+                                     onmouseover="this.style.transform='scale(1.05)'"
+                                     onmouseout="this.style.transform='scale(1)'"
+                                     onload="this.nextElementSibling?.style.display='none';"
+                                     onerror="this.style.display='none'; this.nextElementSibling?.style.display='block';"/>
+                                <div style="display: none; text-align: center; padding: 40px; background: #f8f9fa; border-radius: 8px;">
+                                    <i class="fas fa-image fa-3x text-muted"></i>
+                                    <p class="mt-2 text-muted">No Image</p>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div th:if="${vehicleList == null or vehicleList.isEmpty()}" class="dv-empty">
+                <h4><i class="fas fa-car-side me-2"></i>No vehicles available</h4>
+                <p>There are no vehicles in the catalog at the moment.</p>
+                <a href="/orderdealer" class="dv-btn-primary" style="text-decoration:none; display:inline-flex;">
+                    <i class="fas fa-arrow-left"></i> Back to Orders
+                </a>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/scripts/navBarMenuProject.js"></script>
+<script>
+(function(){
+  const selectedCountEl = document.getElementById('selectedCount');
+  const hiddenContainer = document.getElementById('vehicleDynamicInputs');
+
+  function rebuildHiddenFields(){
+    hiddenContainer.innerHTML='';
+    const selected = document.querySelectorAll('.vehicle-select-checkbox:checked');
+
+    selected.forEach(ch=>{
+      const vid = ch.getAttribute('data-vid');
+      const qtyInput = document.querySelector('.per-vehicle-qty[data-vid="'+vid+'"]');
+      const qty = qtyInput && qtyInput.value>0 ? qtyInput.value : 1;
+
+      const hVid = document.createElement('input');
+      hVid.type='hidden';
+      hVid.name='vehicleIds';
+      hVid.value=vid;
+      hiddenContainer.appendChild(hVid);
+
+      const hQty = document.createElement('input');
+      hQty.type='hidden';
+      hQty.name='quantities';
+      hQty.value=qty;
+      hiddenContainer.appendChild(hQty);
+    });
+
+    selectedCountEl.innerHTML = '<i class="fas fa-check-circle"></i> ' + selected.length + ' vehicle' + (selected.length!==1?'s':'') + ' selected';
+
+    // Update card visual state
+    document.querySelectorAll('.dv-card').forEach(card=>card.classList.remove('selected'));
+    selected.forEach(ch=>{
+      const card = ch.closest('.dv-card');
+      if(card) card.classList.add('selected');
+    });
+  }
+
+  // Rebuild whenever checkbox or quantity changes
+  document.addEventListener('change', e=>{
+    if(e.target.classList.contains('vehicle-select-checkbox') || e.target.classList.contains('per-vehicle-qty')){
+      rebuildHiddenFields();
+    }
+  });
+
+  // Validate before submit
+  document.getElementById('bulkOrderForm').addEventListener('submit', function(ev){
+    const anySelected = document.querySelector('.vehicle-select-checkbox:checked');
+
+    if(!anySelected){
+      alert('Please select at least one vehicle to order.');
+      ev.preventDefault();
+      return;
+    }
+
+    // Ensure hidden fields reflect latest quantities
+    rebuildHiddenFields();
+
+    // Confirm order
+    const count = document.querySelectorAll('.vehicle-select-checkbox:checked').length;
+    if(!confirm('Create order with ' + count + ' vehicle(s)?')){
+      ev.preventDefault();
+    }
+  });
+
+  // Initial state
+  rebuildHiddenFields();
+})();
+</script>
+
+</body>
+
+</html>
+

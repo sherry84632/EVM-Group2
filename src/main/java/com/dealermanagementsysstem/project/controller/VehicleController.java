@@ -4,6 +4,8 @@ import com.dealermanagementsysstem.project.Model.DAOCustomer;
 import com.dealermanagementsysstem.project.Model.DAOVehicle;
 import com.dealermanagementsysstem.project.Model.DTOVehicle;
 import com.dealermanagementsysstem.project.Model.VehicleStatus;
+import com.dealermanagementsysstem.project.Model.DAOAccount;
+import com.dealermanagementsysstem.project.Model.DTOCustomer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -22,6 +24,9 @@ public class VehicleController {
 
     @Autowired
     private DAOCustomer daoCustomer;
+
+    @Autowired
+    private DAOAccount daoAccount;
 
     @GetMapping("/getVehicleList")
     public String vehicleList(Model model) {
@@ -54,8 +59,35 @@ public class VehicleController {
         DAOVehicle daoVehicle = new DAOVehicle();
         List<DTOVehicle> vehicle = getTemplateVehicles(daoVehicle);
         model.addAttribute("vehicleList", vehicle);
-        // Load customers for multi-select quotation creation using injected DAO
-        model.addAttribute("customerList", daoCustomer.getAllCustomers());
+
+        // ✅ Filter customers by dealerId
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName())) {
+                String email = auth.getName();
+                Integer dealerId = daoAccount.getDealerIdByEmail(email);
+
+                List<DTOCustomer> customerList;
+                if (dealerId != null && dealerId > 0) {
+                    // Dealer user: only show customers belonging to this dealer
+                    customerList = daoCustomer.getCustomersByDealerId(dealerId);
+                    log.info("✅ Loaded {} customers for dealerId={}", customerList.size(), dealerId);
+                } else {
+                    // Admin/EVM user: show all customers
+                    customerList = daoCustomer.getAllCustomers();
+                    log.info("⚠️ No dealerId found for email={}, loaded all {} customers", email, customerList.size());
+                }
+                model.addAttribute("customerList", customerList);
+            } else {
+                // Not authenticated: show empty list
+                log.warn("❌ User not authenticated, showing empty customer list");
+                model.addAttribute("customerList", List.of());
+            }
+        } catch (Exception e) {
+            log.error("❌ Error loading customers", e);
+            model.addAttribute("customerList", List.of());
+        }
+
         return "dealerPage/dealerVehicleList";
     }
 

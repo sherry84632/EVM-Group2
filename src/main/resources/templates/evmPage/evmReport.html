@@ -1,21 +1,25 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EVM Reports</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/homePageStyle.css">
     <link rel="stylesheet" href="/css/mainPageStyle.css">
     <link rel="stylesheet" href="/css/iconStyle.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"
+          integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw=="
+          crossorigin="anonymous" referrerpolicy="no-referrer"/>
     <style>
         .stat-card { min-height: 120px; }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    </head>
+</head>
 <body class="bg-gradient2-custom">
 <div class="d-flex">
     <div th:replace="~{mainPage/navBarFragment :: navBar}"></div>
-    <div class="mainContent flex-grow-1 p-3">
+    <div class="mainContent flex-grow-1 p-3" style="height: 97vh; overflow-y: auto; overflow-x: hidden;">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h3 class="mb-0">EVM Reports</h3>
             <a class="btn btn-outline-secondary btn-sm" href="/showEVMHomePage">Back</a>
@@ -83,7 +87,7 @@
                 <div class="card shadow-sm stat-card">
                     <div class="card-body">
                         <div class="text-muted small">💰 Total Revenue</div>
-                        <div class="fs-3 fw-semibold text-success" th:text="${#numbers.formatCurrency(kpis['totalRevenue'] ?: 0)}">$0.00</div>
+                        <div class="fs-3 fw-semibold text-success" th:text="${'$' + #numbers.formatDecimal(kpis['totalRevenue'] ?: 0, 1, 0)}">$0</div>
                     </div>
                 </div>
             </div>
@@ -156,7 +160,7 @@
                                     <th class="text-end">Purchase Orders</th>
                                     <th class="text-end">Sale Orders</th>
                                     <th class="text-end">Vehicles Sold</th>
-                                    <th class="text-end">Total Revenue (₫)</th>
+                                    <th class="text-end">Total Revenue (USD)</th>
                                     <th class="text-end">Inventory</th>
                                 </tr>
                                 </thead>
@@ -166,7 +170,7 @@
                                     <td class="text-end" th:text="${r.purchaseOrders}">0</td>
                                     <td class="text-end" th:text="${r.saleOrders}">0</td>
                                     <td class="text-end" th:text="${r.vehiclesSold}">0</td>
-                                    <td class="text-end" th:text="${#numbers.formatCurrency(r.totalRevenue)}">$0.00</td>
+                                    <td class="text-end" th:text="${'$' + #numbers.formatDecimal(r.totalRevenue, 1, 0)}">$0</td>
                                     <td class="text-end" th:text="${r.inventory}">0</td>
                                 </tr>
                                 </tbody>
@@ -206,7 +210,7 @@ const topDealerData = topDealers.map(d => Number(d.revenue || 0));
 if (document.getElementById('topDealersRevenueChart')) {
   new Chart(document.getElementById('topDealersRevenueChart'), {
     type: 'bar',
-    data: { labels: topDealerLabels, datasets: [{ label: 'Revenue (₫)', data: topDealerData, backgroundColor: '#0d6efd' }]},
+    data: { labels: topDealerLabels, datasets: [{ label: 'Revenue (USD)', data: topDealerData, backgroundColor: '#0d6efd' }]},
     options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
   });
 }
