@@ -1,5 +1,6 @@
 package com.dealermanagementsysstem.project.Model;
 
+import com.dealermanagementsysstem.project.util.DiscountUtil;
 import org.springframework.stereotype.Repository;
 import utils.DBUtils;
 
@@ -10,9 +11,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 @Repository
 public class DAOPurchaseOrderDetail {
+    private static final Logger log = LoggerFactory.getLogger(DAOPurchaseOrderDetail.class);
 
     public boolean insertOrderDetail(int purchaseOrderId, int colorId, int versionId, int quantity, java.math.BigDecimal unitPrice) {
         // If unitPrice passed is ZERO, auto-calculate from VehicleModel base price via VersionID + optional discount
@@ -55,7 +58,7 @@ public class DAOPurchaseOrderDetail {
     }
 
     // Dealer-aware unit price (DiscountPolicy.HangPercent filtered by DealerID if provided)
-    public BigDecimal computeUnitPrice(int versionId, Integer dealerId) {
+    public java.math.BigDecimal computeUnitPrice(int versionId, Integer dealerId) {
         String sql = """
             SELECT vm.BasePrice,
                    pol.HangPercent AS DiscountPercent
@@ -69,37 +72,30 @@ public class DAOPurchaseOrderDetail {
             ) pol
             WHERE vv.VersionID = ?
         """;
-        try (Connection conn = DBUtils.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            if (dealerId == null) { ps.setNull(1, java.sql.Types.INTEGER); ps.setNull(2, java.sql.Types.INTEGER); }
-            else { ps.setInt(1, dealerId); ps.setInt(2, dealerId); }
+        try (java.sql.Connection conn = utils.DBUtils.getConnection(); java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+            if (dealerId == null) { ps.setNull(1, java.sql.Types.INTEGER); ps.setNull(2, java.sql.Types.INTEGER); } else { ps.setInt(1, dealerId); ps.setInt(2, dealerId); }
             ps.setInt(3, versionId);
-            try (ResultSet rs = ps.executeQuery()) {
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    BigDecimal base = rs.getBigDecimal("BasePrice");
-                    java.math.BigDecimal discountPercentBD = rs.getBigDecimal("DiscountPercent");
-                    Double discountPercent = discountPercentBD != null ? discountPercentBD.doubleValue() : null;
-                    if (base == null) return BigDecimal.ZERO;
-                    if (discountPercent != null && discountPercent > 0) {
-                        BigDecimal discount = base.multiply(BigDecimal.valueOf(discountPercent / 100.0));
-                        return base.subtract(discount);
-                    }
-                    return base;
+                    java.math.BigDecimal base = rs.getBigDecimal("BasePrice");
+                    java.math.BigDecimal pctBD = rs.getBigDecimal("DiscountPercent");
+                    Double pct = pctBD != null ? pctBD.doubleValue() : null;
+                    return DiscountUtil.applyPercent(base, pct);
                 }
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
+        } catch (java.sql.SQLException e) {
+            log.error("Error computing unit price versionId={} dealerId={}", versionId, dealerId, e);
         }
-        return BigDecimal.ZERO;
+        return java.math.BigDecimal.ZERO;
     }
 
-    private BigDecimal fetchBasePriceFromVersion(int versionId) {
+    private java.math.BigDecimal fetchBasePriceFromVersion(int versionId) {
         String sql = "SELECT vm.BasePrice FROM VehicleVersion vv JOIN VehicleModel vm ON vv.ModelID = vm.ModelID WHERE vv.VersionID = ?";
-        try (Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (java.sql.Connection conn = utils.DBUtils.getConnection(); java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, versionId);
-            try (ResultSet rs = ps.executeQuery()) { if (rs.next()) return rs.getBigDecimal("BasePrice"); }
-        } catch (SQLException e) { e.printStackTrace(); }
-        return BigDecimal.ZERO;
+            try (java.sql.ResultSet rs = ps.executeQuery()) { if (rs.next()) return rs.getBigDecimal("BasePrice"); }
+        } catch (java.sql.SQLException e) { log.error("Error fetching base price versionId={}", versionId, e); }
+        return java.math.BigDecimal.ZERO;
     }
 
     // Optionally expose list retrieval if needed (placeholder)

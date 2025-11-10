@@ -7,10 +7,13 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.stereotype.Repository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Repository
 
 public class DAOVehicleModel {
+    private static final Logger log = LoggerFactory.getLogger(DAOVehicleModel.class);
     public List<DTOVehicleModel> getAllModels() {
         List<DTOVehicleModel> list = new ArrayList<>();
         String sql = "SELECT ModelID, ModelName FROM VehicleModel";
@@ -24,7 +27,7 @@ public class DAOVehicleModel {
                 list.add(m);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error fetching all vehicle models", e);
         }
         return list;
     }
@@ -54,7 +57,7 @@ public class DAOVehicleModel {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error fetching model by id={}", modelId, e);
         }
         return model;
     }

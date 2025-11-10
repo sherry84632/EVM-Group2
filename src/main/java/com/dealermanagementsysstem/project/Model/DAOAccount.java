@@ -9,39 +9,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class DAOAccount {
 
-    private static final String LOGIN_QUERY =
-            "SELECT AccountID, Username, Password, Role, IsActive, Email, CreatedAt, UpdatedAt " +
-                    "FROM Account WHERE Email = ? AND Password = ? AND IsActive = 1";
-
-    public DTOAccount checkLogin(String email, String password) {
-        DTOAccount account = null;
-
-        try (Connection con = DBUtils.getConnection();
-             PreparedStatement stm = con.prepareStatement(LOGIN_QUERY)) {
-
-            stm.setString(1, email);
-            stm.setString(2, password);
-
-            try (ResultSet rs = stm.executeQuery()) {
-                if (rs.next()) {
-                    account = new DTOAccount();
-                    account.setAccountId(rs.getInt("AccountID"));
-                    account.setUsername(rs.getString("Username"));
-                    account.setPassword(rs.getString("Password"));
-                    account.setRole(Role.valueOf(rs.getString("Role")));
-                    account.setActive(rs.getBoolean("IsActive"));
-                    account.setEmail(rs.getString("Email"));
-                    account.setCreatedAt(rs.getTimestamp("CreatedAt"));
-                    account.setUpdatedAt(rs.getTimestamp("UpdatedAt"));
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return account;
-    }
-
     public DTOAccount findAccountByEmail(String email) {
         DTOAccount account = null;
 
@@ -400,27 +367,27 @@ public class DAOAccount {
     /**
      * Check if email already exists (for validation)
      */
-    public boolean emailExists(String email, Integer excludeAccountId) {
-        String sql = excludeAccountId != null
-            ? "SELECT COUNT(*) as cnt FROM Account WHERE Email = ? AND AccountID != ?"
-            : "SELECT COUNT(*) as cnt FROM Account WHERE Email = ?";
-
-        try (Connection con = DBUtils.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
+    public boolean emailExists(String email) {
+        String sql = "SELECT 1 FROM Account WHERE Email = ?";
+        try (Connection con = DBUtils.getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, email);
-            if (excludeAccountId != null) {
-                ps.setInt(2, excludeAccountId);
-            }
+            try (ResultSet rs = ps.executeQuery()) { return rs.next(); }
+        } catch (Exception e) { e.printStackTrace(); }
+        return false;
+    }
 
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getInt("cnt") > 0;
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    /**
+     * Check if email already exists (for validation), excluding a specific account ID
+     */
+    public boolean emailExists(String email, Integer excludeAccountId) {
+        if (email == null || email.isBlank()) return false;
+        String base = "SELECT 1 FROM Account WHERE Email = ?";
+        String sql = excludeAccountId != null && excludeAccountId > 0 ? base + " AND AccountID <> ?" : base;
+        try (java.sql.Connection con = utils.DBUtils.getConnection(); java.sql.PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, email);
+            if (excludeAccountId != null && excludeAccountId > 0) ps.setInt(2, excludeAccountId);
+            try (java.sql.ResultSet rs = ps.executeQuery()) { return rs.next(); }
+        } catch (Exception e) { e.printStackTrace(); }
         return false;
     }
 

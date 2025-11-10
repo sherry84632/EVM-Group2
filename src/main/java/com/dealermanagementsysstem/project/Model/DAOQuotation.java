@@ -1,5 +1,6 @@
 package com.dealermanagementsysstem.project.Model;
 
+import com.dealermanagementsysstem.project.util.PricingService;
 import utils.DBUtils;
 
 import java.sql.*;
@@ -681,11 +682,12 @@ public class DAOQuotation {
         double gross = details.stream().mapToDouble(d -> d.getSubtotal().doubleValue()).sum();
         DTOQuotation q = getQuotationById(quotationID);
         double discount = (q != null && q.getDiscountPercent() != null) ? q.getDiscountPercent() : 0.0;
+        if (discount < 0) discount = 0.0; if (discount > 100) discount = 100.0;
         double net = gross * (1 - discount / 100.0);
         String sql = "UPDATE Quotation SET TotalAmount = ?, Quantity = ? WHERE QuotationID = ?";
-        try (Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (java.sql.Connection conn = utils.DBUtils.getConnection(); java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setDouble(1, net); ps.setInt(2, totalQty); ps.setInt(3, quotationID); ps.executeUpdate();
-        } catch (SQLException e) { log.error("Failed updating aggregates quotationID={}", quotationID, e); }
+        } catch (java.sql.SQLException e) { log.error("Failed updating aggregates quotationID={}", quotationID, e); }
     }
 
     // ✅ Update quotation discount percent and recompute total immediately
@@ -723,6 +725,9 @@ public class DAOQuotation {
     // bulk add vehicles (version/color/price) ignoring discount and skipping duplicates
     public int addMultipleDetails(int quotationID, List<DTOVehicle> vehicles, int defaultQty) {
         int added = 0;
+        // Retrieve dealerId from quotation for pricing if available
+        DTOQuotation qFull = getQuotationById(quotationID);
+        Integer dealerId = (qFull != null && qFull.getDealer() != null) ? qFull.getDealer().getDealerID() : null;
         for (DTOVehicle veh : vehicles) {
             if (veh.getVersion()==null || veh.getColor()==null) continue;
             int vID = veh.getVersion().getVersionID(); int cID = veh.getColor().getColorID();
@@ -731,17 +736,20 @@ public class DAOQuotation {
             DTOQuotation qRef = new DTOQuotation(); qRef.setQuotationID(quotationID); d.setQuotation(qRef);
             DTOVehicleVersion vRef = new DTOVehicleVersion(); vRef.setVersionID(vID); d.setVersion(vRef);
             DTOVehicleColor cRef = new DTOVehicleColor(); cRef.setColorID(cID); d.setColor(cRef);
-            d.setUnitPrice(veh.getVersion().getModel()!=null?veh.getVersion().getModel().getBasePrice():java.math.BigDecimal.ZERO);
+            // pricing via service
+            java.math.BigDecimal unit = PricingService.computeDealerUnitPrice(vID, dealerId);
+            d.setUnitPrice(unit);
             d.setQuantity(Math.max(1, defaultQty));
             if (insertQuotationDetail(d)) added++;
         }
         if (added>0) recalcQuotationTotal(quotationID);
         return added;
     }
-
     // bulk add vehicles (version/color/price) with specific quantities, ignoring discount and skipping duplicates
     public int addMultipleDetailsWithQuantities(int quotationID, List<DTOVehicle> vehicles, List<Integer> quantities) {
         int added = 0;
+        DTOQuotation qFull = getQuotationById(quotationID);
+        Integer dealerId = (qFull != null && qFull.getDealer() != null) ? qFull.getDealer().getDealerID() : null;
         for (int i=0;i<vehicles.size();i++) {
             DTOVehicle veh = vehicles.get(i);
             if (veh==null || veh.getVersion()==null || veh.getColor()==null) continue;
@@ -756,7 +764,8 @@ public class DAOQuotation {
             DTOQuotation qRef = new DTOQuotation(); qRef.setQuotationID(quotationID); d.setQuotation(qRef);
             DTOVehicleVersion vRef = new DTOVehicleVersion(); vRef.setVersionID(vID); d.setVersion(vRef);
             DTOVehicleColor cRef = new DTOVehicleColor(); cRef.setColorID(cID); d.setColor(cRef);
-            d.setUnitPrice(veh.getVersion().getModel()!=null?veh.getVersion().getModel().getBasePrice():java.math.BigDecimal.ZERO);
+            java.math.BigDecimal unit = PricingService.computeDealerUnitPrice(vID, dealerId);
+            d.setUnitPrice(unit);
             d.setQuantity(qty);
             if (insertQuotationDetail(d)) added++;
         }
