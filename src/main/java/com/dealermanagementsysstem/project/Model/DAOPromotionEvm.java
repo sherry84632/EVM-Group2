@@ -9,7 +9,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class DAOPromotionEvm {
 
-    // ✅ Lấy danh sách PromotionEvm
+    //  Lấy danh sách PromotionEvm
     public List<DTOPromotionEvm> getAllPromotions() {
         List<DTOPromotionEvm> list = new ArrayList<>();
         String sql = """
@@ -56,7 +56,7 @@ public class DAOPromotionEvm {
         return list;
     }
 
-    // ✅ Lấy PromotionEvm theo ID
+    //  Lấy PromotionEvm theo ID
     public DTOPromotionEvm getPromotionById(int promotionID) {
         String sql = """
             SELECT pe.PromotionEvmID, pe.ModelID, pe.VersionID, pe.PolicyName, pe.DiscountRate,
@@ -104,7 +104,7 @@ public class DAOPromotionEvm {
         return null;
     }
 
-    // ✅ Tạo PromotionEvm mới
+    //  Tạo PromotionEvm mới
     public boolean createPromotion(DTOPromotionEvm promotion) {
         String sql = "INSERT INTO PromotionEvm (ModelID, VersionID, PolicyName, DiscountRate, StartDate, EndDate, Description) VALUES (?, ?, ?, ?, ?, ?, ?)";
 
@@ -128,7 +128,7 @@ public class DAOPromotionEvm {
         return false;
     }
 
-    // ✅ Cập nhật PromotionEvm
+    //  Cập nhật PromotionEvm
     public boolean updatePromotion(DTOPromotionEvm promotion) {
         String sql = "UPDATE PromotionEvm SET ModelID=?, VersionID=?, PolicyName=?, DiscountRate=?, StartDate=?, EndDate=?, Description=? WHERE PromotionEvmID=?";
 
@@ -153,7 +153,7 @@ public class DAOPromotionEvm {
         return false;
     }
 
-    // ✅ Xóa PromotionEvm
+    // Xóa PromotionEvm
     public boolean deletePromotion(int promotionID) {
         String sql = "DELETE FROM PromotionEvm WHERE PromotionEvmID = ?";
 

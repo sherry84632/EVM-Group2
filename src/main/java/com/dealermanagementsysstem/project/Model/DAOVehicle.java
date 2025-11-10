@@ -231,13 +231,13 @@ public class DAOVehicle {
 
             boolean ok = rowsAffected > 0;
             if (ok) {
-                log.info("✅ Vehicle updated successfully ID={}", v.getVehicleID());
+                log.info(" Vehicle updated successfully ID={}", v.getVehicleID());
             } else {
-                log.warn("⚠️ Vehicle update affected 0 rows ID={} - vehicle may not exist", v.getVehicleID());
+                log.warn("Vehicle update affected 0 rows ID={} - vehicle may not exist", v.getVehicleID());
             }
             return ok;
         } catch (SQLException e) {
-            log.error("❌ Error updating vehicle ID={}: {}", v.getVehicleID(), e.getMessage(), e);
+            log.error("Error updating vehicle ID={}: {}", v.getVehicleID(), e.getMessage(), e);
         }
         return false;
     }
@@ -290,17 +290,17 @@ public class DAOVehicle {
 
                 if (deletedVehicle > 0) {
                     con.commit();
-                    log.info("✅ Vehicle deleted successfully ID={}", id);
+                    log.info(" Vehicle deleted successfully ID={}", id);
                     return true;
                 } else {
                     con.rollback();
-                    log.warn("⚠️ No vehicle found to delete ID={}", id);
+                    log.warn(" No vehicle found to delete ID={}", id);
                     return false;
                 }
             }
 
         } catch (SQLException e) {
-            log.error("❌ Error deleting vehicle ID={}", id, e);
+            log.error(" Error deleting vehicle ID={}", id, e);
             if (con != null) {
                 try {
                     con.rollback();
@@ -625,11 +625,11 @@ public class DAOVehicle {
             ps.setInt(2, modelID);
 
             int rowsAffected = ps.executeUpdate();
-            log.info("✅ Updated ModelImage for ModelID={}, affected {} rows", modelID, rowsAffected);
+            log.info(" Updated ModelImage for ModelID={}, affected {} rows", modelID, rowsAffected);
 
             return rowsAffected > 0;
         } catch (SQLException e) {
-            log.error("❌ Error updating ModelImage for ModelID={}: {}", modelID, e.getMessage(), e);
+            log.error(" Error updating ModelImage for ModelID={}: {}", modelID, e.getMessage(), e);
         }
         return false;
     }
@@ -658,16 +658,16 @@ public class DAOVehicle {
                 if (rs.next()) {
                     byte[] imageBytes = rs.getBytes("ModelImage");
                     if (imageBytes != null) {
-                        log.info("✅ Retrieved ModelImage for ModelID={}, size={} bytes", modelID, imageBytes.length);
+                        log.info(" Retrieved ModelImage for ModelID={}, size={} bytes", modelID, imageBytes.length);
                         return imageBytes;
                     } else {
-                        log.info("ℹ️ No image found for ModelID={}", modelID);
+                        log.info(" No image found for ModelID={}", modelID);
                         return null;
                     }
                 }
             }
         } catch (SQLException e) {
-            log.error("❌ Error getting ModelImage for ModelID={}: {}", modelID, e.getMessage(), e);
+            log.error(" Error getting ModelImage for ModelID={}: {}", modelID, e.getMessage(), e);
         }
         return null;
     }

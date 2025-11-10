@@ -9,7 +9,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class DAOVehicleVersion {
 
-    // ✅ Lấy danh sách VehicleVersion
+    //  Lấy danh sách VehicleVersion
     public List<DTOVehicleVersion> getAllVersions() {
         List<DTOVehicleVersion> list = new ArrayList<>();
         String sql = """
@@ -47,7 +47,7 @@ public class DAOVehicleVersion {
         return list;
     }
 
-    // ✅ Lấy VehicleVersion theo ID
+    //  Lấy VehicleVersion theo ID
     public DTOVehicleVersion getVersionById(int versionID) {
         String sql = """
                     SELECT vv.VersionID, vv.VersionName, vv.ModelID,
@@ -86,7 +86,7 @@ public class DAOVehicleVersion {
         return null;
     }
 
-    // ✅ Lấy VehicleVersion theo tên
+    //  Lấy VehicleVersion theo tên
     public DTOVehicleVersion getVersionByName(String versionName) {
         String sql = """
                     SELECT vv.VersionID, vv.VersionName, vv.ModelID,
@@ -125,7 +125,7 @@ public class DAOVehicleVersion {
         return null;
     }
 
-    // ✅ Tạo VehicleVersion mới
+    //  Tạo VehicleVersion mới
     public boolean createVersion(DTOVehicleVersion version) {
         String sql = "INSERT INTO VehicleVersion (VersionName, ModelID) VALUES (?, ?)";
         
@@ -144,7 +144,7 @@ public class DAOVehicleVersion {
         return false;
     }
 
-    // ✅ Cập nhật VehicleVersion
+    //  Cập nhật VehicleVersion
     public boolean updateVersion(DTOVehicleVersion version) {
         String sql = "UPDATE VehicleVersion SET VersionName = ?, ModelID = ? WHERE VersionID = ?";
         
@@ -164,7 +164,7 @@ public class DAOVehicleVersion {
         return false;
     }
 
-    // ✅ Xóa VehicleVersion
+    //  Xóa VehicleVersion
     public boolean deleteVersion(int versionID) {
         String sql = "DELETE FROM VehicleVersion WHERE VersionID = ?";
         
@@ -182,7 +182,7 @@ public class DAOVehicleVersion {
         return false;
     }
 
-    // ✅ Lấy VehicleVersion theo ModelID
+    //  Lấy VehicleVersion theo ModelID
     public List<DTOVehicleVersion> getVersionsByModel(int modelID) {
         List<DTOVehicleVersion> list = new ArrayList<>();
         String sql = """

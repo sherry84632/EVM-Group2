@@ -21,7 +21,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class DAOCustomer {
 
-    // ✅ Lấy danh sách Customer
+    //  Lấy danh sách Customer
     public List<DTOCustomer> getAllCustomers() {
         List<DTOCustomer> list = new ArrayList<>();
         String sql = "SELECT * FROM Customer";
@@ -38,7 +38,7 @@ public class DAOCustomer {
                 c.setEmail(rs.getString("Email"));
                 c.setAddress(rs.getString("Address"));
 
-                // ✅ Đồng bộ LocalDateTime
+                //  Đồng bộ LocalDateTime
                 Timestamp createdAt = rs.getTimestamp("CreatedAt");
                 c.setCreatedAt(createdAt != null ? createdAt.toLocalDateTime() : null);
 
@@ -54,13 +54,13 @@ public class DAOCustomer {
                 list.add(c);
             }
         } catch (SQLException e) {
-            System.out.println("❌ Error while fetching customers:");
+            System.out.println("Error while fetching customers:");
             e.printStackTrace();
         }
         return list;
     }
 
-    // ✅ Thêm mới Customer - trả về customerID
+    //  Thêm mới Customer - trả về customerID
     public int insertCustomer(DTOCustomer c) {
         String sql = """
             INSERT INTO Customer (DealerID, FullName, Phone, Email, Address, CreatedAt, UpdatedAt, BirthDate, Note, VehicleInterest)
@@ -70,7 +70,7 @@ public class DAOCustomer {
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
-            // ✅ DealerID must be set by controller from session (no default value)
+            //DealerID must be set by controller from session (no default value)
             if (c.getDealer() != null && c.getDealer().getDealerID() > 0) {
                 ps.setInt(1, c.getDealer().getDealerID());
             } else {
@@ -81,7 +81,7 @@ public class DAOCustomer {
             ps.setString(4, c.getEmail());
             ps.setString(5, c.getAddress());
 
-            // ✅ LocalDateTime -> Timestamp
+            //  LocalDateTime -> Timestamp
             ps.setTimestamp(6, c.getCreatedAt() != null ? Timestamp.valueOf(c.getCreatedAt()) : null);
             ps.setTimestamp(7, c.getUpdatedAt() != null ? Timestamp.valueOf(c.getUpdatedAt()) : null);
 
@@ -91,24 +91,24 @@ public class DAOCustomer {
 
             int rows = ps.executeUpdate();
             if (rows > 0) {
-                // ✅ Lấy customerID vừa tạo
+                //  Lấy customerID vừa tạo
                 try (ResultSet generatedKeys = ps.getGeneratedKeys()) {
                     if (generatedKeys.next()) {
                         int newCustomerID = generatedKeys.getInt(1);
-                        System.out.println("✅ Customer inserted successfully: " + c.getFullName() + " (ID: " + newCustomerID + ")");
+                        System.out.println(" Customer inserted successfully: " + c.getFullName() + " (ID: " + newCustomerID + ")");
                         return newCustomerID;
                     }
                 }
             }
 
         } catch (SQLException e) {
-            System.out.println("❌ Failed to insert customer!");
+            System.out.println(" Failed to insert customer!");
             e.printStackTrace();
         }
-        return -1; // ✅ Trả về -1 nếu thất bại
+        return -1; //  Trả về -1 nếu thất bại
     }
 
-    // ✅ Cập nhật Customer
+    //  Cập nhật Customer
     public boolean updateCustomer(DTOCustomer c) {
         String sql = """
             UPDATE Customer 
@@ -119,7 +119,7 @@ public class DAOCustomer {
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            // ✅ DealerID must be set by controller (no default value)
+            //  DealerID must be set by controller (no default value)
             if (c.getDealer() != null && c.getDealer().getDealerID() > 0) {
                 ps.setInt(1, c.getDealer().getDealerID());
             } else {
@@ -138,18 +138,18 @@ public class DAOCustomer {
 
             int updated = ps.executeUpdate();
             if (updated > 0) {
-                System.out.println("✅ Customer updated successfully: " + c.getFullName());
+                System.out.println(" Customer updated successfully: " + c.getFullName());
                 return true;
             }
 
         } catch (SQLException e) {
-            System.out.println("❌ Failed to update customer!");
+            System.out.println(" Failed to update customer!");
             e.printStackTrace();
         }
         return false;
     }
 
-    // ✅ Xóa Customer (xóa cascade TestDrive trước)
+    //  Xóa Customer (xóa cascade TestDrive trước)
     public boolean deleteCustomer(int id) {
         Connection conn = null;
         try {
@@ -161,7 +161,7 @@ public class DAOCustomer {
             try (PreparedStatement ps1 = conn.prepareStatement(deleteTestDriveSQL)) {
                 ps1.setInt(1, id);
                 int testDrivesDeleted = ps1.executeUpdate();
-                System.out.println("🗑️ Deleted " + testDrivesDeleted + " test drive(s) for Customer ID: " + id);
+                System.out.println(" Deleted " + testDrivesDeleted + " test drive(s) for Customer ID: " + id);
             }
 
             // 2. Xóa Customer
@@ -171,17 +171,17 @@ public class DAOCustomer {
                 int deleted = ps2.executeUpdate();
                 if (deleted > 0) {
                     conn.commit(); // Commit transaction
-                    System.out.println("🗑️ Customer deleted successfully (ID: " + id + ")");
+                    System.out.println(" Customer deleted successfully (ID: " + id + ")");
                     return true;
                 } else {
                     conn.rollback();
-                    System.out.println("⚠️ Customer not found (ID: " + id + ")");
+                    System.out.println(" Customer not found (ID: " + id + ")");
                     return false;
                 }
             }
 
         } catch (SQLException e) {
-            System.out.println("❌ Failed to delete customer!");
+            System.out.println(" Failed to delete customer!");
             e.printStackTrace();
             if (conn != null) {
                 try {
@@ -203,7 +203,7 @@ public class DAOCustomer {
         }
     }
 
-    // ✅ Tìm kiếm Customer
+    //  Tìm kiếm Customer
     public List<DTOCustomer> searchCustomer(String keyword) {
         List<DTOCustomer> list = new ArrayList<>();
         String sql = "SELECT * FROM Customer WHERE FullName LIKE ? OR Phone LIKE ?";
@@ -239,13 +239,13 @@ public class DAOCustomer {
                 }
             }
         } catch (SQLException e) {
-            System.out.println("❌ Failed to search customer!");
+            System.out.println(" Failed to search customer!");
             e.printStackTrace();
         }
         return list;
     }
 
-    // ✅ Lấy Customer theo ID
+    //  Lấy Customer theo ID
     public DTOCustomer getCustomerById(int id) {
         String sql = "SELECT * FROM Customer WHERE CustomerID = ?";
         DTOCustomer c = null;
@@ -278,13 +278,13 @@ public class DAOCustomer {
                 }
             }
         } catch (SQLException e) {
-            System.out.println("❌ Failed to get customer by ID: " + id);
+            System.out.println(" Failed to get customer by ID: " + id);
             e.printStackTrace();
         }
         return c;
     }
 
-    // ✅ Lấy danh sách Customer theo DealerID
+    //  Lấy danh sách Customer theo DealerID
     public List<DTOCustomer> getCustomersByDealerId(int dealerId) {
         List<DTOCustomer> list = new ArrayList<>();
         String sql = "SELECT * FROM Customer WHERE DealerID = ? ORDER BY CreatedAt DESC";
@@ -319,13 +319,13 @@ public class DAOCustomer {
                 }
             }
         } catch (SQLException e) {
-            System.out.println("❌ Failed to get customers by dealer ID: " + dealerId);
+            System.out.println(" Failed to get customers by dealer ID: " + dealerId);
             e.printStackTrace();
         }
         return list;
     }
 
-    // ✅ Tìm kiếm Customer theo keyword và DealerID
+    //  Tìm kiếm Customer theo keyword và DealerID
     public List<DTOCustomer> searchCustomerByDealerId(String keyword, int dealerId) {
         List<DTOCustomer> list = new ArrayList<>();
         String sql = "SELECT * FROM Customer WHERE (FullName LIKE ? OR Phone LIKE ?) AND DealerID = ?";
@@ -362,7 +362,7 @@ public class DAOCustomer {
                 }
             }
         } catch (SQLException e) {
-            System.out.println("❌ Failed to search customer by dealer ID: " + dealerId);
+            System.out.println(" Failed to search customer by dealer ID: " + dealerId);
             e.printStackTrace();
         }
         return list;

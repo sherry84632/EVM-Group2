@@ -231,19 +231,19 @@ public class DAOPurchaseOrder {
                                 d.setQuantity(drs.getInt("Quantity"));
                                 d.setSubtotal(drs.getBigDecimal("Subtotal"));
 
-                                // ✅ Set PaymentStatus
+                                //  Set PaymentStatus
                                 String paymentStatus = drs.getString("PaymentStatus");
                                 d.setPaymentStatus(paymentStatus != null ? paymentStatus : "UNPAID");
 
-                                // ✅ Set BasePrice (giá gốc)
+                                //  Set BasePrice (giá gốc)
                                 BigDecimal basePrice = drs.getBigDecimal("BasePrice");
                                 d.setBasePrice(basePrice);
 
-                                // ✅ Set DiscountPercent (% chiết khấu)
+                                //  Set DiscountPercent (% chiết khấu)
                                 Double discountPct = drs.getObject("DiscountPercent", Double.class);
                                 d.setDiscountPercent(discountPct);
 
-                                // ✅ Tính DiscountAmount (số tiền chiết khấu)
+                                //  Tính DiscountAmount (số tiền chiết khấu)
                                 if (basePrice != null && discountPct != null && discountPct > 0) {
                                     BigDecimal discountAmount = basePrice.multiply(BigDecimal.valueOf(discountPct / 100.0));
                                     d.setDiscountAmount(discountAmount);
@@ -409,10 +409,10 @@ public class DAOPurchaseOrder {
         return -1;
     }
 
-    // ✅ Lấy DealerID theo email từ Account → DealerStaff → Dealer
+    //  Lấy DealerID theo email từ Account → DealerStaff → Dealer
     // KHÔNG tự động tạo dealer mới (đã fix bug tạo dealer ID=13 thay vì dùng ID=12)
     public int getDealerIdByEmail(String email) {
-        // ✅ Tìm theo quan hệ Account → DealerStaff → Dealer (ĐÚNG)
+        //  Tìm theo quan hệ Account → DealerStaff → Dealer (ĐÚNG)
         String sql = """
             SELECT d.DealerID
             FROM Account a
@@ -427,24 +427,24 @@ public class DAOPurchaseOrder {
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     int dealerId = rs.getInt("DealerID");
-                    System.out.println("✅ Found DealerID=" + dealerId + " for email=" + email);
+                    System.out.println(" Found DealerID=" + dealerId + " for email=" + email);
                     return dealerId;
                 }
             }
         } catch (SQLException e) {
-            System.err.println("❌ Error getting DealerID for email: " + email);
+            System.err.println(" Error getting DealerID for email: " + email);
             e.printStackTrace();
         }
 
-        // ❌ KHÔNG tìm thấy dealer → Trả về -1 (không tự động tạo nữa)
-        System.err.println("⚠️ No dealer found for email: " + email + ". Cannot create purchase order.");
+        //  KHÔNG tìm thấy dealer → Trả về -1 (không tự động tạo nữa)
+        System.err.println(" No dealer found for email: " + email + ". Cannot create purchase order.");
         return -1;
     }
 
-    // ✅ Lấy StaffID theo email từ Account → DealerStaff
+    //  Lấy StaffID theo email từ Account → DealerStaff
     // KHÔNG tự động tạo staff mới (đã fix bug)
     public int getStaffIdByEmail(String email) {
-        // ✅ Tìm theo quan hệ Account → DealerStaff (ĐÚNG)
+        //  Tìm theo quan hệ Account → DealerStaff (ĐÚNG)
         String sql = """
             SELECT ds.StaffID
             FROM Account a
@@ -458,17 +458,17 @@ public class DAOPurchaseOrder {
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     int staffId = rs.getInt("StaffID");
-                    System.out.println("✅ Found StaffID=" + staffId + " for email=" + email);
+                    System.out.println(" Found StaffID=" + staffId + " for email=" + email);
                     return staffId;
                 }
             }
         } catch (SQLException e) {
-            System.err.println("❌ Error getting StaffID for email: " + email);
+            System.err.println(" Error getting StaffID for email: " + email);
             e.printStackTrace();
         }
 
-        // ❌ KHÔNG tìm thấy staff → Trả về -1 (không tự động tạo nữa)
-        System.err.println("⚠️ No staff found for email: " + email + ". Cannot create purchase order.");
+        //  KHÔNG tìm thấy staff → Trả về -1 (không tự động tạo nữa)
+        System.err.println(" No staff found for email: " + email + ". Cannot create purchase order.");
         return -1;
     }
 

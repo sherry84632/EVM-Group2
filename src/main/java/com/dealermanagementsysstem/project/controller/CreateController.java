@@ -25,21 +25,21 @@ public class CreateController {
         DAOColor daoColor = new DAOColor();
         DAOVehicleVersion daoVersion = new DAOVehicleVersion();
 
-        // ✅ Lấy các entity objects
+        //  Lấy các entity objects
         DTOVehicleColor color = daoColor.getColorByColorName(colorName);
         DTOVehicleVersion version = daoVersion.getVersionById(versionID);
 
         // ⚠️ Validation: Kiểm tra các entity tồn tại
         if (color == null) {
-            model.addAttribute("error", "⚠️ ColorName không tồn tại trong hệ thống.");
+            model.addAttribute("error", " ColorName không tồn tại trong hệ thống.");
             return "evmPage/createANewVehicleToList";
         }
         if (version == null) {
-            model.addAttribute("error", "⚠️ VersionID không tồn tại trong hệ thống.");
+            model.addAttribute("error", " VersionID không tồn tại trong hệ thống.");
             return "evmPage/createANewVehicleToList";
         }
 
-        // ✅ Tạo đối tượng Vehicle với schema mới (không có VIN, Owner, Dealer)
+        //  Tạo đối tượng Vehicle với schema mới (không có VIN, Owner, Dealer)
         DTOVehicle v = new DTOVehicle();
         v.setColor(color);
         v.setVersion(version);
@@ -49,10 +49,10 @@ public class CreateController {
         v.setCreatedAt(new Timestamp(System.currentTimeMillis()));
         v.setUpdatedAt(new Timestamp(System.currentTimeMillis()));
 
-        // ✅ Lưu vào DB - VehicleID sẽ tự động generate
+        //  Lưu vào DB - VehicleID sẽ tự động generate
         daoVehicle.insertVehicle(v);
 
-        // ✅ Redirect sang VehicleController hiển thị danh sách xe
+        //  Redirect sang VehicleController hiển thị danh sách xe
         return "redirect:/getVehicleList";
     }
 }

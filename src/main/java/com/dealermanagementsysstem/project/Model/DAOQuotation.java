@@ -15,7 +15,7 @@ public class DAOQuotation {
 
     private static final Logger log = LoggerFactory.getLogger(DAOQuotation.class);
 
-    // ✅ Lấy thông tin xe theo VehicleID
+    //  Lấy thông tin xe theo VehicleID
     public DTOVehicle getVehicleById(Integer vehicleId) {
         DTOVehicle vehicle = null;
         log.debug("getVehicleById ID={}", vehicleId);
@@ -91,7 +91,7 @@ public class DAOQuotation {
         return vehicle;
     }
 
-    // ✅ Lấy thông tin Dealer theo dealerID (từ tài khoản đăng nhập)
+    //  Lấy thông tin Dealer theo dealerID (từ tài khoản đăng nhập)
     public DTODealer getDealerByID(int dealerID) {
         DTODealer dealer = null;
 
@@ -123,7 +123,7 @@ public class DAOQuotation {
         return dealer;
     }
 
-    // 🔥 CORE FLOW STEP 1: Insert new quotation with price calculation
+    //  CORE FLOW STEP 1: Insert new quotation with price calculation
     public int insertQuotation(DTOQuotation quotation) {
         String insertQuotationSQL = "INSERT INTO Quotation (CustomerID, StaffID, DealerID, CreatedAt, Status, TotalAmount, Quantity, LevelID, DiscountPercent) VALUES (?,?,?,?,?,?,?,?,?)";
 
@@ -174,7 +174,7 @@ public class DAOQuotation {
         }
     }
 
-    // 🔥 CORE FLOW STEP 2: Get quotation by ID (for approval/review)
+    // CORE FLOW STEP 2: Get quotation by ID (for approval/review)
     public DTOQuotation getQuotationById(int quotationID) {
         DTOQuotation quotation = null;
 
@@ -234,7 +234,7 @@ public class DAOQuotation {
         return quotation;
     }
 
-    // 🔥 CORE FLOW STEP 3: Get all quotations with price information
+    //  CORE FLOW STEP 3: Get all quotations with price information
     public List<DTOQuotation> getAllQuotations() {
         List<DTOQuotation> quotations = new ArrayList<>();
 
@@ -357,7 +357,7 @@ public class DAOQuotation {
         return quotations;
     }
 
-    // 🔥 CORE FLOW STEP 4: Update quotation status (Approve/Reject)
+    //  CORE FLOW STEP 4: Update quotation status (Approve/Reject)
     public boolean updateQuotationStatus(int quotationID, QuotationStatus newStatus) {
         String sql = "UPDATE Quotation SET Status = ? WHERE QuotationID = ?";
         log.debug("updateQuotationStatus id={} status={}", quotationID, newStatus);
@@ -387,7 +387,7 @@ public class DAOQuotation {
         }
     }
 
-    // 🔥 CORE FLOW STEP 5: Check if quotation is approved (for SaleOrder validation)
+    //  CORE FLOW STEP 5: Check if quotation is approved (for SaleOrder validation)
     public boolean isQuotationApproved(int quotationID) {
         String sql = "SELECT Status FROM Quotation WHERE QuotationID = ?";
 
@@ -409,7 +409,7 @@ public class DAOQuotation {
         return false;
     }
 
-    // 🔥 CORE FLOW STEP 6: Get quotations by dealer (for dealer-specific view)
+    //  CORE FLOW STEP 6: Get quotations by dealer (for dealer-specific view)
     public List<DTOQuotation> getQuotationsByDealer(int dealerID) {
         List<DTOQuotation> quotations = new ArrayList<>();
 
@@ -482,7 +482,7 @@ public class DAOQuotation {
         return quotations;
     }
 
-    // ✅ Get quotations by customer
+    //  Get quotations by customer
     public List<DTOQuotation> getQuotationsByCustomer(int customerID) {
         List<DTOQuotation> quotations = new ArrayList<>();
 
@@ -555,7 +555,7 @@ public class DAOQuotation {
         return quotations;
     }
 
-    // ✅ Update quotation total amount
+    //  Update quotation total amount
     public boolean updateQuotationTotalAmount(int quotationID, double totalAmount) {
         String sql = "UPDATE Quotation SET TotalAmount = ? WHERE QuotationID = ?";
         log.debug("updateQuotationTotalAmount id={} totalAmount={}", quotationID, totalAmount);
@@ -581,7 +581,7 @@ public class DAOQuotation {
         }
     }
 
-    // ✅ Find existing quotation by customer and dealer
+    //  Find existing quotation by customer and dealer
     public Integer findExistingQuotationId(int dealerID, int customerID) {
         String sql = "SELECT QuotationID FROM Quotation WHERE DealerID = ? AND CustomerID = ? AND Status <> 'REJECTED' ORDER BY CreatedAt DESC";
         try (Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -591,7 +591,7 @@ public class DAOQuotation {
         return null;
     }
 
-    // ✅ Create quotation if not exists, return existing or new QuotationID
+    //  Create quotation if not exists, return existing or new QuotationID
     public int createQuotationIfNotExists(int dealerID, int customerID, int staffID, int levelID) {
         Integer existing = findExistingQuotationId(dealerID, customerID); if (existing != null) return existing;
         DTOQuotation q = new DTOQuotation();
@@ -604,7 +604,7 @@ public class DAOQuotation {
         return insertQuotation(q);
     }
 
-    // ✅ Insert QuotationDetail (restored after truncation)
+    //  Insert QuotationDetail (restored after truncation)
     public boolean insertQuotationDetail(DTOQuotationDetail detail) {
         String sql = "INSERT INTO QuotationDetail (QuotationID, VersionID, ColorID, UnitPrice, Quantity) VALUES (?,?,?,?,?)";
         try (Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -620,7 +620,7 @@ public class DAOQuotation {
         return false;
     }
 
-    // ✅ Get QuotationDetails by QuotationID (with model attached)
+    //  Get QuotationDetails by QuotationID (with model attached)
     public List<DTOQuotationDetail> getQuotationDetails(int quotationID) {
         List<DTOQuotationDetail> details = new ArrayList<>();
         String sql = """
@@ -646,7 +646,7 @@ public class DAOQuotation {
         return details;
     }
 
-    // ✅ Update QuotationDetail
+    //  Update QuotationDetail
     public boolean updateQuotationDetail(DTOQuotationDetail detail) {
         String sql = "UPDATE QuotationDetail SET VersionID = ?, ColorID = ?, UnitPrice = ?, Quantity = ? WHERE QuotationDetailID = ?";
         try (Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -656,7 +656,7 @@ public class DAOQuotation {
         return false;
     }
 
-    // ✅ Delete QuotationDetail
+    //  Delete QuotationDetail
     public boolean deleteQuotationDetail(int quotationDetailID) {
         String sql = "DELETE FROM QuotationDetail WHERE QuotationDetailID = ?";
         try (Connection conn = DBUtils.getConnection();
@@ -674,7 +674,7 @@ public class DAOQuotation {
         return false;
     }
 
-    // ✅ Recalculate Quotation total & quantity (gross/net) using discountPercent
+    //  Recalculate Quotation total & quantity (gross/net) using discountPercent
     public void recalcQuotationTotal(int quotationID) {
         List<DTOQuotationDetail> details = getQuotationDetails(quotationID);
         int totalQty = details.stream().mapToInt(DTOQuotationDetail::getQuantity).sum();
@@ -688,7 +688,7 @@ public class DAOQuotation {
         } catch (SQLException e) { log.error("Failed updating aggregates quotationID={}", quotationID, e); }
     }
 
-    // ✅ Update quotation discount percent and recompute total immediately
+    //  Update quotation discount percent and recompute total immediately
     public boolean updateQuotationDiscount(int quotationID, double discountPercent) {
         String sql = "UPDATE Quotation SET DiscountPercent = ? WHERE QuotationID = ?"; // fixed missing declaration
         try (Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -696,7 +696,7 @@ public class DAOQuotation {
         } catch (SQLException e) { log.error("Failed updating discount quotationID={}", quotationID, e); return false; }
     }
 
-    // ✅ Update quotation detail quantity only
+    //  Update quotation detail quantity only
     public boolean updateQuotationDetailQuantity(int quotationDetailID, int quantity) {
         String sql = "UPDATE QuotationDetail SET Quantity = ? WHERE QuotationDetailID = ?";
         try (Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -764,7 +764,7 @@ public class DAOQuotation {
         return added;
     }
 
-    // ✅ Get detailed information of a specific quotation detail by ID (with joins)
+    //  Get detailed information of a specific quotation detail by ID (with joins)
     public DTOQuotationDetail getQuotationDetailById(int detailId) {
         String sql = "SELECT qd.QuotationDetailID, qd.QuotationID, qd.VersionID, qd.ColorID, qd.UnitPrice, qd.Quantity, " +
                 "vv.VersionName, vm.ModelID, vm.ModelName, vm.BasePrice, vc.ColorName, q.DiscountPercent, q.Status " +
@@ -811,7 +811,7 @@ public class DAOQuotation {
         return null;
     }
 
-    // ✅ Delete Quotation
+    //  Delete Quotation
     public boolean deleteQuotation(int quotationID) {
         String sqlDetails = "DELETE FROM QuotationDetail WHERE QuotationID=?";
         String sqlQuotation = "DELETE FROM Quotation WHERE QuotationID=?";
@@ -831,7 +831,7 @@ public class DAOQuotation {
         return false;
     }
 
-    // ✅ Update unit price and quantity together for a quotation detail
+    //  Update unit price and quantity together for a quotation detail
     public boolean updateQuotationDetailFields(int quotationDetailID, java.math.BigDecimal unitPrice, int quantity) {
         String sql = "UPDATE QuotationDetail SET UnitPrice = ?, Quantity = ? WHERE QuotationDetailID = ?";
         try (java.sql.Connection conn = utils.DBUtils.getConnection(); java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {

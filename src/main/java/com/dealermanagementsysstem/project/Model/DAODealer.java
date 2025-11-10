@@ -96,14 +96,14 @@ public class DAODealer {
                 try (ResultSet rs = ps.getGeneratedKeys()) {
                     if (rs.next()) {
                         int dealerId = rs.getInt(1);
-                        System.out.println("✅ Dealer created successfully with ID: " + dealerId);
+                        System.out.println(" Dealer created successfully with ID: " + dealerId);
                         return dealerId;
                     }
                 }
             }
 
         } catch (SQLException e) {
-            System.out.println("❌ Error inserting dealer: " + e.getMessage());
+            System.out.println(" Error inserting dealer: " + e.getMessage());
             e.printStackTrace();
         }
         return -1; // Failed
@@ -154,16 +154,16 @@ public class DAODealer {
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     int staffID = rs.getInt("StaffID");
-                    System.out.println("✅ Found StaffID=" + staffID + " for DealerID=" + dealerID);
+                    System.out.println(" Found StaffID=" + staffID + " for DealerID=" + dealerID);
                     return staffID;
                 } else {
-                    System.out.println("⚠️ No staff found for DealerID=" + dealerID);
+                    System.out.println(" No staff found for DealerID=" + dealerID);
                     return null;
                 }
             }
 
         } catch (SQLException e) {
-            System.out.println("❌ Error getting staff for DealerID=" + dealerID);
+            System.out.println(" Error getting staff for DealerID=" + dealerID);
             e.printStackTrace();
             return null;
         }

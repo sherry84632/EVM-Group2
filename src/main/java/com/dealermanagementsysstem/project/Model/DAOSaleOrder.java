@@ -13,7 +13,7 @@ public class DAOSaleOrder {
     private static final Logger log = LoggerFactory.getLogger(DAOSaleOrder.class);
 
     // ======================================================
-    // 1️⃣  TẠO SALE ORDER MỚI
+    //  TẠO SALE ORDER MỚI
     // ======================================================
     public boolean createSaleOrder(DTOSaleOrder saleOrder) {
         String sqlOrder = "INSERT INTO SaleOrder (CustomerID, DealerID, StaffID, CreatedAt, Status, Quantity, TotalAmount, PlannedDeliveryDate, ActualDeliveryDate, EtaDays) VALUES (?, ?, ?, GETDATE(), ?, ?, ?, ?, ?, ?)";
@@ -85,7 +85,7 @@ public class DAOSaleOrder {
 
 
     // ======================================================
-    // 2️⃣  LẤY TOÀN BỘ SALE ORDERS
+    //  LẤY TOÀN BỘ SALE ORDERS
     // ======================================================
     public List<DTOSaleOrder> getAllSaleOrders() {
         List<DTOSaleOrder> list = new ArrayList<>();
@@ -156,7 +156,7 @@ public class DAOSaleOrder {
     }
 
     // ======================================================
-    // 3️⃣  LẤY SALE ORDER THEO ID
+    //  LẤY SALE ORDER THEO ID
     // ======================================================
     public DTOSaleOrder getSaleOrderById(int id) {
         DTOSaleOrder order = null;
@@ -223,7 +223,7 @@ public class DAOSaleOrder {
     }
 
     // ======================================================
-    // 4️⃣  LẤY CHI TIẾT ĐƠN HÀNG
+    //  LẤY CHI TIẾT ĐƠN HÀNG
     // ======================================================
     public List<DTOSaleOrderDetail> getSaleOrderDetails(int saleOrderID) {
         List<DTOSaleOrderDetail> details = new ArrayList<>();
@@ -297,7 +297,7 @@ public class DAOSaleOrder {
                 detail.setPrice(rs.getBigDecimal("Price"));
                 detail.setDiscountPolicy(discountPolicy);
 
-                // ✅ Lấy VIN từ DealerInventory
+                // Lấy VIN từ DealerInventory
                 String vin = rs.getString("VIN");
                 detail.setVin(vin != null ? vin : "N/A");
 
@@ -311,7 +311,7 @@ public class DAOSaleOrder {
     }
 
     // ======================================================
-    // 5️⃣  LẤY 1 CHI TIẾT SALE ORDER DETAIL THEO ID
+    // LẤY 1 CHI TIẾT SALE ORDER DETAIL THEO ID
     // ======================================================
     public DTOSaleOrderDetail getDetailById(int detailId) {
         DTOSaleOrderDetail detail = null;
@@ -379,7 +379,7 @@ public class DAOSaleOrder {
                     detail.setPrice(rs.getBigDecimal("Price"));
                     detail.setDiscountPolicy(discountPolicy);
 
-                    // ✅ Lấy VIN từ DealerInventory
+                    //Lấy VIN từ DealerInventory
                     String vin = rs.getString("VIN");
                     detail.setVin(vin != null ? vin : "N/A");
                 }
@@ -411,7 +411,7 @@ public class DAOSaleOrder {
     }
 
     // ======================================================
-    // 🔴 XÓA SALE ORDER VÀ CHI TIẾT
+    // XÓA SALE ORDER VÀ CHI TIẾT
     // ======================================================
     public boolean deleteSaleOrder(int saleOrderID) {
         String sqlDetails = "DELETE FROM SaleOrderDetail WHERE SaleOrderID=?";
@@ -434,7 +434,7 @@ public class DAOSaleOrder {
     }
 
     // ======================================================
-    // 📦 TÍNH TOÁN NGÀY GIAO DỰ KIẾN VÀ THỰC TẾ
+    // TÍNH TOÁN NGÀY GIAO DỰ KIẾN VÀ THỰC TẾ
     // ======================================================
     public boolean updateDeliveryInfo(int saleOrderID, java.sql.Timestamp planned, java.sql.Timestamp actual, Integer etaDays) {
         DTOSaleOrder existing = getSaleOrderById(saleOrderID);

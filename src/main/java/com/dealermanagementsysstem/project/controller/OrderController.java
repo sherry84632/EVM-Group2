@@ -21,10 +21,10 @@ public class OrderController {
     private final DAOSaleOrder dao = new DAOSaleOrder();
     private final DAOPurchaseOrder purchaseOrderDAO = new DAOPurchaseOrder();
     private final DAOPurchaseOrderDetail purchaseOrderDetailDAO = new DAOPurchaseOrderDetail();
-    private final DAODealerInventory inventoryDAO = new DAODealerInventory(); // ✅ Thêm DAO Inventory
+    private final DAODealerInventory inventoryDAO = new DAODealerInventory(); // Thêm DAO Inventory
 
     // ======================================================
-    // 1️⃣  DANH SÁCH TẤT CẢ SALE ORDER
+    //  DANH SÁCH TẤT CẢ SALE ORDER
     // ======================================================
     @GetMapping
     public String listSaleOrders(
@@ -66,12 +66,12 @@ public class OrderController {
     }
 
     // ======================================================
-    // 2️⃣  FORM TẠO SALE ORDER MỚI
+    // ⃣ FORM TẠO SALE ORDER MỚI
     // ======================================================
     @GetMapping("/new")
     public String showCreateForm(Model model, HttpSession session) { // session kept for future enhancements
 
-        // ✅ Lấy thông tin người dùng đăng nhập
+        //  Lấy thông tin người dùng đăng nhập
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String email = auth.getName();
 
@@ -83,7 +83,7 @@ public class OrderController {
             return "redirect:/login";
         }
 
-        // ✅ Lấy danh sách quotation đã duyệt cho dealer này
+        //  Lấy danh sách quotation đã duyệt cho dealer này
         DAOQuotation quotationDAO = new DAOQuotation();
         List<DTOQuotation> approvedQuotations = quotationDAO.getQuotationsByDealer(account.getDealerStaff().getDealer().getDealerID())
                 .stream()
@@ -101,7 +101,7 @@ public class OrderController {
     }
 
     // ======================================================
-    // 3️⃣  XỬ LÝ SUBMIT FORM TẠO SALE ORDER
+    //   XỬ LÝ SUBMIT FORM TẠO SALE ORDER
     // ======================================================
     @PostMapping("/insert")
     public String insertSaleOrder(
@@ -114,7 +114,7 @@ public class OrderController {
             Model model,
             RedirectAttributes ra
     ) {
-        // ✅ Lấy thông tin tài khoản hiện tại
+        //  Lấy thông tin tài khoản hiện tại
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String email = auth.getName();
 
@@ -128,7 +128,7 @@ public class OrderController {
 
         int dealerID = account.getDealerStaff().getDealer().getDealerID();
 
-        // ✅ Lấy quotation được chọn
+        //  Lấy quotation được chọn
         DAOQuotation quotationDAO = new DAOQuotation();
         DTOQuotation quotation = quotationDAO.getQuotationById(quotationID);
         if (quotation == null || quotation.getStatus() != QuotationStatus.APPROVED) {
@@ -184,7 +184,7 @@ public class OrderController {
                 Integer colorId = qd.getColor()!=null? qd.getColor().getColorID(): null;
                 List<Integer> vehicleIds = new ArrayList<>();
 
-                // ✅ LẤY XE TỪ INVENTORY THAY VÌ VEHICLE TABLE
+                //  LẤY XE TỪ INVENTORY THAY VÌ VEHICLE TABLE
                 if (versionId != null && colorId != null) {
                     vehicleIds = inventoryDAO.getAvailableVehicleIdsFromInventory(dealerID, versionId, colorId, lineQty);
 
@@ -246,7 +246,7 @@ public class OrderController {
             try {
                 int poId = createPurchaseOrderForMultipleShortages(dealerID, staffID, shortages);
                 if (poId > 0) {
-                    StringBuilder msg = new StringBuilder("⚠️ Không đủ xe trong kho. Hệ thống đã tự động tạo đơn hàng mua #" + poId + " cho:\n");
+                    StringBuilder msg = new StringBuilder(" Không đủ xe trong kho. Hệ thống đã tự động tạo đơn hàng mua #" + poId + " cho:\n");
                     for (ShortageInfo s : shortages) {
                         msg.append("  • ").append(s.qty).append(" xe ")
                            .append(s.versionName).append(" (").append(s.colorName).append(")\n");
@@ -276,19 +276,19 @@ public class OrderController {
             // persist delivery info right after insertion
             dao.updateDeliveryInfo(order.getSaleOrderID(), order.getPlannedDeliveryDate(), order.getActualDeliveryDate(), order.getEtaDays());
 
-            // ✅ RESERVE CÁC XE TRONG INVENTORY
+            //  RESERVE CÁC XE TRONG INVENTORY
             for (DTOSaleOrderDetail detail : details) {
                 if (detail.getVehicle() != null && detail.getVehicle().getVehicleID() != null) {
                     boolean reserved = inventoryDAO.reserveVehicle(detail.getVehicle().getVehicleID());
                     if (!reserved) {
-                        System.err.println("⚠️ Failed to reserve vehicle ID=" + detail.getVehicle().getVehicleID());
+                        System.err.println(" Failed to reserve vehicle ID=" + detail.getVehicle().getVehicleID());
                     }
                 }
             }
         }
 
         if (success) {
-            ra.addFlashAttribute("message", "✅ Tạo đơn hàng thành công! Các xe đã được reserve trong kho.");
+            ra.addFlashAttribute("message", " Tạo đơn hàng thành công! Các xe đã được reserve trong kho.");
             return "redirect:/saleorder";
         } else {
             model.addAttribute("error", "Không thể tạo đơn hàng, vui lòng thử lại.");
@@ -297,7 +297,7 @@ public class OrderController {
     }
 
     // ======================================================
-    // 4️⃣  XEM CHI TIẾT SALE ORDER
+    //   XEM CHI TIẾT SALE ORDER
     // ======================================================
     @GetMapping("/detail/{id}")
     public String viewOrderDetail(@PathVariable("id") int id, Model model) {
@@ -311,12 +311,12 @@ public class OrderController {
     }
 
     // ======================================================
-    // 5️⃣  LẤY CHI TIẾT 1 SALE ORDER DETAIL (DỰA VÀO VehicleID)
+    //   LẤY CHI TIẾT 1 SALE ORDER DETAIL (DỰA VÀO VehicleID)
     // ======================================================
     @GetMapping("/detail/item/{detailId}")
     @ResponseBody
     public DTOSaleOrderDetail getDetailItem(@PathVariable("detailId") int detailId) {
-        // ✅ Lấy chi tiết đơn hàng qua DAO
+        // Lấy chi tiết đơn hàng qua DAO
         DAOSaleOrder dao = new DAOSaleOrder();
         return dao.getDetailById(detailId);
     }
@@ -338,7 +338,7 @@ public class OrderController {
             return "redirect:/saleorder";
         }
 
-        // ✅ XỬ LÝ KHI CANCEL - HOÀN TRẢ XE VỀ INVENTORY
+        //  XỬ LÝ KHI CANCEL - HOÀN TRẢ XE VỀ INVENTORY
         if (newStatus == SaleOrderStatus.CANCELLED) {
             if (order.getDetail() != null) {
                 for (DTOSaleOrderDetail detail : order.getDetail()) {
@@ -346,16 +346,16 @@ public class OrderController {
                     if (vehicleId != null) {
                         boolean returned = inventoryDAO.returnVehicleToInventory(vehicleId);
                         if (returned) {
-                            System.out.println("✅ Returned vehicle ID=" + vehicleId + " to inventory (status=AVAILABLE)");
+                            System.out.println(" Returned vehicle ID=" + vehicleId + " to inventory (status=AVAILABLE)");
                         } else {
-                            System.err.println("⚠️ Failed to return vehicle ID=" + vehicleId + " to inventory");
+                            System.err.println(" Failed to return vehicle ID=" + vehicleId + " to inventory");
                         }
                     }
                 }
             }
         }
 
-        // ✅ XỬ LÝ KHI COMPLETED - CHỈ ĐÁNH DẤU XE LÀ SOLD (KHÔNG XÓA ĐỂ GIỮ VIN)
+        // XỬ LÝ KHI COMPLETED - CHỈ ĐÁNH DẤU XE LÀ SOLD (KHÔNG XÓA ĐỂ GIỮ VIN)
         if (newStatus == SaleOrderStatus.COMPLETED) {
             if (order.getDetail() != null) {
                 for (DTOSaleOrderDetail detail : order.getDetail()) {
@@ -375,9 +375,9 @@ public class OrderController {
             dao.applyActualDeliveryIfEligible(order);
 
             String message = switch (newStatus) {
-                case CANCELLED -> "❌ Đơn hàng đã bị hủy. Các xe đã được hoàn trả vào kho.";
-                case COMPLETED -> "✅ Đơn hàng đã hoàn thành. Các xe đã được đánh dấu là SOLD.";
-                default -> "✅ Cập nhật trạng thái thành công: " + status.toUpperCase();
+                case CANCELLED -> " Đơn hàng đã bị hủy. Các xe đã được hoàn trả vào kho.";
+                case COMPLETED -> " Đơn hàng đã hoàn thành. Các xe đã được đánh dấu là SOLD.";
+                default -> " Cập nhật trạng thái thành công: " + status.toUpperCase();
             };
 
             ra.addFlashAttribute("message", message);
@@ -423,7 +423,7 @@ public class OrderController {
             // Insert purchase order and get ID
             int poId = purchaseOrderDAO.insertPurchaseOrder(order);
             if (poId <= 0) {
-                System.err.println("❌ Failed to create purchase order for shortages");
+                System.err.println(" Failed to create purchase order for shortages");
                 return -1;
             }
 
@@ -439,19 +439,19 @@ public class OrderController {
 
                 if (detailSuccess) {
                     successCount++;
-                    System.out.println("  ✅ Added detail: " + shortage.qty + " xe " +
+                    System.out.println("   Added detail: " + shortage.qty + " xe " +
                                      shortage.versionName + " (" + shortage.colorName + ")");
                 } else {
-                    System.err.println("  ❌ Failed to add detail for version=" + shortage.versionId);
+                    System.err.println("   Failed to add detail for version=" + shortage.versionId);
                 }
             }
 
-            System.out.println("✅ Auto-created Purchase Order #" + poId + " with " +
+            System.out.println(" Auto-created Purchase Order #" + poId + " with " +
                              successCount + "/" + shortages.size() + " details");
             return poId;
 
         } catch (Exception e) {
-            System.err.println("❌ Error creating purchase order for multiple shortages: " + e.getMessage());
+            System.err.println(" Error creating purchase order for multiple shortages: " + e.getMessage());
             e.printStackTrace();
             return -1;
         }
@@ -505,7 +505,7 @@ public class OrderController {
                 return -1;
             }
 
-            System.out.println("✅ Auto-created Purchase Order #" + poId + " for " + shortageQty + " vehicles (Version=" + versionId + ", Color=" + colorId + ")");
+            System.out.println(" Auto-created Purchase Order #" + poId + " for " + shortageQty + " vehicles (Version=" + versionId + ", Color=" + colorId + ")");
             return poId;
 
         } catch (Exception e) {
@@ -516,7 +516,7 @@ public class OrderController {
     }
 
     // ======================================================
-    // ❌ XÓA SALE ORDER
+    // XÓA SALE ORDER
     // ======================================================
     @PostMapping("/delete/{id}")
     public String deleteSaleOrder(@PathVariable int id, RedirectAttributes ra) {
@@ -533,7 +533,7 @@ public class OrderController {
     }
 
     // ======================================================
-    // 🚚 UPDATE DELIVERY INFO
+    //  UPDATE DELIVERY INFO
     // ======================================================
     @PostMapping("/delivery/update")
     public String updateDeliveryInfo(@RequestParam int saleOrderID,
@@ -553,7 +553,7 @@ public class OrderController {
     }
 
     // ======================================================
-    // 📦 HELPER CLASS: Thông tin về xe thiếu
+    //  HELPER CLASS: Thông tin về xe thiếu
     // ======================================================
     private static class ShortageInfo {
         int versionId;

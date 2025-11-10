@@ -9,7 +9,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class DAOTestDrive {
 
-    // ✅ Lấy danh sách TestDrive
+    //  Lấy danh sách TestDrive
     public List<DTOTestDrive> getAllTestDrives() {
         List<DTOTestDrive> list = new ArrayList<>();
         String sql = """
@@ -73,7 +73,7 @@ public class DAOTestDrive {
         return list;
     }
 
-    // ✅ Lấy TestDrive theo ID
+    //  Lấy TestDrive theo ID
     public DTOTestDrive getTestDriveById(int testDriveID) {
         String sql = """
             SELECT td.TestDriveID, td.CustomerID, td.VehicleID, td.DealerID, td.StaffID, td.TestDate, td.Feedback,
@@ -138,7 +138,7 @@ public class DAOTestDrive {
         return null;
     }
 
-    // ✅ Tạo TestDrive mới
+    //  Tạo TestDrive mới
     public boolean createTestDrive(DTOTestDrive testDrive) {
         String sql = "INSERT INTO TestDrive (CustomerID, VehicleID, DealerID, StaffID, TestDate, Feedback) VALUES (?, ?, ?, ?, ?, ?)";
 
@@ -161,13 +161,13 @@ public class DAOTestDrive {
         return false;
     }
 
-    // ✅ Tạo TestDrive đơn giản với customerID, testDate và optional vehicleID
+    //  Tạo TestDrive đơn giản với customerID, testDate và optional vehicleID
     public boolean insertTestDrive(int customerID, java.util.Date testDate, Integer vehicleID) {
         // Gọi overload method với dealerID và staffID = null
         return insertTestDrive(customerID, testDate, vehicleID, null, null);
     }
 
-    // ✅ Tạo TestDrive với đầy đủ thông tin (bao gồm dealerID và staffID)
+    //  Tạo TestDrive với đầy đủ thông tin (bao gồm dealerID và staffID)
     public boolean insertTestDrive(int customerID, java.util.Date testDate, Integer vehicleID,
                                    Integer dealerID, Integer staffID) {
         String sql = "INSERT INTO TestDrive (CustomerID, TestDate, VehicleID, DealerID, StaffID) VALUES (?, ?, ?, ?, ?)";
@@ -178,21 +178,21 @@ public class DAOTestDrive {
             ps.setInt(1, customerID);
             ps.setTimestamp(2, new Timestamp(testDate.getTime()));
 
-            // ✅ VehicleID có thể NULL
+            //  VehicleID có thể NULL
             if (vehicleID != null && vehicleID > 0) {
                 ps.setInt(3, vehicleID);
             } else {
                 ps.setNull(3, java.sql.Types.INTEGER);
             }
 
-            // ✅ DealerID có thể NULL
+            //  DealerID có thể NULL
             if (dealerID != null && dealerID > 0) {
                 ps.setInt(4, dealerID);
             } else {
                 ps.setNull(4, java.sql.Types.INTEGER);
             }
 
-            // ✅ StaffID có thể NULL
+            //  StaffID có thể NULL
             if (staffID != null && staffID > 0) {
                 ps.setInt(5, staffID);
             } else {
@@ -201,7 +201,7 @@ public class DAOTestDrive {
 
             int rows = ps.executeUpdate();
             if (rows > 0) {
-                System.out.println("✅ TestDrive inserted successfully for Customer ID: " + customerID +
+                System.out.println(" TestDrive inserted successfully for Customer ID: " + customerID +
                                  (vehicleID != null ? " with Vehicle ID: " + vehicleID : " (no vehicle)") +
                                  (dealerID != null ? " Dealer ID: " + dealerID : "") +
                                  (staffID != null ? " Staff ID: " + staffID : ""));
@@ -209,13 +209,13 @@ public class DAOTestDrive {
             }
 
         } catch (SQLException e) {
-            System.out.println("❌ Failed to insert test drive!");
+            System.out.println(" Failed to insert test drive!");
             e.printStackTrace();
         }
         return false;
     }
 
-    // ✅ Lấy test drive của customer theo customerID
+    //  Lấy test drive của customer theo customerID
     public DTOTestDrive getTestDriveByCustomerId(int customerID) {
         String sql = """
             SELECT TOP 1 td.TestDriveID, td.CustomerID, td.VehicleID, td.TestDate, td.Feedback,
@@ -283,7 +283,7 @@ public class DAOTestDrive {
         return null;
     }
 
-    // ✅ Cập nhật TestDrive
+    //  Cập nhật TestDrive
     public boolean updateTestDrive(DTOTestDrive testDrive) {
         String sql = "UPDATE TestDrive SET CustomerID=?, VehicleID=?, DealerID=?, StaffID=?, TestDate=?, Feedback=? WHERE TestDriveID=?";
 
@@ -307,7 +307,7 @@ public class DAOTestDrive {
         return false;
     }
 
-    // ✅ Xóa TestDrive
+    //  Xóa TestDrive
     public boolean deleteTestDrive(int testDriveID) {
         String sql = "DELETE FROM TestDrive WHERE TestDriveID = ?";
 

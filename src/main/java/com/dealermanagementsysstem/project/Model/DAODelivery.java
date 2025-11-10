@@ -9,7 +9,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class DAODelivery {
 
-    // ✅ Lấy danh sách Delivery
+    //  Lấy danh sách Delivery
     public List<DTODelivery> getAllDeliveries() {
         List<DTODelivery> list = new ArrayList<>();
         String sql = """
@@ -44,7 +44,7 @@ public class DAODelivery {
         return list;
     }
 
-    // ✅ Lấy Delivery theo ID
+    //  Lấy Delivery theo ID
     public DTODelivery getDeliveryById(int deliveryID) {
         String sql = """
             SELECT d.DeliveryID, d.PurchaseOrderID, d.DeliveryDate, d.DeliveryStatus,
@@ -80,7 +80,7 @@ public class DAODelivery {
         return null;
     }
 
-    // ✅ Tạo Delivery mới
+    // Tạo Delivery mới
     public boolean createDelivery(DTODelivery delivery) {
         String sql = "INSERT INTO Delivery (PurchaseOrderID, DeliveryDate, DeliveryStatus) VALUES (?, ?, ?)";
 
@@ -100,7 +100,7 @@ public class DAODelivery {
         return false;
     }
 
-    // ✅ Cập nhật trạng thái Delivery
+    //  Cập nhật trạng thái Delivery
     public boolean updateDeliveryStatus(int deliveryID, DeliveryStatus status) {
         String sql = "UPDATE Delivery SET DeliveryStatus = ? WHERE DeliveryID = ?";
 

@@ -50,7 +50,7 @@ public class DealerInventoryController {
                                       @RequestParam(value = "to", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) java.time.LocalDate to) {
         String email = SecurityUtil.getCurrentUserEmail();
         
-        System.out.println("🔍 Dealer Inventory Access - Email: " + email);
+        System.out.println(" Dealer Inventory Access - Email: " + email);
         
         if (email == null) {
             model.addAttribute("error", "Bạn cần đăng nhập để xem inventory!");
@@ -59,10 +59,10 @@ public class DealerInventoryController {
 
         Integer dealerID = daoAccount.getDealerIdByEmail(email);
         
-        System.out.println("🏪 Resolved DealerID: " + dealerID + " for email: " + email);
+        System.out.println(" Resolved DealerID: " + dealerID + " for email: " + email);
         
         if (dealerID == null) {
-            System.out.println("❌ ERROR: Could not find DealerID for email: " + email);
+            System.out.println(" ERROR: Could not find DealerID for email: " + email);
             model.addAttribute("error", "Không tìm thấy Dealer cho tài khoản hiện tại!");
             return "dealerPage/dealerInventory";
         }
@@ -76,13 +76,13 @@ public class DealerInventoryController {
                     || (colorId != null && colorId > 0) || (status != null && !status.isBlank())
                     || (receivedFrom != null && receivedTo != null)) {
                 vehicles = daoInventory.getVehiclesByDealerIDWithFilters(dealerID, vin, modelId, versionId, colorId, status, receivedFrom, receivedTo);
-                System.out.println("📊 Filtered inventory for DealerID " + dealerID + ": " + vehicles.size() + " vehicles");
+                System.out.println(" Filtered inventory for DealerID " + dealerID + ": " + vehicles.size() + " vehicles");
             } else if (keyword != null && !keyword.trim().isEmpty()) {
                 vehicles = daoInventory.getVehiclesByDealerIDWithKeyword(dealerID, keyword);
-                System.out.println("🔎 Keyword search for DealerID " + dealerID + ": " + vehicles.size() + " vehicles");
+                System.out.println(" Keyword search for DealerID " + dealerID + ": " + vehicles.size() + " vehicles");
             } else {
                 vehicles = daoInventory.getVehiclesByDealerID(dealerID);
-                System.out.println("📦 All inventory for DealerID " + dealerID + ": " + vehicles.size() + " vehicles");
+                System.out.println(" All inventory for DealerID " + dealerID + ": " + vehicles.size() + " vehicles");
             }
             
             model.addAttribute("vehicles", vehicles);

@@ -60,7 +60,7 @@ public class VehicleController {
         List<DTOVehicle> vehicle = getTemplateVehicles(daoVehicle);
         model.addAttribute("vehicleList", vehicle);
 
-        // ✅ Filter customers by dealerId
+        //  Filter customers by dealerId
         try {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName())) {
@@ -71,20 +71,20 @@ public class VehicleController {
                 if (dealerId != null && dealerId > 0) {
                     // Dealer user: only show customers belonging to this dealer
                     customerList = daoCustomer.getCustomersByDealerId(dealerId);
-                    log.info("✅ Loaded {} customers for dealerId={}", customerList.size(), dealerId);
+                    log.info(" Loaded {} customers for dealerId={}", customerList.size(), dealerId);
                 } else {
                     // Admin/EVM user: show all customers
                     customerList = daoCustomer.getAllCustomers();
-                    log.info("⚠️ No dealerId found for email={}, loaded all {} customers", email, customerList.size());
+                    log.info("⚠ No dealerId found for email={}, loaded all {} customers", email, customerList.size());
                 }
                 model.addAttribute("customerList", customerList);
             } else {
                 // Not authenticated: show empty list
-                log.warn("❌ User not authenticated, showing empty customer list");
+                log.warn(" User not authenticated, showing empty customer list");
                 model.addAttribute("customerList", List.of());
             }
         } catch (Exception e) {
-            log.error("❌ Error loading customers", e);
+            log.error(" Error loading customers", e);
             model.addAttribute("customerList", List.of());
         }
 

@@ -43,30 +43,30 @@ public class QuotationController {
         try {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             if (auth == null) {
-                log.warn("⚠️ No authentication found");
+                log.warn(" No authentication found");
                 return null;
             }
 
             String email = auth.getName();
             if (email == null) {
-                log.warn("⚠️ No email found in authentication");
+                log.warn(" No email found in authentication");
                 return null;
             }
 
             Integer dealerId = daoAccount.getDealerIdByEmail(email);
             if (dealerId == null) {
-                log.info("⚠️ No dealer found for email: {} (likely EVM/Admin user)", email);
+                log.info("️ No dealer found for email: {} (likely EVM/Admin user)", email);
             } else {
-                log.debug("✅ Found dealerId={} for email={}", dealerId, email);
+                log.debug(" Found dealerId={} for email={}", dealerId, email);
             }
             return dealerId;
         } catch (Exception e) {
-            log.error("❌ Error getting dealer ID from session", e);
+            log.error(" Error getting dealer ID from session", e);
             return null;
         }
     }
 
-    // ✅ Hiển thị form báo giá
+    //  Hiển thị form báo giá
     @GetMapping("/new")
     public String showQuotationForm(
             @RequestParam("vehicleId") Integer vehicleId,
@@ -75,7 +75,7 @@ public class QuotationController {
     ) {
     log.debug("Open quotation form VehicleID={}", vehicleId);
 
-        // 1️⃣ Lấy thông tin xe
+        //  Lấy thông tin xe
     log.trace("Fetching vehicle ID={}", vehicleId);
         DTOVehicle vehicle = dao.getVehicleById(vehicleId);
         if (vehicle == null) {
@@ -85,34 +85,34 @@ public class QuotationController {
         }
         log.debug("Vehicle found ID={}", vehicle.getVehicleID());
 
-        // 2️⃣ Lấy thông tin dealer từ session - USE RELIABLE METHOD
+        //  Lấy thông tin dealer từ session - USE RELIABLE METHOD
         System.out.println("\n========== DEALER LOADING DEBUG ==========");
-        System.out.println("📍 Method: showQuotationForm() for VehicleID=" + vehicleId);
+        System.out.println(" Method: showQuotationForm() for VehicleID=" + vehicleId);
 
         // Get authentication info
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String currentUserEmail = (auth != null && auth.isAuthenticated()) ? auth.getName() : "NOT_AUTHENTICATED";
-        System.out.println("🔐 Current User Email: " + currentUserEmail);
+        System.out.println(" Current User Email: " + currentUserEmail);
 
         Integer dealerId = getDealerIdFromSession();
-        System.out.println("🔍 Dealer ID from getDealerIdFromSession(): " + (dealerId != null ? dealerId : "❌ NULL"));
+        System.out.println(" Dealer ID from getDealerIdFromSession(): " + (dealerId != null ? dealerId : "❌ NULL"));
 
         DTODealer dealer = null;
         if (dealerId != null && dealerId > 0) {
             dealer = dao.getDealerByID(dealerId);
             if (dealer != null) {
-                System.out.println("✅ SUCCESS: Loaded dealer from DB");
+                System.out.println(" SUCCESS: Loaded dealer from DB");
                 System.out.println("   ├─ Dealer ID: " + dealer.getDealerID());
                 System.out.println("   ├─ Dealer Name: " + dealer.getDealerName());
                 System.out.println("   └─ Will filter customers by this dealer");
                 // load active discounts for the dealer if page needs them later
                 model.addAttribute("activeDiscounts", daoDealerPriceAdjustment.getActiveDiscountsByDealer(dealer.getDealerID()));
             } else {
-                System.out.println("❌ ERROR: Dealer not found in DB for ID=" + dealerId);
+                System.out.println(" ERROR: Dealer not found in DB for ID=" + dealerId);
                 System.out.println("   └─ This should NOT happen! Check Dealer table.");
             }
         } else {
-            System.out.println("⚠️ WARNING: No dealer ID found in session");
+            System.out.println(" WARNING: No dealer ID found in session");
             System.out.println("   ├─ User email: " + currentUserEmail);
             System.out.println("   ├─ Likely Admin/EVM user (no dealer assigned)");
             System.out.println("   └─ Will load ALL customers (no filter)");
@@ -127,32 +127,32 @@ public class QuotationController {
         }
         System.out.println("==========================================\n");
 
-        // 3️⃣ Ngày tạo báo giá
+        // Ngày tạo báo giá
         Timestamp createdAt = Timestamp.valueOf(LocalDateTime.now());
 
-        // 4️⃣ Load customers for selection - FILTERED BY DEALER
+        //  Load customers for selection - FILTERED BY DEALER
         try {
             DAOCustomer customerDAO = new DAOCustomer();
             List<DTOCustomer> customerList;
 
-            // 🔍 DEBUG: Log dealer information
+            //  DEBUG: Log dealer information
             System.out.println("\n========== CUSTOMER LOADING DEBUG ==========");
-            System.out.println("📍 Loading customers for quotation form");
-            System.out.println("🔍 Dealer object status: " + (dealer != null ? "✅ EXISTS" : "❌ NULL"));
+            System.out.println(" Loading customers for quotation form");
+            System.out.println(" Dealer object status: " + (dealer != null ? " EXISTS" : " NULL"));
 
             if (dealer != null) {
                 System.out.println("   ├─ Dealer ID: " + dealer.getDealerID());
                 System.out.println("   └─ Dealer Name: " + dealer.getDealerName());
             }
 
-            // ✅ Filter customers by dealer if dealer is logged in
+            //  Filter customers by dealer if dealer is logged in
             if (dealer != null && dealer.getDealerID() > 0) {
                 int targetDealerId = dealer.getDealerID();
-                System.out.println("\n📊 SQL Query: SELECT * FROM Customer WHERE DealerID = " + targetDealerId);
+                System.out.println("\n SQL Query: SELECT * FROM Customer WHERE DealerID = " + targetDealerId);
 
                 customerList = customerDAO.getCustomersByDealerId(targetDealerId);
 
-                System.out.println("✅ FILTERED RESULT:");
+                System.out.println(" FILTERED RESULT:");
                 System.out.println("   ├─ Found " + customerList.size() + " customers for DealerID=" + targetDealerId);
 
                 if (customerList.size() > 0) {
@@ -166,24 +166,24 @@ public class QuotationController {
                         System.out.println("   │  ... and " + (customerList.size() - 3) + " more");
                     }
                 } else {
-                    System.out.println("   └─ ⚠️ NO CUSTOMERS FOUND for this dealer!");
+                    System.out.println("   └─  NO CUSTOMERS FOUND for this dealer!");
                     System.out.println("      → Check if Customer table has records with DealerID=" + targetDealerId);
                 }
 
                 log.debug("Loaded customers for DealerID={}, count={}", targetDealerId, customerList.size());
             } else {
                 // Admin/EVM: show all customers
-                System.out.println("\n📊 SQL Query: SELECT * FROM Customer (no WHERE clause)");
+                System.out.println(" SQL Query: SELECT * FROM Customer (no WHERE clause)");
 
                 customerList = customerDAO.getAllCustomers();
 
-                System.out.println("⚠️ NO FILTER APPLIED:");
+                System.out.println("️ NO FILTER APPLIED:");
                 System.out.println("   ├─ Loaded ALL " + customerList.size() + " customers from database");
                 System.out.println("   ├─ Reason: dealer is " + (dealer == null ? "NULL" : "ID=" + dealer.getDealerID()));
                 System.out.println("   └─ This is normal for Admin/EVM users");
 
                 if (customerList.size() > 0 && dealer == null) {
-                    System.out.println("\n⚠️ IMPORTANT: If you are a DEALER user, this is WRONG!");
+                    System.out.println(" IMPORTANT: If you are a DEALER user, this is WRONG!");
                     System.out.println("   → Your account may not be linked to a dealer");
                     System.out.println("   → Check database: Account → DealerStaff → Dealer relationship");
                 }
@@ -194,23 +194,23 @@ public class QuotationController {
             System.out.println("========== END CUSTOMER DEBUG ==========\n");
             model.addAttribute("customerList", customerList);
         } catch (Exception ex) {
-            System.err.println("\n❌ EXCEPTION while loading customer list:");
+            System.err.println(" EXCEPTION while loading customer list:");
             System.err.println("   Error: " + ex.getMessage());
             ex.printStackTrace();
             log.error("Failed loading customer list", ex);
         }
 
-        // 5️⃣ Truyền dữ liệu sang view
+        // ⃣Truyền dữ liệu sang view
         if (dealer != null) {
             model.addAttribute("dealer", dealer);
         }
         model.addAttribute("vehicle", vehicle);
         model.addAttribute("createdAt", createdAt);
 
-        return "dealerPage/quotationForm"; // ✅ Tên file HTML của bạn
+        return "dealerPage/quotationForm"; //  Tên file HTML của bạn
     }
 
-    // 🔥 CORE FLOW STEP 2: Save quotation to database
+    //  CORE FLOW STEP 2: Save quotation to database
     @PostMapping("/save")
     public String saveQuotation(
             @RequestParam("customerID") int customerID,
@@ -254,13 +254,13 @@ public class QuotationController {
             DAOCustomer customerDAO = new DAOCustomer();
             DTOCustomer customer = customerDAO.getCustomerById(customerID);
 
-            // ✅ Validate customer belongs to this dealer (security check)
+            //  Validate customer belongs to this dealer (security check)
             if (customer == null) {
                 model.addAttribute("error", "Customer not found.");
                 return "dealerPage/quotationForm";
             }
             if (customer.getDealer() != null && customer.getDealer().getDealerID() != resolvedDealerId) {
-                log.warn("⚠️ Security: Dealer {} attempted to create quotation for customer {} belonging to dealer {}",
+                log.warn(" Security: Dealer {} attempted to create quotation for customer {} belonging to dealer {}",
                          resolvedDealerId, customerID, customer.getDealer().getDealerID());
                 model.addAttribute("error", "Customer does not belong to your dealership.");
                 return "dealerPage/quotationForm";
@@ -346,26 +346,26 @@ public class QuotationController {
         }
     }
 
-    // 🔥 CORE FLOW STEP 3: List all quotations (for dealer to review) - FILTERED BY DEALER
+    //  CORE FLOW STEP 3: List all quotations (for dealer to review) - FILTERED BY DEALER
     @GetMapping("/list")
     public String listQuotations(Model model, HttpSession session) {
         log.info("========== QUOTATION LIST REQUEST ==========");
 
         try {
-            // ✅ Get dealer ID from logged-in user's email
+            //  Get dealer ID from logged-in user's email
             Integer dealerId = getDealerIdFromSession();
 
-            log.info("🔍 Resolved dealerId from session: {}", dealerId);
+            log.info(" Resolved dealerId from session: {}", dealerId);
 
             List<DTOQuotation> quotations;
 
             // Filter by dealer if user is DEALER or DEALERSTAFF
             if (dealerId != null) {
-                log.info("🎯 Calling dao.getQuotationsByDealerId({})", dealerId);
+                log.info(" Calling dao.getQuotationsByDealerId({})", dealerId);
                 quotations = dao.getQuotationsByDealerId(dealerId);
 
                 // Log each quotation's dealer ID for verification
-                log.info("📋 Retrieved {} quotations:", quotations.size());
+                log.info(" Retrieved {} quotations:", quotations.size());
                 for (DTOQuotation q : quotations) {
                     log.info("   - QuotationID={}, DealerID={}, Customer={}",
                         q.getQuotationID(),
@@ -375,10 +375,10 @@ public class QuotationController {
 
                 model.addAttribute("dealerFiltered", true);
                 model.addAttribute("dealerID", dealerId);
-                log.info("✅ Filtered quotations by dealerID={}, size={}", dealerId, quotations.size());
+                log.info(" Filtered quotations by dealerID={}, size={}", dealerId, quotations.size());
             } else {
                 // Admin/EVM - show all quotations
-                log.info("⚠️ No dealer found - showing all quotations (EVM/Admin)");
+                log.info(" No dealer found - showing all quotations (EVM/Admin)");
                 quotations = dao.getAllQuotations();
                 model.addAttribute("dealerFiltered", false);
                 log.info("Loaded all quotations size={}", quotations.size());
@@ -395,7 +395,7 @@ public class QuotationController {
         }
     }
 
-    // 🔥 CORE FLOW STEP 4: View quotation details
+    //  CORE FLOW STEP 4: View quotation details
     @GetMapping("/detail/{id}")
     public String viewQuotationDetail(@PathVariable("id") int id, @RequestParam(value="discountId", required=false) Integer discountId, Model model) {
     log.debug("Viewing quotation detail id={}", id);
@@ -500,7 +500,7 @@ public class QuotationController {
         }
     }
 
-    // 🔥 CORE FLOW STEP 5: Approve quotation
+    //  CORE FLOW STEP 5: Approve quotation
     @PostMapping("/approve/{id}")
     public String approveQuotation(@PathVariable("id") int id, Model model) {
     log.debug("Approving quotation id={}", id);
@@ -531,7 +531,7 @@ public class QuotationController {
         return "redirect:/quotation/list";
     }
 
-    // 🔥 CORE FLOW STEP 6: Reject quotation
+    //  CORE FLOW STEP 6: Reject quotation
     @PostMapping("/reject/{id}")
     public String rejectQuotation(@PathVariable("id") int id, Model model) {
     log.debug("Rejecting quotation id={}", id);
@@ -553,7 +553,7 @@ public class QuotationController {
         return "redirect:/quotation/list";
     }
 
-    // 🔥 CORE FLOW: Quotation preview with PDF export and Create Order buttons
+    // CORE FLOW: Quotation preview with PDF export and Create Order buttons
     @GetMapping("/preview/{id}")
     public String previewQuotation(@PathVariable("id") int id, Model model) {
     log.debug("Preview quotation id={}", id);
@@ -597,7 +597,7 @@ public class QuotationController {
         return "evmPage/quotation-create";
     }
 
-    // ✅ Add QuotationDetail to existing quotation
+    //  Add QuotationDetail to existing quotation
     @PostMapping("/detail/add")
     public String addQuotationDetail(
             @RequestParam("quotationID") int quotationID,
@@ -662,7 +662,7 @@ public class QuotationController {
         return "redirect:/quotation/detail/" + quotationID;
     }
 
-    // ✅ Update QuotationDetail
+    //  Update QuotationDetail
     @PostMapping("/detail/update")
     public String updateQuotationDetail(
             @RequestParam("quotationDetailID") int quotationDetailID,
@@ -711,7 +711,7 @@ public class QuotationController {
         return "redirect:/quotation/list";
     }
 
-    // ✅ Delete QuotationDetail
+    //  Delete QuotationDetail
     @PostMapping("/detail/delete")
     public String deleteQuotationDetail(
             @RequestParam("quotationDetailID") int quotationDetailID,
@@ -751,7 +751,7 @@ public class QuotationController {
         return "redirect:/quotation/detail/" + quotationID;
     }
 
-    // 🔥 CORE FLOW STEP 7: Add vehicle to existing quotation (AJAX)
+    //  CORE FLOW STEP 7: Add vehicle to existing quotation (AJAX)
     @PostMapping("/addVehicle")
     public String addVehicleToQuotation(
             @RequestParam int vehicleId,
@@ -882,7 +882,7 @@ public class QuotationController {
         return "redirect:/quotation/detail/" + quotationID;
     }
 
-    // ✅ Update discount percent for a quotation
+    //  Update discount percent for a quotation
     @PostMapping("/discount/update")
     public String updateQuotationDiscount(@RequestParam int quotationID,
                                           @RequestParam double discountPercent,
@@ -915,14 +915,14 @@ public class QuotationController {
     }
 
     private DTOAccount resolveSessionAccount(HttpSession session) {
-        // ✅ FIX: Use correct session attribute name 'loggedInAccount' (not 'user')
+        //  FIX: Use correct session attribute name 'loggedInAccount' (not 'user')
         DTOAccount acc = (DTOAccount) session.getAttribute("loggedInAccount");
         if (acc == null) {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName())) {
                 DTOAccount dbAcc = daoAccount.findAccountByEmail(auth.getName());
                 if (dbAcc != null) {
-                    session.setAttribute("loggedInAccount", dbAcc); // ✅ Fixed attribute name
+                    session.setAttribute("loggedInAccount", dbAcc); //  Fixed attribute name
                     acc = dbAcc;
                     log.debug("Hydrated session user from auth principal={} accountId={}", auth.getName(), dbAcc.getAccountId());
                 }
@@ -953,7 +953,7 @@ public class QuotationController {
         return "dealerPage/quotationLineDetail";
     }
 
-    // 🔥 NEW: Multi-select vehicle quotation creation form
+    //  NEW: Multi-select vehicle quotation creation form
     @GetMapping("/multi")
     public String showMultiQuotationForm(HttpSession session, Model model) {
         DTOAccount account = resolveSessionAccount(session);

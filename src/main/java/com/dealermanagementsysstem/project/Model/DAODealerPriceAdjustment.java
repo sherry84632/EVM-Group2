@@ -37,7 +37,7 @@ public class DAODealerPriceAdjustment {
         return false;
     }
 
-    // ✅ Lấy discount theo DealerID
+    //  Lấy discount theo DealerID
     public List<DTODealerPriceAdjustment> getDiscountsByDealer(int dealerID) {
         List<DTODealerPriceAdjustment> list = new ArrayList<>();
         String sql = "SELECT dpa.*, vm.ModelName FROM DealerPriceAdjustment dpa " +
@@ -77,7 +77,7 @@ public class DAODealerPriceAdjustment {
         return list;
     }
 
-    // ✅ Tìm discount theo tên và DealerID
+    //  Tìm discount theo tên và DealerID
     public List<DTODealerPriceAdjustment> searchByPromotionNameAndDealer(String name, int dealerID) {
         List<DTODealerPriceAdjustment> list = new ArrayList<>();
         String sql = "SELECT dpa.*, vm.ModelName FROM DealerPriceAdjustment dpa " +

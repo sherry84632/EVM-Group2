@@ -30,7 +30,7 @@ public class DAODealerLevel {
             }
 
         } catch (SQLException e) {
-            System.out.println("❌ Error fetching dealer levels: " + e.getMessage());
+            System.out.println(" Error fetching dealer levels: " + e.getMessage());
             e.printStackTrace();
         }
         return list;
@@ -59,7 +59,7 @@ public class DAODealerLevel {
             }
 
         } catch (SQLException e) {
-            System.out.println("❌ Error fetching dealer level ID " + levelID + ": " + e.getMessage());
+            System.out.println(" Error fetching dealer level ID " + levelID + ": " + e.getMessage());
             e.printStackTrace();
         }
         return null;

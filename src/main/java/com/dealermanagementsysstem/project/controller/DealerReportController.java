@@ -28,13 +28,13 @@ public class DealerReportController {
     private Integer resolveDealerIdOrNull() {
         String email = SecurityUtil.getCurrentUserEmail();
         if (email == null) {
-            System.out.println("⚠️ DealerReportController: No user email found in session");
+            System.out.println(" DealerReportController: No user email found in session");
             return null;
         }
 
         Integer dealerId = daoAccount.getDealerIdByEmail(email);
         if (dealerId == null) {
-            System.out.println("⚠️ DealerReportController: No dealer found for email: " + email);
+            System.out.println(" DealerReportController: No dealer found for email: " + email);
             // For dealer reports, dealer ID is REQUIRED
             // If null is returned, queries will return ALL dealers' data (security issue!)
         }
@@ -67,7 +67,7 @@ public class DealerReportController {
             @RequestParam(value = "to", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
         Integer dealerId = resolveDealerIdOrNull();
         if (dealerId == null) {
-            System.out.println("❌ salesKpis: No dealer found for current user - returning empty");
+            System.out.println(" salesKpis: No dealer found for current user - returning empty");
             return new HashMap<>(); // Return empty instead of querying all dealers
         }
         return dao.getSalesKpis(dealerId, toSql(from), toSql(to));

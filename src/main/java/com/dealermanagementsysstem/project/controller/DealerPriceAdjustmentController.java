@@ -31,7 +31,7 @@ public class DealerPriceAdjustmentController {
         this.daoVehicleModel = new DAOVehicleModel();
     }
 
-    // ✅ Trang quản lý Discount (list + form + search)
+    //  Trang quản lý Discount (list + form + search)
     @GetMapping
     public String showDiscountManagementPage(
             @RequestParam(value = "keyword", required = false) String keyword,
@@ -39,7 +39,7 @@ public class DealerPriceAdjustmentController {
             Model model
     ) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String email = auth.getName(); // ✅ Lấy email đang đăng nhập
+        String email = auth.getName(); //  Lấy email đang đăng nhập
         Integer dealerID = daoAccount.getDealerIdByEmail(email);
 
         if (dealerID == null) {
@@ -71,7 +71,7 @@ public class DealerPriceAdjustmentController {
         return "dealerPage/createADealerDiscount";
     }
 
-    // ✅ Tạo discount mới (POST)
+    //  Tạo discount mới (POST)
     @PostMapping("/insert")
     public String insertDiscount(
             @RequestParam("promotionName") String promotionName,
@@ -83,7 +83,7 @@ public class DealerPriceAdjustmentController {
             Model model
     ) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String email = auth.getName(); // ✅ Lấy email đang đăng nhập
+        String email = auth.getName(); //  Lấy email đang đăng nhập
         Integer dealerID = daoAccount.getDealerIdByEmail(email);
 
         if (dealerID == null) {
@@ -118,7 +118,7 @@ public class DealerPriceAdjustmentController {
             model.addAttribute("error", "Không thể tạo discount. Vui lòng kiểm tra dữ liệu!");
         }
 
-        // ✅ Load lại danh sách discount của dealer đó
+        //  Load lại danh sách discount của dealer đó
         List<DTODealerPriceAdjustment> discounts = daoDiscount.getDiscountsByDealer(dealerID);
         List<DTOVehicleModel> vehicleModels = daoVehicleModel.getAllModels();
         model.addAttribute("discounts", discounts);
@@ -126,7 +126,7 @@ public class DealerPriceAdjustmentController {
         return "dealerPage/createADealerDiscount";
     }
 
-    // ✅ API endpoint to get vehicle details
+    //  API endpoint to get vehicle details
     @GetMapping("/vehicle-detail/{modelId}")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> getVehicleDetail(@PathVariable int modelId) {
@@ -149,7 +149,7 @@ public class DealerPriceAdjustmentController {
         return ResponseEntity.ok(response);
     }
 
-    // ✅ API endpoint to get vehicle image
+    //  API endpoint to get vehicle image
     @GetMapping("/vehicle-image/{modelId}")
     public ResponseEntity<byte[]> getVehicleImage(@PathVariable int modelId) {
         DTOVehicleModel vehicle = daoVehicleModel.getModelById(modelId);

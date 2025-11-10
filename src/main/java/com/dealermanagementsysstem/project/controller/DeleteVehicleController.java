@@ -27,12 +27,12 @@ public class DeleteVehicleController extends HttpServlet {
             boolean deleted = dao.deleteVehicle(id);
 
             if (deleted) {
-                System.out.println("✅ Vehicle deleted: ID=" + id);
+                System.out.println(" Vehicle deleted: ID=" + id);
             } else {
-                System.out.println("⚠️ Delete failed for ID: " + id);
+                System.out.println(" Delete failed for ID: " + id);
             }
         } catch (NumberFormatException e) {
-            System.out.println("⚠️ Invalid vehicle ID: " + idParam);
+            System.out.println(" Invalid vehicle ID: " + idParam);
         }
 
         // Sau khi xóa xong, quay về danh sách xe

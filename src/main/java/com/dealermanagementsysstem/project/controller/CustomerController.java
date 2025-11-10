@@ -35,13 +35,13 @@ public class CustomerController {
     @Autowired
     private DAODealer daoDealer;
 
-    // ✅ Khi người dùng vào /customer → tự động chuyển hướng tới /customer/list
+    //  Khi người dùng vào /customer → tự động chuyển hướng tới /customer/list
     @GetMapping({"/customer", "/customer/"})
     public String redirectCustomerToList() {
         return "redirect:/customer/list";
     }
 
-    // ✅ Hiển thị danh sách khách hàng (Better List) - FILTERED BY DEALER
+    //  Hiển thị danh sách khách hàng (Better List) - FILTERED BY DEALER
     @GetMapping("/customer/list")
     public String listCustomers(Model model, HttpSession session) {
         // Get current logged-in account
@@ -66,21 +66,21 @@ public class CustomerController {
         return "dealerPage/betterCustomerListFinal";
     }
 
-    // ✅ Form tạo mới Customer
+    //  Form tạo mới Customer
     @GetMapping("/customer/create")
     public String showCreateForm(Model model) {
         model.addAttribute("customer", new DTOCustomer());
         return "dealerPage/createANewCustomer";
     }
 
-    // ✅ Lưu customer mới
+    //  Lưu customer mới
     @PostMapping("/customer/save")
     public String saveCustomer(@ModelAttribute("customer") DTOCustomer c,
                                @RequestParam(value = "testDriveSchedule", required = false) String testDriveSchedule,
                                HttpSession session,
                                RedirectAttributes redirectAttributes) {
 
-        // ✅ Lấy dealerID từ account đang đăng nhập (fix bug default = 1)
+        //  Lấy dealerID từ account đang đăng nhập (fix bug default = 1)
         DTOAccount loggedInAccount = (DTOAccount) session.getAttribute("loggedInAccount");
         if (loggedInAccount != null && loggedInAccount.getDealerStaff() != null
             && loggedInAccount.getDealerStaff().getDealer() != null) {
@@ -91,45 +91,45 @@ public class CustomerController {
             dealer.setDealerID(dealerID);
             c.setDealer(dealer);
 
-            System.out.println("✅ Creating customer for DealerID=" + dealerID);
+            System.out.println(" Creating customer for DealerID=" + dealerID);
         } else {
-            System.out.println("⚠️ No dealer found in session, customer will have DealerID=NULL");
+            System.out.println("⚠ No dealer found in session, customer will have DealerID=NULL");
         }
 
-        // ✅ Lưu customer và lấy customerID
+        //  Lưu customer và lấy customerID
         int newCustomerID = daoCustomer.insertCustomer(c);
 
         if (newCustomerID > 0) {
-            // ✅ Nếu có test drive schedule, lưu vào bảng TestDrive
+            //  Nếu có test drive schedule, lưu vào bảng TestDrive
             if (testDriveSchedule != null && !testDriveSchedule.isEmpty()) {
                 try {
                     LocalDateTime testDateTime = LocalDateTime.parse(testDriveSchedule);
                     Date testDate = Date.from(testDateTime.atZone(ZoneId.systemDefault()).toInstant());
 
-                    // ✅ Tìm VehicleID từ vehicleInterest (nếu có)
+                    //  Tìm VehicleID từ vehicleInterest (nếu có)
                     Integer vehicleID = null;
                     if (c.getVehicleInterest() != null && !c.getVehicleInterest().trim().isEmpty()) {
                         vehicleID = daoVehicle.findAvailableVehicleByModelName(c.getVehicleInterest());
                         if (vehicleID == null) {
-                            System.out.println("⚠️ No available vehicle found for: " + c.getVehicleInterest());
+                            System.out.println("No available vehicle found for: " + c.getVehicleInterest());
                         }
                     }
 
-                    // ✅ Lấy dealerID từ customer (đã được set từ session ở trên)
+                    // Lấy dealerID từ customer (đã được set từ session ở trên)
                     Integer dealerID = (c.getDealer() != null && c.getDealer().getDealerID() > 0)
                                       ? c.getDealer().getDealerID()
                                       : null; // Không dùng default nữa
 
-                    // ✅ Lấy staffID từ dealer (staff đầu tiên của dealer)
+                    //  Lấy staffID từ dealer (staff đầu tiên của dealer)
                     Integer staffID = null;
                     if (dealerID != null) {
                         staffID = daoDealer.getFirstStaffIdByDealerId(dealerID);
                         if (staffID == null) {
-                            System.out.println("⚠️ No staff found for DealerID=" + dealerID + ", TestDrive will have StaffID=NULL");
+                            System.out.println(" No staff found for DealerID=" + dealerID + ", TestDrive will have StaffID=NULL");
                         }
                     }
 
-                    // ✅ Tạo test drive với đầy đủ thông tin
+                    //  Tạo test drive với đầy đủ thông tin
                     boolean testDriveSaved = daoTestDrive.insertTestDrive(
                         newCustomerID, testDate, vehicleID, dealerID, staffID
                     );
@@ -137,56 +137,56 @@ public class CustomerController {
                     if (testDriveSaved) {
                         if (vehicleID != null) {
                             redirectAttributes.addFlashAttribute("successMessage",
-                                "✅ Customer and Test Drive added successfully with vehicle!");
+                                " Customer and Test Drive added successfully with vehicle!");
                         } else {
                             redirectAttributes.addFlashAttribute("successMessage",
-                                "✅ Customer and Test Drive added successfully (vehicle will be assigned later)!");
+                                " Customer and Test Drive added successfully (vehicle will be assigned later)!");
                         }
                     } else {
                         redirectAttributes.addFlashAttribute("successMessage",
-                            "✅ Customer added but test drive failed to save!");
+                            " Customer added but test drive failed to save!");
                     }
                 } catch (Exception e) {
-                    System.out.println("⚠️ Failed to save test drive: " + e.getMessage());
+                    System.out.println(" Failed to save test drive: " + e.getMessage());
                     e.printStackTrace();
                     redirectAttributes.addFlashAttribute("successMessage",
-                        "✅ Customer added successfully but test drive failed!");
+                        " Customer added successfully but test drive failed!");
                 }
             } else {
-                redirectAttributes.addFlashAttribute("successMessage", "✅ Customer added successfully!");
+                redirectAttributes.addFlashAttribute("successMessage", " Customer added successfully!");
             }
         } else {
-            redirectAttributes.addFlashAttribute("errorMessage", "❌ Failed to add customer!");
+            redirectAttributes.addFlashAttribute("errorMessage", " Failed to add customer!");
         }
 
-        return "redirect:/customer/list"; // ✅ Quay lại danh sách
+        return "redirect:/customer/list"; //  Quay lại danh sách
     }
 
-    // ✅ Mở trang chỉnh sửa Customer
+    //  Mở trang chỉnh sửa Customer
     @GetMapping("/customer/edit/{id}")
     public String editCustomer(@PathVariable("id") int id, Model model, RedirectAttributes redirectAttributes) {
         DTOCustomer customer = daoCustomer.getCustomerById(id);
         if (customer == null) {
-            redirectAttributes.addFlashAttribute("errorMessage", "❌ Customer not found!");
+            redirectAttributes.addFlashAttribute("errorMessage", " Customer not found!");
             return "redirect:/customer/list";
         }
         model.addAttribute("customer", customer);
         return "dealerPage/customerEdit";
     }
 
-    // ✅ Cập nhật Customer
+    //  Cập nhật Customer
     @PostMapping("/customer/update")
     public String updateCustomer(@ModelAttribute("customer") DTOCustomer c,
                                  HttpSession session,
                                  RedirectAttributes redirectAttributes) {
 
-        // ✅ IMPORTANT: Preserve dealerID from existing customer (fix bug: dealerID → NULL after update)
+        //  IMPORTANT: Preserve dealerID from existing customer (fix bug: dealerID → NULL after update)
         // Form doesn't submit dealerID, so we need to get it from the existing record
         DTOCustomer existingCustomer = daoCustomer.getCustomerById(c.getCustomerID());
         if (existingCustomer != null && existingCustomer.getDealer() != null) {
             // Preserve existing dealer
             c.setDealer(existingCustomer.getDealer());
-            System.out.println("✅ Preserving DealerID=" + existingCustomer.getDealer().getDealerID() + " for customer update");
+            System.out.println(" Preserving DealerID=" + existingCustomer.getDealer().getDealerID() + " for customer update");
         } else {
             // Fallback: try to get from session (same as create)
             DTOAccount loggedInAccount = (DTOAccount) session.getAttribute("loggedInAccount");
@@ -196,40 +196,40 @@ public class CustomerController {
                 DTODealer dealer = new DTODealer();
                 dealer.setDealerID(dealerID);
                 c.setDealer(dealer);
-                System.out.println("⚠️ No existing dealer, using session DealerID=" + dealerID);
+                System.out.println(" No existing dealer, using session DealerID=" + dealerID);
             } else {
-                System.out.println("⚠️ Cannot determine dealerID for customer update");
+                System.out.println("Cannot determine dealerID for customer update");
             }
         }
 
         boolean success = daoCustomer.updateCustomer(c);
 
         if (success) {
-            redirectAttributes.addFlashAttribute("successMessage", "✅ Customer updated successfully!");
+            redirectAttributes.addFlashAttribute("successMessage", " Customer updated successfully!");
         } else {
-            redirectAttributes.addFlashAttribute("errorMessage", "❌ Failed to update customer!");
+            redirectAttributes.addFlashAttribute("errorMessage", " Failed to update customer!");
         }
 
-        return "redirect:/customer/list"; // ✅ Trở về danh sách
+        return "redirect:/customer/list"; //  Trở về danh sách
     }
 
-    // ✅ Xóa Customer (POST chuẩn RESTful)
+    //  Xóa Customer (POST chuẩn RESTful)
     @PostMapping("/customer/delete/{id}")
     public String deleteCustomer(@PathVariable("id") int id,
                                  RedirectAttributes redirectAttributes) {
         boolean success = daoCustomer.deleteCustomer(id);
 
         if (success) {
-            redirectAttributes.addFlashAttribute("successMessage", "🗑️ Customer deleted successfully!");
+            redirectAttributes.addFlashAttribute("successMessage", " Customer deleted successfully!");
         } else {
-            redirectAttributes.addFlashAttribute("errorMessage", "❌ Failed to delete customer!");
+            redirectAttributes.addFlashAttribute("errorMessage", " Failed to delete customer!");
         }
 
-        return "redirect:/customer/list"; // ✅ Quay về danh sách
+        return "redirect:/customer/list"; //  Quay về danh sách
     }
 
 
-    // ✅ Tìm kiếm Customer - FILTERED BY DEALER
+    //  Tìm kiếm Customer - FILTERED BY DEALER
     @GetMapping("/customer/search")
     public String searchCustomer(@RequestParam(value = "keyword", required = false, defaultValue = "") String keyword,
                                  Model model, HttpSession session) {
@@ -251,7 +251,7 @@ public class CustomerController {
                 customerList = daoCustomer.getAllCustomers();
                 model.addAttribute("dealerFiltered", false);
             }
-            System.out.println("ℹ️ Search with empty keyword → Returning customers (" + customerList.size() + " found)");
+            System.out.println("ℹ Search with empty keyword → Returning customers (" + customerList.size() + " found)");
         } else {
             // Search with keyword - also filter by dealer
             if (loggedInAccount != null && loggedInAccount.getDealerStaff() != null
@@ -264,27 +264,27 @@ public class CustomerController {
                 customerList = daoCustomer.searchCustomer(keyword.trim());
                 model.addAttribute("dealerFiltered", false);
             }
-            System.out.println("🔍 Search for: '" + keyword + "' → Found " + customerList.size() + " customers");
+            System.out.println(" Search for: '" + keyword + "' → Found " + customerList.size() + " customers");
         }
 
         model.addAttribute("customers", customerList);
         model.addAttribute("keyword", keyword);
         return "dealerPage/betterCustomerListFinal";
     }
-    // ✅ Hiển thị chi tiết khách hàng
+    //  Hiển thị chi tiết khách hàng
     @GetMapping("/customer/detail/{id}")
     public String showCustomerDetail(@PathVariable("id") int id, Model model, RedirectAttributes redirectAttributes) {
         DTOCustomer customer = daoCustomer.getCustomerById(id);
         if (customer == null) {
-            redirectAttributes.addFlashAttribute("errorMessage", "❌ Customer not found!");
+            redirectAttributes.addFlashAttribute("errorMessage", " Customer not found!");
             return "redirect:/customer/list";
         }
 
-        // ✅ Lấy test drive schedule (nếu có)
+        //  Lấy test drive schedule (nếu có)
         DTOTestDrive testDrive = daoTestDrive.getTestDriveByCustomerId(id);
 
         model.addAttribute("customer", customer);
-        model.addAttribute("testDrive", testDrive); // ✅ Thêm test drive vào model
+        model.addAttribute("testDrive", testDrive); //  Thêm test drive vào model
 
         return "dealerPage/customerDetail";
     }

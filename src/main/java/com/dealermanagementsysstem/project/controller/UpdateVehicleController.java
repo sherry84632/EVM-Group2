@@ -10,7 +10,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 @Controller
 public class UpdateVehicleController {
 
-    // ✅ Hiển thị form update
+    //  Hiển thị form update
     @GetMapping("/updateVehicle")
     public String showUpdateForm(@RequestParam("id") Integer id, Model model) {
         DAOVehicle daoVehicle = new DAOVehicle();
@@ -19,7 +19,7 @@ public class UpdateVehicleController {
         return "evmPage/updateVehicle"; // HTML hiển thị form
     }
 
-    // ✅ Xử lý cập nhật khi nhấn Save
+    //  Xử lý cập nhật khi nhấn Save
     @PostMapping("/updateVehicle")
     public String updateVehicle(@ModelAttribute DTOVehicle vehicle, RedirectAttributes redirectAttributes) {
         DAOVehicle daoVehicle = new DAOVehicle();

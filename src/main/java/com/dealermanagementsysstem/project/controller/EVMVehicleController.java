@@ -31,7 +31,7 @@ public class EVMVehicleController {
     }
 
     // ===========================
-    // 1️⃣ Danh sách xe MẪU (Catalog) - Ưu tiên hiển thị xe TEMPLATE
+    //  Danh sách xe MẪU (Catalog) - Ưu tiên hiển thị xe TEMPLATE
     // ===========================
     @GetMapping("/list")
     public String listVehicles(@RequestParam(value = "keyword", required = false) String keyword, Model model) {
@@ -65,7 +65,7 @@ public class EVMVehicleController {
 
                 // Nếu không có xe TEMPLATE nào, lấy tất cả xe (backward compatibility)
                 if (vehicles.isEmpty()) {
-                    log.warn("⚠️ No TEMPLATE vehicles found! Loading ALL vehicles as fallback");
+                    log.warn(" No TEMPLATE vehicles found! Loading ALL vehicles as fallback");
                     vehicles = dao.getVehicles();
                     log.info("Fallback: Loaded {} total vehicles", vehicles.size());
                 }
@@ -90,13 +90,13 @@ public class EVMVehicleController {
                 .count();
 
             if (nonTemplateCount > 0) {
-                log.warn("⚠️ Displaying {} non-TEMPLATE vehicles", nonTemplateCount);
-                model.addAttribute("warning", "⚠️ Đang hiển thị " + nonTemplateCount + " xe không phải TEMPLATE. Vui lòng cập nhật Status = TEMPLATE cho xe mẫu catalog.");
+                log.warn(" Displaying {} non-TEMPLATE vehicles", nonTemplateCount);
+                model.addAttribute("warning", " Đang hiển thị " + nonTemplateCount + " xe không phải TEMPLATE. Vui lòng cập nhật Status = TEMPLATE cho xe mẫu catalog.");
             }
 
             addActionRole(model);
         } catch (Exception e) {
-            log.error("❌ Error loading vehicle list", e);
+            log.error(" Error loading vehicle list", e);
             model.addAttribute("vehicles", new ArrayList<>());
             model.addAttribute("error", "Failed to load vehicles: " + e.getMessage());
         }
@@ -104,7 +104,7 @@ public class EVMVehicleController {
     }
 
     // ===========================
-    // 2️⃣ Chi tiết xe theo ID
+    // 2 Chi tiết xe theo ID
     // ===========================
     @GetMapping("/detail/{id}")
     public String vehicleDetail(@PathVariable Integer id, Model model) {
@@ -119,7 +119,7 @@ public class EVMVehicleController {
     }
 
     // ===========================
-    // 3️⃣ Form tạo xe mới
+    //  Form tạo xe mới
     // ===========================
     @GetMapping("/create")
     public String showCreateForm() {
@@ -127,7 +127,7 @@ public class EVMVehicleController {
     }
 
     // ===========================
-    // 📷 Trả ảnh vehicle theo ID
+    // Trả ảnh vehicle theo ID
     // ===========================
     @GetMapping("/showImage/{id}")
     @ResponseBody
@@ -154,7 +154,7 @@ public class EVMVehicleController {
     }
 
     // ===========================
-    // 📷 Trả ảnh vehicle theo filename
+    //  Trả ảnh vehicle theo filename
     // ===========================
     @GetMapping("/image/{filename}")
     @ResponseBody
@@ -172,7 +172,7 @@ public class EVMVehicleController {
     }
 
     // ===========================
-    // 📷 Trả ảnh model từ database theo ModelID
+    //  Trả ảnh model từ database theo ModelID
     // ===========================
     @GetMapping("/modelImage/{modelId}")
     @ResponseBody
@@ -183,28 +183,28 @@ public class EVMVehicleController {
             byte[] imageBytes = dao.getModelImage(modelId);
 
             if (imageBytes != null && imageBytes.length > 0) {
-                log.info("✅ Returning model image, size={} bytes", imageBytes.length);
+                log.info(" Returning model image, size={} bytes", imageBytes.length);
                 return ResponseEntity
                         .ok()
                         .contentType(MediaType.IMAGE_JPEG)
                         .body(imageBytes);
             }
 
-            log.warn("⚠️ No image found in database for ModelID={}", modelId);
+            log.warn(" No image found in database for ModelID={}", modelId);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
 
         } catch (Exception e) {
-            log.error("❌ Error fetching model image for ModelID={}: {}", modelId, e.getMessage());
+            log.error(" Error fetching model image for ModelID={}: {}", modelId, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
 
     // ===========================
-    // 4️⃣ Xử lý tạo xe mới
+    // Xử lý tạo xe mới
     // ===========================
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public String handleMaxUploadSizeExceeded(MaxUploadSizeExceededException ex, Model model) {
-        model.addAttribute("error", "📛 File size too large. Please upload an image smaller than 10MB.");
+        model.addAttribute("error", "File size too large. Please upload an image smaller than 10MB.");
         return "evmPage/createANewVehicleToList";
     }
 
@@ -230,19 +230,19 @@ public class EVMVehicleController {
 
         // ========== VALIDATION ==========
         if (manufactureYear <= 0) {
-            model.addAttribute("error", "❌ Manufacture year is required");
+            model.addAttribute("error", " Manufacture year is required");
             return "evmPage/createANewVehicleToList";
         }
         if (modelName == null || modelName.isBlank()) {
-            model.addAttribute("error", "❌ Model name is required");
+            model.addAttribute("error", " Model name is required");
             return "evmPage/createANewVehicleToList";
         }
         if (versionName == null || versionName.isBlank()) {
-            model.addAttribute("error", "❌ Version name is required");
+            model.addAttribute("error", " Version name is required");
             return "evmPage/createANewVehicleToList";
         }
         if (colorName == null || colorName.isBlank()) {
-            model.addAttribute("error", "❌ Color name is required");
+            model.addAttribute("error", " Color name is required");
             return "evmPage/createANewVehicleToList";
         }
 
@@ -253,7 +253,7 @@ public class EVMVehicleController {
                 try {
                     basePrice = new java.math.BigDecimal(basePriceStr);
                 } catch (NumberFormatException e) {
-                    model.addAttribute("error", "❌ Invalid base price format");
+                    model.addAttribute("error", " Invalid base price format");
                     return "evmPage/createANewVehicleToList";
                 }
             }
@@ -269,10 +269,10 @@ public class EVMVehicleController {
             );
 
             if (modelID == null) {
-                model.addAttribute("error", "❌ Failed to create/get model: " + modelName);
+                model.addAttribute("error", " Failed to create/get model: " + modelName);
                 return "evmPage/createANewVehicleToList";
             }
-            log.info("✅ Model ready: {} (ID={})", modelName, modelID);
+            log.info(" Model ready: {} (ID={})", modelName, modelID);
 
             // ========== STEP 2: GET OR CREATE VERSION ==========
             Integer versionID = dao.getOrCreateVersion(
@@ -283,19 +283,19 @@ public class EVMVehicleController {
             );
 
             if (versionID == null) {
-                model.addAttribute("error", "❌ Failed to create/get version: " + versionName);
+                model.addAttribute("error", " Failed to create/get version: " + versionName);
                 return "evmPage/createANewVehicleToList";
             }
-            log.info("✅ Version ready: {} (ID={})", versionName, versionID);
+            log.info(" Version ready: {} (ID={})", versionName, versionID);
 
             // ========== STEP 3: GET OR CREATE COLOR ==========
             Integer colorID = dao.getOrCreateColor(colorName);
 
             if (colorID == null) {
-                model.addAttribute("error", "❌ Failed to create/get color: " + colorName);
+                model.addAttribute("error", " Failed to create/get color: " + colorName);
                 return "evmPage/createANewVehicleToList";
             }
-            log.info("✅ Color ready: {} (ID={})", colorName, colorID);
+            log.info(" Color ready: {} (ID={})", colorName, colorID);
 
             // ========== STEP 4: BUILD VEHICLE OBJECT ==========
             DTOVehicle vehicle = new DTOVehicle();
@@ -322,10 +322,10 @@ public class EVMVehicleController {
             dao.insertVehicle(vehicle);
 
             if (vehicle.getVehicleID() == null || vehicle.getVehicleID() <= 0) {
-                model.addAttribute("error", "❌ Failed to insert vehicle into database");
+                model.addAttribute("error", " Failed to insert vehicle into database");
                 return "evmPage/createANewVehicleToList";
             }
-            log.info("✅ Vehicle inserted with ID={}", vehicle.getVehicleID());
+            log.info(" Vehicle inserted with ID={}", vehicle.getVehicleID());
 
             // ========== STEP 6: UPLOAD THUMBNAIL & SAVE TO DATABASE ==========
             if (thumbnail != null && !thumbnail.isEmpty()) {
@@ -345,27 +345,27 @@ public class EVMVehicleController {
                         uploadPath.resolve(fileName),
                         StandardCopyOption.REPLACE_EXISTING
                     );
-                    log.info("✅ Thumbnail uploaded to disk: {}", fileName);
+                    log.info(" Thumbnail uploaded to disk: {}", fileName);
 
                     // 2. Save image to database (VehicleModel.ModelImage)
                     try {
                         byte[] imageBytes = thumbnail.getBytes();
                         boolean imageSaved = dao.updateModelImage(modelID, imageBytes);
                         if (imageSaved) {
-                            log.info("✅ Model image saved to database for ModelID={}", modelID);
+                            log.info(" Model image saved to database for ModelID={}", modelID);
                         } else {
-                            log.warn("⚠️ Failed to save model image to database for ModelID={}", modelID);
+                            log.warn(" Failed to save model image to database for ModelID={}", modelID);
                         }
                     } catch (IOException e) {
-                        log.error("⚠️ Error reading image bytes: {}", e.getMessage());
+                        log.error(" Error reading image bytes: {}", e.getMessage());
                     }
 
                 } catch (IOException e) {
-                    log.error("⚠️ Error uploading thumbnail: {}", e.getMessage());
+                    log.error(" Error uploading thumbnail: {}", e.getMessage());
                     // Don't fail the whole operation, just log the error
                 }
             } else {
-                log.info("ℹ️ No thumbnail uploaded for vehicle ID={}", vehicle.getVehicleID());
+                log.info(" No thumbnail uploaded for vehicle ID={}", vehicle.getVehicleID());
             }
 
             // ========== SUCCESS ==========
@@ -375,21 +375,21 @@ public class EVMVehicleController {
             // Verify vehicle was saved with correct status
             DTOVehicle savedVehicle = dao.getVehicleById(vehicle.getVehicleID());
             if (savedVehicle != null) {
-                log.info("✅ Verified in DB: VehicleID={}, Status={}", savedVehicle.getVehicleID(), savedVehicle.getStatus());
+                log.info(" Verified in DB: VehicleID={}, Status={}", savedVehicle.getVehicleID(), savedVehicle.getStatus());
             } else {
-                log.warn("⚠️ Could not verify vehicle in DB after insert");
+                log.warn(" Could not verify vehicle in DB after insert");
             }
 
-            model.addAttribute("message", "✅ Vehicle created successfully! ID: " + vehicle.getVehicleID() + " (Status: " + vehicle.getStatus() + ")");
+            model.addAttribute("message", " Vehicle created successfully! ID: " + vehicle.getVehicleID() + " (Status: " + vehicle.getStatus() + ")");
             return "redirect:/evm/vehicle/list";
 
         } catch (IllegalArgumentException e) {
             log.error("Invalid status value: {}", status, e);
-            model.addAttribute("error", "❌ Invalid status: " + status);
+            model.addAttribute("error", " Invalid status: " + status);
             return "evmPage/createANewVehicleToList";
         } catch (Exception e) {
-            log.error("❌ Unexpected error creating vehicle", e);
-            model.addAttribute("error", "❌ Unexpected error: " + e.getMessage());
+            log.error(" Unexpected error creating vehicle", e);
+            model.addAttribute("error", " Unexpected error: " + e.getMessage());
             return "evmPage/createANewVehicleToList";
         }
     }
@@ -409,7 +409,7 @@ public class EVMVehicleController {
     }
 
     // ===========================
-    // 6️⃣ Xử lý cập nhật xe
+    // 6 Xử lý cập nhật xe
     // ===========================
     @PostMapping("/edit/{id}")
     public String updateVehicle(
@@ -436,7 +436,7 @@ public class EVMVehicleController {
             // Get existing vehicle
             DTOVehicle existing = dao.getVehicleById(id);
             if (existing == null) {
-                model.addAttribute("error", "❌ Vehicle not found.");
+                model.addAttribute("error", " Vehicle not found.");
                 return "evmPage/editVehicle";
             }
 
@@ -446,7 +446,7 @@ public class EVMVehicleController {
                 try {
                     basePrice = new java.math.BigDecimal(basePriceStr);
                 } catch (NumberFormatException e) {
-                    model.addAttribute("error", "❌ Invalid base price format");
+                    model.addAttribute("error", " Invalid base price format");
                     model.addAttribute("vehicle", existing);
                     return "evmPage/editVehicle";
                 }
@@ -574,16 +574,16 @@ public class EVMVehicleController {
                     }
                     String fileName = System.currentTimeMillis() + "_" + id + "_" + thumbnail.getOriginalFilename();
                     Files.copy(thumbnail.getInputStream(), uploadPath.resolve(fileName), StandardCopyOption.REPLACE_EXISTING);
-                    log.info("✅ Thumbnail updated: {}", fileName);
+                    log.info(" Thumbnail updated: {}", fileName);
                 } catch (IOException e) {
-                    log.error("⚠️ Error uploading thumbnail: {}", e.getMessage());
+                    log.error("️ Error uploading thumbnail: {}", e.getMessage());
                 }
             }
 
             // Save to database - Vehicle table
             boolean updated = dao.updateVehicle(existing);
             if (!updated) {
-                model.addAttribute("error", "❌ Failed to update vehicle. Please try again.");
+                model.addAttribute("error", " Failed to update vehicle. Please try again.");
                 model.addAttribute("vehicle", existing);
                 return "evmPage/editVehicle";
             }
@@ -599,9 +599,9 @@ public class EVMVehicleController {
                     finalDescription
                 );
                 if (modelUpdated) {
-                    log.info("✅ VehicleModel updated: ID={}, BasePrice={}", modelID, basePrice);
+                    log.info(" VehicleModel updated: ID={}, BasePrice={}", modelID, basePrice);
                 } else {
-                    log.warn("⚠️ VehicleModel update failed for ID={}", modelID);
+                    log.warn(" VehicleModel update failed for ID={}", modelID);
                 }
             }
 
@@ -613,25 +613,25 @@ public class EVMVehicleController {
                     finalTransmission
                 );
                 if (versionUpdated) {
-                    log.info("✅ VehicleVersion updated: ID={}, Engine={}, Transmission={}", versionID, finalEngine, finalTransmission);
+                    log.info(" VehicleVersion updated: ID={}, Engine={}, Transmission={}", versionID, finalEngine, finalTransmission);
                 } else {
-                    log.warn("⚠️ VehicleVersion update failed for ID={}", versionID);
+                    log.warn(" VehicleVersion update failed for ID={}", versionID);
                 }
             }
 
-            log.info("✅ Vehicle updated successfully! ID={}", id);
-            model.addAttribute("message", "✅ Vehicle updated successfully!");
+            log.info(" Vehicle updated successfully! ID={}", id);
+            model.addAttribute("message", " Vehicle updated successfully!");
             return "redirect:/evm/vehicle/detail/" + id;
 
         } catch (IllegalArgumentException e) {
             log.error("Invalid status value: {}", status, e);
-            model.addAttribute("error", "❌ Invalid status: " + status);
+            model.addAttribute("error", " Invalid status: " + status);
             DTOVehicle existing = dao.getVehicleById(id);
             model.addAttribute("vehicle", existing);
             return "evmPage/editVehicle";
         } catch (Exception e) {
-            log.error("❌ Error updating vehicle ID={}", id, e);
-            model.addAttribute("error", "❌ Error: " + e.getMessage());
+            log.error(" Error updating vehicle ID={}", id, e);
+            model.addAttribute("error", " Error: " + e.getMessage());
             DTOVehicle existing = dao.getVehicleById(id);
             model.addAttribute("vehicle", existing);
             return "evmPage/editVehicle";
@@ -639,7 +639,7 @@ public class EVMVehicleController {
     }
 
     // ===========================
-    // 7️⃣ Xử lý xóa xe
+    // 7 Xử lý xóa xe
     // ===========================
     @PostMapping("/delete/{id}")
     public String deleteVehicle(@PathVariable Integer id, Model model) {
@@ -657,7 +657,7 @@ public class EVMVehicleController {
             if (!deleted) {
                 model.addAttribute("error", "Failed to delete vehicle. Please try again.");
             } else {
-                model.addAttribute("message", "✅ Vehicle deleted successfully!");
+                model.addAttribute("message", " Vehicle deleted successfully!");
             }
         } catch (Exception e) {
             model.addAttribute("error", "Error deleting vehicle: " + e.getMessage());

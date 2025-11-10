@@ -16,7 +16,7 @@ public class DAODealerStaff {
     public int insertDealerStaff(DTODealerStaff staff) {
         // Validate email is not empty
         if (staff.getEmail() == null || staff.getEmail().trim().isEmpty()) {
-            System.out.println("❌ DealerStaff email cannot be empty!");
+            System.out.println(" DealerStaff email cannot be empty!");
             throw new IllegalArgumentException("DealerStaff email cannot be empty");
         }
 
@@ -53,13 +53,13 @@ public class DAODealerStaff {
                 try (ResultSet generatedKeys = ps.getGeneratedKeys()) {
                     if (generatedKeys.next()) {
                         int newStaffId = generatedKeys.getInt(1);
-                        System.out.println("✅ DealerStaff created successfully: " + staff.getFullName() + " (ID: " + newStaffId + ")");
+                        System.out.println(" DealerStaff created successfully: " + staff.getFullName() + " (ID: " + newStaffId + ")");
                         return newStaffId;
                     }
                 }
             }
         } catch (SQLException e) {
-            System.out.println("❌ Failed to insert DealerStaff!");
+            System.out.println(" Failed to insert DealerStaff!");
             e.printStackTrace();
         }
         return -1;
@@ -106,7 +106,7 @@ public class DAODealerStaff {
                 }
             }
         } catch (SQLException e) {
-            System.out.println("❌ Failed to get DealerStaff by AccountID!");
+            System.out.println(" Failed to get DealerStaff by AccountID!");
             e.printStackTrace();
         }
         return null;
@@ -142,11 +142,11 @@ public class DAODealerStaff {
             int rows = ps.executeUpdate();
 
             if (rows > 0) {
-                System.out.println("✅ DealerStaff updated successfully: " + staff.getFullName());
+                System.out.println(" DealerStaff updated successfully: " + staff.getFullName());
                 return true;
             }
         } catch (SQLException e) {
-            System.out.println("❌ Failed to update DealerStaff!");
+            System.out.println(" Failed to update DealerStaff!");
             e.printStackTrace();
         }
         return false;
@@ -165,14 +165,14 @@ public class DAODealerStaff {
             int rows = ps.executeUpdate();
 
             if (rows > 0) {
-                System.out.println("🗑️ DealerStaff deleted successfully (ID: " + staffId + ")");
+                System.out.println(" DealerStaff deleted successfully (ID: " + staffId + ")");
                 return true;
             } else {
-                System.out.println("⚠️ DealerStaff not found (ID: " + staffId + ")");
+                System.out.println(" DealerStaff not found (ID: " + staffId + ")");
                 return false;
             }
         } catch (SQLException e) {
-            System.out.println("❌ Failed to delete DealerStaff!");
+            System.out.println(" Failed to delete DealerStaff!");
             e.printStackTrace();
             return false;
         }
@@ -191,11 +191,11 @@ public class DAODealerStaff {
             int rows = ps.executeUpdate();
 
             if (rows > 0) {
-                System.out.println("🗑️ DealerStaff deleted successfully for Account ID: " + accountId);
+                System.out.println(" DealerStaff deleted successfully for Account ID: " + accountId);
                 return true;
             }
         } catch (SQLException e) {
-            System.out.println("❌ Failed to delete DealerStaff by AccountID!");
+            System.out.println(" Failed to delete DealerStaff by AccountID!");
             e.printStackTrace();
         }
         return false;
@@ -240,7 +240,7 @@ public class DAODealerStaff {
                 list.add(staff);
             }
         } catch (SQLException e) {
-            System.out.println("❌ Failed to get all DealerStaff!");
+            System.out.println(" Failed to get all DealerStaff!");
             e.printStackTrace();
         }
         return list;
@@ -288,7 +288,7 @@ public class DAODealerStaff {
                 }
             }
         } catch (SQLException e) {
-            System.out.println("❌ Failed to get staff for dealer ID: " + dealerId);
+            System.out.println(" Failed to get staff for dealer ID: " + dealerId);
             e.printStackTrace();
         }
         return list;

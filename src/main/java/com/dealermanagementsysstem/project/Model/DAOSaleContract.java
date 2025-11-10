@@ -9,7 +9,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class DAOSaleContract {
 
-    // ✅ Lấy danh sách SaleContract
+    //  Lấy danh sách SaleContract
     public List<DTOSaleContract> getAllSaleContracts() {
         List<DTOSaleContract> list = new ArrayList<>();
         String sql = """
@@ -44,7 +44,7 @@ public class DAOSaleContract {
         return list;
     }
 
-    // ✅ Lấy SaleContract theo ID
+    //  Lấy SaleContract theo ID
     public DTOSaleContract getSaleContractById(int contractID) {
         String sql = """
             SELECT sc.ContractID, sc.SaleOrderID, sc.ContractDate, sc.Status, sc.TotalAmount
@@ -80,7 +80,7 @@ public class DAOSaleContract {
         return null;
     }
 
-    // ✅ Tạo SaleContract mới
+    //  Tạo SaleContract mới
     public boolean createSaleContract(DTOSaleContract contract) {
         String sql = "INSERT INTO SaleContract (SaleOrderID, ContractDate, Status, TotalAmount) VALUES (?, ?, ?, ?)";
 
@@ -101,7 +101,7 @@ public class DAOSaleContract {
         return false;
     }
 
-    // ✅ Cập nhật trạng thái SaleContract
+    //  Cập nhật trạng thái SaleContract
     public boolean updateSaleContractStatus(int contractID, SaleContractStatus status) {
         String sql = "UPDATE SaleContract SET Status = ? WHERE ContractID = ?";
 
@@ -120,7 +120,7 @@ public class DAOSaleContract {
         return false;
     }
 
-    // ✅ Lấy SaleContract theo SaleOrderID
+    //  Lấy SaleContract theo SaleOrderID
     public DTOSaleContract getSaleContractBySaleOrderId(int saleOrderID) {
         String sql = """
             SELECT sc.ContractID, sc.SaleOrderID, sc.ContractDate, sc.Status, sc.TotalAmount

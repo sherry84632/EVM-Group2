@@ -44,7 +44,7 @@ public class DealerController {
         try {
             DTODealer dealer = daoDealer.getDealerById(id);
             if (dealer == null) {
-                redirectAttributes.addFlashAttribute("message", "❌ Dealer not found!");
+                redirectAttributes.addFlashAttribute("message", " Dealer not found!");
                 return "redirect:/dealer/management";
             }
 
@@ -57,7 +57,7 @@ public class DealerController {
             return "evmPage/dealerDetail";
         } catch (Exception e) {
             e.printStackTrace();
-            redirectAttributes.addFlashAttribute("message", "❌ Error loading dealer: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("message", " Error loading dealer: " + e.getMessage());
             return "redirect:/dealer/management";
         }
     }
@@ -83,7 +83,7 @@ public class DealerController {
     public String createDealer(@ModelAttribute DTODealer d, RedirectAttributes redirectAttributes) throws SQLException {
         d.setDealerID(0); // 🔹 thêm dòng này để tránh lỗi binding int rỗng
         daoDealer.insertDealer(d);
-        redirectAttributes.addFlashAttribute("message", "✅ Dealer created successfully!");
+        redirectAttributes.addFlashAttribute("message", " Dealer created successfully!");
         return "redirect:/dealer/management";
     }
 
@@ -96,14 +96,14 @@ public class DealerController {
         return "redirect:/dealer/management";
     }
 
-    // 🔴 DELETE - with error handling for foreign key constraints
+    //  DELETE - with error handling for foreign key constraints
     @PostMapping("/{id}/delete")
     public String deleteDealer(@PathVariable int id, RedirectAttributes redirectAttributes) {
         try {
             // Check if dealer has any customers
             // Note: This check happens at database level via foreign key
             daoDealer.deleteDealer(id);
-            redirectAttributes.addFlashAttribute("message", "✅ Dealer deleted successfully!");
+            redirectAttributes.addFlashAttribute("message", " Dealer deleted successfully!");
             redirectAttributes.addFlashAttribute("messageType", "success");
         } catch (Exception e) {
             // Handle foreign key constraint violation
@@ -113,18 +113,18 @@ public class DealerController {
                 e.getMessage().contains("FKjxm2geivgydugseqtjf842mg"))) {
 
                 redirectAttributes.addFlashAttribute("message",
-                    "❌ Cannot delete dealer! This dealer still has customers or orders associated. " +
+                    " Cannot delete dealer! This dealer still has customers or orders associated. " +
                     "Please reassign or delete related data first.");
                 redirectAttributes.addFlashAttribute("messageType", "error");
 
-                System.out.println("⚠️ Cannot delete dealer ID " + id + ": Has related customers/orders");
+                System.out.println(" Cannot delete dealer ID " + id + ": Has related customers/orders");
             } else {
                 // Other database errors
                 redirectAttributes.addFlashAttribute("message",
-                    "❌ Error deleting dealer: " + e.getMessage());
+                    " Error deleting dealer: " + e.getMessage());
                 redirectAttributes.addFlashAttribute("messageType", "error");
 
-                System.out.println("❌ Error deleting dealer ID " + id + ": " + e.getMessage());
+                System.out.println(" Error deleting dealer ID " + id + ": " + e.getMessage());
                 e.printStackTrace();
             }
         }
@@ -157,7 +157,7 @@ public class DealerController {
             int accountId = daoAccount.insertAccount(account);
 
             if (accountId <= 0) {
-                redirectAttributes.addFlashAttribute("message", "❌ Failed to create account!");
+                redirectAttributes.addFlashAttribute("message", " Failed to create account!");
                 return "redirect:/dealer/" + dealerId + "/detail";
             }
 
@@ -183,15 +183,15 @@ public class DealerController {
             if (staffId <= 0) {
                 // Rollback
                 daoAccount.deleteAccount(accountId);
-                redirectAttributes.addFlashAttribute("message", "❌ Failed to create staff!");
+                redirectAttributes.addFlashAttribute("message", " Failed to create staff!");
                 return "redirect:/dealer/" + dealerId + "/detail";
             }
 
-            redirectAttributes.addFlashAttribute("message", "✅ Staff account created successfully!");
+            redirectAttributes.addFlashAttribute("message", " Staff account created successfully!");
 
         } catch (Exception e) {
             e.printStackTrace();
-            redirectAttributes.addFlashAttribute("message", "❌ Error: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("message", " Error: " + e.getMessage());
         }
 
         return "redirect:/dealer/" + dealerId + "/detail";

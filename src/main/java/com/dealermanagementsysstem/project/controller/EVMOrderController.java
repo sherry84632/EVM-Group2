@@ -120,7 +120,7 @@ public class EVMOrderController {
                                @RequestParam("actionType") String actionType,
                                RedirectAttributes redirectAttributes) {
 
-        System.out.println("🔍 Processing order ID: " + id + ", Action: " + actionType);
+        System.out.println(" Processing order ID: " + id + ", Action: " + actionType);
 
         try {
             // Validate action type
@@ -130,7 +130,7 @@ public class EVMOrderController {
             } else if (actionType.equalsIgnoreCase("Reject") || actionType.equalsIgnoreCase("REJECTED") || actionType.equalsIgnoreCase("Cancel")) {
                 newStatus = PurchaseOrderStatus.CANCELLED;
             } else {
-                System.out.println("❌ Invalid action type: " + actionType);
+                System.out.println(" Invalid action type: " + actionType);
                 redirectAttributes.addFlashAttribute("message", "Invalid action type!");
                 redirectAttributes.addFlashAttribute("statusType", "error");
                 return "redirect:/evm/orders/list";
@@ -139,7 +139,7 @@ public class EVMOrderController {
             // Fetch order
             DTOPurchaseOrder order = purchaseOrderDAO.getPurchaseOrderById(id);
             if (order == null) {
-                System.out.println("❌ Order not found with ID: " + id);
+                System.out.println(" Order not found with ID: " + id);
                 redirectAttributes.addFlashAttribute("message", "Order not found!");
                 redirectAttributes.addFlashAttribute("statusType", "error");
                 return "redirect:/evm/orders/list";
@@ -147,41 +147,41 @@ public class EVMOrderController {
 
             // Check if order can be processed (not already approved/cancelled)
             if (order.getStatus() == PurchaseOrderStatus.APPROVED) {
-                System.out.println("⚠️ Order already approved: " + id);
+                System.out.println(" Order already approved: " + id);
                 redirectAttributes.addFlashAttribute("message", "Order is already approved!");
                 redirectAttributes.addFlashAttribute("statusType", "warning");
                 return "redirect:/evm/orders/list";
             }
 
             if (order.getStatus() == PurchaseOrderStatus.CANCELLED) {
-                System.out.println("⚠️ Order already cancelled: " + id);
+                System.out.println(" Order already cancelled: " + id);
                 redirectAttributes.addFlashAttribute("message", "Order is already cancelled!");
                 redirectAttributes.addFlashAttribute("statusType", "warning");
                 return "redirect:/evm/orders/list";
             }
 
-            System.out.println("📦 Order found - DealerID: " + order.getDealer().getDealerID() + ", Current Status: " + order.getStatus());
+            System.out.println(" Order found - DealerID: " + order.getDealer().getDealerID() + ", Current Status: " + order.getStatus());
 
 
             // Update status
             boolean updated = purchaseOrderDAO.updatePurchaseOrderStatus(id, newStatus);
             if (!updated) {
-                System.out.println("❌ Failed to update order status");
+                System.out.println(" Failed to update order status");
                 redirectAttributes.addFlashAttribute("message", "Failed to update order status!");
                 redirectAttributes.addFlashAttribute("statusType", "error");
                 return "redirect:/evm/orders/list";
             }
 
-            System.out.println("✅ Updated status to: " + newStatus);
+            System.out.println(" Updated status to: " + newStatus);
 
             // Create delivery record if approved
             if (newStatus == PurchaseOrderStatus.APPROVED) {
                 try {
-                    System.out.println("📦 Order approved - creating delivery record");
+                    System.out.println(" Order approved - creating delivery record");
                     ensureDeliveryCreated(id);
-                    System.out.println("✅ Delivery record created successfully");
+                    System.out.println(" Delivery record created successfully");
                 } catch (Exception e) {
-                    System.out.println("⚠️ Warning: Failed to create delivery record - " + e.getMessage());
+                    System.out.println("Warning: Failed to create delivery record - " + e.getMessage());
                     e.printStackTrace();
                     // Don't fail the whole operation, just log warning
                 }
@@ -189,15 +189,15 @@ public class EVMOrderController {
 
             // Success message
             String msg = (newStatus == PurchaseOrderStatus.APPROVED)
-                    ? "✅ Order has been approved successfully!"
-                    : "❌ Order has been rejected!";
+                    ? " Order has been approved successfully!"
+                    : " Order has been rejected!";
             redirectAttributes.addFlashAttribute("message", msg);
             redirectAttributes.addFlashAttribute("statusType", newStatus.name());
 
             return "redirect:/evm/orders/list";
 
         } catch (Exception e) {
-            System.out.println("❌ ERROR processing order " + id + ": " + e.getMessage());
+            System.out.println(" ERROR processing order " + id + ": " + e.getMessage());
             e.printStackTrace();
             redirectAttributes.addFlashAttribute("message", "Error processing order: " + e.getMessage());
             redirectAttributes.addFlashAttribute("statusType", "error");
@@ -210,12 +210,12 @@ public class EVMOrderController {
                                        @RequestParam("newStatus") String newStatus,
                                        RedirectAttributes redirectAttributes){
 
-        // ✅ Check payment status before allowing delivery status update
+        //  Check payment status before allowing delivery status update
         boolean allPaid = daoPurchaseOrderDetail.areAllDetailsPaid(orderId);
         if (!allPaid) {
             String paymentSummary = daoPurchaseOrderDetail.getPaymentSummary(orderId);
-            System.out.println("❌ Cannot update delivery status - payment not completed: " + paymentSummary);
-            redirectAttributes.addFlashAttribute("message", "❌ Cannot update delivery status! Payment must be confirmed first. (" + paymentSummary + ")");
+            System.out.println(" Cannot update delivery status - payment not completed: " + paymentSummary);
+            redirectAttributes.addFlashAttribute("message", " Cannot update delivery status! Payment must be confirmed first. (" + paymentSummary + ")");
             redirectAttributes.addFlashAttribute("statusType", "error");
             return "redirect:/evm/orders/detail/" + orderId;
         }
@@ -226,7 +226,7 @@ public class EVMOrderController {
         }
         DeliveryStatus target;
         try { target = DeliveryStatus.valueOf(newStatus.toUpperCase()); } catch(IllegalArgumentException ex){
-            redirectAttributes.addFlashAttribute("message","❌ Invalid delivery status");
+            redirectAttributes.addFlashAttribute("message"," Invalid delivery status");
             redirectAttributes.addFlashAttribute("statusType","error");
             return "redirect:/evm/orders/detail/"+orderId;
         }
@@ -237,7 +237,7 @@ public class EVMOrderController {
             if(target==DeliveryStatus.IN_TRANSIT){ purchaseOrderDAO.updatePurchaseOrderStatus(orderId, PurchaseOrderStatus.IN_PROCESS); }
             if(target==DeliveryStatus.DELIVERED){
                 purchaseOrderDAO.updatePurchaseOrderStatus(orderId, PurchaseOrderStatus.DELIVERED);
-                // ✅ Add vehicles to dealer inventory when delivery is completed
+                // Add vehicles to dealer inventory when delivery is completed
                 try {
                     DTOPurchaseOrder po = purchaseOrderDAO.getPurchaseOrderById(orderId);
                     if (po != null && po.getOrderDetails() != null && po.getDealer() != null) {
@@ -245,7 +245,7 @@ public class EVMOrderController {
                         int totalDetails = po.getOrderDetails().size();
                         int successCount = 0;
 
-                        System.out.println("📦 Processing delivery for PO #" + orderId + " with " + totalDetails + " detail(s)");
+                        System.out.println(" Processing delivery for PO #" + orderId + " with " + totalDetails + " detail(s)");
 
                         for (DTOPurchaseOrderDetail d : po.getOrderDetails()) {
                             int dealerId = po.getDealer().getDealerID();
@@ -259,28 +259,28 @@ public class EVMOrderController {
                                 boolean added = inventoryDAO.addWhenDeliveryCompleted(orderId, dealerId, colorId, versionId, qty);
                                 if (added) {
                                     successCount++;
-                                    System.out.println("  ✅ Added " + qty + " vehicle(s) to inventory");
+                                    System.out.println("Added " + qty + " vehicle(s) to inventory");
                                 } else {
-                                    System.out.println("  ❌ Failed to add vehicles to inventory");
+                                    System.out.println("Failed to add vehicles to inventory");
                                 }
                             } else {
-                                System.out.println("  ⚠️ Skipped: Invalid ColorID/VersionID/Qty");
+                                System.out.println(" ️ Skipped: Invalid ColorID/VersionID/Qty");
                             }
                         }
 
-                        System.out.println("✅ Inventory update complete: " + successCount + "/" + totalDetails + " details processed");
+                        System.out.println(" Inventory update complete: " + successCount + "/" + totalDetails + " details processed");
                     }
                 } catch (Exception ex) {
                     // log and continue
-                    System.out.println("❌ Failed to add inventory on delivery completion: " + ex.getMessage());
+                    System.out.println(" Failed to add inventory on delivery completion: " + ex.getMessage());
                     ex.printStackTrace();
                 }
             }
             if(target==DeliveryStatus.CANCELLED){ purchaseOrderDAO.updatePurchaseOrderStatus(orderId, PurchaseOrderStatus.CANCELLED); }
-            redirectAttributes.addFlashAttribute("message","✅ Delivery status updated to "+target);
+            redirectAttributes.addFlashAttribute("message"," Delivery status updated to "+target);
             redirectAttributes.addFlashAttribute("statusType",target.name());
         } else {
-            redirectAttributes.addFlashAttribute("message","❌ Failed to update delivery status");
+            redirectAttributes.addFlashAttribute("message"," Failed to update delivery status");
             redirectAttributes.addFlashAttribute("statusType","error");
         }
         return "redirect:/evm/orders/detail/"+orderId;
@@ -302,14 +302,14 @@ public class EVMOrderController {
             }
             boolean ok = daoDelivery.updateDeliveryDateByPurchaseOrderId(orderId,date);
             if(ok){
-                redirectAttributes.addFlashAttribute("message","✅ Planned delivery date updated");
+                redirectAttributes.addFlashAttribute("message"," Planned delivery date updated");
                 redirectAttributes.addFlashAttribute("statusType","UPDATED");
             } else {
-                redirectAttributes.addFlashAttribute("message","❌ Failed to update planned delivery date");
+                redirectAttributes.addFlashAttribute("message"," Failed to update planned delivery date");
                 redirectAttributes.addFlashAttribute("statusType","error");
             }
         } catch (Exception ex){
-            redirectAttributes.addFlashAttribute("message","❌ Invalid date format");
+            redirectAttributes.addFlashAttribute("message"," Invalid date format");
             redirectAttributes.addFlashAttribute("statusType","error");
         }
         return "redirect:/evm/orders/detail/"+orderId;
@@ -326,7 +326,7 @@ public class EVMOrderController {
             // Verify order exists
             DTOPurchaseOrder order = purchaseOrderDAO.getPurchaseOrderById(orderId);
             if (order == null) {
-                redirectAttributes.addFlashAttribute("message", "❌ Order not found!");
+                redirectAttributes.addFlashAttribute("message", " Order not found!");
                 redirectAttributes.addFlashAttribute("statusType", "error");
                 return "redirect:/evm/orders/list";
             }
@@ -338,18 +338,18 @@ public class EVMOrderController {
             boolean updated = daoPurchaseOrderDetail.updatePaymentStatusByPurchaseOrderId(orderId, "PAID");
 
             if (updated) {
-                redirectAttributes.addFlashAttribute("message", "✅ Payment confirmed! All items marked as PAID.");
+                redirectAttributes.addFlashAttribute("message", " Payment confirmed! All items marked as PAID.");
                 redirectAttributes.addFlashAttribute("statusType", "PAID");
-                System.out.println("✅ Payment confirmed for order #" + orderId);
+                System.out.println(" Payment confirmed for order #" + orderId);
             } else {
-                redirectAttributes.addFlashAttribute("message", "❌ Failed to confirm payment!");
+                redirectAttributes.addFlashAttribute("message", " Failed to confirm payment!");
                 redirectAttributes.addFlashAttribute("statusType", "error");
-                System.out.println("❌ Failed to confirm payment for order #" + orderId);
+                System.out.println(" Failed to confirm payment for order #" + orderId);
             }
 
         } catch (Exception e) {
             e.printStackTrace();
-            redirectAttributes.addFlashAttribute("message", "⚠️ Error confirming payment: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("message", " Error confirming payment: " + e.getMessage());
             redirectAttributes.addFlashAttribute("statusType", "error");
         }
 
@@ -361,18 +361,18 @@ public class EVMOrderController {
     public String createContractFromOrder(@PathVariable int orderId, RedirectAttributes redirectAttributes){
         DTOPurchaseOrder order = purchaseOrderDAO.getPurchaseOrderById(orderId);
         if(order==null){
-            redirectAttributes.addFlashAttribute("message","❌ Order not found");
+            redirectAttributes.addFlashAttribute("message"," Order not found");
             redirectAttributes.addFlashAttribute("statusType","error");
             return "redirect:/evm/orders/list";
         }
         if(order.getStatus()!=PurchaseOrderStatus.APPROVED && order.getStatus()!=PurchaseOrderStatus.DELIVERED && order.getStatus()!=PurchaseOrderStatus.IN_PROCESS){
-            redirectAttributes.addFlashAttribute("message","⚠️ Order must be approved before creating contract");
+            redirectAttributes.addFlashAttribute("message"," Order must be approved before creating contract");
             redirectAttributes.addFlashAttribute("statusType","error");
             return "redirect:/evm/orders/detail/"+orderId;
         }
         // Placeholder logic: In thực tế sẽ gọi DAOContract.create(...)
         // Ở đây chỉ flash message xác nhận.
-        redirectAttributes.addFlashAttribute("message","✅ Contract created for order #"+orderId+" (placeholder) ");
+        redirectAttributes.addFlashAttribute("message"," Contract created for order #"+orderId+" (placeholder) ");
         redirectAttributes.addFlashAttribute("statusType","CONTRACT_CREATED");
         return "redirect:/evm/orders/detail/"+orderId;
     }

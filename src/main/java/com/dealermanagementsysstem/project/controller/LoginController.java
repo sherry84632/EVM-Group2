@@ -60,9 +60,9 @@ public class LoginController {
 
         // Logging đơn giản (có thể thay bằng logger)
         if (account.getDealerStaff() != null) {
-            System.out.printf("✅ [LOGIN SUCCESS] %s (StaffID=%d)%n", email, account.getDealerStaff().getStaffID());
+            System.out.printf(" [LOGIN SUCCESS] %s (StaffID=%d)%n", email, account.getDealerStaff().getStaffID());
         } else {
-            System.out.printf("✅ [LOGIN SUCCESS] %s (Role=%s)%n", email, account.getRole());
+            System.out.printf(" [LOGIN SUCCESS] %s (Role=%s)%n", email, account.getRole());
         }
 
         // Determine redirect based on role

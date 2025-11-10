@@ -25,7 +25,7 @@ public class DealerDiscountPolicyController {
     @Autowired
     private DAOAccount daoAccount;
 
-    // ✅ Show list page with search - FILTERED BY DEALER
+    //  Show list page with search - FILTERED BY DEALER
     @GetMapping
     public String showDiscountPolicyPage(
             @RequestParam(value = "keyword", required = false) String keyword,
@@ -34,14 +34,14 @@ public class DealerDiscountPolicyController {
     ) {
         List<DTODiscountPolicy> policies;
 
-        // ✅ Get dealer ID from logged-in user's email
+        //  Get dealer ID from logged-in user's email
         Integer dealerIdFilter = getDealerIdFromSession();
 
         if (dealerIdFilter != null) {
             model.addAttribute("dealerFiltered", true);
-            System.out.println("✅ Filtering discount policies for DealerID: " + dealerIdFilter);
+            System.out.println(" Filtering discount policies for DealerID: " + dealerIdFilter);
         } else {
-            System.out.println("⚠️ No dealer found for current user - showing all policies");
+            System.out.println(" No dealer found for current user - showing all policies");
         }
 
         // Get policies with optional filtering
@@ -54,7 +54,7 @@ public class DealerDiscountPolicyController {
             model.addAttribute("keyword", keyword);
         } else {
             if (dealerIdFilter != null) {
-                // ✅ Only show this dealer's policies
+                //  Only show this dealer's policies
                 policies = daoPolicy.getPoliciesByDealerId(dealerIdFilter);
             } else {
                 // For EVM/Admin - show all
@@ -68,7 +68,7 @@ public class DealerDiscountPolicyController {
                 List<DTODealer> dealers = daoDealer.getAllDealers();
                 model.addAttribute("dealers", dealers);
             } catch (Exception e) {
-                System.out.println("⚠️ Could not load dealers: " + e.getMessage());
+                System.out.println(" Could not load dealers: " + e.getMessage());
             }
         } else {
             // For dealer staff, only show their dealer
@@ -79,7 +79,7 @@ public class DealerDiscountPolicyController {
                     model.addAttribute("currentDealerId", dealerIdFilter);
                 }
             } catch (Exception e) {
-                System.out.println("⚠️ Could not load dealer: " + e.getMessage());
+                System.out.println(" Could not load dealer: " + e.getMessage());
             }
         }
 
@@ -95,18 +95,18 @@ public class DealerDiscountPolicyController {
     private Integer getDealerIdFromSession() {
         String email = SecurityUtil.getCurrentUserEmail();
         if (email == null) {
-            System.out.println("⚠️ No user email found in session");
+            System.out.println(" No user email found in session");
             return null;
         }
 
         Integer dealerId = daoAccount.getDealerIdByEmail(email);
         if (dealerId == null) {
-            System.out.println("⚠️ No dealer found for email: " + email);
+            System.out.println(" No dealer found for email: " + email);
         }
         return dealerId;
     }
 
-    // ✅ CREATE - Create new Discount Policy
+    //  CREATE - Create new Discount Policy
     @PostMapping("/create")
     public String createDiscountPolicy(
             @RequestParam("policyName") String policyName,
@@ -122,7 +122,7 @@ public class DealerDiscountPolicyController {
         try {
             DTODealer dealer = daoDealer.getDealerById(dealerId);
             if (dealer == null) {
-                redirectAttributes.addFlashAttribute("error", "❌ Dealer not found!");
+                redirectAttributes.addFlashAttribute("error", " Dealer not found!");
                 return "redirect:/discount-policy";
             }
 
@@ -140,25 +140,25 @@ public class DealerDiscountPolicyController {
             boolean success = daoPolicy.createDiscountPolicy(dto);
 
             if (success) {
-                redirectAttributes.addFlashAttribute("message", "✅ Created Discount Policy successfully!");
+                redirectAttributes.addFlashAttribute("message", " Created Discount Policy successfully!");
             } else {
-                redirectAttributes.addFlashAttribute("error", "❌ Failed to create Discount Policy!");
+                redirectAttributes.addFlashAttribute("error", " Failed to create Discount Policy!");
             }
 
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "❌ Error: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("error", " Error: " + e.getMessage());
             e.printStackTrace();
         }
 
         return "redirect:/discount-policy";
     }
 
-    // ✅ READ - Get policy detail for editing
+    //  READ - Get policy detail for editing
     @GetMapping("/detail/{id}")
     public String getPolicyDetail(@PathVariable int id, Model model) {
         DTODiscountPolicy policy = daoPolicy.getPolicyById(id);
         if (policy == null) {
-            model.addAttribute("error", "❌ Policy not found!");
+            model.addAttribute("error", " Policy not found!");
             return "redirect:/discount-policy";
         }
 
@@ -169,7 +169,7 @@ public class DealerDiscountPolicyController {
         return "evmPage/evmDiscountPolicyManagement";
     }
 
-    // ✅ UPDATE - Update existing policy
+    //  UPDATE - Update existing policy
     @PostMapping("/update/{id}")
     public String updateDiscountPolicy(
             @PathVariable int id,
@@ -186,7 +186,7 @@ public class DealerDiscountPolicyController {
         try {
             DTODiscountPolicy policy = daoPolicy.getPolicyById(id);
             if (policy == null) {
-                redirectAttributes.addFlashAttribute("error", "❌ Policy not found!");
+                redirectAttributes.addFlashAttribute("error", " Policy not found!");
                 return "redirect:/discount-policy";
             }
 
@@ -207,41 +207,41 @@ public class DealerDiscountPolicyController {
             boolean success = daoPolicy.updateDiscountPolicy(policy);
 
             if (success) {
-                redirectAttributes.addFlashAttribute("message", "✅ Updated Discount Policy successfully!");
+                redirectAttributes.addFlashAttribute("message", " Updated Discount Policy successfully!");
             } else {
-                redirectAttributes.addFlashAttribute("error", "❌ Failed to update Discount Policy!");
+                redirectAttributes.addFlashAttribute("error", " Failed to update Discount Policy!");
             }
 
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "❌ Error: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("error", " Error: " + e.getMessage());
             e.printStackTrace();
         }
 
         return "redirect:/discount-policy";
     }
 
-    // ✅ DELETE - Delete policy
+    //  DELETE - Delete policy
     @PostMapping("/delete/{id}")
     public String deleteDiscountPolicy(@PathVariable int id, RedirectAttributes redirectAttributes) {
         try {
             boolean success = daoPolicy.deleteDiscountPolicy(id);
 
             if (success) {
-                redirectAttributes.addFlashAttribute("message", "✅ Deleted Discount Policy successfully!");
+                redirectAttributes.addFlashAttribute("message", " Deleted Discount Policy successfully!");
             } else {
-                redirectAttributes.addFlashAttribute("error", "❌ Policy not found!");
+                redirectAttributes.addFlashAttribute("error", " Policy not found!");
             }
 
         } catch (RuntimeException e) {
             if (e.getMessage().contains("referenced")) {
                 redirectAttributes.addFlashAttribute("error",
-                    "❌ Cannot delete! This policy is still referenced by purchase orders.");
+                    " Cannot delete! This policy is still referenced by purchase orders.");
             } else {
-                redirectAttributes.addFlashAttribute("error", "❌ Error: " + e.getMessage());
+                redirectAttributes.addFlashAttribute("error", " Error: " + e.getMessage());
             }
             e.printStackTrace();
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "❌ Error: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("error", " Error: " + e.getMessage());
             e.printStackTrace();
         }
 

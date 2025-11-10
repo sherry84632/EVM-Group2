@@ -13,7 +13,7 @@ public class DAODealerInventory {
 
     private static final Logger log = LoggerFactory.getLogger(DAODealerInventory.class);
 
-    // ✅ Lấy danh sách xe theo DealerID
+    //  Lấy danh sách xe theo DealerID
     public List<DTODealerInventory> getVehiclesByDealerID(int dealerID) {
         List<DTODealerInventory> list = new ArrayList<>();
         String sql = """
@@ -40,7 +40,7 @@ public class DAODealerInventory {
                     dto.setReceivedDate(rs.getDate("ReceivedDate"));
                     dto.setStatus(DealerInventoryStatus.valueOf(rs.getString("Status")));
                     dto.setVin(rs.getString("VIN"));
-                    dto.setCostPrice(rs.getBigDecimal("CostPrice")); // ✅ Lấy giá cost
+                    dto.setCostPrice(rs.getBigDecimal("CostPrice")); //  Lấy giá cost
 
                     DTODealer dealer = new DTODealer();
                     dealer.setDealerID(rs.getInt("DealerID"));
@@ -82,7 +82,7 @@ public class DAODealerInventory {
         return list;
     }
 
-    // ✅ Support keyword filtering by model/version/color name
+    //  Support keyword filtering by model/version/color name
     public List<DTODealerInventory> getVehiclesByDealerIDWithKeyword(int dealerID, String keyword) {
         List<DTODealerInventory> list = new ArrayList<>();
         String sql = """
@@ -151,7 +151,7 @@ public class DAODealerInventory {
         return list;
     }
 
-    // ✅ Full filter query
+    //  Full filter query
     public List<DTODealerInventory> getVehiclesByDealerIDWithFilters(int dealerID,
                                                                      String vin,
                                                                      Integer modelId,
@@ -232,7 +232,7 @@ public class DAODealerInventory {
         return list;
     }
 
-    // ✅ Summary stats by filters
+    // Summary stats by filters
     public DTOInventorySummary getInventorySummary(int dealerID,
                                                    String vin,
                                                    Integer modelId,
@@ -288,7 +288,7 @@ public class DAODealerInventory {
         return s;
     }
 
-    // ✅ Lookup lists for cascading dropdowns
+    // Lookup lists for cascading dropdowns
     public List<DTOVehicleModel> getAllModels() {
         List<DTOVehicleModel> list = new ArrayList<>();
         String sql = "SELECT ModelID, ModelName, BasePrice FROM VehicleModel ORDER BY ModelName";
@@ -314,7 +314,7 @@ public class DAODealerInventory {
         } catch (SQLException e) { log.error("Error fetching colors model {} version {}", modelId, versionId, e);} return list;
     }
 
-    // ✅ Vehicle detail by VIN (include model/version/color, engine, received, status, price, PO id)
+    //  Vehicle detail by VIN (include model/version/color, engine, received, status, price, PO id)
     public java.util.Optional<VehicleInventoryDetail> getDetailByVin(String vin) {
         String sql = """
             SELECT TOP 1 di.DealerInventoryID, di.DealerID, di.VIN, di.ReceivedDate, di.Status AS InventoryStatus,
@@ -392,7 +392,7 @@ public class DAODealerInventory {
         public Integer getPurchaseOrderId(){return purchaseOrderId;} public void setPurchaseOrderId(Integer p){purchaseOrderId=p;}
     }
 
-    // 🔥 NEW METHOD: Lấy danh sách xe đã về kho theo PurchaseOrderID
+    //  NEW METHOD: Lấy danh sách xe đã về kho theo PurchaseOrderID
     /**
      * Get all inventory vehicles for a specific purchase order
      * @param purchaseOrderId The purchase order ID
@@ -501,7 +501,7 @@ public class DAODealerInventory {
         return list;
     }
 
-    // ✅ Chỉ thêm inventory khi đơn hàng hãng đã giao thành công
+    //  Chỉ thêm inventory khi đơn hàng hãng đã giao thành công
     public boolean addWhenDeliveryCompleted(int purchaseOrderId, int dealerID, int colorID, int versionID, int quantity) {
         String checkDelivered = "SELECT TOP 1 1 FROM Delivery WHERE PurchaseOrderID = ? AND DeliveryStatus = 'DELIVERED'";
         try (Connection conn = DBUtils.getConnection();
@@ -518,7 +518,7 @@ public class DAODealerInventory {
             return false;
         }
 
-        // ✅ Kiểm tra xem đã có xe được tạo cho PO này với ColorID và VersionID cụ thể chưa (tránh tạo trùng)
+        //  Kiểm tra xem đã có xe được tạo cho PO này với ColorID và VersionID cụ thể chưa (tránh tạo trùng)
         // QUAN TRỌNG: Check theo combination (PO + Color + Version) để hỗ trợ nhiều loại xe trong 1 đơn
         String checkExisting = """
             SELECT COUNT(*) as cnt FROM DealerInventory di
@@ -550,7 +550,7 @@ public class DAODealerInventory {
         return addVehiclesToInventoryForPO(purchaseOrderId, dealerID, colorID, versionID, quantity);
     }
 
-    // ✅ Chỉ xuất inventory khi đơn bán cho khách hàng đã hoàn tất
+    //  Chỉ xuất inventory khi đơn bán cho khách hàng đã hoàn tất
     public boolean removeWhenSaleCompleted(int saleOrderId, String vin) {
         String checkCompleted = "SELECT TOP 1 1 FROM SaleOrder WHERE SaleOrderID = ? AND Status = 'COMPLETED'";
         try (Connection conn = DBUtils.getConnection();
@@ -569,7 +569,7 @@ public class DAODealerInventory {
         return removeVehicleByVIN(vin);
     }
 
-    // ✅ Xóa xe khỏi Inventory theo VIN (khi SaleOrder được Confirmed) - DEPRECATED
+    //  Xóa xe khỏi Inventory theo VIN (khi SaleOrder được Confirmed) - DEPRECATED
     @Deprecated
     public boolean removeVehicleByVIN(String vin) {
         String sql = "DELETE FROM DealerInventory WHERE VIN = ?";
@@ -589,7 +589,7 @@ public class DAODealerInventory {
         }
     }
 
-    // ✅ Xóa xe khỏi Inventory theo VehicleID (khi SaleOrder được Confirmed)
+    //  Xóa xe khỏi Inventory theo VehicleID (khi SaleOrder được Confirmed)
     public boolean removeVehicleByID(Integer vehicleID) {
         String sql = "DELETE FROM DealerInventory WHERE VehicleID = ?";
         try (Connection conn = DBUtils.getConnection();
@@ -608,7 +608,7 @@ public class DAODealerInventory {
         }
     }
 
-    // ✅ Thêm xe vào Inventory (khi PurchaseOrder được Approved)
+    //  Thêm xe vào Inventory (khi PurchaseOrder được Approved)
     public boolean addVehiclesToInventory(int dealerID, int colorID, int versionID, int quantity) {
         log.info("Adding {} vehicles to inventory dealerID={}, colorID={}, versionID={}", quantity, dealerID, colorID, versionID);
         if (!validateColorAndVersion(colorID, versionID)) {
@@ -655,7 +655,7 @@ public class DAODealerInventory {
         }
     }
 
-    // ✅ Thêm xe vào Inventory và gắn DeliveryDetail tới PO cụ thể
+    //  Thêm xe vào Inventory và gắn DeliveryDetail tới PO cụ thể
     private boolean addVehiclesToInventoryForPO(int purchaseOrderId, int dealerID, int colorID, int versionID, int quantity) {
         log.info("Adding {} vehicles to inventory dealerID={}, colorID={}, versionID={} for PO {}", quantity, dealerID, colorID, versionID, purchaseOrderId);
         if (!validateColorAndVersion(colorID, versionID)) {
@@ -663,7 +663,7 @@ public class DAODealerInventory {
             return false;
         }
 
-        // ✅ Lấy UnitPrice (giá sau chiết khấu) từ PurchaseOrderDetail
+        //  Lấy UnitPrice (giá sau chiết khấu) từ PurchaseOrderDetail
         java.math.BigDecimal costPrice = getCostPriceFromPO(purchaseOrderId, colorID, versionID);
 
         String sqlInsertVehicle = """
@@ -704,9 +704,9 @@ public class DAODealerInventory {
                     psInventory.setInt(1, dealerID);
                     if (vehicleId != null) psInventory.setInt(2, vehicleId); else psInventory.setNull(2, Types.INTEGER);
                     psInventory.setString(3, vin);
-                    // ✅ Lưu giá cost (sau chiết khấu)
+                    //  Lưu giá cost (sau chiết khấu)
                     psInventory.setBigDecimal(4, costPrice);
-                    // ✅ Lưu PurchaseOrderID để link xe với đơn hàng
+                    //  Lưu PurchaseOrderID để link xe với đơn hàng
                     psInventory.setInt(5, purchaseOrderId);
                     psInventory.executeUpdate();
                 }
@@ -728,7 +728,7 @@ public class DAODealerInventory {
         }
     }
 
-    // ✅ Validate ColorID và VersionID tồn tại trong database
+    //  Validate ColorID và VersionID tồn tại trong database
     private boolean validateColorAndVersion(int colorID, int versionID) {
         String sqlCheckColor = "SELECT COUNT(*) FROM VehicleColor WHERE ColorID = ?";
         String sqlCheckVersion = "SELECT COUNT(*) FROM VehicleVersion WHERE VersionID = ?";
@@ -887,7 +887,7 @@ public class DAODealerInventory {
     // VIN generation moved to utils.VINUtils
 
     /**
-     * ✅ Lấy danh sách VehicleID AVAILABLE từ Inventory theo VersionID và ColorID
+     *  Lấy danh sách VehicleID AVAILABLE từ Inventory theo VersionID và ColorID
      * Dùng cho Sale Order creation - lấy xe từ kho dealer thay vì tạo mới
      * @param dealerID ID của dealer
      * @param versionID Version của xe
@@ -938,7 +938,7 @@ public class DAODealerInventory {
     }
 
     /**
-     * ✅ Reserve xe trong inventory (đánh dấu là RESERVED khi tạo Sale Order)
+     *  Reserve xe trong inventory (đánh dấu là RESERVED khi tạo Sale Order)
      * @param vehicleID ID của xe cần reserve
      * @return true nếu thành công
      */
@@ -951,10 +951,10 @@ public class DAODealerInventory {
             int rows = ps.executeUpdate();
 
             if (rows > 0) {
-                log.info("✅ Reserved vehicle in inventory VehicleID={}", vehicleID);
+                log.info(" Reserved vehicle in inventory VehicleID={}", vehicleID);
                 return true;
             } else {
-                log.warn("⚠️ Failed to reserve vehicle VehicleID={} (may not be AVAILABLE)", vehicleID);
+                log.warn(" Failed to reserve vehicle VehicleID={} (may not be AVAILABLE)", vehicleID);
                 return false;
             }
         } catch (SQLException e) {
@@ -964,7 +964,7 @@ public class DAODealerInventory {
     }
 
     /**
-     * ✅ Hoàn trả xe về inventory (đánh dấu lại AVAILABLE khi Sale Order bị CANCEL)
+     *  Hoàn trả xe về inventory (đánh dấu lại AVAILABLE khi Sale Order bị CANCEL)
      * @param vehicleID ID của xe cần hoàn trả
      * @return true nếu thành công
      */
@@ -977,10 +977,10 @@ public class DAODealerInventory {
             int rows = ps.executeUpdate();
 
             if (rows > 0) {
-                log.info("✅ Returned vehicle to inventory VehicleID={}", vehicleID);
+                log.info(" Returned vehicle to inventory VehicleID={}", vehicleID);
                 return true;
             } else {
-                log.warn("⚠️ Failed to return vehicle VehicleID={} (may not exist in inventory)", vehicleID);
+                log.warn(" Failed to return vehicle VehicleID={} (may not exist in inventory)", vehicleID);
                 return false;
             }
         } catch (SQLException e) {
@@ -990,7 +990,7 @@ public class DAODealerInventory {
     }
 
     /**
-     * ✅ Đánh dấu xe là SOLD trong inventory (khi Sale Order hoàn thành)
+     * Đánh dấu xe là SOLD trong inventory (khi Sale Order hoàn thành)
      * @param vehicleID ID của xe
      * @return true nếu thành công
      */
@@ -1003,10 +1003,10 @@ public class DAODealerInventory {
             int rows = ps.executeUpdate();
 
             if (rows > 0) {
-                log.info("✅ Marked vehicle as SOLD VehicleID={}", vehicleID);
+                log.info(" Marked vehicle as SOLD VehicleID={}", vehicleID);
                 return true;
             } else {
-                log.warn("⚠️ Failed to mark vehicle as SOLD VehicleID={}", vehicleID);
+                log.warn(" Failed to mark vehicle as SOLD VehicleID={}", vehicleID);
                 return false;
             }
         } catch (SQLException e) {
@@ -1016,7 +1016,7 @@ public class DAODealerInventory {
     }
 
     /**
-     * ✅ Lấy VIN của xe từ inventory theo VehicleID
+     *  Lấy VIN của xe từ inventory theo VehicleID
      * @param vehicleID ID của xe
      * @return VIN hoặc null nếu không tìm thấy
      */
