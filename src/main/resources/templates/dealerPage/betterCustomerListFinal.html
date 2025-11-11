@@ -12,7 +12,7 @@
           integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw=="
           crossorigin="anonymous" referrerpolicy="no-referrer"/>
     <link rel="stylesheet" href="/css/inentoryScrollBox.css">
-    
+
     <style>
         .breadcrumb {
             background: rgba(255, 255, 255, 0.9);
@@ -168,7 +168,7 @@
                        class="search-vehicle-list-input-control search-vehicle-list-input mb-1"
                        placeholder="Search by customer name"
                        th:value="${keyword}"
-                        style="margin-top: 12px;">
+                       style="margin-top: 12px;">
                 <button type="submit" class="btn btn-dark rounded-pill">Search</button>
             </form>
 
@@ -178,7 +178,6 @@
 
             <div class="scroll-box">
                 <div class="items-container">
-
                     <!-- Item -->
                     <div th:each="customer : ${customers}">
                         <div class="item-button" style="position: relative; cursor: default;">
@@ -221,7 +220,8 @@
                                 <form th:action="@{/customer/delete/{id}(id=${customer.customerID})}"
                                       method="post"
                                       style="margin: 0;"
-                                      th:onsubmit="'return confirm(\'⚠️ Are you sure you want to delete customer: ' + ${customer.fullName} + '?\\n\\nThis will also delete:\\n- All test drive records\\n- Customer history\\n\\nThis action cannot be undone!\');'">
+                                      class="customer-delete-form"
+                                      th:attr="data-customer-name=${customer.fullName}">
                                     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
                                     <button type="submit"
                                             class="btn btn-sm btn-danger"
@@ -247,14 +247,33 @@
 <script src="/scripts/navBarMenuProject.js"></script>
 
 <script>
-    // Auto-hide alerts after 5 seconds
     document.addEventListener('DOMContentLoaded', function() {
+        // Auto-hide alerts after 5 seconds
         const alerts = document.querySelectorAll('.alert');
         alerts.forEach(function(alert) {
             setTimeout(function() {
                 const bsAlert = new bootstrap.Alert(alert);
                 bsAlert.close();
             }, 5000);
+        });
+
+        document.querySelectorAll('.customer-delete-form').forEach(function(form) {
+            form.addEventListener('submit', function(event) {
+                const customerName = form.dataset.customerName || 'this customer';
+                const message = [
+                    `⚠️ Are you sure you want to delete customer: ${customerName}?`,
+                    '',
+                    'This will also delete:',
+                    '- All test drive records',
+                    '- Customer history',
+                    '',
+                    'This action cannot be undone!'
+                ].join('\n');
+
+                if (!confirm(message)) {
+                    event.preventDefault();
+                }
+            });
         });
     });
 </script>
