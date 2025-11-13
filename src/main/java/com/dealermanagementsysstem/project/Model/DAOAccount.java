@@ -9,38 +9,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class DAOAccount {
 
-    private static final String LOGIN_QUERY =
-            "SELECT AccountID, Username, Password, Role, IsActive, Email, CreatedAt, UpdatedAt " +
-                    "FROM Account WHERE Email = ? AND Password = ? AND IsActive = 1";
-
-    public DTOAccount checkLogin(String email, String password) {
-        DTOAccount account = null;
-
-        try (Connection con = DBUtils.getConnection();
-             PreparedStatement stm = con.prepareStatement(LOGIN_QUERY)) {
-
-            stm.setString(1, email);
-            stm.setString(2, password);
-
-            try (ResultSet rs = stm.executeQuery()) {
-                if (rs.next()) {
-                    account = new DTOAccount();
-                    account.setAccountId(rs.getInt("AccountID"));
-                    account.setUsername(rs.getString("Username"));
-                    account.setPassword(rs.getString("Password"));
-                    account.setRole(Role.valueOf(rs.getString("Role")));
-                    account.setActive(rs.getBoolean("IsActive"));
-                    account.setEmail(rs.getString("Email"));
-                    account.setCreatedAt(rs.getTimestamp("CreatedAt"));
-                    account.setUpdatedAt(rs.getTimestamp("UpdatedAt"));
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return account;
-    }
 
     public DTOAccount findAccountByEmail(String email) {
         DTOAccount account = null;
