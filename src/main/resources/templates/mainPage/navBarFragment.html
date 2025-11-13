@@ -40,6 +40,13 @@
                 Staff Management
             </a>
         </li>
+        <!-- System Settings - ADMIN and EVMSTAFF only -->
+        <li sec:authorize="hasAnyRole('ADMIN','EVMSTAFF')">
+            <a href="/settings" class="nav-link text-white">
+                <i class="fa-solid fa-cog"></i>
+                Settings
+            </a>
+        </li>
 <!--        <li>-->
 <!--            <a href="#" class="nav-link text-white">-->
 <!--                <i class="fa-solid fa-computer"></i>-->

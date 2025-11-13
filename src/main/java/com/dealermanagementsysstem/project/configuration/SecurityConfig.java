@@ -155,6 +155,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/evm/vehicle/create").hasAnyRole("ADMIN", "EVMSTAFF")
                 .requestMatchers("/evm/vehicle/create", "/evm/vehicle/edit/**", "/evm/vehicle/delete/**").hasAnyRole("ADMIN", "EVMSTAFF")
 
+                // System Settings (VAT configuration, etc.) - ADMIN and EVMSTAFF only
+                .requestMatchers("/settings", "/settings/**").hasAnyRole("ADMIN", "EVMSTAFF")
+
                 // Dealer staff management - DEALER manages their own staff
                 .requestMatchers("/dealer/staff/list", "/dealer/staff/create").hasAnyRole("DEALER", "DEALERSTAFF")
 
