@@ -41,6 +41,56 @@ public class CustomerController {
         return "redirect:/customer/list";
     }
 
+    //  Alternative route for betterCustomerListFinal (main customer list page)
+    @GetMapping("/betterCustomerListFinal")
+    public String betterCustomerListFinal(Model model, HttpSession session) {
+        // Get current logged-in account
+        DTOAccount loggedInAccount = (DTOAccount) session.getAttribute("loggedInAccount");
+
+        List<DTOCustomer> customerList;
+
+        // Filter by dealer if user is DEALER or DEALERSTAFF
+        if (loggedInAccount != null && loggedInAccount.getDealerStaff() != null
+            && loggedInAccount.getDealerStaff().getDealer() != null) {
+            int dealerID = loggedInAccount.getDealerStaff().getDealer().getDealerID();
+            customerList = daoCustomer.getCustomersByDealerId(dealerID);
+            model.addAttribute("dealerFiltered", true);
+            model.addAttribute("dealerID", dealerID);
+        } else {
+            // Admin/EVM - show all customers
+            customerList = daoCustomer.getAllCustomers();
+            model.addAttribute("dealerFiltered", false);
+        }
+
+        model.addAttribute("customers", customerList);
+        return "dealerPage/betterCustomerListFinal";
+    }
+
+    //  Alternative route for customerList.html (used in some navigation)
+    @GetMapping("/dealerCustomerList")
+    public String dealerCustomerList(Model model, HttpSession session) {
+        // Get current logged-in account
+        DTOAccount loggedInAccount = (DTOAccount) session.getAttribute("loggedInAccount");
+
+        List<DTOCustomer> customerList;
+
+        // Filter by dealer if user is DEALER or DEALERSTAFF
+        if (loggedInAccount != null && loggedInAccount.getDealerStaff() != null
+            && loggedInAccount.getDealerStaff().getDealer() != null) {
+            int dealerID = loggedInAccount.getDealerStaff().getDealer().getDealerID();
+            customerList = daoCustomer.getCustomersByDealerId(dealerID);
+            model.addAttribute("dealerFiltered", true);
+            model.addAttribute("dealerID", dealerID);
+        } else {
+            // Admin/EVM - show all customers
+            customerList = daoCustomer.getAllCustomers();
+            model.addAttribute("dealerFiltered", false);
+        }
+
+        model.addAttribute("customers", customerList);
+        return "dealerPage/customerList";
+    }
+
     //  Hiển thị danh sách khách hàng (Better List) - FILTERED BY DEALER
     @GetMapping("/customer/list")
     public String listCustomers(Model model, HttpSession session) {

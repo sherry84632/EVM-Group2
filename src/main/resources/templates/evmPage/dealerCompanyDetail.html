@@ -71,10 +71,10 @@
         </div>
 
         <div class="row">
-            <!-- Company Information -->
+            <!-- Dealer Information -->
             <div class="col-md-4">
                 <div class="info-card">
-                    <h5 class="mb-3"><i class="fas fa-info-circle"></i> Company Information</h5>
+                    <h5 class="mb-3"><i class="fas fa-info-circle"></i> Dealer Information</h5>
                     <p><strong>Company ID:</strong> <span th:text="${dealer.dealerID}">1</span></p>
                     <p><strong>Phone:</strong> <span th:text="${dealer.phone}">Phone</span></p>
                     <p><strong>Email:</strong> <span th:text="${dealer.email}">Email</span></p>
@@ -89,7 +89,7 @@
             <div class="col-md-8">
                 <div class="info-card">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5><i class="fas fa-users"></i> Accounts for this Company</h5>
+                        <h5><i class="fas fa-users"></i> Accounts for this Dealer</h5>
                         <button class="btn btn-create-account btn-sm"
                                 data-bs-toggle="modal"
                                 data-bs-target="#createAccountModal">
@@ -104,7 +104,6 @@
                                 <tr>
                                     <th>Staff ID</th>
                                     <th>Full Name</th>
-                                    <th>Role</th>
                                     <th>Position</th>
                                     <th>Email</th>
                                     <th>Status</th>
@@ -112,7 +111,7 @@
                             </thead>
                             <tbody>
                                 <tr th:if="${accountList == null or accountList.isEmpty()}">
-                                    <td colspan="6" class="text-center text-muted">
+                                    <td colspan="5" class="text-center text-muted">
                                         <i class="fas fa-info-circle"></i> No accounts yet. Create one to get started.
                                     </td>
                                 </tr>
@@ -121,14 +120,6 @@
                                     <td>
                                         <i class="fas fa-user"></i>
                                         <strong th:text="${staff.fullName}">Name</strong>
-                                    </td>
-                                    <td>
-                                        <span th:if="${staff.account != null and staff.account.role != null}"
-                                              class="badge"
-                                              th:classappend="${staff.account.role.name() == 'DEALER' ? 'bg-success' : 'bg-info'}"
-                                              th:text="${staff.account.role.name()}">
-                                            Role
-                                        </span>
                                     </td>
                                     <td>
                                         <span class="badge bg-secondary" th:text="${staff.position}">Position</span>
@@ -219,7 +210,7 @@
                     <div class="mb-3">
                         <label for="staffPosition" class="form-label">Position</label>
                         <input type="text" class="form-control" id="staffPosition" name="staffPosition" placeholder="Sales (default)">
-                        <small class="text-muted" id="positionHelp">Default: Sales for Staff, Owner for Dealer</small>
+                        <small class="text-muted" id="positionHelp">Default: Sales for Staff, Manager for Dealer</small>
                     </div>
 
                     <!-- Phone -->
@@ -260,9 +251,9 @@ document.addEventListener('DOMContentLoaded', function() {
     if (roleSelect && positionInput) {
         roleSelect.addEventListener('change', function() {
             if (this.value === 'DEALER') {
-                positionInput.placeholder = 'Owner (default)';
-                positionInput.value = 'Owner';
-                positionHelp.textContent = 'Default: Owner (for Dealer role)';
+                positionInput.placeholder = 'Manager (default)';
+                positionInput.value = 'Manager';
+                positionHelp.textContent = 'Default: Manager (for Dealer role)';
             } else if (this.value === 'DEALERSTAFF') {
                 positionInput.placeholder = 'Sales (default)';
                 positionInput.value = 'Sales';
@@ -270,7 +261,7 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 positionInput.placeholder = 'Position';
                 positionInput.value = '';
-                positionHelp.textContent = 'Default: Sales for Staff, Owner for Dealer';
+                positionHelp.textContent = 'Default: Sales for Staff, Manager for Dealer';
             }
 
             // Smooth scroll to staff information when role is selected

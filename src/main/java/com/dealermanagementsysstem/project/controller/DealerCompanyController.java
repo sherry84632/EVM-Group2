@@ -259,7 +259,7 @@ public class DealerCompanyController {
 
             // Position based on role
             if (accountRole == Role.DEALER) {
-                staff.setPosition(staffPosition != null && !staffPosition.trim().isEmpty() ? staffPosition.trim() : "Owner");
+                staff.setPosition(staffPosition != null && !staffPosition.trim().isEmpty() ? staffPosition.trim() : "Manager");
             } else {
                 staff.setPosition(staffPosition != null && !staffPosition.trim().isEmpty() ? staffPosition.trim() : "Sales");
             }
@@ -286,7 +286,7 @@ public class DealerCompanyController {
                 return "redirect:/dealer/company/" + dealerId + "/detail";
             }
 
-            String roleLabel = accountRole == Role.DEALER ? "Owner" : "Staff";
+            String roleLabel = accountRole == Role.DEALER ? "Manager" : "Staff";
             redirectAttributes.addFlashAttribute("successMessage", "✅ " + roleLabel + " account created successfully!");
 
         } catch (Exception e) {

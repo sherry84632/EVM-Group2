@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -91,7 +91,6 @@
                         <tr>
                             <th>Staff ID</th>
                             <th>Full Name</th>
-                            <th>Role</th>
                             <th>Position</th>
                             <th>Email</th>
                             <th>Phone</th>
@@ -102,7 +101,7 @@
                     <tbody>
                         <tr th:if="${staffList == null or staffList.isEmpty()}">
                             <td colspan="8" class="text-center text-muted">
-                                <i class="fas fa-info-circle"></i> No accounts yet. Create one to get started.
+                            <td colspan="7" class="text-center text-muted">
                             </td>
                         </tr>
                         <tr th:each="staff : ${staffList}">
@@ -110,15 +109,6 @@
                             <td>
                                 <i class="fas fa-user"></i>
                                 <strong th:text="${staff.fullName}">Staff Name</strong>
-                            </td>
-                            <td>
-                                <span th:if="${staff.account != null and staff.account.role != null}"
-                                      class="badge"
-                                      th:classappend="${staff.account.role.name() == 'DEALER' ? 'bg-success' : 'bg-info'}"
-                                      th:text="${staff.account.role.name()}">
-                                    Role
-                                </span>
-                                <span th:if="${staff.account == null or staff.account.role == null}" class="text-muted">N/A</span>
                             </td>
                             <td>
                                 <span class="badge bg-secondary" th:text="${staff.position}">Sales</span>
@@ -179,6 +169,34 @@
                 <div class="modal-body">
                     <h6 class="text-primary mb-3"><i class="fas fa-key"></i> Account Credentials</h6>
 
+                    <!-- Role Selection -->
+                    <div class="mb-3">
+                        <label for="role" class="form-label">Role <span class="text-danger">*</span></label>
+                        <select class="form-select" id="role" name="role" required>
+                            <option value="">-- Select Role --</option>
+                            <option value="DEALERSTAFF" selected>DEALERSTAFF (Employee)</option>
+                            <option value="DEALER">DEALER (Owner/Manager)</option>
+                        </select>
+                        <small class="text-muted">
+                            <strong>DEALER:</strong> Can manage staff and company<br>
+                            <strong>DEALERSTAFF:</strong> Employee with limited access
+                        </small>
+                    </div>
+
+                    <!-- Username -->
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="username" name="username" required>
+                    </div>
+
+                    <!-- Email -->
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Account Email (for login) <span class="text-danger">*</span></label>
+                        <input type="email" class="form-control" id="email" name="email" required>
+                        <small class="text-muted">This will be used for login</small>
+                    </div>
+
+                    <!-- Password -->
                     <div class="mb-3">
                         <label for="password" class="form-label">Password <span class="text-danger">*</span></label>
                         <input type="password" class="form-control" id="password" name="password" required minlength="6">
@@ -198,7 +216,7 @@
                     <div class="mb-3">
                         <label for="staffPosition" class="form-label">Position</label>
                         <input type="text" class="form-control" id="staffPosition" name="staffPosition" placeholder="Sales (default)" value="Sales">
-                        <small class="text-muted" id="positionHelp">Default: Sales for Staff, Owner for Dealer</small>
+                        <small class="text-muted" id="positionHelp">Default: Sales for Staff, Manager for Dealer</small>
                     </div>
 
                     <!-- Phone -->
@@ -207,12 +225,11 @@
                         <input type="tel" class="form-control" id="staffPhone" name="staffPhone" placeholder="Required" required>
                     </div>
 
-                    <!-- Staff Email (different from account email if needed) -->
+                    <!-- Staff Email (for contact) -->
                     <div class="mb-3">
                         <label for="staffEmail" class="form-label">Staff Email (for contact)</label>
                         <input type="email" class="form-control" id="staffEmail" name="staffEmail" placeholder="Leave blank to use account email">
                         <small class="text-muted">Can be different from login email</small>
-                        <small class="text-muted" id="positionHelp">Default: Sales for Staff, Owner for Dealer</small>
                     </div>
                 </div>
 
@@ -221,7 +238,7 @@
                         <i class="fas fa-times"></i> Cancel
                     </button>
                     <button type="submit" class="btn btn-create-staff">
-                        <i class="fas fa-save"></i> Create Staff Account
+                        <i class="fas fa-save"></i> Create Account
                     </button>
                 </div>
             </form>
@@ -234,14 +251,15 @@
 document.addEventListener('DOMContentLoaded', function() {
     const roleSelect = document.getElementById('role');
     const positionInput = document.getElementById('staffPosition');
-                        <i class="fas fa-save"></i> Create Account
+    const positionHelp = document.getElementById('positionHelp');
+    const staffFullNameInput = document.getElementById('staffFullName');
 
     if (roleSelect && positionInput) {
         roleSelect.addEventListener('change', function() {
             if (this.value === 'DEALER') {
-                positionInput.placeholder = 'Owner (default)';
-                positionInput.value = 'Owner';
-                positionHelp.textContent = 'Default: Owner (for Dealer role)';
+                positionInput.placeholder = 'Manager (default)';
+                positionInput.value = 'Manager';
+                positionHelp.textContent = 'Default: Manager (for Dealer role)';
             } else if (this.value === 'DEALERSTAFF') {
                 positionInput.placeholder = 'Sales (default)';
                 positionInput.value = 'Sales';
@@ -249,20 +267,17 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 positionInput.placeholder = 'Position';
                 positionInput.value = '';
-                positionHelp.textContent = 'Default: Sales for Staff, Owner for Dealer';
+                positionHelp.textContent = 'Default: Sales for Staff, Manager for Dealer';
             }
 
             // Smooth scroll to staff information when role is selected
-            if (this.value) {
-                const staffFullNameInput = document.getElementById('staffFullName');
-                if (staffFullNameInput) {
-                    setTimeout(() => {
-                        staffFullNameInput.scrollIntoView({
-                            behavior: 'smooth',
-                            block: 'center'
-                        });
-                    }, 100);
-                }
+            if (this.value && staffFullNameInput) {
+                setTimeout(() => {
+                    staffFullNameInput.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center'
+                    });
+                }, 100);
             }
         });
     }
