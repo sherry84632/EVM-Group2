@@ -220,9 +220,9 @@
                                     <th>Model</th>
                                     <th>Version</th>
                                     <th>Color</th>
-                                    <th>Unit Price ($)</th>
+                                    <th>Unit Price</th>
                                     <th>Quantity</th>
-                                    <th>Subtotal ($)</th>
+                                    <th>Subtotal</th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -231,12 +231,15 @@
                                     <td th:text="${detail.versionName ?: 'N/A'}"></td>
                                     <td th:text="${detail.colorName ?: 'N/A'}"></td>
                                     <td>
-                                        <input type="number" step="1" min="0" class="form-control form-control-sm" name="unitPrices" th:value="${detail.unitPrice}" th:disabled="${quotationLocked}" />
+                                        <strong>$<span th:text="${#numbers.formatDecimal(detail.unitPrice, 0, 'COMMA', 0, 'POINT')}"></span></strong>
+                                        <input type="hidden" name="unitPrices" th:value="${detail.unitPrice}" />
                                     </td>
                                     <td>
                                         <input type="number" min="1" class="form-control form-control-sm" name="quantities" th:value="${detail.quantity}" th:disabled="${quotationLocked}" />
                                     </td>
-                                    <td th:text="${#numbers.formatDecimal(detail.subtotal, 1, 0)}"></td>
+                                    <td>
+                                        <strong>$<span th:text="${#numbers.formatDecimal(detail.subtotal, 0, 'COMMA', 0, 'POINT')}"></span></strong>
+                                    </td>
                                     <input type="hidden" name="detailIds" th:value="${detail.quotationDetailID}" />
                                 </tr>
                                 </tbody>

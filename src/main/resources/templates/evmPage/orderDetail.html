@@ -149,22 +149,6 @@
             margin-top: 32px;
         }
 
-        .btn-update {
-            background: linear-gradient(135deg, #ff6b35, #f7931e);
-            border: none;
-            color: white;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-weight: 600;
-            transition: all 0.2s ease;
-        }
-
-        .btn-update:hover {
-            background: linear-gradient(135deg, #e55a2b, #e0841a);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(255, 107, 53, 0.4);
-            color: white;
-        }
 
         .btn-delete {
             background: linear-gradient(135deg, #dc3545, #c82333);
@@ -613,19 +597,10 @@
 
         <!-- Action Buttons -->
         <div class="action-buttons">
-            <button type="button" class="btn btn-update">
-                <i class="fas fa-edit me-2"></i>
-                Update Order
-            </button>
             <button type="button" class="btn btn-delete">
                 <i class="fas fa-trash me-2"></i>
                 Delete Order
             </button>
-            <!-- Nút tạo hợp đồng khi đơn đã approved/in_process/delivered -->
-            <form th:if="${order.status.name()=='APPROVED' or order.status.name()=='IN_PROCESS' or order.status.name()=='DELIVERED'}" th:action="@{'/evm/orders/contract/' + ${order.purchaseOrderId} + '/create'}" method="post">
-                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
-                <button type="submit" class="btn btn-outline-success"><i class="fas fa-file-signature me-2"></i>Create Contract</button>
-            </form>
         </div>
 
         <!-- Approve/Reject Buttons + Payment Confirmation -->
