@@ -70,7 +70,11 @@
                         </div>
                         <div class="dv-meta-row">
                             <span class="dv-label">Base Price</span>
-                            <span class="dv-value"><span class="dv-price-tag" th:text="${vehicle.basePrice}"></span></span>
+                            <span class="dv-value">
+                                <span class="dv-price-tag">
+                                    $<span th:text="${#numbers.formatDecimal(vehicle.basePrice, 0, 'COMMA', 0, 'POINT')}">0</span>
+                                </span>
+                            </span>
                         </div>
                         <div class="dv-meta-row" th:if="${vehicle.color != null}">
                             <span class="dv-label">Color</span>
