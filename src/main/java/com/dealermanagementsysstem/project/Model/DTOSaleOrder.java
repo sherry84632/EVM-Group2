@@ -201,4 +201,8 @@ public class DTOSaleOrder {
         long diffMs = planned - now;
         return (int) Math.ceil(diffMs / 86400000.0); // round up to whole day
     }
+
+    public String getFormattedTotalAmount(){
+        return utils.NumberFormatUtil.formatCurrency(totalAmount);
+    }
 }

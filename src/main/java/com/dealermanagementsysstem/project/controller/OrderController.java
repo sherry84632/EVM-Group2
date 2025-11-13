@@ -171,10 +171,6 @@ public class OrderController {
         List<DTOSaleOrderDetail> details = new ArrayList<>();
         int computedTotalQty = 0;
         java.math.BigDecimal computedTotalAmount = java.math.BigDecimal.ZERO;
-        DAOVehicle vehicleDAO = new DAOVehicle();
-        double baseDiscountPct = quotation.getDiscountPercent()!=null ? quotation.getDiscountPercent() : 0.0; // primitive
-
-        // 🔹 Track shortages để tạo 1 PO duy nhất cho tất cả xe thiếu
         List<ShortageInfo> shortages = new ArrayList<>();
 
         if (quotation.getQuotationDetails() != null && !quotation.getQuotationDetails().isEmpty()) {
@@ -183,28 +179,24 @@ public class OrderController {
                 Integer versionId = qd.getVersion()!=null? qd.getVersion().getVersionID(): null;
                 Integer colorId = qd.getColor()!=null? qd.getColor().getColorID(): null;
                 List<Integer> vehicleIds = new ArrayList<>();
-
-                //  LẤY XE TỪ INVENTORY THAY VÌ VEHICLE TABLE
                 if (versionId != null && colorId != null) {
                     vehicleIds = inventoryDAO.getAvailableVehicleIdsFromInventory(dealerID, versionId, colorId, lineQty);
-
-                    // Nếu không đủ xe trong inventory - GHI NHẬN SHORTAGE
                     if (vehicleIds.size() < lineQty) {
                         int shortage = lineQty - vehicleIds.size();
                         shortages.add(new ShortageInfo(versionId, colorId, shortage,
                                       qd.getVersion()!=null ? qd.getVersion().getVersionName() : "N/A",
                                       qd.getColor()!=null ? qd.getColor().getColorName() : "N/A"));
-                        continue; // Skip detail này, không tạo SaleOrderDetail
+                        continue;
                     }
                 }
-                // Determine unit net price (after discount). Prefer qd.getFinalNetAfterAll per line, else apply base discount.
-                java.math.BigDecimal unitGross = qd.getUnitPrice()!=null? qd.getUnitPrice(): java.math.BigDecimal.ZERO;
-                java.math.BigDecimal unitNet;
-                if (qd.getFinalNetAfterAll()!=null) {
-                    // finalNetAfterAll is total for one unit after stacking (in quotation detail we stored per item net)
-                    unitNet = qd.getFinalNetAfterAll();
-                } else {
-                    unitNet = unitGross.multiply(java.math.BigDecimal.valueOf(1 - baseDiscountPct/100.0));
+                // Use stacked discounted unit price: finalNetAfterAll already represents net per unit after all discounts.
+                java.math.BigDecimal unitNet = qd.getFinalNetAfterAll();
+                if (unitNet == null) {
+                    java.math.BigDecimal unitGross = qd.getUnitPrice()!=null? qd.getUnitPrice(): java.math.BigDecimal.ZERO;
+                    double dealerPct = qd.getAppliedDealerDiscountPercent()!=null? qd.getAppliedDealerDiscountPercent():0.0;
+                    double basePct = quotation.getDiscountPercent()!=null ? quotation.getDiscountPercent() : 0.0;
+                    java.math.BigDecimal afterDealer = unitGross.multiply(java.math.BigDecimal.valueOf(1 - dealerPct/100.0));
+                    unitNet = afterDealer.multiply(java.math.BigDecimal.valueOf(1 - basePct/100.0));
                 }
                 for (int i=0;i<lineQty;i++) {
                     DTOSaleOrderDetail sod = new DTOSaleOrderDetail();
@@ -212,9 +204,8 @@ public class OrderController {
                     DTOVehicle veh = new DTOVehicle();
                     veh.setVehicleID(vehicleIds.get(i));
                     sod.setVehicle(veh);
-                    // price stored as discounted unit price
                     sod.setPrice(unitNet);
-                    sod.setQuantity(1); // each physical vehicle line qty=1
+                    sod.setQuantity(1);
                     if (quotation.getDealer()!=null && quotation.getDealer().getPolicyID() > 0) {
                         DTODiscountPolicy policy = new DTODiscountPolicy(); policy.setPolicyID(quotation.getDealer().getPolicyID()); sod.setDiscountPolicy(policy);
                     }

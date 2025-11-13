@@ -304,7 +304,7 @@
                                                                                               th:text="${order.totalQuantity}">0</span>
                         </div>
                         <div class="info-item"><span class="info-label">Total Amount</span><span class="info-value"
-                                                                                                 th:text="${#numbers.formatCurrency(order.totalAmount)}">$0.00</span>
+                                                                                                 th:text="'$' + ${#numbers.formatDecimal(order.totalAmount, 0, 'COMMA', 0, 'POINT')}">$0</span>
                         </div>
                     </div>
                     <div class="status-actions">
@@ -425,6 +425,7 @@
                                 <th>Version</th>
                                 <th>Color</th>
                                 <th>Unit Price</th>
+                                <th>Line Total</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -435,7 +436,8 @@
                                 <td th:text="${d.vehicle?.version?.model?.modelName ?: '-'}"></td>
                                 <td th:text="${d.vehicle?.version?.versionName ?: '-'}"></td>
                                 <td th:text="${d.vehicle?.color?.colorName ?: '-'}"></td>
-                                <td th:text="${#numbers.formatCurrency(d.price)}">$0.00</td>
+                                <td th:text="${d.getFormattedUnitPrice()}"></td>
+                                <td th:text="${d.getFormattedLineTotal()}"></td>
                             </tr>
                             </tbody>
                         </table>
@@ -448,7 +450,7 @@
                                     th:text="${order.quotation.discountPercent != null ? order.quotation.discountPercent + '%' : '0%'}">0%</span>
                             </div>
                             <div class="summary-item"><span>Total Amount</span><span
-                                    th:text="${#numbers.formatCurrency(order.totalAmount)}">$0.00</span></div>
+                                    th:text="${order.getFormattedTotalAmount()}">0 ₫</span></div>
                         </div>
                     </div>
                     <div th:if="${order.detail == null or order.detail.isEmpty()}">

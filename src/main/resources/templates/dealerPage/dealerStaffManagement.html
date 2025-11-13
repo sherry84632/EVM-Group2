@@ -215,8 +215,8 @@
                     <!-- Position -->
                     <div class="mb-3">
                         <label for="staffPosition" class="form-label">Position</label>
-                        <input type="text" class="form-control" id="staffPosition" name="staffPosition" placeholder="Sales (default)" value="Sales">
-                        <small class="text-muted" id="positionHelp">Default: Sales for Staff, Manager for Dealer</small>
+                        <input type="text" class="form-control" id="staffPosition" name="staffPosition" placeholder="Auto-filled" value="Sales" readonly>
+                        <small class="text-muted" id="positionHelp">Auto-filled from selected role</small>
                     </div>
 
                     <!-- Phone -->
@@ -255,29 +255,23 @@ document.addEventListener('DOMContentLoaded', function() {
     const staffFullNameInput = document.getElementById('staffFullName');
 
     if (roleSelect && positionInput) {
+        // initialize readonly
+        positionInput.setAttribute('readonly','readonly');
         roleSelect.addEventListener('change', function() {
             if (this.value === 'DEALER') {
-                positionInput.placeholder = 'Manager (default)';
                 positionInput.value = 'Manager';
-                positionHelp.textContent = 'Default: Manager (for Dealer role)';
+                positionHelp.textContent = 'Auto: Manager for Dealer role';
             } else if (this.value === 'DEALERSTAFF') {
-                positionInput.placeholder = 'Sales (default)';
                 positionInput.value = 'Sales';
-                positionHelp.textContent = 'Default: Sales (for Staff role)';
+                positionHelp.textContent = 'Auto: Sales for DealerStaff role';
             } else {
-                positionInput.placeholder = 'Position';
                 positionInput.value = '';
-                positionHelp.textContent = 'Default: Sales for Staff, Manager for Dealer';
+                positionHelp.textContent = 'Select a role to auto-fill position';
             }
-
-            // Smooth scroll to staff information when role is selected
+            // ensure readonly remains
+            positionInput.setAttribute('readonly','readonly');
             if (this.value && staffFullNameInput) {
-                setTimeout(() => {
-                    staffFullNameInput.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'center'
-                    });
-                }, 100);
+                setTimeout(() => { staffFullNameInput.scrollIntoView({ behavior: 'smooth', block: 'center'}); }, 100);
             }
         });
     }
@@ -285,4 +279,3 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 </body>
 </html>
-

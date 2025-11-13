@@ -624,12 +624,14 @@ public class DAOQuotation {
     public List<DTOQuotationDetail> getQuotationDetails(int quotationID) {
         List<DTOQuotationDetail> details = new ArrayList<>();
         String sql = """
-                SELECT qd.QuotationDetailID, qd.QuotationID, qd.VersionID, qd.ColorID, qd.UnitPrice, qd.Quantity,
-                       vv.VersionName, vm.ModelID, vm.ModelName, vc.ColorID AS CColorID, vc.ColorName
+                SELECT qd.QuotationDetailID, qd.QuotationID, qd.VersionID, qd.ColorID, qd.UnitPrice, qd.Quantity, qd.AppliedDealerDiscountPercent,
+                       vv.VersionName, vm.ModelID, vm.ModelName, vc.ColorID AS CColorID, vc.ColorName,
+                       q.DiscountPercent AS QuotationDiscountPercent
                 FROM QuotationDetail qd
                 LEFT JOIN VehicleVersion vv ON qd.VersionID = vv.VersionID
                 LEFT JOIN VehicleModel vm ON vv.ModelID = vm.ModelID
                 LEFT JOIN VehicleColor vc ON qd.ColorID = vc.ColorID
+                LEFT JOIN Quotation q ON qd.QuotationID = q.QuotationID
                 WHERE qd.QuotationID = ?
                 """;
         try (Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -637,22 +639,80 @@ public class DAOQuotation {
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     DTOQuotationDetail d = new DTOQuotationDetail();
-                    d.setQuotationDetailID(rs.getInt("QuotationDetailID")); d.setUnitPrice(rs.getBigDecimal("UnitPrice")); d.setQuantity(rs.getInt("Quantity"));
-                    DTOQuotation qRef = new DTOQuotation(); qRef.setQuotationID(rs.getInt("QuotationID")); d.setQuotation(qRef);
-                    if (rs.getString("VersionName") != null) { DTOVehicleVersion v = new DTOVehicleVersion(); v.setVersionID(rs.getInt("VersionID")); v.setVersionName(rs.getString("VersionName")); if (rs.getString("ModelName") != null) { DTOVehicleModel m = new DTOVehicleModel(); m.setModelID(rs.getInt("ModelID")); m.setModelName(rs.getString("ModelName")); v.setModel(m);} d.setVersion(v);} if (rs.getString("ColorName") != null) { DTOVehicleColor c = new DTOVehicleColor(); c.setColorID(rs.getInt("CColorID")); c.setColorName(rs.getString("ColorName")); d.setColor(c);} details.add(d);
+                    d.setQuotationDetailID(rs.getInt("QuotationDetailID"));
+                    d.setUnitPrice(rs.getBigDecimal("UnitPrice"));
+                    d.setQuantity(rs.getInt("Quantity"));
+                    Double appliedDiscount = rs.getDouble("AppliedDealerDiscountPercent");
+                    if (!rs.wasNull()) {
+                        d.setAppliedDealerDiscountPercent(appliedDiscount);
+                    }
+                    DTOQuotation qRef = new DTOQuotation();
+                    qRef.setQuotationID(rs.getInt("QuotationID"));
+                    Double qDisc = (Double) rs.getObject("QuotationDiscountPercent");
+                    if (qDisc != null) qRef.setDiscountPercent(qDisc);
+                    d.setQuotation(qRef);
+                    if (rs.getString("VersionName") != null) {
+                        DTOVehicleVersion v = new DTOVehicleVersion();
+                        v.setVersionID(rs.getInt("VersionID"));
+                        v.setVersionName(rs.getString("VersionName"));
+                        if (rs.getString("ModelName") != null) {
+                            DTOVehicleModel m = new DTOVehicleModel();
+                            m.setModelID(rs.getInt("ModelID"));
+                            m.setModelName(rs.getString("ModelName"));
+                            v.setModel(m);
+                        }
+                        d.setVersion(v);
+                    }
+                    if (rs.getString("ColorName") != null) {
+                        DTOVehicleColor c = new DTOVehicleColor();
+                        c.setColorID(rs.getInt("CColorID"));
+                        c.setColorName(rs.getString("ColorName"));
+                        d.setColor(c);
+                    }
+                    // Compute final net after stacking discounts (dealer line then quotation base)
+                    java.math.BigDecimal unitGross = d.getUnitPrice() != null ? d.getUnitPrice() : java.math.BigDecimal.ZERO;
+                    double dealerPct = d.getAppliedDealerDiscountPercent() != null ? d.getAppliedDealerDiscountPercent() : 0.0;
+                    double basePct = qRef.getDiscountPercent() != null ? qRef.getDiscountPercent() : 0.0;
+                    java.math.BigDecimal netAfterDealer = unitGross.multiply(java.math.BigDecimal.valueOf(1 - dealerPct / 100.0));
+                    java.math.BigDecimal finalNet = netAfterDealer.multiply(java.math.BigDecimal.valueOf(1 - basePct / 100.0));
+                    d.setFinalNetAfterAll(finalNet);
+                    details.add(d);
                 }
             }
-        } catch (SQLException e) { log.error("Error fetching quotation details quotationID={}", quotationID, e); }
+        } catch (SQLException e) {
+            log.error("Error fetching quotation details quotationID={}", quotationID, e);
+        }
         return details;
     }
 
     //  Update QuotationDetail
     public boolean updateQuotationDetail(DTOQuotationDetail detail) {
-        String sql = "UPDATE QuotationDetail SET VersionID = ?, ColorID = ?, UnitPrice = ?, Quantity = ? WHERE QuotationDetailID = ?";
+        String sql = "UPDATE QuotationDetail SET VersionID = ?, ColorID = ?, UnitPrice = ?, Quantity = ?, AppliedDealerDiscountPercent = ? WHERE QuotationDetailID = ?";
         try (Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, detail.getVersion().getVersionID()); ps.setInt(2, detail.getColor().getColorID()); ps.setBigDecimal(3, detail.getUnitPrice()); ps.setInt(4, detail.getQuantity()); ps.setInt(5, detail.getQuotationDetailID());
-            int rows = ps.executeUpdate(); if (rows > 0) { log.info("QuotationDetail updated id={}", detail.getQuotationDetailID()); return true; } log.warn("No QuotationDetail updated id={}", detail.getQuotationDetailID());
-        } catch (SQLException e) { log.error("Failed to update QuotationDetail id={}", detail.getQuotationDetailID(), e); }
+            ps.setInt(1, detail.getVersion().getVersionID());
+            ps.setInt(2, detail.getColor().getColorID());
+            ps.setBigDecimal(3, detail.getUnitPrice());
+            ps.setInt(4, detail.getQuantity());
+            
+            // Set AppliedDealerDiscountPercent (nullable)
+            if (detail.getAppliedDealerDiscountPercent() != null) {
+                ps.setDouble(5, detail.getAppliedDealerDiscountPercent());
+            } else {
+                ps.setNull(5, java.sql.Types.DECIMAL);
+            }
+            
+            ps.setInt(6, detail.getQuotationDetailID());
+            
+            int rows = ps.executeUpdate();
+            if (rows > 0) {
+                log.info("QuotationDetail updated id={} with dealer discount={}", 
+                    detail.getQuotationDetailID(), detail.getAppliedDealerDiscountPercent());
+                return true;
+            }
+            log.warn("No QuotationDetail updated id={}", detail.getQuotationDetailID());
+        } catch (SQLException e) {
+            log.error("Failed to update QuotationDetail id={}", detail.getQuotationDetailID(), e);
+        }
         return false;
     }
 
@@ -674,18 +734,41 @@ public class DAOQuotation {
         return false;
     }
 
-    //  Recalculate Quotation total & quantity (gross/net) using discountPercent
+    //  Recalculate Quotation total & quantity (gross/net) using BOTH dealer discount AND base discount
     public void recalcQuotationTotal(int quotationID) {
         List<DTOQuotationDetail> details = getQuotationDetails(quotationID);
         int totalQty = details.stream().mapToInt(DTOQuotationDetail::getQuantity).sum();
+
+        // Calculate gross total (before any discounts)
         double gross = details.stream().mapToDouble(d -> d.getSubtotal().doubleValue()).sum();
+
+        // Apply dealer discount (line-level) first
+        double afterDealerDiscount = details.stream().mapToDouble(d -> {
+            double subtotal = d.getSubtotal().doubleValue();
+            Double dealerDiscountPct = d.getAppliedDealerDiscountPercent();
+            if (dealerDiscountPct != null && dealerDiscountPct > 0) {
+                return subtotal * (1 - dealerDiscountPct / 100.0);
+            }
+            return subtotal;
+        }).sum();
+
+        // Then apply base discount (quotation-level) on top
         DTOQuotation q = getQuotationById(quotationID);
-        double discount = (q != null && q.getDiscountPercent() != null) ? q.getDiscountPercent() : 0.0;
-        double net = gross * (1 - discount / 100.0);
+        double baseDiscountPct = (q != null && q.getDiscountPercent() != null) ? q.getDiscountPercent() : 0.0;
+        double finalNet = afterDealerDiscount * (1 - baseDiscountPct / 100.0);
+
+        // Update database with final net total
         String sql = "UPDATE Quotation SET TotalAmount = ?, Quantity = ? WHERE QuotationID = ?";
         try (Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setDouble(1, net); ps.setInt(2, totalQty); ps.setInt(3, quotationID); ps.executeUpdate();
-        } catch (SQLException e) { log.error("Failed updating aggregates quotationID={}", quotationID, e); }
+            ps.setDouble(1, finalNet);
+            ps.setInt(2, totalQty);
+            ps.setInt(3, quotationID);
+            ps.executeUpdate();
+            log.info("Recalculated quotation total: gross={}, afterDealer={}, finalNet={} (base discount={}%)",
+                gross, afterDealerDiscount, finalNet, baseDiscountPct);
+        } catch (SQLException e) {
+            log.error("Failed updating aggregates quotationID={}", quotationID, e);
+        }
     }
 
     //  Update quotation discount percent and recompute total immediately
@@ -766,7 +849,7 @@ public class DAOQuotation {
 
     //  Get detailed information of a specific quotation detail by ID (with joins)
     public DTOQuotationDetail getQuotationDetailById(int detailId) {
-        String sql = "SELECT qd.QuotationDetailID, qd.QuotationID, qd.VersionID, qd.ColorID, qd.UnitPrice, qd.Quantity, " +
+        String sql = "SELECT qd.QuotationDetailID, qd.QuotationID, qd.VersionID, qd.ColorID, qd.UnitPrice, qd.Quantity, qd.AppliedDealerDiscountPercent, " +
                 "vv.VersionName, vm.ModelID, vm.ModelName, vm.BasePrice, vc.ColorName, q.DiscountPercent, q.Status " +
                 "FROM QuotationDetail qd " +
                 "LEFT JOIN VehicleVersion vv ON qd.VersionID = vv.VersionID " +
@@ -780,6 +863,7 @@ public class DAOQuotation {
                 if (rs.next()) {
                     DTOQuotationDetail d = new DTOQuotationDetail();
                     d.setQuotationDetailID(rs.getInt("QuotationDetailID"));
+
                     DTOQuotation qRef = new DTOQuotation();
                     qRef.setQuotationID(rs.getInt("QuotationID"));
                     Double disc = (Double) rs.getObject("DiscountPercent");
@@ -787,6 +871,7 @@ public class DAOQuotation {
                     String status = rs.getString("Status");
                     if (status != null) try { qRef.setStatus(QuotationStatus.valueOf(status)); } catch (IllegalArgumentException ignore) {}
                     d.setQuotation(qRef);
+
                     DTOVehicleVersion v = new DTOVehicleVersion();
                     v.setVersionID(rs.getInt("VersionID"));
                     v.setVersionName(rs.getString("VersionName"));
@@ -796,12 +881,25 @@ public class DAOQuotation {
                     m.setBasePrice(rs.getBigDecimal("BasePrice"));
                     v.setModel(m);
                     d.setVersion(v);
+
                     DTOVehicleColor c = new DTOVehicleColor();
                     c.setColorID(rs.getInt("ColorID"));
                     c.setColorName(rs.getString("ColorName"));
                     d.setColor(c);
+
                     d.setUnitPrice(rs.getBigDecimal("UnitPrice"));
                     d.setQuantity(rs.getInt("Quantity"));
+
+                    Double appliedDiscount = rs.getDouble("AppliedDealerDiscountPercent");
+                    if (!rs.wasNull()) d.setAppliedDealerDiscountPercent(appliedDiscount);
+                    // compute stacked final net
+                    java.math.BigDecimal unitGross = d.getUnitPrice() != null ? d.getUnitPrice() : java.math.BigDecimal.ZERO;
+                    double dealerPct = d.getAppliedDealerDiscountPercent() != null ? d.getAppliedDealerDiscountPercent() : 0.0;
+                    double basePct = qRef.getDiscountPercent() != null ? qRef.getDiscountPercent() : 0.0;
+                    java.math.BigDecimal netAfterDealer = unitGross.multiply(java.math.BigDecimal.valueOf(1 - dealerPct / 100.0));
+                    java.math.BigDecimal finalNet = netAfterDealer.multiply(java.math.BigDecimal.valueOf(1 - basePct / 100.0));
+                    d.setFinalNetAfterAll(finalNet);
+
                     return d;
                 }
             }

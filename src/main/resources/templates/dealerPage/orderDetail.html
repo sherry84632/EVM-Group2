@@ -279,7 +279,7 @@
                 <div class="info-row">
                     <div class="info-label">Total Amount:</div>
                     <div class="info-value">
-                        <strong th:text="${order.totalAmount != null ? ('$' + #numbers.formatDecimal(order.totalAmount, 1, 0)) : '$0'}"></strong>
+                        <strong th:text="${order.totalAmount != null ? ('$' + #numbers.formatDecimal(order.totalAmount, 0, 'COMMA', 0, 'POINT')) : '$0'}"></strong>
                     </div>
                 </div>
             </div>

@@ -106,4 +106,17 @@ public class DTOSaleOrderDetail {
     public void setVin(String vin) {
         this.vin = vin;
     }
+
+    public String getFormattedUnitPrice() {
+        return utils.NumberFormatUtil.formatCurrency(price);
+    }
+
+    public java.math.BigDecimal getLineTotal() {
+        java.math.BigDecimal p = price != null ? price : java.math.BigDecimal.ZERO;
+        return p.multiply(java.math.BigDecimal.valueOf(getQuantity()));
+    }
+
+    public String getFormattedLineTotal() {
+        return utils.NumberFormatUtil.formatCurrency(getLineTotal());
+    }
 }

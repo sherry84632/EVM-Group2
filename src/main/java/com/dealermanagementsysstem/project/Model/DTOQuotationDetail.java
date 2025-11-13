@@ -30,7 +30,7 @@ public class DTOQuotationDetail {
     @Column(name = "Quantity")
     private int quantity = 1;
 
-    @Transient
+    @Column(name = "AppliedDealerDiscountPercent")
     private Double appliedDealerDiscountPercent; // line-level dealer promotion percent (if model matches)
 
     @Transient

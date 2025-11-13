@@ -262,33 +262,45 @@
                         <strong>Applied Promotion:</strong> <span th:text="${appliedDealerDiscount.promotionName}"></span>
                         (<span th:text="${appliedDealerDiscount.discountPercent}"></span>% for model
                         <span th:text="${appliedDealerDiscount.vehicleModel?.modelName ?: 'N/A'}"></span>)
-                        <button th:if="${!quotationLocked}" class="btn btn-sm btn-outline-danger float-end"
-                                th:onclick="'window.location.href=\'/quotation/detail/' + ${quotation.quotationID} + '?discountId=0\''">
-                            <i class="fas fa-times me-1"></i>Remove
-                        </button>
+                        <form th:if="${!quotationLocked}" th:action="@{/quotation/dealer-discount/apply}" method="post" class="d-inline float-end">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                            <input type="hidden" name="quotationID" th:value="${quotation.quotationID}" />
+                            <input type="hidden" name="discountId" value="0" />
+                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                <i class="fas fa-times me-1"></i>Remove
+                            </button>
+                        </form>
                     </div>
 
                     <div th:if="${!quotationLocked}" class="promo-select-wrapper border rounded p-3" style="max-height:200px; overflow-y:auto;">
-                        <p class="text-muted mb-2"><small>Select a promotion to apply model-specific discount:</small></p>
+                        <p class="text-muted mb-2"><small>Click a promotion to apply and SAVE dealer discount:</small></p>
                         <div class="list-group">
-                            <a th:each="disc : ${activeDiscounts}"
-                               th:href="@{/quotation/detail/{id}(id=${quotation.quotationID}, discountId=${disc.adjustmentID})}"
-                               class="list-group-item list-group-item-action"
-                               th:classappend="${appliedDealerDiscount != null and appliedDealerDiscount.adjustmentID == disc.adjustmentID} ? 'active' : ''">
-                                <div class="d-flex w-100 justify-content-between align-items-center">
-                                    <div>
-                                        <h6 class="mb-1" th:text="${disc.promotionName}">Promotion Name</h6>
-                                        <small>
-                                            <span class="promo-badge" th:text="${disc.discountPercent + '%'}"></span>
-                                            off for <strong th:text="${disc.vehicleModel?.modelName ?: 'All Models'}"></strong>
+                            <form th:each="disc : ${activeDiscounts}"
+                                  th:action="@{/quotation/dealer-discount/apply}"
+                                  method="post"
+                                  class="mb-2">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                                <input type="hidden" name="quotationID" th:value="${quotation.quotationID}" />
+                                <input type="hidden" name="discountId" th:value="${disc.adjustmentID}" />
+                                <button type="submit"
+                                        class="list-group-item list-group-item-action w-100 text-start"
+                                        th:classappend="${appliedDealerDiscount != null and appliedDealerDiscount.adjustmentID == disc.adjustmentID} ? 'active' : ''">
+                                    <div class="d-flex w-100 justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-1" th:text="${disc.promotionName}">Promotion Name</h6>
+                                            <small>
+                                                <span class="promo-badge" th:text="${disc.discountPercent + '%'}"></span>
+                                                off for <strong th:text="${disc.vehicleModel?.modelName ?: 'All Models'}"></strong>
+                                            </small>
+                                        </div>
+                                        <small class="text-muted">
+                                            <span th:text="${disc.startDate != null ? #temporals.format(disc.startDate, 'dd/MM/yyyy') : 'N/A'}"></span> -
+                                            <span th:text="${disc.endDate != null ? #temporals.format(disc.endDate, 'dd/MM/yyyy') : 'No end'}"></span>
                                         </small>
                                     </div>
-                                    <small class="text-muted">
-                                        <span th:text="${disc.startDate != null ? #temporals.format(disc.startDate, 'dd/MM/yyyy') : 'N/A'}"></span> -
-                                        <span th:text="${disc.endDate != null ? #temporals.format(disc.endDate, 'dd/MM/yyyy') : 'No end'}"></span>
-                                    </small>
-                                </div>
-                            </a>
+                                </button>
+                            </form>
+                        </div>
                         </div>
                     </div>
 

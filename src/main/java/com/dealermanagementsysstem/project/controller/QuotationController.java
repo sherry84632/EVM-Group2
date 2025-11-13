@@ -397,8 +397,8 @@ public class QuotationController {
 
     //  CORE FLOW STEP 4: View quotation details
     @GetMapping("/detail/{id}")
-    public String viewQuotationDetail(@PathVariable("id") int id, @RequestParam(value="discountId", required=false) Integer discountId, Model model) {
-    log.debug("Viewing quotation detail id={}", id);
+    public String viewQuotationDetail(@PathVariable("id") int id, Model model) {
+        log.debug("Viewing quotation detail id={}", id);
 
         try {
             DTOQuotation quotation = dao.getQuotationById(id);
@@ -406,85 +406,95 @@ public class QuotationController {
                 model.addAttribute("error", "Quotation not found!");
                 return "redirect:/quotation/list";
             }
+
             List<DTOQuotationDetail> details = dao.getQuotationDetails(id);
             quotation.setQuotationDetails(details);
+
             if (details != null && !details.isEmpty()) {
                 double totalPrice = details.stream().mapToDouble(d -> d.getUnitPrice().doubleValue()).sum();
                 quotation.setTotalPrice(totalPrice);
             }
+
             model.addAttribute("quotation", quotation);
             model.addAttribute("details", details);
-            if (quotation.getDealer()!=null) {
+
+            // Load active discounts for dealer
+            if (quotation.getDealer() != null) {
                 var active = daoDealerPriceAdjustment.getActiveDiscountsByDealer(quotation.getDealer().getDealerID());
                 log.debug("Active promotions for dealer {} count={}", quotation.getDealer().getDealerID(), active.size());
-                for (DTODealerPriceAdjustment p : active) {
-                    log.debug("Promotion id={} name={} pct={} start={} end={}", p.getAdjustmentID(), p.getPromotionName(), p.getDiscountPercent(), p.getStartDate(), p.getEndDate());
-                }
                 model.addAttribute("activeDiscounts", active);
-            }
-            boolean promotionAppliedFlag = false;
-            Double appliedLineDiscountPercent = null; // percent for matched model lines
-            if (discountId != null) {
-                if (discountId == 0) { // treat 0 as remove promotion
-                    for (DTOQuotationDetail d: details) d.setAppliedDealerDiscountPercent(null);
-                } else {
-                    DTODealerPriceAdjustment applied = daoDealerPriceAdjustment.getDiscountById(discountId);
-                    if (applied != null && applied.getDiscountPercent()!=null) {
-                        Integer promoModelId = applied.getVehicleModel()!=null ? applied.getVehicleModel().getModelID() : null;
-                        double linePct = applied.getDiscountPercent();
-                        if (promoModelId != null) {
-                            boolean anyMatched = false;
-                            for (DTOQuotationDetail d : details) {
-                                if (d.getVersion()!=null && d.getVersion().getModel()!=null && d.getVersion().getModel().getModelID() == promoModelId) {
-                                    d.setAppliedDealerDiscountPercent(linePct);
-                                    anyMatched = true;
-                                } else { d.setAppliedDealerDiscountPercent(null); }
+
+                // Check if any detail has applied discount and find which discount it is
+                DTODealerPriceAdjustment appliedDiscount = null;
+                for (DTOQuotationDetail d : details) {
+                    if (d.getAppliedDealerDiscountPercent() != null && d.getAppliedDealerDiscountPercent() > 0) {
+                        // Find matching discount from active discounts
+                        for (DTODealerPriceAdjustment disc : active) {
+                            if (disc.getDiscountPercent() != null &&
+                                Math.abs(disc.getDiscountPercent() - d.getAppliedDealerDiscountPercent()) < 0.01) {
+                                // Check if model matches
+                                Integer promoModelId = disc.getVehicleModel() != null ? disc.getVehicleModel().getModelID() : null;
+                                Integer lineModelId = d.getVersion() != null && d.getVersion().getModel() != null ?
+                                                    d.getVersion().getModel().getModelID() : null;
+                                if (promoModelId != null && promoModelId.equals(lineModelId)) {
+                                    appliedDiscount = disc;
+                                    break;
+                                }
                             }
-                            if (anyMatched) {
-                                promotionAppliedFlag = true;
-                                appliedLineDiscountPercent = linePct;
-                                model.addAttribute("appliedDealerDiscount", applied);
-                            } else {
-                                model.addAttribute("error", "Promotion model does not match any line items.");
-                            }
-                        } else {
-                            model.addAttribute("error", "Discount missing model reference.");
                         }
-                    } else {
-                        model.addAttribute("error", "Selected discount not valid or has no percent.");
+                        break;
                     }
                 }
+
+                if (appliedDiscount != null) {
+                    model.addAttribute("appliedDealerDiscount", appliedDiscount);
+                }
             }
+
+            // Check if any line has dealer discount applied
+            boolean promotionAppliedFlag = details.stream()
+                .anyMatch(d -> d.getAppliedDealerDiscountPercent() != null && d.getAppliedDealerDiscountPercent() > 0);
+
+            Double appliedLineDiscountPercent = null;
+            if (promotionAppliedFlag) {
+                appliedLineDiscountPercent = details.stream()
+                    .filter(d -> d.getAppliedDealerDiscountPercent() != null && d.getAppliedDealerDiscountPercent() > 0)
+                    .map(DTOQuotationDetail::getAppliedDealerDiscountPercent)
+                    .findFirst()
+                    .orElse(null);
+            }
+
             // Calculate final net: apply line-level then base discount stacking
-            double baseDiscountPct = quotation.getDiscountPercent()!=null ? quotation.getDiscountPercent() : 0.0;
+            double baseDiscountPct = quotation.getDiscountPercent() != null ? quotation.getDiscountPercent() : 0.0;
             double grossAll = details.stream().mapToDouble(d -> d.getSubtotal().doubleValue()).sum();
             double afterLine = details.stream().mapToDouble(d -> {
                 double sub = d.getSubtotal().doubleValue();
-                double lp = d.getAppliedDealerDiscountPercent()!=null ? d.getAppliedDealerDiscountPercent() : 0.0;
-                return sub * (1 - lp/100.0);
+                double lp = d.getAppliedDealerDiscountPercent() != null ? d.getAppliedDealerDiscountPercent() : 0.0;
+                return sub * (1 - lp / 100.0);
             }).sum();
-            double finalNetTotal = afterLine * (1 - baseDiscountPct/100.0);
-            // per line final net
-            for (DTOQuotationDetail d: details) {
-                double lp = d.getAppliedDealerDiscountPercent()!=null ? d.getAppliedDealerDiscountPercent() : 0.0;
+            double finalNetTotal = afterLine * (1 - baseDiscountPct / 100.0);
+
+            // Calculate per line final net
+            for (DTOQuotationDetail d : details) {
+                double lp = d.getAppliedDealerDiscountPercent() != null ? d.getAppliedDealerDiscountPercent() : 0.0;
                 double sub = d.getSubtotal().doubleValue();
-                double lineAfterLine = sub * (1 - lp/100.0);
-                double lineFinal = lineAfterLine * (1 - baseDiscountPct/100.0);
+                double lineAfterLine = sub * (1 - lp / 100.0);
+                double lineFinal = lineAfterLine * (1 - baseDiscountPct / 100.0);
                 d.setFinalNetAfterAll(java.math.BigDecimal.valueOf(lineFinal));
             }
-            // Always set gross and net for display
+
+            // Set model attributes for display
             model.addAttribute("lineLevelGross", grossAll);
             model.addAttribute("lineLevelNet", afterLine);
-            if (promotionAppliedFlag) {
+            if (promotionAppliedFlag && appliedLineDiscountPercent != null) {
                 model.addAttribute("lineLevelDiscountPercent", appliedLineDiscountPercent);
             }
             model.addAttribute("promotionApplied", promotionAppliedFlag);
             model.addAttribute("finalNetTotal", finalNetTotal);
             model.addAttribute("baseDiscountPercent", baseDiscountPct);
-            model.addAttribute("finalCombinedDiscountPercent", grossAll>0? (1 - finalNetTotal / grossAll)*100.0 : 0.0);
-            model.addAttribute("details", details); // ensure updated lines passed
+            model.addAttribute("finalCombinedDiscountPercent", grossAll > 0 ? (1 - finalNetTotal / grossAll) * 100.0 : 0.0);
 
-            // Add missing attributes to avoid Thymeleaf null boolean evaluation
+            // Add quotation locked status
             boolean quotationLocked = dao.isQuotationLocked(id);
             model.addAttribute("quotationLocked", quotationLocked);
             Integer completedSaleOrderId = dao.getCompletedSaleOrderId(id);
@@ -893,6 +903,80 @@ public class QuotationController {
         ra.addFlashAttribute(ok ? "message" : "error", ok ? "Updated discount to " + clamped + "%" : "Failed to update discount");
         return "redirect:/quotation/detail/" + quotationID;
     }
+
+    /**
+     * Apply dealer discount to quotation line items and SAVE to database
+     */
+    @PostMapping("/dealer-discount/apply")
+    public String applyDealerDiscount(@RequestParam int quotationID,
+                                      @RequestParam int discountId,
+                                      RedirectAttributes ra) {
+        if (dao.isQuotationLocked(quotationID)) {
+            ra.addFlashAttribute("error", "Quotation locked; cannot change discount.");
+            return "redirect:/quotation/detail/" + quotationID;
+        }
+
+        try {
+            List<DTOQuotationDetail> details = dao.getQuotationDetails(quotationID);
+
+            if (discountId == 0) {
+                // Remove discount
+                for (DTOQuotationDetail d : details) {
+                    d.setAppliedDealerDiscountPercent(null);
+                    dao.updateQuotationDetail(d);
+                }
+                // Recalculate quotation total after removing discount
+                dao.recalcQuotationTotal(quotationID);
+                ra.addFlashAttribute("message", "Dealer discount removed successfully");
+            } else {
+                // Apply discount
+                DTODealerPriceAdjustment discount = daoDealerPriceAdjustment.getDiscountById(discountId);
+                if (discount == null || discount.getDiscountPercent() == null) {
+                    ra.addFlashAttribute("error", "Invalid discount selected");
+                    return "redirect:/quotation/detail/" + quotationID;
+                }
+
+                Integer promoModelId = discount.getVehicleModel() != null ?
+                                     discount.getVehicleModel().getModelID() : null;
+
+                if (promoModelId == null) {
+                    ra.addFlashAttribute("error", "Discount missing model reference");
+                    return "redirect:/quotation/detail/" + quotationID;
+                }
+
+                double discountPercent = discount.getDiscountPercent();
+                boolean anyMatched = false;
+
+                for (DTOQuotationDetail d : details) {
+                    if (d.getVersion() != null &&
+                        d.getVersion().getModel() != null &&
+                        d.getVersion().getModel().getModelID() == promoModelId) {
+                        d.setAppliedDealerDiscountPercent(discountPercent);
+                        dao.updateQuotationDetail(d);
+                        anyMatched = true;
+                    } else {
+                        d.setAppliedDealerDiscountPercent(null);
+                        dao.updateQuotationDetail(d);
+                    }
+                }
+
+                if (anyMatched) {
+                    // Recalculate quotation total after applying discount
+                    dao.recalcQuotationTotal(quotationID);
+                    ra.addFlashAttribute("message", "Dealer discount applied: " +
+                                       discount.getPromotionName() + " (" + discountPercent + "%)");
+                } else {
+                    ra.addFlashAttribute("error", "Promotion model does not match any line items");
+                }
+            }
+        } catch (Exception e) {
+            log.error("Error applying dealer discount", e);
+            ra.addFlashAttribute("error", "Failed to apply dealer discount: " + e.getMessage());
+        }
+
+        return "redirect:/quotation/detail/" + quotationID;
+    }
+
     @PostMapping("/detail/quantity")
     public String updateDetailQuantity(@RequestParam int quotationDetailID,
                                        @RequestParam int quotationID,

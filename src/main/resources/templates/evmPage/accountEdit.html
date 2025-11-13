@@ -183,9 +183,9 @@
                                 <i class="fa-solid fa-briefcase"></i> Position
                             </label>
                             <input type="text" class="form-control" id="staffPosition" name="staffPosition"
-                                   th:value="${account.dealerStaff != null} ? ${account.dealerStaff.position} : ''"
-                                   placeholder="Sales (default if left empty)">
-                            <small class="form-text text-muted">Leave empty to auto-fill as "Sales"</small>
+                                   th:value="${account.dealerStaff != null} ? ${account.dealerStaff.position} : 'Sales'"
+                                   placeholder="Auto-filled" readonly>
+                            <small class="form-text text-muted">Auto-filled based on role (DealerStaff → Sales, Dealer → Manager)</small>
                         </div>
 
                         <!-- Staff Phone -->
@@ -317,15 +317,19 @@ document.addEventListener('DOMContentLoaded', function() {
     // Trigger change event on page load
     roleSelect.dispatchEvent(new Event('change'));
 });
-            this.classList.add('is-valid');
-        } else {
-            this.classList.remove('is-valid');
-            this.classList.add('is-invalid');
-        }
-    });
-});
+
+(function(){
+ const roleSelect=document.getElementById('role');
+ const pos=document.getElementById('staffPosition');
+ if(roleSelect && pos){
+  roleSelect.addEventListener('change',()=>{
+    if(roleSelect.value==='DEALER') pos.value='Manager';
+    else if(roleSelect.value==='DEALERSTAFF') pos.value='Sales';
+    else pos.value='';
+  });
+ }
+})();
 </script>
 
 </body>
 </html>
-
