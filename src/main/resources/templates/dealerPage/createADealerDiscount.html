@@ -321,7 +321,7 @@
 
                     <h1>Select Vehicle Model</h1>
                     <div class="vehicle-search">
-                        <form action="/discount" method="get" class="mb-3">
+                        <form id="vehicleSearchForm" action="/discount" method="get" class="mb-3">
                             <div class="input-group">
                                 <input type="text"
                                        name="vehicleSearch"
@@ -505,9 +505,11 @@ async function showVehicleDetail(modelId) {
         document.getElementById('modalBrand').textContent = data.brand || 'N/A';
         document.getElementById('modalYear').textContent = data.year || 'N/A';
         document.getElementById('modalBodyType').textContent = data.bodyType || 'N/A';
-        document.getElementById('modalBasePrice').textContent = new Intl.NumberFormat('vi-VN', {
+        document.getElementById('modalBasePrice').textContent = new Intl.NumberFormat('en-US', {
             style: 'currency',
-            currency: 'VND'
+            currency: 'USD',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
         }).format(data.basePrice || 0);
         document.getElementById('modalDescription').textContent = data.description || 'No description available';
 
@@ -537,11 +539,108 @@ window.addEventListener('load', function() {
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('startDate').min = today;
     document.getElementById('endDate').min = today;
+
+    // Restore form data from localStorage
+    restoreFormData();
+});
+
+// Save form data to localStorage before searching
+document.getElementById('vehicleSearchForm').addEventListener('submit', function() {
+    saveFormData();
+});
+
+// Function to save form data
+function saveFormData() {
+    const formData = {
+        promotionName: document.getElementById('promoName').value,
+        startDate: document.getElementById('startDate').value,
+        endDate: document.getElementById('endDate').value,
+        discountPercent: document.getElementById('discount').value,
+        notes: document.getElementById('note').value,
+        selectedModelId: document.getElementById('selectedModelId').value,
+        timestamp: Date.now()
+    };
+
+    localStorage.setItem('discountFormData', JSON.stringify(formData));
+}
+
+// Function to restore form data
+function restoreFormData() {
+    const savedData = localStorage.getItem('discountFormData');
+
+    if (savedData) {
+        const formData = JSON.parse(savedData);
+
+        // Check if data is less than 1 hour old
+        const oneHour = 60 * 60 * 1000;
+        if (Date.now() - formData.timestamp < oneHour) {
+            document.getElementById('promoName').value = formData.promotionName || '';
+            document.getElementById('startDate').value = formData.startDate || '';
+            document.getElementById('endDate').value = formData.endDate || '';
+            document.getElementById('discount').value = formData.discountPercent || '';
+            document.getElementById('note').value = formData.notes || '';
+            document.getElementById('selectedModelId').value = formData.selectedModelId || '';
+
+            // Restore selected vehicle card
+            if (formData.selectedModelId) {
+                const selectedCard = document.querySelector(`[data-model-id="${formData.selectedModelId}"]`);
+                if (selectedCard) {
+                    selectVehicle(selectedCard);
+                }
+            }
+        } else {
+            // Clear old data
+            localStorage.removeItem('discountFormData');
+        }
+    }
+}
+
+// Clear localStorage after successful form submission
+document.getElementById('promotionForm').addEventListener('submit', function(event) {
+    const selectedModelId = document.getElementById('selectedModelId').value;
+
+    if (!selectedModelId || selectedModelId.trim() === '') {
+        event.preventDefault();
+        alert('⚠️ Please select a vehicle model before creating the discount!');
+
+        // Scroll to vehicle selection section
+        document.querySelector('.discount-list-box:last-child').scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+        });
+
+        return false;
+    }
+
+    // Clear saved form data on successful submission
+    localStorage.removeItem('discountFormData');
+
+    return true;
 });
 
 // Validate end date is after start date
 document.getElementById('startDate').addEventListener('change', function() {
     document.getElementById('endDate').min = this.value;
+});
+
+// Form validation - check if vehicle model is selected
+document.getElementById('promotionForm').addEventListener('submit', function(event) {
+    const selectedModelId = document.getElementById('selectedModelId').value;
+
+    if (!selectedModelId || selectedModelId.trim() === '') {
+        event.preventDefault();
+        alert('⚠️ Please select a vehicle model before creating the discount!');
+
+        // Scroll to vehicle selection section
+        document.querySelector('.discount-list-box:last-child').scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+        });
+
+        return false;
+    }
+
+    return true;
 });
 </script>
 

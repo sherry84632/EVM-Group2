@@ -7,6 +7,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;
@@ -98,6 +99,59 @@ public class PurchaseOrderController {
         return "dealerPage/orderStatusList";
     }
 
+    /**
+     * 🔹 Order History for Dealer (filtered by dealer ID, shows completed/delivered orders)
+     */
+    @GetMapping("/history")
+    public String showOrderHistory(Model model,
+                                   @RequestParam(required = false) String keyword) {
+        try {
+            // Get logged in dealer
+            org.springframework.security.core.Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            org.springframework.security.core.userdetails.User user =
+                    (org.springframework.security.core.userdetails.User) auth.getPrincipal();
+            String email = user.getUsername();
+
+            int dealerId = daoPurchaseOrder.getDealerIdByEmail(email);
+            
+            if (dealerId <= 0) {
+                model.addAttribute("message", "❌ Không tìm thấy Dealer tương ứng với tài khoản đăng nhập.");
+                model.addAttribute("orders", List.of());
+                return "dealerPage/orderHistoryList";
+            }
+
+            // Get all orders for this dealer
+            List<DTOPurchaseOrder> allOrders = daoPurchaseOrder.getPurchaseOrdersByDealerId(dealerId);
+
+            // Filter only completed/delivered orders (history)
+            List<DTOPurchaseOrder> historyOrders = allOrders.stream()
+                .filter(order -> order.getStatus() == PurchaseOrderStatus.DELIVERED 
+                              || order.getStatus() == PurchaseOrderStatus.CANCELLED)
+                .toList();
+
+            // Apply keyword search if provided
+            if (keyword != null && !keyword.trim().isEmpty()) {
+                String searchKeyword = keyword.toLowerCase().trim();
+                historyOrders = historyOrders.stream()
+                    .filter(order -> {
+                        String status = order.getStatus() != null ? order.getStatus().toString().toLowerCase() : "";
+                        String orderId = String.valueOf(order.getPurchaseOrderId());
+                        return status.contains(searchKeyword) || orderId.contains(searchKeyword);
+                    })
+                    .toList();
+            }
+
+            model.addAttribute("orders", historyOrders);
+            model.addAttribute("keyword", keyword);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            model.addAttribute("message", "⚠️ Lỗi khi tải lịch sử đơn hàng: " + e.getMessage());
+            model.addAttribute("orders", List.of());
+        }
+
+        return "dealerPage/orderHistoryList";
+    }
 
     /**
      * 🔹 Tạo đơn hàng với nhiều xe cùng lúc (giống addVehiclesWithQty của Quotation)
@@ -106,7 +160,7 @@ public class PurchaseOrderController {
     public String createMultipleOrders(
             @RequestParam(name = "vehicleIds") List<Integer> vehicleIds,
             @RequestParam(name = "quantities") List<Integer> quantities,
-            Model model) {
+            RedirectAttributes redirectAttributes) {
 
         try {
             var auth = SecurityContextHolder.getContext().getAuthentication();
@@ -121,21 +175,21 @@ public class PurchaseOrderController {
             System.out.println("🔍 DEBUG PurchaseOrder: DealerID = " + dealerId + ", StaffID = " + staffId);
 
             if (dealerId <= 0) {
-                model.addAttribute("message", "❌ Không tìm thấy Dealer tương ứng với tài khoản (" + email + "). " +
+                redirectAttributes.addFlashAttribute("errorMessage", "❌ Không tìm thấy Dealer tương ứng với tài khoản (" + email + "). " +
                     "Account của bạn chưa được liên kết với dealer nào. Vui lòng liên hệ admin.");
-                return "dealerPage/success";
+                return "redirect:/orderdealer";
             }
 
             if (staffId <= 0) {
-                model.addAttribute("message", "❌ Không tìm thấy Staff tương ứng với tài khoản (" + email + "). " +
+                redirectAttributes.addFlashAttribute("errorMessage", "❌ Không tìm thấy Staff tương ứng với tài khoản (" + email + "). " +
                     "Account của bạn chưa có thông tin DealerStaff. Vui lòng liên hệ admin.");
-                return "dealerPage/success";
+                return "redirect:/orderdealer";
             }
 
             // Validate input
             if (vehicleIds == null || vehicleIds.isEmpty()) {
-                model.addAttribute("message", "❌ Không có xe nào được chọn!");
-                return "dealerPage/success";
+                redirectAttributes.addFlashAttribute("errorMessage", "❌ Không có xe nào được chọn!");
+                return "redirect:/orderdealer";
             }
 
             // Normalize quantities
@@ -173,8 +227,8 @@ public class PurchaseOrderController {
             }
 
             if (orderItems.isEmpty()) {
-                model.addAttribute("message", "❌ Không có xe hợp lệ để đặt hàng!");
-                return "dealerPage/success";
+                redirectAttributes.addFlashAttribute("errorMessage", "❌ Không có xe hợp lệ để đặt hàng!");
+                return "redirect:/orderdealer";
             }
 
             // Create PurchaseOrder
@@ -208,18 +262,18 @@ public class PurchaseOrderController {
                     if (added) successCount++;
                 }
 
-                model.addAttribute("message", "✅ Đặt hàng thành công! Đơn hàng #" + newOrderId + " với " + successCount + " loại xe.");
-                model.addAttribute("orderId", newOrderId);
+                redirectAttributes.addFlashAttribute("successMessage", "✅ Đặt hàng thành công! Đơn hàng #" + newOrderId + " với " + successCount + " loại xe.");
+                redirectAttributes.addFlashAttribute("orderId", newOrderId);
             } else {
-                model.addAttribute("message", "❌ Không thể tạo đơn hàng!");
+                redirectAttributes.addFlashAttribute("errorMessage", "❌ Không thể tạo đơn hàng!");
             }
 
         } catch (Exception e) {
             e.printStackTrace();
-            model.addAttribute("message", "⚠️ Lỗi hệ thống: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Lỗi hệ thống: " + e.getMessage());
         }
 
-        return "dealerPage/success";
+        return "redirect:/orderdealer";
     }
 
     // Helper class to store order item data
@@ -239,16 +293,6 @@ public class PurchaseOrderController {
         }
     }
 
-    /**
-     * 🔹 Trang success (chỉ khi load trực tiếp)
-     */
-    @GetMapping("/success")
-    public String showSuccessPage(Model model) {
-        if (!model.containsAttribute("message")) {
-            model.addAttribute("message", " Order processed!");
-        }
-        return "dealerPage/success";
-    }
 
     /**
      * 🔹 API: Lấy danh sách đơn hàng (JSON)
