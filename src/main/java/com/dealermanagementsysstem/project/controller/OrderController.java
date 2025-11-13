@@ -36,10 +36,33 @@ public class OrderController {
         List<DTOSaleOrder> all = dao.getAllSaleOrders();
         List<DTOSaleOrder> orders = new java.util.ArrayList<>();
 
+        // Determine logged-in account & dealer (restrict results if dealer role)
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth != null ? auth.getName() : null;
+        Integer dealerFilterId = null;
+        Role role = null;
+        if (email != null && !email.isBlank()) {
+            DAOAccount daoAccount = new DAOAccount();
+            DTOAccount acc = daoAccount.findAccountByEmail(email);
+            if (acc != null) {
+                role = acc.getRole();
+                if (role == Role.DEALER || role == Role.DEALERSTAFF) {
+                    // Only allow viewing own dealer's orders
+                    if (acc.getDealerStaff() != null && acc.getDealerStaff().getDealer() != null) {
+                        dealerFilterId = acc.getDealerStaff().getDealer().getDealerID();
+                    }
+                }
+            }
+        }
+
         for (DTOSaleOrder o : all) {
             boolean ok = true;
+            // Dealer scope restriction
+            if (dealerFilterId != null) {
+                ok = (o.getDealer() != null && o.getDealer().getDealerID() == dealerFilterId);
+            }
             // keyword by customer name
-            if (keyword != null && !keyword.trim().isEmpty()) {
+            if (ok && keyword != null && !keyword.trim().isEmpty()) {
                 String name = (o.getCustomer()!=null && o.getCustomer().getFullName()!=null) ? o.getCustomer().getFullName() : "";
                 ok = name.toLowerCase().contains(keyword.trim().toLowerCase());
             }
@@ -62,6 +85,7 @@ public class OrderController {
         model.addAttribute("status", status != null ? status : "");
         model.addAttribute("from", from);
         model.addAttribute("to", to);
+        model.addAttribute("dealerScope", dealerFilterId); // optional for UI to show scope
         return "dealerPage/dealerCustomerOrderList";
     }
 
