@@ -153,9 +153,7 @@ public class PurchaseOrderController {
         return "dealerPage/orderHistoryList";
     }
 
-    /**
-     * 🔹 Tạo đơn hàng với nhiều xe cùng lúc (giống addVehiclesWithQty của Quotation)
-     */
+
     @PostMapping("/createMultiple")
     public String createMultipleOrders(
             @RequestParam(name = "vehicleIds") List<Integer> vehicleIds,
