@@ -27,6 +27,9 @@ public class DTOAccount {
     @Column(name = "Email",unique = true)
     private String email;
     
+    @Column(name = "Phone")
+    private String phone;
+
     @Column(name = "CreatedAt")
     private java.sql.Timestamp createdAt;
     
@@ -106,7 +109,15 @@ public class DTOAccount {
     public void setEmail(String email) {
         this.email = email;
     }
-    
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
     public java.sql.Timestamp getCreatedAt() {
         return createdAt;
     }

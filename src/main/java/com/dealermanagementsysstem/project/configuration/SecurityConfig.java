@@ -8,7 +8,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configurers.LogoutConfigurer;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
@@ -141,19 +140,25 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/quotation/save").permitAll()
                 .requestMatchers(HttpMethod.GET, "/quotation/preview/**").permitAll()
                 
-                // EVM/Admin role endpoints
-                .requestMatchers("/showEVMHomePage", "/evmVehicleList", "/evmCreateANewVehicleToList", 
+                // EVM/Admin role endpoints - ADMIN has all EVM functions
+                .requestMatchers("/showEVMHomePage", "/evmVehicleList", "/evmCreateANewVehicleToList",
                                "/evmOrderList", "/evmOrderHistory", "/vehicleDistributionManagement",
-                               "/getVehicleList").hasAnyRole("ADMIN", "EVM", "EVMSTAFF")
-                
-                // Account Management (ADMIN and EVMSTAFF only)
-                .requestMatchers("/account/**").hasAnyRole("ADMIN", "EVMSTAFF")
+                               "/getVehicleList").hasAnyRole("ADMIN", "EVMSTAFF")
+
+                // Account Management (ADMIN only - manages all accounts and dealers)
+                .requestMatchers("/account/**").hasRole("ADMIN")
+
+                // Dealer Company Management (ADMIN only - manages dealer companies)
+                .requestMatchers("/dealer/company/**").hasRole("ADMIN")
 
                 // EVM Vehicle management endpoints
-                .requestMatchers(HttpMethod.GET, "/evm/vehicle/create").hasAnyRole("ADMIN", "EVM", "EVMSTAFF")
-                .requestMatchers("/evm/vehicle/create", "/evm/vehicle/edit/**", "/evm/vehicle/delete/**").hasAnyRole("ADMIN", "EVM", "EVMSTAFF")
-                
-                // Dealer role endpoints  
+                .requestMatchers(HttpMethod.GET, "/evm/vehicle/create").hasAnyRole("ADMIN", "EVMSTAFF")
+                .requestMatchers("/evm/vehicle/create", "/evm/vehicle/edit/**", "/evm/vehicle/delete/**").hasAnyRole("ADMIN", "EVMSTAFF")
+
+                // Dealer staff management - DEALER manages their own staff
+                .requestMatchers("/dealer/staff/list", "/dealer/staff/create").hasAnyRole("DEALER", "DEALERSTAFF")
+
+                // Dealer role endpoints
                 .requestMatchers("/showDealerHomePage", "/dealerCustomerManagement", "/betterCustomerListFinal",
                                "/dealerCreateANewCustomer", "/dealerCustomerDetail", "/dealerVehiclesInformation",
                                "/getVehicleListToOrder", "/getVehicleListToCreateQuotation",

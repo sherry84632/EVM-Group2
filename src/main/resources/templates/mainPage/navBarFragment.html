@@ -4,7 +4,7 @@
     <ul class="nav nav-pills flex-column mb-auto">
         <li>
             <!-- Home link selects correct start page depending on role -->
-            <a sec:authorize="hasAnyRole('ADMIN','EVM','EVMSTAFF')" href="/showEVMHomePage" class="nav-link active" aria-current="page">
+            <a sec:authorize="hasAnyRole('ADMIN','EVMSTAFF')" href="/showEVMHomePage" class="nav-link active" aria-current="page">
                 <i class="fa-solid fa-house"></i>
                 Home
             </a>
@@ -17,6 +17,27 @@
             <a href="/profile" class="nav-link text-white">
                 <i class="fa-solid fa-user"></i>
                 Profile
+            </a>
+        </li>
+        <!-- Account Management - ADMIN only (manages all accounts and dealers) -->
+        <li sec:authorize="hasRole('ADMIN')">
+            <a href="/account/list" class="nav-link text-white">
+                <i class="fa-solid fa-user-shield"></i>
+                Account Management
+            </a>
+        </li>
+        <!-- Dealer Company Management - ADMIN only -->
+        <li sec:authorize="hasRole('ADMIN')">
+            <a href="/dealer/company/list" class="nav-link text-white">
+                <i class="fa-solid fa-building"></i>
+                Dealer Management
+            </a>
+        </li>
+        <!-- Staff Management - for DEALER and DEALERSTAFF -->
+        <li sec:authorize="hasAnyRole('DEALER','DEALERSTAFF')">
+            <a href="/dealer/staff/list" class="nav-link text-white">
+                <i class="fa-solid fa-users-gear"></i>
+                Staff Management
             </a>
         </li>
 <!--        <li>-->

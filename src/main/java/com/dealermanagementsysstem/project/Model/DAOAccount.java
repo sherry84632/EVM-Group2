@@ -152,7 +152,7 @@ public class DAOAccount {
      */
     public java.util.List<DTOAccount> getAllAccounts() {
         java.util.List<DTOAccount> list = new java.util.ArrayList<>();
-        String sql = "SELECT AccountID, Username, Password, Role, IsActive, Email, CreatedAt, UpdatedAt FROM Account ORDER BY CreatedAt DESC";
+        String sql = "SELECT AccountID, Username, Password, Role, IsActive, Email, Phone, CreatedAt, UpdatedAt FROM Account ORDER BY CreatedAt DESC";
 
         try (Connection con = DBUtils.getConnection();
              java.sql.Statement st = con.createStatement();
@@ -166,6 +166,7 @@ public class DAOAccount {
                 account.setRole(Role.valueOf(rs.getString("Role")));
                 account.setActive(rs.getBoolean("IsActive"));
                 account.setEmail(rs.getString("Email"));
+                account.setPhone(rs.getString("Phone"));
                 account.setCreatedAt(rs.getTimestamp("CreatedAt"));
                 account.setUpdatedAt(rs.getTimestamp("UpdatedAt"));
                 list.add(account);
@@ -181,7 +182,7 @@ public class DAOAccount {
      */
     public DTOAccount getAccountById(int accountId) {
         String sql = """
-            SELECT a.AccountID, a.Username, a.Password, a.Role, a.IsActive, a.Email, a.CreatedAt, a.UpdatedAt,
+            SELECT a.AccountID, a.Username, a.Password, a.Role, a.IsActive, a.Email, a.Phone, a.CreatedAt, a.UpdatedAt,
                    ds.StaffID, ds.FullName, ds.Position, ds.Phone as StaffPhone, ds.Email as StaffEmail,
                    d.DealerID, d.DealerName, d.Address, d.Phone as DealerPhone, d.Email as DealerEmail
             FROM Account a
@@ -204,6 +205,7 @@ public class DAOAccount {
                     account.setRole(Role.valueOf(rs.getString("Role")));
                     account.setActive(rs.getBoolean("IsActive"));
                     account.setEmail(rs.getString("Email"));
+                    account.setPhone(rs.getString("Phone"));
                     account.setCreatedAt(rs.getTimestamp("CreatedAt"));
                     account.setUpdatedAt(rs.getTimestamp("UpdatedAt"));
 
@@ -244,7 +246,7 @@ public class DAOAccount {
      * Returns the generated AccountID
      */
     public int insertAccount(DTOAccount account) {
-        String sql = "INSERT INTO Account (Username, Password, Role, IsActive, Email, CreatedAt, UpdatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO Account (Username, Password, Role, IsActive, Email, Phone, CreatedAt, UpdatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection con = DBUtils.getConnection();
              PreparedStatement ps = con.prepareStatement(sql, java.sql.Statement.RETURN_GENERATED_KEYS)) {
@@ -254,10 +256,11 @@ public class DAOAccount {
             ps.setString(3, account.getRole().name());
             ps.setBoolean(4, account.isActive());
             ps.setString(5, account.getEmail());
+            ps.setString(6, account.getPhone());
 
             java.sql.Timestamp now = new java.sql.Timestamp(System.currentTimeMillis());
-            ps.setTimestamp(6, now);
             ps.setTimestamp(7, now);
+            ps.setTimestamp(8, now);
 
             int rows = ps.executeUpdate();
 
@@ -281,7 +284,7 @@ public class DAOAccount {
      * Update existing account
      */
     public boolean updateAccount(DTOAccount account) {
-        String sql = "UPDATE Account SET Username=?, Role=?, IsActive=?, Email=?, UpdatedAt=? WHERE AccountID=?";
+        String sql = "UPDATE Account SET Username=?, Role=?, IsActive=?, Email=?, Phone=?, UpdatedAt=? WHERE AccountID=?";
 
         try (Connection con = DBUtils.getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
@@ -290,8 +293,9 @@ public class DAOAccount {
             ps.setString(2, account.getRole().name());
             ps.setBoolean(3, account.isActive());
             ps.setString(4, account.getEmail());
-            ps.setTimestamp(5, new java.sql.Timestamp(System.currentTimeMillis()));
-            ps.setInt(6, account.getAccountId());
+            ps.setString(5, account.getPhone());
+            ps.setTimestamp(6, new java.sql.Timestamp(System.currentTimeMillis()));
+            ps.setInt(7, account.getAccountId());
 
             int rows = ps.executeUpdate();
 
@@ -368,7 +372,7 @@ public class DAOAccount {
      */
     public java.util.List<DTOAccount> searchAccounts(String keyword) {
         java.util.List<DTOAccount> list = new java.util.ArrayList<>();
-        String sql = "SELECT AccountID, Username, Password, Role, IsActive, Email, CreatedAt, UpdatedAt FROM Account WHERE Username LIKE ? OR Email LIKE ? ORDER BY CreatedAt DESC";
+        String sql = "SELECT AccountID, Username, Password, Role, IsActive, Email, Phone, CreatedAt, UpdatedAt FROM Account WHERE Username LIKE ? OR Email LIKE ? ORDER BY CreatedAt DESC";
 
         try (Connection con = DBUtils.getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
@@ -385,6 +389,7 @@ public class DAOAccount {
                     account.setRole(Role.valueOf(rs.getString("Role")));
                     account.setActive(rs.getBoolean("IsActive"));
                     account.setEmail(rs.getString("Email"));
+                    account.setPhone(rs.getString("Phone"));
                     account.setCreatedAt(rs.getTimestamp("CreatedAt"));
                     account.setUpdatedAt(rs.getTimestamp("UpdatedAt"));
                     list.add(account);

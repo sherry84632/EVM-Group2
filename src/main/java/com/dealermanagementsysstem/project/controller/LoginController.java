@@ -74,7 +74,7 @@ public class LoginController {
         }
         String role = auth.getAuthorities().iterator().next().getAuthority();
         return switch (role) {
-            case "ROLE_ADMIN", "ROLE_EVM", "ROLE_EVMSTAFF" -> "redirect:/showEVMHomePage";
+            case "ROLE_ADMIN", "ROLE_EVMSTAFF" -> "redirect:/showEVMHomePage";
             case "ROLE_DEALER", "ROLE_DEALERSTAFF" -> "redirect:/showDealerHomePage";
             default -> "redirect:/login?error=role";
         };

@@ -79,6 +79,17 @@
                         <small class="form-text text-muted">Email must be unique and valid format (e.g., user@example.com)</small>
                     </div>
 
+                    <!-- Phone Number (General for all users) -->
+                    <div class="mb-3">
+                        <label for="accountPhone" class="form-label">
+                            <i class="fa-solid fa-phone"></i> Phone Number
+                        </label>
+                        <input type="tel" class="form-control" id="accountPhone" name="accountPhone"
+                               th:value="*{phone}"
+                               placeholder="Enter phone number (optional)">
+                        <small class="form-text text-muted">Contact phone number for this account</small>
+                    </div>
+
                     <!-- New Password (Optional) -->
                     <div class="mb-3">
                         <label for="newPassword" class="form-label">
@@ -180,11 +191,12 @@
                         <!-- Staff Phone -->
                         <div class="mb-3">
                             <label for="staffPhone" class="form-label">
-                                <i class="fa-solid fa-phone"></i> Phone Number
+                                <i class="fa-solid fa-phone"></i> Phone Number <span class="text-danger">*</span>
                             </label>
                             <input type="tel" class="form-control" id="staffPhone" name="staffPhone"
                                    th:value="${account.dealerStaff != null} ? ${account.dealerStaff.phone} : ''"
-                                   placeholder="Enter phone number">
+                                   placeholder="Enter phone number" required>
+                            <small class="form-text text-muted">Required field</small>
                         </div>
 
                         <!-- Staff Email -->

@@ -9,6 +9,7 @@ import com.dealermanagementsysstem.project.Model.DTODealerStaff;
 import com.dealermanagementsysstem.project.Model.DTOAccount;
 import com.dealermanagementsysstem.project.Model.DTODealerLevel;
 import com.dealermanagementsysstem.project.Model.Role;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 @Controller
@@ -40,12 +42,30 @@ public class DealerController {
 
     // View dealer detail with account management
     @GetMapping("/{id}/detail")
-    public String viewDealerDetail(@PathVariable int id, Model model, RedirectAttributes redirectAttributes) {
+    public String viewDealerDetail(@PathVariable int id, Model model, RedirectAttributes redirectAttributes, HttpSession session) {
         try {
             DTODealer dealer = daoDealer.getDealerById(id);
             if (dealer == null) {
                 redirectAttributes.addFlashAttribute("message", " Dealer not found!");
                 return "redirect:/dealer/management";
+            }
+
+            // Check if user is DEALER and can only view their own dealer
+            DTOAccount loggedInAccount = (DTOAccount) session.getAttribute("loggedInAccount");
+            if (loggedInAccount != null &&
+                (loggedInAccount.getRole() == Role.DEALER || loggedInAccount.getRole() == Role.DEALERSTAFF)) {
+
+                // Get dealer ID from logged in account
+                if (loggedInAccount.getDealerStaff() != null &&
+                    loggedInAccount.getDealerStaff().getDealer() != null) {
+                    int userDealerId = loggedInAccount.getDealerStaff().getDealer().getDealerID();
+
+                    // Dealers can only view their own detail
+                    if (id != userDealerId) {
+                        redirectAttributes.addFlashAttribute("message", " You can only view your own dealer information!");
+                        return "redirect:/dealer/" + userDealerId + "/detail";
+                    }
+                }
             }
 
             model.addAttribute("dealer", dealer);
@@ -63,8 +83,32 @@ public class DealerController {
     }
 
     @GetMapping("/management")
-    public String listDealers(Model model, @ModelAttribute("message") String message) throws SQLException {
-        List<DTODealer> dealers = daoDealer.getAllDealers();
+    public String listDealers(Model model, @ModelAttribute("message") String message, HttpSession session) throws SQLException {
+        List<DTODealer> dealers;
+
+        // Get logged in account
+        DTOAccount loggedInAccount = (DTOAccount) session.getAttribute("loggedInAccount");
+
+        // If DEALER or DEALERSTAFF, only show their own dealer
+        if (loggedInAccount != null &&
+            (loggedInAccount.getRole() == Role.DEALER || loggedInAccount.getRole() == Role.DEALERSTAFF)) {
+
+            if (loggedInAccount.getDealerStaff() != null &&
+                loggedInAccount.getDealerStaff().getDealer() != null) {
+                int dealerId = loggedInAccount.getDealerStaff().getDealer().getDealerID();
+                DTODealer dealer = daoDealer.getDealerById(dealerId);
+                dealers = dealer != null ? List.of(dealer) : new ArrayList<>();
+                model.addAttribute("isDealerView", true);
+            } else {
+                dealers = new ArrayList<>();
+                model.addAttribute("isDealerView", true);
+            }
+        } else {
+            // ADMIN - show all dealers
+            dealers = daoDealer.getAllDealers();
+            model.addAttribute("isDealerView", false);
+        }
+
         model.addAttribute("dealers", dealers);
 
         // Load dealer levels for dropdown
@@ -143,9 +187,27 @@ public class DealerController {
             @RequestParam(value = "staffPosition", required = false) String staffPosition,
             @RequestParam(value = "staffPhone", required = false) String staffPhone,
             @RequestParam(value = "staffEmail", required = false) String staffEmail,
+            HttpSession session,
             RedirectAttributes redirectAttributes) {
 
         try {
+            // Security check: DEALER can only create staff for their own dealer
+            DTOAccount loggedInAccount = (DTOAccount) session.getAttribute("loggedInAccount");
+            if (loggedInAccount != null &&
+                (loggedInAccount.getRole() == Role.DEALER || loggedInAccount.getRole() == Role.DEALERSTAFF)) {
+
+                if (loggedInAccount.getDealerStaff() != null &&
+                    loggedInAccount.getDealerStaff().getDealer() != null) {
+                    int userDealerId = loggedInAccount.getDealerStaff().getDealer().getDealerID();
+
+                    // Dealers can only create staff for their own dealer
+                    if (dealerId != userDealerId) {
+                        redirectAttributes.addFlashAttribute("message", " You can only create staff for your own dealer!");
+                        return "redirect:/dealer/" + userDealerId + "/detail";
+                    }
+                }
+            }
+
             // 1. Create Account
             DTOAccount account = new DTOAccount();
             account.setUsername(username.trim());

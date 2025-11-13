@@ -61,6 +61,7 @@
                                 <th>ID</th>
                                 <th>Username</th>
                                 <th>Email</th>
+                                <th>Phone</th>
                                 <th>Role</th>
                                 <th>Status</th>
                                 <th>Created At</th>
@@ -69,7 +70,7 @@
                         </thead>
                         <tbody>
                             <tr th:if="${accounts == null || accounts.isEmpty()}">
-                                <td colspan="7" class="text-center text-muted">
+                                <td colspan="8" class="text-center text-muted">
                                     <i class="fa-solid fa-inbox"></i> No accounts found
                                 </td>
                             </tr>
@@ -78,6 +79,14 @@
                                 <td>
                                     <i class="fa-solid fa-user"></i>
                                     <span th:text="${account.username}"></span>
+                                </td>
+                                <td>
+                                    <i class="fa-solid fa-envelope"></i>
+                                    <span th:text="${account.email}"></span>
+                                </td>
+                                <td>
+                                    <i class="fa-solid fa-phone"></i>
+                                    <span th:text="${account.phone != null && !account.phone.isEmpty() ? account.phone : 'N/A'}"></span>
                                 </td>
                                 <td>
                                     <i class="fa-solid fa-envelope"></i>

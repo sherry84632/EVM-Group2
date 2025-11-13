@@ -14,7 +14,6 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Controller
@@ -48,13 +47,17 @@ public class AccountController {
         return "evmPage/accountList";
     }
 
-    //  Show create account form
+    //  Show create account form - ADMIN only
     @GetMapping("/create")
     public String showCreateForm(Model model) {
         model.addAttribute("account", new DTOAccount());
-        model.addAttribute("roles", Role.values());
 
-        // Load dealers for DEALERSTAFF role
+        // ADMIN can only create EVMSTAFF and DEALER roles
+        // DEALERSTAFF is created by dealers themselves via /dealer/{id}/staff/create
+        List<Role> allowedRoles = List.of(Role.ADMIN, Role.EVMSTAFF, Role.DEALER);
+        model.addAttribute("roles", allowedRoles);
+
+        // Load dealers for reference
         try {
             List<DTODealer> dealers = daoDealer.getAllDealers();
             model.addAttribute("dealers", dealers);
@@ -65,7 +68,7 @@ public class AccountController {
         return "evmPage/accountCreate";
     }
 
-    //  Save new account
+    //  Save new account - ADMIN can create ADMIN, EVMSTAFF, and DEALER roles only
     @PostMapping("/save")
     public String saveAccount(
             @RequestParam("username") String username,
@@ -73,248 +76,135 @@ public class AccountController {
             @RequestParam("password") String password,
             @RequestParam("role") String roleStr,
             @RequestParam(value = "isActive", defaultValue = "false") boolean isActive,
-
-            // DEALER fields (for DEALER role)
-            @RequestParam(value = "dealerName", required = false) String dealerName,
-            @RequestParam(value = "dealerAddress", required = false) String dealerAddress,
-            @RequestParam(value = "dealerPhone", required = false) String dealerPhone,
-            @RequestParam(value = "dealerEmail", required = false) String dealerEmail,
-            @RequestParam(value = "levelId", required = false) Integer levelId,
-            @RequestParam(value = "evmId", required = false) Integer evmId,
-
-            // DealerStaff fields (only for DEALERSTAFF role)
-            @RequestParam(value = "staffFullName", required = false) String staffFullName,
-            @RequestParam(value = "staffPosition", required = false) String staffPosition,
-            @RequestParam(value = "staffPhone", required = false) String staffPhone,
-            @RequestParam(value = "staffEmail", required = false) String staffEmail,
-            @RequestParam(value = "dealerId", required = false) Integer dealerId,
+            @RequestParam(value = "accountPhone", required = false) String accountPhone,
+            @RequestParam(value = "selectedDealerId", required = false) Integer selectedDealerId,
             RedirectAttributes redirectAttributes,
             Model model) {
 
         // Validation
         if (username == null || username.trim().isEmpty()) {
-            model.addAttribute("errorMessage", " Username is required!");
-            model.addAttribute("roles", Role.values());
+            model.addAttribute("errorMessage", "⚠️ Username is required!");
+            model.addAttribute("roles", List.of(Role.ADMIN, Role.EVMSTAFF, Role.DEALER));
             loadDealersForForm(model);
             return "evmPage/accountCreate";
         }
 
         if (email == null || email.trim().isEmpty()) {
-            model.addAttribute("errorMessage", " Email is required!");
-            model.addAttribute("roles", Role.values());
+            model.addAttribute("errorMessage", "⚠️ Email is required!");
+            model.addAttribute("roles", List.of(Role.ADMIN, Role.EVMSTAFF, Role.DEALER));
             loadDealersForForm(model);
             return "evmPage/accountCreate";
         }
 
-        // Validate email format
         if (!isValidEmail(email)) {
-            model.addAttribute("errorMessage", " Email format is invalid! Please use format: example@domain.com");
-            model.addAttribute("roles", Role.values());
+            model.addAttribute("errorMessage", "⚠️ Email format is invalid!");
+            model.addAttribute("roles", List.of(Role.ADMIN, Role.EVMSTAFF, Role.DEALER));
             loadDealersForForm(model);
             return "evmPage/accountCreate";
         }
 
         if (password == null || password.trim().isEmpty()) {
-            model.addAttribute("errorMessage", " Password is required!");
-            model.addAttribute("roles", Role.values());
+            model.addAttribute("errorMessage", "⚠️ Password is required!");
+            model.addAttribute("roles", List.of(Role.ADMIN, Role.EVMSTAFF, Role.DEALER));
             loadDealersForForm(model);
             return "evmPage/accountCreate";
         }
 
-        // Check if email already exists
         if (daoAccount.emailExists(email, null)) {
-            model.addAttribute("errorMessage", " Email already exists!");
-            model.addAttribute("roles", Role.values());
+            model.addAttribute("errorMessage", "⚠️ Email already exists!");
+            model.addAttribute("roles", List.of(Role.ADMIN, Role.EVMSTAFF, Role.DEALER));
             loadDealersForForm(model);
             return "evmPage/accountCreate";
         }
 
-        // Additional validation for DEALERSTAFF role
         Role role = Role.valueOf(roleStr);
 
+        if (role == Role.DEALERSTAFF) {
+            model.addAttribute("errorMessage", "⚠️ DEALERSTAFF accounts must be created through Dealer Staff Management!");
+            model.addAttribute("roles", List.of(Role.ADMIN, Role.EVMSTAFF, Role.DEALER));
+            loadDealersForForm(model);
+            return "evmPage/accountCreate";
+        }
+
         if (role == Role.DEALER) {
-            // Validation for DEALER role
-            if (dealerName == null || dealerName.trim().isEmpty()) {
-                model.addAttribute("errorMessage", " Dealer Name is required for Dealer role!");
-                model.addAttribute("roles", Role.values());
+            if (selectedDealerId == null || selectedDealerId <= 0) {
+                model.addAttribute("errorMessage", "⚠️ Please select a dealer company!");
+                model.addAttribute("roles", List.of(Role.ADMIN, Role.EVMSTAFF, Role.DEALER));
                 loadDealersForForm(model);
                 return "evmPage/accountCreate";
             }
-            if (dealerPhone == null || dealerPhone.trim().isEmpty()) {
-                model.addAttribute("errorMessage", " Dealer Phone is required for Dealer role!");
-                model.addAttribute("roles", Role.values());
-                loadDealersForForm(model);
-                return "evmPage/accountCreate";
-            }
-            if (dealerEmail == null || dealerEmail.trim().isEmpty()) {
-                model.addAttribute("errorMessage", " Dealer Email is required for Dealer role!");
-                model.addAttribute("roles", Role.values());
-                loadDealersForForm(model);
-                return "evmPage/accountCreate";
-            }
-            if (!isValidEmail(dealerEmail)) {
-                model.addAttribute("errorMessage", " Dealer Email format is invalid!");
-                model.addAttribute("roles", Role.values());
-                loadDealersForForm(model);
-                return "evmPage/accountCreate";
-            }
-            // Set default levelId to 1 if not provided
-            if (levelId == null || levelId <= 0) {
-                levelId = 1; // Default to Level 1 (Bronze)
-            }
-        } else if (role == Role.DEALERSTAFF) {
-            // Validation for DEALERSTAFF role
-            if (staffFullName == null || staffFullName.trim().isEmpty()) {
-                model.addAttribute("errorMessage", " Full Name is required for Dealer Staff!");
-                model.addAttribute("roles", Role.values());
-                loadDealersForForm(model);
-                return "evmPage/accountCreate";
-            }
-            if (staffEmail == null || staffEmail.trim().isEmpty()) {
-                model.addAttribute("errorMessage", " Staff Email is required for Dealer Staff!");
-                model.addAttribute("roles", Role.values());
-                loadDealersForForm(model);
-                return "evmPage/accountCreate";
-            }
-            if (!isValidEmail(staffEmail)) {
-                model.addAttribute("errorMessage", " Staff Email format is invalid!");
-                model.addAttribute("roles", Role.values());
-                loadDealersForForm(model);
-                return "evmPage/accountCreate";
-            }
-            if (dealerId == null || dealerId <= 0) {
-                model.addAttribute("errorMessage", " Please select a Dealer for Dealer Staff!");
-                model.addAttribute("roles", Role.values());
+
+            try {
+                DTODealer existingDealer = daoDealer.getDealerById(selectedDealerId);
+                if (existingDealer == null) {
+                    model.addAttribute("errorMessage", "⚠️ Selected dealer not found!");
+                    model.addAttribute("roles", List.of(Role.ADMIN, Role.EVMSTAFF, Role.DEALER));
+                    loadDealersForForm(model);
+                    return "evmPage/accountCreate";
+                }
+            } catch (Exception e) {
+                model.addAttribute("errorMessage", "⚠️ Error validating dealer: " + e.getMessage());
+                model.addAttribute("roles", List.of(Role.ADMIN, Role.EVMSTAFF, Role.DEALER));
                 loadDealersForForm(model);
                 return "evmPage/accountCreate";
             }
         }
 
         try {
-            // 1. Create Account
             DTOAccount account = new DTOAccount();
             account.setUsername(username.trim());
             account.setEmail(email.trim());
-
-            // Hash password using BCrypt
-            String hashedPassword = passwordEncoder.encode(password);
-            account.setPassword(hashedPassword);
-
+            account.setPassword(passwordEncoder.encode(password));
             account.setRole(role);
+            account.setPhone(accountPhone != null ? accountPhone.trim() : null);
             account.setActive(isActive);
 
             int accountId = daoAccount.insertAccount(account);
 
             if (accountId <= 0) {
-                model.addAttribute("errorMessage", " Failed to create account!");
-                model.addAttribute("roles", Role.values());
+                model.addAttribute("errorMessage", "⚠️ Failed to create account!");
+                model.addAttribute("roles", List.of(Role.ADMIN, Role.EVMSTAFF, Role.DEALER));
                 loadDealersForForm(model);
                 return "evmPage/accountCreate";
             }
 
-            // 2. Create Dealer if role is DEALER
             if (role == Role.DEALER) {
-                DTODealer dealer = new DTODealer();
-                dealer.setDealerName(dealerName.trim());
-                dealer.setAddress(dealerAddress != null ? dealerAddress.trim() : "");
-                dealer.setPhone(dealerPhone.trim());
-                dealer.setEmail(dealerEmail.trim());
-
-                // Set default levelId to 1 if not provided (already done in validation)
-                dealer.setLevelID(levelId);
-
-                // Set policyID to 0 (will be NULL in database)
-                dealer.setPolicyID(0);
-
-                // Set default evmID to 1 (or 0 for NULL in database)
-                dealer.setEvmID(evmId != null ? evmId : 1);
-
-                int newDealerId = daoDealer.insertDealer(dealer);
-
-                if (newDealerId <= 0) {
-                    // Rollback: delete the account we just created
-                    daoAccount.deleteAccount(accountId);
-                    model.addAttribute("errorMessage", " Failed to create dealer record!");
-                    model.addAttribute("roles", Role.values());
-                    loadDealersForForm(model);
-                    return "evmPage/accountCreate";
-                }
-
-                // 3. Create DealerStaff for the Dealer owner (the account itself becomes a staff)
                 DTODealerStaff ownerStaff = new DTODealerStaff();
-                ownerStaff.setFullName(dealerName.trim() + " Owner"); // Default name
+                ownerStaff.setFullName(username.trim() + " (Owner)");
                 ownerStaff.setPosition("Owner");
-                ownerStaff.setPhone(dealerPhone.trim());
-                ownerStaff.setEmail(dealerEmail.trim());
+                ownerStaff.setPhone("");
+                ownerStaff.setEmail(email.trim());
 
-                // Set account reference
                 DTOAccount accountRef = new DTOAccount();
                 accountRef.setAccountId(accountId);
                 ownerStaff.setAccount(accountRef);
 
-                // Set dealer reference (the newly created dealer)
                 DTODealer dealerRef = new DTODealer();
-                dealerRef.setDealerID(newDealerId);
+                dealerRef.setDealerID(selectedDealerId);
                 ownerStaff.setDealer(dealerRef);
 
                 int staffId = daoDealerStaff.insertDealerStaff(ownerStaff);
 
                 if (staffId <= 0) {
-                    // Rollback: delete dealer and account
-                    daoDealer.deleteDealer(newDealerId);
                     daoAccount.deleteAccount(accountId);
-                    model.addAttribute("errorMessage", " Failed to create dealer staff record!");
-                    model.addAttribute("roles", Role.values());
+                    model.addAttribute("errorMessage", "⚠️ Failed to create dealer staff record!");
+                    model.addAttribute("roles", List.of(Role.ADMIN, Role.EVMSTAFF, Role.DEALER));
                     loadDealersForForm(model);
                     return "evmPage/accountCreate";
                 }
 
                 redirectAttributes.addFlashAttribute("successMessage",
-                    " Dealer Account created successfully! (Dealer ID: " + newDealerId + ", Account ID: " + accountId + ")");
-
-            } else if (role == Role.DEALERSTAFF) {
-                // 2. Create DealerStaff if role is DEALERSTAFF
-                DTODealerStaff staff = new DTODealerStaff();
-                staff.setFullName(staffFullName.trim());
-                staff.setPosition(staffPosition); // DAO will auto-fill "Sales" if null/empty
-                staff.setPhone(staffPhone != null ? staffPhone.trim() : "");
-                staff.setEmail(staffEmail != null ? staffEmail.trim() : email.trim());
-
-                // Set account reference
-                DTOAccount accountRef = new DTOAccount();
-                accountRef.setAccountId(accountId);
-                staff.setAccount(accountRef);
-
-                // Set dealer reference
-                DTODealer dealerRef = new DTODealer();
-                dealerRef.setDealerID(dealerId);
-                staff.setDealer(dealerRef);
-
-                int staffId = daoDealerStaff.insertDealerStaff(staff);
-
-                if (staffId <= 0) {
-                    // Rollback: delete the account we just created
-                    daoAccount.deleteAccount(accountId);
-                    model.addAttribute("errorMessage", " Failed to create dealer staff record!");
-                    model.addAttribute("roles", Role.values());
-                    loadDealersForForm(model);
-                    return "evmPage/accountCreate";
-                }
-
-                redirectAttributes.addFlashAttribute("successMessage",
-                    " Account and Dealer Staff created successfully! (Account ID: " + accountId + ", Staff ID: " + staffId + ")");
+                    "✅ Dealer Account created successfully! (Account ID: " + accountId + ", Dealer ID: " + selectedDealerId + ")");
             } else {
                 redirectAttributes.addFlashAttribute("successMessage",
-                    " Account created successfully! (ID: " + accountId + ")");
+                    "✅ Account created successfully! (ID: " + accountId + ")");
             }
 
             return "redirect:/account/list";
 
         } catch (Exception e) {
-            System.out.println(" Error creating account: " + e.getMessage());
-            e.printStackTrace();
-            model.addAttribute("errorMessage", " Error: " + e.getMessage());
-            model.addAttribute("roles", Role.values());
+            model.addAttribute("errorMessage", "⚠️ Error: " + e.getMessage());
+            model.addAttribute("roles", List.of(Role.ADMIN, Role.EVMSTAFF, Role.DEALER));
             loadDealersForForm(model);
             return "evmPage/accountCreate";
         }
@@ -348,6 +238,7 @@ public class AccountController {
             @RequestParam("role") String roleStr,
             @RequestParam(value = "isActive", defaultValue = "false") boolean isActive,
             @RequestParam(value = "newPassword", required = false) String newPassword,
+            @RequestParam(value = "accountPhone", required = false) String accountPhone,
             // DealerStaff fields (only for DEALERSTAFF role)
             @RequestParam(value = "staffFullName", required = false) String staffFullName,
             @RequestParam(value = "staffPosition", required = false) String staffPosition,
@@ -402,14 +293,21 @@ public class AccountController {
         Role newRole = Role.valueOf(roleStr);
         if (newRole == Role.DEALERSTAFF) {
             if (staffFullName == null || staffFullName.trim().isEmpty()) {
-                model.addAttribute("errorMessage", " Full Name is required for Dealer Staff!");
+                model.addAttribute("errorMessage", "⚠️ Full Name is required for Dealer Staff!");
+                model.addAttribute("account", account);
+                model.addAttribute("roles", Role.values());
+                loadDealersForForm(model);
+                return "evmPage/accountEdit";
+            }
+            if (staffPhone == null || staffPhone.trim().isEmpty()) {
+                model.addAttribute("errorMessage", "⚠️ Phone is required for Dealer Staff!");
                 model.addAttribute("account", account);
                 model.addAttribute("roles", Role.values());
                 loadDealersForForm(model);
                 return "evmPage/accountEdit";
             }
             if (dealerId == null || dealerId <= 0) {
-                model.addAttribute("errorMessage", " Please select a Dealer for Dealer Staff!");
+                model.addAttribute("errorMessage", "⚠️ Please select a Dealer for Dealer Staff!");
                 model.addAttribute("account", account);
                 model.addAttribute("roles", Role.values());
                 loadDealersForForm(model);
@@ -419,6 +317,7 @@ public class AccountController {
 
         try {
             account.setUsername(username.trim());
+            account.setPhone(accountPhone != null ? accountPhone.trim() : null);
             account.setEmail(email.trim());
 
             Role oldRole = account.getRole();
@@ -500,12 +399,28 @@ public class AccountController {
     //  Delete account
     @PostMapping("/delete/{id}")
     public String deleteAccount(@PathVariable("id") int id, RedirectAttributes redirectAttributes) {
-        boolean success = daoAccount.deleteAccount(id);
+        try {
+            boolean success = daoAccount.deleteAccount(id);
 
-        if (success) {
-            redirectAttributes.addFlashAttribute("successMessage", "🗑 Account deleted successfully!");
-        } else {
-            redirectAttributes.addFlashAttribute("errorMessage", " Failed to delete account!");
+            if (success) {
+                redirectAttributes.addFlashAttribute("successMessage", "🗑 Account deleted successfully!");
+            } else {
+                redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Failed to delete account!");
+            }
+        } catch (Exception e) {
+            // Check if it's a foreign key constraint error
+            if (e.getMessage() != null && (
+                e.getMessage().contains("REFERENCE constraint") ||
+                e.getMessage().contains("foreign key") ||
+                e.getMessage().contains("SaleOrder") ||
+                e.getMessage().contains("StaffID") ||
+                e.getMessage().contains("DealerStaff"))) {
+                redirectAttributes.addFlashAttribute("errorMessage",
+                    "⚠️ Cannot delete account! This account has related data (sale orders, staff records, etc.). " +
+                    "Please remove or reassign related data first.");
+            } else {
+                redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Error deleting account: " + e.getMessage());
+            }
         }
 
         return "redirect:/account/list";
