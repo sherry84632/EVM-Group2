@@ -312,33 +312,73 @@ public class PurchaseOrderController {
                 model.addAttribute("message", "Order not found!");
                 return "dealerPage/orderStatusList";
             }
-
+            boolean needsRecalc = false;
+            // --- Detect wrong unit price logic (unit price ~= basePrice * (1 - manufacturerSharePercent/100)) when dealer discount is small ---
+            if (order.getOrderDetails() != null && !order.getOrderDetails().isEmpty()) {
+                Double dealerDisc = order.getPolicyDiscountPercent();
+                for (DTOPurchaseOrderDetail d : order.getOrderDetails()) {
+                    java.math.BigDecimal base = d.getBasePrice();
+                    java.math.BigDecimal unit = d.getUnitPrice();
+                    if (base != null && unit != null && dealerDisc != null && dealerDisc >= 0) {
+                        java.math.BigDecimal expected = base;
+                        if (dealerDisc > 0) expected = base.subtract(base.multiply(java.math.BigDecimal.valueOf(dealerDisc / 100.0)));
+                        if (order.getManufacturerSharePercent() != null) {
+                            double manufShare = order.getManufacturerSharePercent();
+                            java.math.BigDecimal wrongPattern = base.multiply(java.math.BigDecimal.valueOf((100.0 - manufShare) / 100.0));
+                            if (unit.subtract(wrongPattern).abs().doubleValue() < 0.01) { needsRecalc = true; break; }
+                        }
+                        if (unit.subtract(expected).abs().doubleValue() > base.doubleValue() * 0.01) { needsRecalc = true; break; }
+                    }
+                }
+            }
+            if (needsRecalc) {
+                int fixed = daoPurchaseOrder.recalcDetailPrices(id);
+                if (fixed > 0) {
+                    order = daoPurchaseOrder.getPurchaseOrderById(id);
+                    model.addAttribute("fixMessage", "Auto-corrected " + fixed + " detail price(s) based on dealer discount.");
+                }
+            }
             model.addAttribute("order", order);
-
-            // Add VAT rate from configuration (configurable, default 10%)
-            model.addAttribute("vatRate", businessConfig.getVat().getRate());
-
-            // Load danh sach xe da ve kho cho don hang nay
+            Double vatRateConfig = businessConfig.getVat().getRate();
+            model.addAttribute("vatRate", vatRateConfig);
             List<DTODealerInventory> inventoryVehicles = daoDealerInventory.getInventoryByPurchaseOrderId(id);
             model.addAttribute("inventoryVehicles", inventoryVehicles);
-
-            // Calculate payment summary
             if (order.getOrderDetails() != null && !order.getOrderDetails().isEmpty()) {
                 long totalItems = order.getOrderDetails().size();
-                long paidItems = order.getOrderDetails().stream()
-                        .filter(d -> "PAID".equals(d.getPaymentStatus()))
-                        .count();
-                long unpaidItems = totalItems - paidItems;
-                boolean allPaid = unpaidItems == 0;
-
+                long paidItems = order.getOrderDetails().stream().filter(d -> "PAID".equals(d.getPaymentStatus())).count();
+                long unpaidItems = totalItems - paidItems; boolean allPaid = unpaidItems == 0;
                 model.addAttribute("paymentTotalItems", totalItems);
                 model.addAttribute("paymentPaidItems", paidItems);
                 model.addAttribute("paymentUnpaidItems", unpaidItems);
                 model.addAttribute("paymentAllPaid", allPaid);
             }
-
-            System.out.println("Loaded " + (inventoryVehicles != null ? inventoryVehicles.size() : 0)
-                             + " inventory vehicles for order #" + id);
+            // Invoice calculations
+            java.math.BigDecimal gross = java.math.BigDecimal.ZERO;
+            java.math.BigDecimal net = order.getTotalAmount() != null ? order.getTotalAmount() : java.math.BigDecimal.ZERO; // stored pre-VAT discounted total
+            if (order.getOrderDetails() != null) {
+                for (DTOPurchaseOrderDetail d : order.getOrderDetails()) {
+                    java.math.BigDecimal base = d.getBasePrice();
+                    int qty = d.getQuantity();
+                    if (base != null) gross = gross.add(base.multiply(java.math.BigDecimal.valueOf(qty)));
+                    else if (d.getSubtotal() != null) gross = gross.add(d.getSubtotal());
+                }
+            }
+            if (gross.compareTo(net) < 0) gross = net;
+            Double discountPercent = order.getPolicyDiscountPercent();
+            java.math.BigDecimal discountAmount = gross.subtract(net);
+            if (discountPercent == null && gross.compareTo(java.math.BigDecimal.ZERO) > 0 && discountAmount.compareTo(java.math.BigDecimal.ZERO) > 0) {
+                discountPercent = discountAmount.multiply(java.math.BigDecimal.valueOf(100)).divide(gross, java.math.MathContext.DECIMAL64).doubleValue();
+            }
+            model.addAttribute("invoiceGross", gross);
+            model.addAttribute("invoiceNet", net);
+            model.addAttribute("invoiceDiscountAmount", discountAmount);
+            model.addAttribute("invoiceDiscountPercent", discountPercent != null ? discountPercent : 0.0);
+            // Compute total with VAT for clarity (net + VAT)
+            double vatPercent = vatRateConfig != null ? vatRateConfig : 10.0;
+            java.math.BigDecimal vatAmount = net.multiply(java.math.BigDecimal.valueOf(vatPercent / 100.0));
+            java.math.BigDecimal totalWithVat = net.add(vatAmount);
+            model.addAttribute("invoiceVatAmount", vatAmount);
+            model.addAttribute("invoiceTotalWithVat", totalWithVat);
 
             return "dealerPage/orderDetail";
         } catch (Exception e) {
@@ -375,6 +415,20 @@ public class PurchaseOrderController {
     public String deleteOrder(@PathVariable int id) {
         int result = daoPurchaseOrder.deletePurchaseOrder(id);
         return result > 0 ? "Deleted successfully" : "Delete failed";
+    }
+
+    /**
+     * Force manual recalculation of order detail prices
+     */
+    @GetMapping("/detail/{id}/recalc")
+    public String forceRecalc(@PathVariable int id, RedirectAttributes redirectAttributes) {
+        try {
+            int fixed = daoPurchaseOrder.recalcDetailPrices(id);
+            redirectAttributes.addFlashAttribute("fixMessage", "Manual price recalculation applied: " + fixed + " detail line(s) updated.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("fixMessage", "Recalc error: " + e.getMessage());
+        }
+        return "redirect:/orderdealer/detail/" + id;
     }
 
 

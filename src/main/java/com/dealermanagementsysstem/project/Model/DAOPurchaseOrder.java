@@ -522,4 +522,61 @@ public class DAOPurchaseOrder {
         } catch (SQLException e) { e.printStackTrace(); }
         return BigDecimal.ZERO;
     }
+
+    // 🔹 Cập nhật tổng giá trị đơn hàng
+    public boolean updatePurchaseOrderTotal(int purchaseOrderId, java.math.BigDecimal newTotal) {
+        if (newTotal == null) return false;
+        String sql = "UPDATE PurchaseOrder SET TotalAmount = ? WHERE PurchaseOrderID = ?";
+        try (java.sql.Connection conn = DBUtils.getConnection(); java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setBigDecimal(1, newTotal);
+            ps.setInt(2, purchaseOrderId);
+            return ps.executeUpdate() > 0;
+        } catch (java.sql.SQLException e) { e.printStackTrace(); }
+        return false;
+    }
+
+    // Recalculate all detail unit prices & subtotals using DiscountPolicy.DiscountPercent (not HangPercent)
+    public int recalcDetailPrices(int purchaseOrderId) {
+        String selectSql = "SELECT pod.PODetailID, pod.Quantity, vm.BasePrice, pol.DiscountPercent AS PolicyDiscountPercent, adj.DiscountPercent AS AdjustmentDiscountPercent " +
+                "FROM PurchaseOrderDetail pod " +
+                "JOIN VehicleVersion vv ON pod.VersionID = vv.VersionID " +
+                "JOIN VehicleModel vm ON vv.ModelID = vm.ModelID " +
+                "LEFT JOIN PurchaseOrder po ON pod.PurchaseOrderID = po.PurchaseOrderID " +
+                "LEFT JOIN Dealer d ON po.DealerID = d.DealerID " +
+                "OUTER APPLY (SELECT TOP 1 DiscountPercent FROM DiscountPolicy dp WHERE dp.DealerID = d.DealerID ORDER BY dp.CreatedAt DESC) pol " +
+                "OUTER APPLY (SELECT TOP 1 DiscountPercent FROM DealerPriceAdjustment ap WHERE ap.DealerID = d.DealerID AND ap.StartDate <= GETDATE() AND (ap.EndDate IS NULL OR ap.EndDate >= GETDATE()) ORDER BY ap.StartDate DESC) adj " +
+                "WHERE pod.PurchaseOrderID = ?";
+        String updateSql = "UPDATE PurchaseOrderDetail SET UnitPrice = ?, Subtotal = ? WHERE PODetailID = ?";
+        int updated = 0; java.math.BigDecimal newTotal = java.math.BigDecimal.ZERO;
+        try (java.sql.Connection conn = DBUtils.getConnection();
+             java.sql.PreparedStatement psSel = conn.prepareStatement(selectSql);
+             java.sql.PreparedStatement psUpd = conn.prepareStatement(updateSql)) {
+            psSel.setInt(1, purchaseOrderId);
+            try (java.sql.ResultSet rs = psSel.executeQuery()) {
+                while (rs.next()) {
+                    int detailId = rs.getInt("PODetailID");
+                    int qty = rs.getInt("Quantity");
+                    java.math.BigDecimal base = rs.getBigDecimal("BasePrice");
+                    Double policyDisc = rs.getObject("PolicyDiscountPercent", Double.class);
+                    Double adjustDisc = rs.getObject("AdjustmentDiscountPercent", Double.class);
+                    if (base == null) base = java.math.BigDecimal.ZERO;
+                    // effective discount: prefer policy discount; else dealer price adjustment; else 0
+                    Double effectiveDisc = policyDisc != null ? policyDisc : adjustDisc;
+                    java.math.BigDecimal unit = base;
+                    if (effectiveDisc != null && effectiveDisc > 0) {
+                        unit = base.subtract(base.multiply(java.math.BigDecimal.valueOf(effectiveDisc / 100.0)));
+                    }
+                    java.math.BigDecimal sub = unit.multiply(java.math.BigDecimal.valueOf(Math.max(1, qty)));
+                    psUpd.setBigDecimal(1, unit);
+                    psUpd.setBigDecimal(2, sub);
+                    psUpd.setInt(3, detailId);
+                    if (psUpd.executeUpdate() > 0) {
+                        updated++; newTotal = newTotal.add(sub);
+                    }
+                }
+            }
+            if (updated > 0) { updatePurchaseOrderTotal(purchaseOrderId, newTotal); }
+        } catch (java.sql.SQLException e) { e.printStackTrace(); }
+        return updated;
+    }
 }

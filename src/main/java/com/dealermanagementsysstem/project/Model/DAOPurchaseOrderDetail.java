@@ -58,11 +58,11 @@ public class DAOPurchaseOrderDetail {
     public BigDecimal computeUnitPrice(int versionId, Integer dealerId) {
         String sql = """
             SELECT vm.BasePrice,
-                   pol.HangPercent AS DiscountPercent
+                   pol.DiscountPercent AS DealerDiscountPercent
             FROM VehicleVersion vv
             JOIN VehicleModel vm ON vv.ModelID = vm.ModelID
             OUTER APPLY (
-                SELECT TOP 1 HangPercent
+                SELECT TOP 1 DiscountPercent
                 FROM DiscountPolicy pol
                 WHERE (? IS NULL OR pol.DealerID = ?)
                 ORDER BY pol.CreatedAt DESC
@@ -77,19 +77,16 @@ public class DAOPurchaseOrderDetail {
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     BigDecimal base = rs.getBigDecimal("BasePrice");
-                    java.math.BigDecimal discountPercentBD = rs.getBigDecimal("DiscountPercent");
-                    Double discountPercent = discountPercentBD != null ? discountPercentBD.doubleValue() : null;
+                    Double dealerDiscountPct = rs.getObject("DealerDiscountPercent", Double.class);
                     if (base == null) return BigDecimal.ZERO;
-                    if (discountPercent != null && discountPercent > 0) {
-                        BigDecimal discount = base.multiply(BigDecimal.valueOf(discountPercent / 100.0));
-                        return base.subtract(discount);
+                    if (dealerDiscountPct != null && dealerDiscountPct > 0) {
+                        BigDecimal discountAmt = base.multiply(BigDecimal.valueOf(dealerDiscountPct / 100.0));
+                        return base.subtract(discountAmt);
                     }
                     return base;
                 }
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        } catch (SQLException e) { e.printStackTrace(); }
         return BigDecimal.ZERO;
     }
 
@@ -183,5 +180,19 @@ public class DAOPurchaseOrderDetail {
             e.printStackTrace();
         }
         return "N/A";
+    }
+
+    // --- NEW: Cập nhật lại đơn giá và subtotal cho 1 dòng chi tiết (fix giá sai) ---
+    public boolean updateUnitAndSubtotal(int poDetailId, BigDecimal newUnitPrice, int quantity) {
+        if (newUnitPrice == null) return false;
+        BigDecimal newSubtotal = newUnitPrice.multiply(BigDecimal.valueOf(Math.max(1, quantity)));
+        String sql = "UPDATE PurchaseOrderDetail SET UnitPrice = ?, Subtotal = ? WHERE PODetailID = ?";
+        try (Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setBigDecimal(1, newUnitPrice);
+            ps.setBigDecimal(2, newSubtotal);
+            ps.setInt(3, poDetailId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) { e.printStackTrace(); }
+        return false;
     }
 }
