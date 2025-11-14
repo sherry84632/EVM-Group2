@@ -113,8 +113,8 @@
 
                 <div th:each="vehicle : ${vehicleList}" class="dv-card">
                     <div class="dv-checkbox-wrapper">
-                        <input type="checkbox" class="form-check-input vehicle-select-checkbox"
-                               th:data-vid="${vehicle.vehicleID}" />
+                        <input type="checkbox" class="form-check-input vehicle-select-checkbox" th:id="${'selectVeh_' + vehicle.vehicleID}" th:data-vid="${vehicle.vehicleID}" />
+                        <label th:for="${'selectVeh_' + vehicle.vehicleID}" class="visually-hidden">Select vehicle</label>
                     </div>
 
                     <div class="dv-model-name">
@@ -140,7 +140,7 @@
                         <div class="dv-meta-row">
                             <span class="dv-label"><i class="fas fa-dollar-sign"></i> Base Price</span>
                             <span class="dv-value">
-                                <span class="dv-price-tag" th:text="${#numbers.formatDecimal(vehicle.basePrice != null ? vehicle.basePrice : 0, 0, 'COMMA', 0, 'POINT') + ' VND'}"></span>
+                                <span class="dv-price-tag" th:text="${'$' + #numbers.formatDecimal(vehicle.basePrice != null ? vehicle.basePrice : 0,0,0)}"></span>
                             </span>
                         </div>
 
@@ -153,10 +153,7 @@
 
                         <div class="dv-meta-row">
                             <span class="dv-label"><i class="fas fa-hashtag"></i> Quantity</span>
-                            <input type="number" min="1" value="1"
-                                   class="form-control form-control-sm per-vehicle-qty"
-                                   th:data-vid="${vehicle.vehicleID}"
-                                   style="max-width: 100px;" />
+                            <input type="number" min="1" value="1" aria-label="Quantity" class="form-control form-control-sm per-vehicle-qty" th:data-vid="${vehicle.vehicleID}" style="max-width: 100px;" />
                         </div>
 
                         <div class="vehicle-image-container">
@@ -164,15 +161,7 @@
                                th:href="@{/evm/vehicle/detail/{id}(id=${vehicle.vehicleID})}"
                                target="_blank"
                                style="display: block; cursor: pointer;">
-                                <img th:if="${vehicle.version != null and vehicle.version.model != null and vehicle.version.model.modelID != null}"
-                                     th:src="@{/evm/vehicle/modelImage/{modelId}(modelId=${vehicle.version.model.modelID})}"
-                                     alt="Model Image"
-                                     class="vehicle-image-bbg"
-                                     style="cursor: pointer; transition: transform 0.3s ease; max-height: 180px; width: 100%; object-fit: cover; border-radius: 8px;"
-                                     onmouseover="this.style.transform='scale(1.05)'"
-                                     onmouseout="this.style.transform='scale(1)'"
-                                     onload="this.nextElementSibling?.style.display='none';"
-                                     onerror="this.style.display='none'; this.nextElementSibling?.style.display='block';"/>
+                                <img th:if="${vehicle.version != null and vehicle.version.model != null and vehicle.version.model.modelID != null}" th:src="@{/evm/vehicle/modelImage/{modelId}(modelId=${vehicle.version.model.modelID})}" alt="Model Image" class="vehicle-image-bbg" style="cursor: pointer; transition: transform 0.3s ease; max-height: 180px; width: 100%; object-fit: cover; border-radius: 8px;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'" onload="if(this.nextElementSibling){this.nextElementSibling.style.display='none';}" onerror="this.style.display='none'; if(this.nextElementSibling){this.nextElementSibling.style.display='block';}" />
                                 <div style="display: none; text-align: center; padding: 40px; background: #f8f9fa; border-radius: 8px;">
                                     <i class="fas fa-image fa-3x text-muted"></i>
                                     <p class="mt-2 text-muted">No Image</p>
@@ -272,4 +261,3 @@
 </body>
 
 </html>
-

@@ -1,12 +1,14 @@
 package com.dealermanagementsysstem.project.controller;
 
 import com.dealermanagementsysstem.project.Model.*;
+import com.dealermanagementsysstem.project.configuration.BusinessConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.sql.Date;
 import java.util.List;
@@ -20,6 +22,9 @@ public class EVMOrderController {
 
     @Autowired
     private DAOPurchaseOrderDetail daoPurchaseOrderDetail;
+
+    @Autowired
+    private BusinessConfig businessConfig;
 
     // 🔹 Hiển thị toàn bộ danh sách đơn hàng (EVM xem)
     @GetMapping("/list") // changed from /evmOrderList to /list under /evm/orders
@@ -96,6 +101,34 @@ public class EVMOrderController {
                 model.addAttribute("paymentUnpaidItems", unpaidItems);
                 model.addAttribute("paymentAllPaid", allPaid);
             }
+
+            // --- VAT & pricing breakdown (mirror dealer side) ---
+            BigDecimal gross = BigDecimal.ZERO; // sum of base price * qty
+            BigDecimal net = order.getTotalAmount() != null ? order.getTotalAmount() : BigDecimal.ZERO; // stored pre-VAT
+            if (order.getOrderDetails() != null) {
+                for (DTOPurchaseOrderDetail d : order.getOrderDetails()) {
+                    BigDecimal base = d.getBasePrice();
+                    int qty = d.getQuantity();
+                    if (base != null) gross = gross.add(base.multiply(BigDecimal.valueOf(qty)));
+                    else if (d.getSubtotal() != null) gross = gross.add(d.getSubtotal());
+                }
+            }
+            if (gross.compareTo(net) < 0) gross = net; // guard if data inconsistent
+            BigDecimal discountAmount = gross.subtract(net);
+            Double discountPercent = null;
+            if (gross.compareTo(BigDecimal.ZERO) > 0 && discountAmount.compareTo(BigDecimal.ZERO) > 0) {
+                discountPercent = discountAmount.multiply(BigDecimal.valueOf(100)).divide(gross, java.math.MathContext.DECIMAL64).doubleValue();
+            }
+            Double vatRate = businessConfig != null && businessConfig.getVat() != null ? businessConfig.getVat().getRate() : 10.0; // default 10%
+            BigDecimal vatAmount = net.multiply(BigDecimal.valueOf(vatRate / 100.0));
+            BigDecimal totalWithVat = net.add(vatAmount);
+            model.addAttribute("invoiceGross", gross);
+            model.addAttribute("invoiceNet", net);
+            model.addAttribute("invoiceDiscountAmount", discountAmount);
+            model.addAttribute("invoiceDiscountPercent", discountPercent != null ? discountPercent : 0.0);
+            model.addAttribute("vatRate", vatRate);
+            model.addAttribute("invoiceVatAmount", vatAmount);
+            model.addAttribute("invoiceTotalWithVat", totalWithVat);
 
             return "evmPage/orderDetail";
         } else {

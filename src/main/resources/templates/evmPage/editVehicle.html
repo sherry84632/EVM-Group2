@@ -180,10 +180,16 @@
                             <div class="col-md-6">
                                 <label class="form-label">Status</label>
                                 <select name="status" class="form-select" required>
+                                    <!-- Added TEMPLATE + missing statuses; keep TEMPLATE first to avoid accidental change -->
+                                    <option value="TEMPLATE" th:selected="${vehicle.status == 'TEMPLATE'}">Catalog Template (visible)</option>
                                     <option value="IN_STOCK" th:selected="${vehicle.status == 'IN_STOCK'}">In Stock</option>
+                                    <option value="RESERVED" th:selected="${vehicle.status == 'RESERVED'}">Reserved (held for order)</option>
+                                    <option value="ALLOCATED" th:selected="${vehicle.status == 'ALLOCATED'}">Allocated</option>
                                     <option value="IN_PRODUCTION" th:selected="${vehicle.status == 'IN_PRODUCTION'}">In Production</option>
+                                    <option value="TRANSFERRED" th:selected="${vehicle.status == 'TRANSFERRED'}">Transferred</option>
                                     <option value="SOLD" th:selected="${vehicle.status == 'SOLD'}">Sold</option>
                                 </select>
+                                <small class="text-muted">Changing away from TEMPLATE will remove this vehicle from the catalog list.</small>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Engine Number</label>

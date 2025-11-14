@@ -38,62 +38,45 @@ public class EVMVehicleController {
         List<DTOVehicle> vehicles;
         try {
             log.info("Loading vehicle list, keyword={}", keyword);
-
             if (keyword != null && !keyword.trim().isEmpty()) {
-                // Search theo keyword
                 log.info("Searching vehicles by keyword: {}", keyword);
                 vehicles = dao.searchVehiclesByModelName(keyword);
                 log.info("Found {} vehicles matching keyword '{}'", vehicles.size(), keyword);
-
-                // Ưu tiên filter lấy TEMPLATE, nếu không có thì lấy tất cả
                 List<DTOVehicle> templateVehicles = vehicles.stream()
                         .filter(v -> v.getStatus() == VehicleStatus.TEMPLATE)
                         .toList();
-
                 if (!templateVehicles.isEmpty()) {
                     log.info("Filtered to {} TEMPLATE vehicles", templateVehicles.size());
                     vehicles = templateVehicles;
                 } else {
                     log.warn("No TEMPLATE vehicles in search results, showing all {} results", vehicles.size());
                 }
-
             } else {
-                // Không có keyword - lấy TẤT CẢ xe TEMPLATE
                 log.info("Loading all TEMPLATE vehicles");
                 vehicles = dao.getVehiclesByStatus(VehicleStatus.TEMPLATE);
                 log.info("Loaded {} TEMPLATE vehicles from database", vehicles.size());
-
-                // Nếu không có xe TEMPLATE nào, lấy tất cả xe (backward compatibility)
                 if (vehicles.isEmpty()) {
                     log.warn(" No TEMPLATE vehicles found! Loading ALL vehicles as fallback");
                     vehicles = dao.getVehicles();
                     log.info("Fallback: Loaded {} total vehicles", vehicles.size());
                 }
             }
-
             if (vehicles == null) vehicles = new ArrayList<>();
-
-            // Log chi tiết từng xe
             for (DTOVehicle v : vehicles) {
                 log.debug("Vehicle ID={}, Status={}, Model={}",
                     v.getVehicleID(), v.getStatus(),
                     v.getVersion() != null && v.getVersion().getModel() != null ?
                         v.getVersion().getModel().getModelName() : "N/A");
             }
-
             model.addAttribute("vehicles", vehicles);
             model.addAttribute("keyword", keyword);
-
-            // Thêm warning nếu đang hiển thị tất cả xe (chưa có TEMPLATE)
             long nonTemplateCount = vehicles.stream()
                 .filter(v -> v.getStatus() != VehicleStatus.TEMPLATE)
                 .count();
-
             if (nonTemplateCount > 0) {
                 log.warn(" Displaying {} non-TEMPLATE vehicles", nonTemplateCount);
                 model.addAttribute("warning", " Đang hiển thị " + nonTemplateCount + " xe không phải TEMPLATE. Vui lòng cập nhật Status = TEMPLATE cho xe mẫu catalog.");
             }
-
             addActionRole(model);
         } catch (Exception e) {
             log.error(" Error loading vehicle list", e);

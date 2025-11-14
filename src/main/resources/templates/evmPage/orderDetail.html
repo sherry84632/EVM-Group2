@@ -303,51 +303,101 @@
                             <th>Discount</th>
                             <th>Unit Price</th>
                             <th>Subtotal</th>
+                            <th>VAT</th>
+                            <th>Total + VAT</th>
                             <th>Payment</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr th:each="detail : ${order.orderDetails}">
-                            <td th:text="${detail.modelName ?: detail.version?.model?.modelName ?: 'N/A'}">-</td>
-                            <td th:text="${detail.versionName ?: detail.version?.versionName ?: 'N/A'}">-</td>
-                            <td th:text="${detail.colorName ?: detail.color?.colorName ?: 'N/A'}">-</td>
+                        <tr th:each="detail : ${order.orderDetails}" th:with="subVal=${detail.subtotal != null ? detail.subtotal : (detail.unitPrice != null ? detail.unitPrice.multiply(T(java.math.BigDecimal).valueOf(detail.quantity)) : T(java.math.BigDecimal).ZERO)}, vatPct=${vatRate != null ? vatRate : 10}, vatVal=${subVal.multiply(T(java.math.BigDecimal).valueOf(vatPct/100.0))}, totalWithVat=${subVal.add(vatVal)}">
+                            <td th:text="${detail.modelName != null ? detail.modelName : (detail.version != null && detail.version.model != null ? detail.version.model.modelName : 'N/A')}">-</td>
+                            <td th:text="${detail.versionName != null ? detail.versionName : (detail.version != null ? detail.version.versionName : 'N/A')}">-</td>
+                            <td th:text="${detail.colorName != null ? detail.colorName : (detail.color != null ? detail.color.colorName : 'N/A')}">-</td>
                             <td th:text="${detail.quantity}">-</td>
                             <!-- Base Price -->
                             <td th:if="${detail.basePrice != null}" class="text-muted" style="text-decoration: line-through;">
-                                <span th:text="${'$' + #numbers.formatDecimal(detail.basePrice, 1, 0)}">$0</span>
+                                <span th:text="${'$' + #numbers.formatDecimal(detail.basePrice,0,0)}">$0</span>
                             </td>
                             <td th:unless="${detail.basePrice != null}">-</td>
                             <!-- Discount -->
                             <td th:if="${detail.discountPercent != null and detail.discountPercent > 0}" class="text-success">
-                                <span th:text="${detail.discountPercent + '%'}">-</span>
-                                <br/>
-                                <small th:if="${detail.discountAmount != null}">
-                                    (-<span th:text="${'$' + #numbers.formatDecimal(detail.discountAmount, 1, 0)}">$0</span>)
-                                </small>
+                                <span th:text="${detail.discountPercent + '%'}">-</span><br/>
+                                <small th:if="${detail.discountAmount != null}">(-<span th:text="${'$' + #numbers.formatDecimal(detail.discountAmount,0,0)}">$0</span>)</small>
                             </td>
                             <td th:unless="${detail.discountPercent != null and detail.discountPercent > 0}">-</td>
                             <!-- Unit Price After Discount -->
-                            <td class="fw-bold text-primary">
-                                <span th:text="${'$' + #numbers.formatDecimal(detail.unitPrice, 1, 0)}">$0</span>
-                            </td>
+                            <td class="fw-bold text-primary"><span th:text="${detail.unitPrice != null ? ('$' + #numbers.formatDecimal(detail.unitPrice,0,0)) : '$0'}">$0</span></td>
                             <!-- Subtotal -->
-                            <td class="fw-bold">
-                                <span th:text="${'$' + #numbers.formatDecimal(detail.subtotal, 1, 0)}">$0</span>
-                            </td>
+                            <td class="fw-bold"><span th:text="${'$' + #numbers.formatDecimal(subVal,0,0)}">$0</span></td>
+                            <td class="text-secondary"><span th:text="${'$' + #numbers.formatDecimal(vatVal,0,0)}">$0</span></td>
+                            <td class="fw-bold text-success"><span th:text="${'$' + #numbers.formatDecimal(totalWithVat,0,0)}">$0</span></td>
                             <!-- Payment Status -->
                             <td>
-                                <span th:if="${detail.paymentStatus == 'PAID'}"
-                                      class="badge bg-success">
+                                <span th:if="${detail.paymentStatus == 'PAID'}" class="badge bg-success">
                                     <i class="fas fa-check-circle"></i> PAID
                                 </span>
-                                <span th:unless="${detail.paymentStatus == 'PAID'}"
-                                      class="badge bg-danger">
+                                <span th:unless="${detail.paymentStatus == 'PAID'}" class="badge bg-danger">
                                     <i class="fas fa-times-circle"></i> UNPAID
                                 </span>
                             </td>
                         </tr>
                     </tbody>
+                    <tfoot class="table-light" th:if="${invoiceNet != null}">
+                        <tr>
+                            <td colspan="8" class="text-end fw-semibold">Subtotal after Discount (Pre-VAT)</td>
+                            <td colspan="2" class="text-end fw-bold text-primary">$<span th:text="${#numbers.formatDecimal(invoiceNet,0,0)}"></span></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td colspan="8" class="text-end fw-semibold">Total VAT (<span th:text="${vatRate != null ? vatRate : 10}"></span>%)</td>
+                            <td colspan="2" class="text-end fw-bold text-secondary">$<span th:text="${invoiceVatAmount != null ? #numbers.formatDecimal(invoiceVatAmount,0,0) : '0'}"></span></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td colspan="8" class="text-end fw-bold">Total Amount (Incl. VAT)</td>
+                            <td colspan="2" class="text-end fw-bold text-success">$<span th:text="${invoiceTotalWithVat != null ? #numbers.formatDecimal(invoiceTotalWithVat,0,0) : '0'}"></span></td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
                 </table>
+            </div>
+        </div>
+
+        <!-- Pricing Summary Card -->
+        <div class="detail-card" th:if="${invoiceGross != null}" style="background:linear-gradient(135deg,#ffffff,#f1f5f9)">
+            <h6><i class="fas fa-calculator me-2"></i>Pricing Summary</h6>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="p-3 border rounded" style="background:#f8fafc">
+                        <div class="small text-muted">Gross Before Discount</div>
+                        <div class="fw-bold" th:text="${'$' + #numbers.formatDecimal(invoiceGross,0,0)}">$0</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 border rounded" style="background:#fff1f2">
+                        <div class="small text-muted">Dealer Discount</div>
+                        <div class="fw-bold text-danger" th:text="${invoiceDiscountPercent != null ? #numbers.formatDecimal(invoiceDiscountPercent,0,0) : 0} + '%'">0%</div>
+                        <div class="small" th:text="${'(-$' + #numbers.formatDecimal(invoiceDiscountAmount,0,0) + ')'}">-$0</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 border rounded" style="background:#eef2ff">
+                        <div class="small text-muted">Net (After Discount)</div>
+                        <div class="fw-bold text-primary" th:text="${'$' + #numbers.formatDecimal(invoiceNet,0,0)}">$0</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 border rounded" style="background:#f0fdfa">
+                        <div class="small text-muted">VAT (<span th:text="${vatRate}"></span>%)</div>
+                        <div class="fw-bold text-secondary" th:text="${'$' + #numbers.formatDecimal(invoiceVatAmount,0,0)}">$0</div>
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <div class="p-3 border rounded" style="background:#ecfdf5">
+                        <div class="small text-muted">Total (Incl. VAT)</div>
+                        <div class="fw-bold text-success" style="font-size:1.3rem" th:text="${'$' + #numbers.formatDecimal(invoiceTotalWithVat,0,0)}">$0</div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -363,7 +413,7 @@
                     </div>
                     <div class="info-row">
                         <span class="info-label">Dealer Name:</span>
-                        <span class="info-value" th:text="${order.dealer?.dealerName ?: 'N/A'}">-</span>
+                        <span class="info-value" th:text="${order.dealer != null && order.dealer.dealerName != null ? order.dealer.dealerName : (order.dealerName != null ? order.dealerName : 'N/A')}">-</span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Dealer ID:</span>
@@ -425,15 +475,15 @@
                         <div th:each="detail, detailStat : ${order.orderDetails}">
                             <div class="info-row">
                                 <span class="info-label">Model:</span>
-                                <span class="info-value" th:text="${detail.modelName ?: detail.version?.model?.modelName ?: 'N/A'}">-</span>
+                                <span class="info-value" th:text="${detail.modelName != null ? detail.modelName : (detail.version != null && detail.version.model != null ? detail.version.model.modelName : 'N/A')}">-</span>
                             </div>
                             <div class="info-row">
                                 <span class="info-label">Version:</span>
-                                <span class="info-value" th:text="${detail.versionName ?: detail.version?.versionName ?: 'N/A'}">-</span>
+                                <span class="info-value" th:text="${detail.versionName != null ? detail.versionName : (detail.version != null ? detail.version.versionName : 'N/A')}">-</span>
                             </div>
                             <div class="info-row">
                                 <span class="info-label">Color:</span>
-                                <span class="info-value" th:text="${detail.colorName ?: detail.color?.colorName ?: 'N/A'}">-</span>
+                                <span class="info-value" th:text="${detail.colorName != null ? detail.colorName : (detail.color != null ? detail.color.colorName : 'N/A')}">-</span>
                             </div>
                             <div class="info-row">
                                 <span class="info-label">Quantity:</span>
