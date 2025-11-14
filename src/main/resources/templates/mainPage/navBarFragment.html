@@ -4,11 +4,11 @@
     <ul class="nav nav-pills flex-column mb-auto">
         <li>
             <!-- Home link selects correct start page depending on role -->
-            <a sec:authorize="hasAnyRole('ADMIN','EVMSTAFF')" href="/showEVMHomePage" class="nav-link active" aria-current="page">
+            <a sec:authorize="hasAnyRole('ADMIN','EVMSTAFF')" href="/showEVMHomePage" class="nav-link" aria-current="page">
                 <i class="fa-solid fa-house"></i>
                 Home
             </a>
-            <a sec:authorize="hasAnyRole('DEALER','DEALERSTAFF')" href="/showDealerHomePage" class="nav-link active" aria-current="page">
+            <a sec:authorize="hasAnyRole('DEALER','DEALERSTAFF')" href="/showDealerHomePage" class="nav-link" aria-current="page">
                 <i class="fa-solid fa-house"></i>
                 Home
             </a>
