@@ -1,5 +1,5 @@
-    <!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 
 <head>
     <meta charset="UTF-8">
@@ -55,10 +55,10 @@
                         <img src="/images/logo.png">
                         <span>
                             <p th:text="${vehicle.modelName}"></p>
-                            <p th:text="${vehicle.ManufactureYear}"></p>
+                            <p th:text="${vehicle.manufactureYear}"></p>
                             <p th:text="${vehicle.engineNumber}"></p>
                             <p th:text="${vehicle.colorName}"></p>
-                            <p th:text="${vehicle.basePrice}"></p>
+                            <p><strong th:text="${vehicle.basePrice != null ? ('$' + #numbers.formatDecimal(vehicle.basePrice,0,'COMMA',0,'POINT')) : '$0'}"></strong></p>
                         </span>
                     </button>
                 </a>
