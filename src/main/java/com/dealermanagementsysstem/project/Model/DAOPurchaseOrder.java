@@ -315,48 +315,6 @@ public class DAOPurchaseOrder {
         return null;
     }
 
-    private BigDecimal recalcUnitPrice(DTOPurchaseOrderDetail det) {
-        if (det.getVersion() == null || det.getVersion().getVersionID() == 0) return BigDecimal.ZERO;
-        String sql = """
-            SELECT vm.BasePrice, adj.DiscountPercent
-            FROM VehicleVersion vv
-            JOIN VehicleModel vm ON vv.ModelID = vm.ModelID
-            OUTER APPLY (
-                SELECT TOP 1 DiscountPercent
-                FROM DealerPriceAdjustment adj
-                WHERE adj.ModelID = vm.ModelID
-                  AND adj.StartDate <= GETDATE()
-                  AND (adj.EndDate IS NULL OR adj.EndDate >= GETDATE())
-                ORDER BY adj.StartDate DESC
-            ) adj
-            WHERE vv.VersionID = ?
-        """;
-        try (Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, det.getVersion().getVersionID());
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    BigDecimal base = rs.getBigDecimal("BasePrice");
-                    Double disc = rs.getObject("DiscountPercent", Double.class);
-                    if (base == null) return BigDecimal.ZERO;
-                    if (disc != null && disc > 0) {
-                        return base.subtract(base.multiply(BigDecimal.valueOf(disc / 100.0)));
-                    }
-                    return base;
-                }
-            }
-        } catch (SQLException e) { e.printStackTrace(); }
-        return BigDecimal.ZERO;
-    }
-
-    private void updateDetailPrice(int detailId, BigDecimal unitPrice, BigDecimal subtotal) {
-        String sql = "UPDATE PurchaseOrderDetail SET UnitPrice = ?, Subtotal = ? WHERE PODetailID = ?";
-        try (Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setBigDecimal(1, unitPrice);
-            ps.setBigDecimal(2, subtotal);
-            ps.setInt(3, detailId);
-            ps.executeUpdate();
-        } catch (SQLException e) { e.printStackTrace(); }
-    }
 
     // 🔹 Cập nhật trạng thái đơn hàng
     public boolean updatePurchaseOrderStatus(int id, PurchaseOrderStatus newStatus) {
@@ -525,13 +483,4 @@ public class DAOPurchaseOrder {
         return list;
     }
 
-    public BigDecimal getBasePriceByModelId(int modelId) {
-        String sql = "SELECT BasePrice FROM VehicleModel WHERE ModelID = ?";
-        try (Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, modelId);
-            ResultSet rs = ps.executeQuery();
-            if (rs.next()) return rs.getBigDecimal("BasePrice");
-        } catch (SQLException e) { e.printStackTrace(); }
-        return BigDecimal.ZERO;
-    }
 }

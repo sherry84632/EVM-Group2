@@ -387,28 +387,6 @@ public class DAOQuotation {
         }
     }
 
-    //  CORE FLOW STEP 5: Check if quotation is approved (for SaleOrder validation)
-    public boolean isQuotationApproved(int quotationID) {
-        String sql = "SELECT Status FROM Quotation WHERE QuotationID = ?";
-
-        try (Connection conn = DBUtils.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setInt(1, quotationID);
-
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    String status = rs.getString("Status");
-                    return "APPROVED".equalsIgnoreCase(status);
-                }
-            }
-        } catch (SQLException e) {
-            log.error("Error checking approved quotation id={}", quotationID, e);
-        }
-
-        return false;
-    }
-
     //  CORE FLOW STEP 6: Get quotations by dealer (for dealer-specific view)
     public List<DTOQuotation> getQuotationsByDealer(int dealerID) {
         List<DTOQuotation> quotations = new ArrayList<>();
@@ -477,79 +455,6 @@ public class DAOQuotation {
             }
         } catch (SQLException e) {
             log.error("Error fetching quotations by dealer dealerID={}", dealerID, e);
-        }
-
-        return quotations;
-    }
-
-    //  Get quotations by customer
-    public List<DTOQuotation> getQuotationsByCustomer(int customerID) {
-        List<DTOQuotation> quotations = new ArrayList<>();
-
-        String sql = """
-                    SELECT q.QuotationID, q.CreatedAt, q.Status, q.TotalAmount, q.Quantity, q.LevelID,
-                           c.CustomerID, c.FullName AS CustomerName, c.Email AS CustomerEmail, c.Phone AS CustomerPhone,
-                           d.DealerID, d.DealerName, d.Email AS DealerEmail, d.Phone AS DealerPhone,
-                           ds.StaffID, ds.FullName AS StaffName, ds.Email AS StaffEmail, ds.Phone AS StaffPhone
-                    FROM Quotation q
-                    JOIN Customer c ON q.CustomerID = c.CustomerID
-                    JOIN Dealer d ON q.DealerID = d.DealerID
-                    LEFT JOIN DealerStaff ds ON q.StaffID = ds.StaffID
-                    WHERE q.CustomerID = ?
-                    ORDER BY q.CreatedAt DESC
-                """;
-
-        try (Connection conn = DBUtils.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setInt(1, customerID);
-
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    DTOQuotation quotation = new DTOQuotation();
-                    quotation.setQuotationID(rs.getInt("QuotationID"));
-                    quotation.setCreatedAt(rs.getTimestamp("CreatedAt"));
-                    quotation.setStatus(QuotationStatus.valueOf(rs.getString("Status")));
-                    quotation.setTotalPrice(rs.getDouble("TotalAmount"));
-                    quotation.setQuantity(rs.getInt("Quantity"));
-                    quotation.setLevelID(rs.getInt("LevelID"));
-                    quotation.setDiscountPercent(rs.getObject("DiscountPercent") != null ? rs.getDouble("DiscountPercent") : null);
-
-                    // Customer info
-                    DTOCustomer customer = new DTOCustomer();
-                    customer.setCustomerID(rs.getInt("CustomerID"));
-                    customer.setFullName(rs.getString("CustomerName"));
-                    customer.setEmail(rs.getString("CustomerEmail"));
-                    customer.setPhone(rs.getString("CustomerPhone"));
-                    quotation.setCustomer(customer);
-
-                    // Dealer info
-                    DTODealer dealer = new DTODealer();
-                    dealer.setDealerID(rs.getInt("DealerID"));
-                    dealer.setDealerName(rs.getString("DealerName"));
-                    dealer.setEmail(rs.getString("DealerEmail"));
-                    dealer.setPhone(rs.getString("DealerPhone"));
-                    quotation.setDealer(dealer);
-
-                    // Staff info (if available)
-                    if (rs.getString("StaffName") != null) {
-                        DTODealerStaff staff = new DTODealerStaff();
-                        staff.setStaffID(rs.getInt("StaffID"));
-                        staff.setFullName(rs.getString("StaffName"));
-                        staff.setEmail(rs.getString("StaffEmail"));
-                        staff.setPhone(rs.getString("StaffPhone"));
-                        quotation.setStaff(staff);
-                    }
-
-                    // Load quotation details
-                    List<DTOQuotationDetail> details = getQuotationDetails(quotation.getQuotationID());
-                    quotation.setQuotationDetails(details);
-
-                    quotations.add(quotation);
-                }
-            }
-        } catch (SQLException e) {
-            log.error("Error fetching quotations by customer customerID={}", customerID, e);
         }
 
         return quotations;

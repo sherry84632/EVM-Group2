@@ -147,13 +147,6 @@ public class DAOSaleContract {
         return null;
     }
 
-    /** Delete a contract by its ContractID */
-    public boolean deleteContract(int contractID) {
-        String sql = "DELETE FROM SaleContract WHERE ContractID=?";
-        try (java.sql.Connection conn = DBUtils.getConnection(); java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, contractID); return ps.executeUpdate() > 0;
-        } catch (SQLException e) { e.printStackTrace(); return false; }
-    }
     /** Delete all contracts referencing a sale order (for cascade manual) */
     public int deleteContractsBySaleOrderID(int saleOrderID) {
         String sql = "DELETE FROM SaleContract WHERE SaleOrderID=?";

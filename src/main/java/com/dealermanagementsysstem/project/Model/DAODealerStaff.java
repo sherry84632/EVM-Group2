@@ -201,51 +201,7 @@ public class DAODealerStaff {
         return false;
     }
 
-    /**
-     * Get all DealerStaff
-     */
-    public List<DTODealerStaff> getAllDealerStaff() {
-        List<DTODealerStaff> list = new ArrayList<>();
-        String sql = """
-            SELECT ds.StaffID, ds.FullName, ds.Position, ds.Phone, ds.Email, ds.AccountID, ds.DealerID,
-                   d.DealerName, d.Address, d.Email as DealerEmail, d.Phone as DealerPhone
-            FROM DealerStaff ds
-            LEFT JOIN Dealer d ON ds.DealerID = d.DealerID
-            ORDER BY ds.StaffID DESC
-        """;
 
-        try (Connection con = DBUtils.getConnection();
-             Statement st = con.createStatement();
-             ResultSet rs = st.executeQuery(sql)) {
-
-            while (rs.next()) {
-                DTODealerStaff staff = new DTODealerStaff();
-                staff.setStaffID(rs.getInt("StaffID"));
-                staff.setFullName(rs.getString("FullName"));
-                staff.setPosition(rs.getString("Position"));
-                staff.setPhone(rs.getString("Phone"));
-                staff.setEmail(rs.getString("Email"));
-
-                // Set dealer if exists
-                if (rs.getString("DealerName") != null) {
-                    DTODealer dealer = new DTODealer();
-                    dealer.setDealerID(rs.getInt("DealerID"));
-                    dealer.setDealerName(rs.getString("DealerName"));
-                    dealer.setAddress(rs.getString("Address"));
-                    dealer.setEmail(rs.getString("DealerEmail"));
-                    dealer.setPhone(rs.getString("DealerPhone"));
-                    staff.setDealer(dealer);
-                }
-
-                list.add(staff);
-            }
-        } catch (SQLException e) {
-            System.out.println(" Failed to get all DealerStaff!");
-            e.printStackTrace();
-        }
-        return list;
-    }
-    
     /**
      * Get all staff for a specific dealer with their account information
      */

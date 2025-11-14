@@ -144,37 +144,6 @@ public class DAOVehicle {
         return null;
     }
 
-    public Integer findAvailableVehicleByVersionAndColor(Integer versionId, Integer colorId) {
-        if (versionId == null || colorId == null) return null;
-        String sql = "SELECT TOP 1 VehicleID FROM Vehicle WHERE VersionID=? AND ColorID=? AND Status='Available' ORDER BY CreatedAt ASC";
-        try (Connection con = DBUtils.getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setInt(1, versionId);
-            ps.setInt(2, colorId);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) return rs.getInt(1);
-            }
-        } catch (SQLException e) {
-            log.error("Error finding available vehicle by version {} color {}", versionId, colorId, e);
-        }
-        return null;
-    }
-
-    public List<Integer> findAvailableVehicleIdsByVersionAndColor(int versionId, int colorId, int limit) {
-        List<Integer> ids = new ArrayList<>();
-        if (limit <= 0) return ids;
-        String sql = "SELECT TOP " + limit + " VehicleID FROM Vehicle WHERE VersionID=? AND ColorID=? AND Status='Available' ORDER BY CreatedAt ASC";
-        try (Connection con = DBUtils.getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setInt(1, versionId);
-            ps.setInt(2, colorId);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) ids.add(rs.getInt(1));
-            }
-        } catch (SQLException e) {
-            log.error("Error fetching multiple available vehicles version {} color {} limit {}", versionId, colorId, limit, e);
-        }
-        return ids;
-    }
-
     public DTOVehicle getVehicleById(Integer id) {
         String sql = BASE_SELECT + " WHERE v.VehicleID = ?";
         try (Connection con = DBUtils.getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
@@ -322,8 +291,6 @@ public class DAOVehicle {
         }
     }
 
-    public List<DTOVehicle> getAllVehicles() { return getVehicles(); }
-
     public List<DTOVehicle> getVehiclesByStatus(VehicleStatus status) {
         // Use UPPER() for case-insensitive comparison
         String sql = BASE_SELECT + " WHERE UPPER(v.Status) = UPPER(?) ORDER BY v.CreatedAt DESC";
@@ -346,15 +313,6 @@ public class DAOVehicle {
             log.error("Error fetching vehicles by status {}", status, e);
         }
 
-        return list;
-    }
-
-    public List<DTOVehicle> getVehiclesByDealer(int dealerID) {
-        String sql = BASE_SELECT + " WHERE v.CurrentDealerID = ? ORDER BY v.CreatedAt DESC";
-        List<DTOVehicle> list = new ArrayList<>();
-        try (Connection con = DBUtils.getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setInt(1, dealerID); try (ResultSet rs = ps.executeQuery()) { while (rs.next()) list.add(mapVehicle(rs)); }
-        } catch (SQLException e) { log.error("Error fetching vehicles by dealerID {}", dealerID, e); }
         return list;
     }
 
@@ -672,14 +630,4 @@ public class DAOVehicle {
         return null;
     }
 
-    public List<Integer> findVehicleIdsByVersionAndColorAllStatuses(int versionId, int colorId, int limit) {
-        List<Integer> ids = new ArrayList<>();
-        if (limit <= 0) return ids;
-        String sql = "SELECT TOP " + limit + " VehicleID FROM Vehicle WHERE VersionID=? AND ColorID=? ORDER BY CreatedAt ASC";
-        try (Connection con = DBUtils.getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setInt(1, versionId); ps.setInt(2, colorId);
-            try (ResultSet rs = ps.executeQuery()) { while (rs.next()) ids.add(rs.getInt(1)); }
-        } catch (SQLException e) { log.error("Error fetching ANY status vehicles version {} color {} limit {}", versionId, colorId, limit, e); }
-        return ids;
-    }
 }
