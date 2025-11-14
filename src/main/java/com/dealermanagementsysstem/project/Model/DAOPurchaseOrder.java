@@ -20,7 +20,7 @@ public class DAOPurchaseOrder {
                        dl.LevelName,
                        ds.StaffID, ds.FullName AS StaffName, ds.Position AS StaffPosition,
                        adj.DiscountPercent AS AdjustmentDiscountPercent, adj.PromotionName AS AdjustmentPromotionName,
-                       pol.PolicyName, pol.HangPercent, pol.DailyPercent,
+                       pol.PolicyName, pol.HangPercent, pol.DailyPercent, pol.DiscountPercent AS PolicyDiscountPercent,
                        dly.DeliveryDate AS LatestDeliveryDate, dly.DeliveryStatus AS LatestDeliveryStatus
                 FROM PurchaseOrder po
                 LEFT JOIN Dealer d ON po.DealerID = d.DealerID
@@ -35,7 +35,7 @@ public class DAOPurchaseOrder {
                    ORDER BY p.StartDate DESC
                 ) adj
                 OUTER APPLY (
-                   SELECT TOP 1 PolicyName, HangPercent, DailyPercent
+                   SELECT TOP 1 PolicyName, HangPercent, DailyPercent, DiscountPercent
                    FROM DiscountPolicy dp
                    WHERE dp.DealerID = d.DealerID
                    ORDER BY dp.CreatedAt DESC
@@ -75,27 +75,23 @@ public class DAOPurchaseOrder {
                 staff.setFullName(rs.getString("StaffName"));
                 staff.setPosition(rs.getString("StaffPosition"));
                 dto.setStaff(staff);
-                // Policy from DiscountPolicy
                 dto.setPolicyName(rs.getString("PolicyName"));
 
-                // Set policy discount percent (fallback strategy since DiscountPercent column may not exist)
+                // New proper discount retrieval
+                Double policyDisc = rs.getObject("PolicyDiscountPercent", Double.class);
                 Double adjustmentDiscount = rs.getObject("AdjustmentDiscountPercent", Double.class);
                 Double hangPercent = rs.getObject("HangPercent", Double.class);
                 Double dailyPercent = rs.getObject("DailyPercent", Double.class);
 
-                // Use adjustment discount if available, else fallback to HangPercent
-                if (adjustmentDiscount != null) {
-                    dto.setPolicyDiscountPercent(adjustmentDiscount);
-                } else if (hangPercent != null) {
-                    dto.setPolicyDiscountPercent(hangPercent);
-                }
+                // Prefer discount from policy; if absent use active adjustment; never fallback to HangPercent
+                Double effectiveDealerDiscount = policyDisc != null ? policyDisc : adjustmentDiscount;
+                dto.setPolicyDiscountPercent(effectiveDealerDiscount);
 
-                // Set dealer reward and manufacturer share
+                // Manufacturer share & dealer reward
                 dto.setDealerRewardPercent(dailyPercent != null ? dailyPercent : 5.0);
                 dto.setManufacturerSharePercent(hangPercent != null ? hangPercent : 95.0);
 
                 if (dto.getStatus() == PurchaseOrderStatus.APPROVED) dto.setApprovedByStaffName(staff.getFullName());
-                // hydrate delivery summary
                 Timestamp deliveryDate = rs.getTimestamp("LatestDeliveryDate");
                 if (deliveryDate != null) dto.setPlannedDeliveryDate(deliveryDate);
                 String delStatus = rs.getString("LatestDeliveryStatus");
@@ -115,7 +111,7 @@ public class DAOPurchaseOrder {
                        dl.LevelName,
                        ds.StaffID, ds.FullName AS StaffName, ds.Position AS StaffPosition,
                        adj.DiscountPercent AS AdjustmentDiscountPercent, adj.PromotionName AS AdjustmentPromotionName,
-                       pol.PolicyName, pol.HangPercent, pol.DailyPercent,
+                       pol.PolicyName, pol.HangPercent, pol.DailyPercent, pol.DiscountPercent AS PolicyDiscountPercent,
                        dly.DeliveryDate AS LatestDeliveryDate, dly.DeliveryStatus AS LatestDeliveryStatus
                 FROM PurchaseOrder po
                 LEFT JOIN Dealer d ON po.DealerID = d.DealerID
@@ -130,7 +126,7 @@ public class DAOPurchaseOrder {
                    ORDER BY p.StartDate DESC
                 ) adj
                 OUTER APPLY (
-                   SELECT TOP 1 PolicyName, HangPercent, DailyPercent
+                   SELECT TOP 1 PolicyName, HangPercent, DailyPercent, DiscountPercent
                    FROM DiscountPolicy dp
                    WHERE dp.DealerID = d.DealerID
                    ORDER BY dp.CreatedAt DESC
@@ -149,7 +145,7 @@ public class DAOPurchaseOrder {
                        vc.ColorID AS DetailColorID, vc.ColorName,
                        vv.VersionID AS DetailVersionID, vv.VersionName,
                        vm.ModelID, vm.ModelName, vm.BasePrice,
-                       pol.HangPercent AS DiscountPercent
+                       pol.DiscountPercent AS DiscountPercent
                 FROM PurchaseOrderDetail pod
                 LEFT JOIN VehicleColor vc ON pod.ColorID = vc.ColorID
                 LEFT JOIN VehicleVersion vv ON pod.VersionID = vv.VersionID
@@ -157,7 +153,7 @@ public class DAOPurchaseOrder {
                 LEFT JOIN PurchaseOrder po ON pod.PurchaseOrderID = po.PurchaseOrderID
                 LEFT JOIN Dealer d ON po.DealerID = d.DealerID
                 OUTER APPLY (
-                   SELECT TOP 1 HangPercent
+                   SELECT TOP 1 DiscountPercent
                    FROM DiscountPolicy dp
                    WHERE dp.DealerID = d.DealerID
                    ORDER BY dp.CreatedAt DESC
@@ -199,20 +195,12 @@ public class DAOPurchaseOrder {
 
                     // Promotion / Policy info
                     dto.setPolicyName(rs.getString("PolicyName"));
-
-                    // Get discount-related percentages (DiscountPercent not in query)
+                    Double policyDisc = rs.getObject("PolicyDiscountPercent", Double.class);
                     Double adjustmentDiscount = rs.getObject("AdjustmentDiscountPercent", Double.class);
                     Double hangPercent = rs.getObject("HangPercent", Double.class);
                     Double dailyPercent = rs.getObject("DailyPercent", Double.class);
-
-                    // Set policyDiscountPercent: Adjustment > HangPercent fallback
-                    if (adjustmentDiscount != null) {
-                        dto.setPolicyDiscountPercent(adjustmentDiscount);
-                    } else if (hangPercent != null) {
-                        dto.setPolicyDiscountPercent(hangPercent);
-                    }
-
-                    // Set dealer reward and manufacturer share percentages
+                    Double effectiveDealerDiscount = policyDisc != null ? policyDisc : adjustmentDiscount;
+                    dto.setPolicyDiscountPercent(effectiveDealerDiscount);
                     dto.setDealerRewardPercent(dailyPercent != null ? dailyPercent : 5.0);
                     dto.setManufacturerSharePercent(hangPercent != null ? hangPercent : 95.0);
 
