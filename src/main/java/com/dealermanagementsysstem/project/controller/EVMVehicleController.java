@@ -222,11 +222,10 @@ public class EVMVehicleController {
             @RequestParam(value = "transmission", required = false) String transmission,
             @RequestParam(value = "manufactureYear", required = false, defaultValue = "0") int manufactureYear,
             @RequestParam(value = "engineNumber", required = false) String engineNumber,
-            @RequestParam(value = "status", required = false, defaultValue = "TEMPLATE") String status,
             @RequestParam(value = "thumbnail", required = false) MultipartFile thumbnail,
             Model model
     ) {
-        log.info("Creating vehicle: model={}, version={}, color={}", modelName, versionName, colorName);
+        log.info("Creating vehicle (forced TEMPLATE status): model={}, version={}, color={}", modelName, versionName, colorName);
 
         // ========== VALIDATION ==========
         if (manufactureYear <= 0) {
@@ -301,7 +300,7 @@ public class EVMVehicleController {
             DTOVehicle vehicle = new DTOVehicle();
             vehicle.setManufactureYear(manufactureYear);
             vehicle.setEngineNumber(engineNumber != null ? engineNumber : "ENG" + System.currentTimeMillis());
-            vehicle.setStatus(VehicleStatus.valueOf(status));
+            vehicle.setStatus(VehicleStatus.TEMPLATE); // force TEMPLATE
             vehicle.setDescription(modelDescription); // Save model description to vehicle
             vehicle.setCreatedAt(new java.sql.Timestamp(System.currentTimeMillis()));
             vehicle.setUpdatedAt(new java.sql.Timestamp(System.currentTimeMillis()));
@@ -383,10 +382,6 @@ public class EVMVehicleController {
             model.addAttribute("message", " Vehicle created successfully! ID: " + vehicle.getVehicleID() + " (Status: " + vehicle.getStatus() + ")");
             return "redirect:/evm/vehicle/list";
 
-        } catch (IllegalArgumentException e) {
-            log.error("Invalid status value: {}", status, e);
-            model.addAttribute("error", " Invalid status: " + status);
-            return "evmPage/createANewVehicleToList";
         } catch (Exception e) {
             log.error(" Unexpected error creating vehicle", e);
             model.addAttribute("error", " Unexpected error: " + e.getMessage());
@@ -528,8 +523,12 @@ public class EVMVehicleController {
                 log.debug("Updated engineNumber: {}", engineNumber);
             }
             if (status != null && !status.isBlank()) {
-                existing.setStatus(VehicleStatus.valueOf(status));
-                log.debug("Updated status: {}", status);
+                // allow change but validate values
+                try {
+                    existing.setStatus(VehicleStatus.valueOf(status));
+                } catch (IllegalArgumentException ex) {
+                    log.warn("Invalid status '{}' ignored for vehicle ID={}", status, id);
+                }
             }
             if (modelDescription != null) {
                 existing.setDescription(modelDescription);
@@ -623,12 +622,6 @@ public class EVMVehicleController {
             model.addAttribute("message", " Vehicle updated successfully!");
             return "redirect:/evm/vehicle/detail/" + id;
 
-        } catch (IllegalArgumentException e) {
-            log.error("Invalid status value: {}", status, e);
-            model.addAttribute("error", " Invalid status: " + status);
-            DTOVehicle existing = dao.getVehicleById(id);
-            model.addAttribute("vehicle", existing);
-            return "evmPage/editVehicle";
         } catch (Exception e) {
             log.error(" Error updating vehicle ID={}", id, e);
             model.addAttribute("error", " Error: " + e.getMessage());
