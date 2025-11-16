@@ -78,12 +78,13 @@ public class DealerPriceAdjustmentController {
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @RequestParam("discountPercent") Double discountPercent,
-            @RequestParam("modelID") int modelID,
+            @RequestParam("applyScope") String applyScope,
+            @RequestParam(value = "selectedModels", required = false) List<Integer> selectedModels,
             @RequestParam(value = "notes", required = false) String notes,
             Model model
     ) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String email = auth.getName(); //  Lấy email đang đăng nhập
+        String email = auth.getName();
         Integer dealerID = daoAccount.getDealerIdByEmail(email);
 
         if (dealerID == null) {
@@ -91,38 +92,58 @@ public class DealerPriceAdjustmentController {
             return "dealerPage/createADealerDiscount";
         }
 
-        DTODealerPriceAdjustment d = new DTODealerPriceAdjustment();
-        d.setPromotionName(promotionName);
-        d.setStartDate(startDate);
-        d.setEndDate(endDate);
-        d.setDiscountPercent(discountPercent);
+        if (discountPercent == null || discountPercent < 0) {
+            model.addAttribute("error", "Discount percent không hợp lệ");
+        }
+        if (startDate != null && endDate != null && endDate.isBefore(startDate)) {
+            model.addAttribute("error", "End Date phải sau hoặc bằng Start Date");
+        }
 
-        // Set VehicleModel object
-        DTOVehicleModel vehicleModel = new DTOVehicleModel();
-        vehicleModel.setModelID(modelID);
-        d.setVehicleModel(vehicleModel);
-
-        // Set Dealer object
+        // Build single DTO
+        DTODealerPriceAdjustment dto = new DTODealerPriceAdjustment();
         DTODealer dealer = new DTODealer();
         dealer.setDealerID(dealerID);
-        d.setDealer(dealer);
+        dto.setDealer(dealer);
+        dto.setPromotionName(promotionName);
+        dto.setStartDate(startDate);
+        dto.setEndDate(endDate);
+        dto.setDiscountPercent(discountPercent);
+        dto.setDiscountAmount(0.0);
+        dto.setNotes(notes);
 
-        d.setNotes(notes);
-        d.setDiscountAmount(0.0);
+        if ("ALL".equalsIgnoreCase(applyScope)) {
+            // Represent ALL by leaving vehicleModel null and applicableModelIDs null
+            dto.setVehicleModel(null);
+            dto.setApplicableModelIDs(null);
+        } else {
+            if (selectedModels == null || selectedModels.isEmpty()) {
+                model.addAttribute("error", "Vui lòng chọn ít nhất một mẫu xe");
+            } else {
+                // Store all IDs as comma-separated string
+                String ids = selectedModels.stream().map(String::valueOf).reduce((a,b)->a+","+b).orElse("");
+                dto.setApplicableModelIDs(ids);
+                // For UI convenience set first model as vehicleModel (primary) if needed
+                DTOVehicleModel primary = new DTOVehicleModel();
+                primary.setModelID(selectedModels.get(0));
+                dto.setVehicleModel(primary);
+            }
+        }
 
-        boolean success = daoDiscount.createDiscount(d);
+        boolean success = false;
+        if (model.getAttribute("error") == null) {
+            // Persist single row: need DAO adaptation -> createDiscountMulti aware of applicableModelIDs
+            success = daoDiscount.createDiscount(dto); // Reuse existing insert (ModelID must exist even if ALL)
+        }
 
         if (success) {
             model.addAttribute("message", "Tạo discount thành công!");
-        } else {
-            model.addAttribute("error", "Không thể tạo discount. Vui lòng kiểm tra dữ liệu!");
+        } else if (model.getAttribute("error") == null) {
+            model.addAttribute("error", "Không thể tạo discount. Kiểm tra dữ liệu!");
         }
 
-        //  Load lại danh sách discount của dealer đó
         List<DTODealerPriceAdjustment> discounts = daoDiscount.getDiscountsByDealer(dealerID);
-        List<DTOVehicleModel> vehicleModels = daoVehicleModel.getAllModels();
         model.addAttribute("discounts", discounts);
-        model.addAttribute("vehicleModels", vehicleModels);
+        model.addAttribute("vehicleModels", daoVehicleModel.getAllModels());
         return "dealerPage/createADealerDiscount";
     }
 
@@ -163,5 +184,164 @@ public class DealerPriceAdjustmentController {
         headers.setContentLength(vehicle.getModelImage().length);
 
         return new ResponseEntity<>(vehicle.getModelImage(), headers, HttpStatus.OK);
+    }
+
+    //  API endpoint to get discount detail
+    @GetMapping("/api/detail/{id}")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> getDiscountDetail(@PathVariable int id) {
+        DTODealerPriceAdjustment dto = daoDiscount.getDiscountById(id);
+        if (dto == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Discount not found"));
+        }
+        Map<String, Object> data = new HashMap<>();
+        data.put("adjustmentID", dto.getAdjustmentID());
+        data.put("promotionName", dto.getPromotionName());
+        data.put("discountPercent", dto.getDiscountPercent());
+        data.put("startDate", dto.getStartDate());
+        data.put("endDate", dto.getEndDate());
+        data.put("notes", dto.getNotes());
+        if (dto.getVehicleModel() != null) {
+            data.put("modelID", dto.getVehicleModel().getModelID());
+            data.put("modelName", dto.getVehicleModel().getModelName());
+        }
+        return ResponseEntity.ok(data);
+    }
+
+    @GetMapping("/edit/{id}")
+    public String editDiscount(@PathVariable int id, Model model,
+                               @RequestParam(value = "vehicleSearch", required = false) String vehicleSearch) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+        Integer dealerID = daoAccount.getDealerIdByEmail(email);
+        if (dealerID == null) {
+            model.addAttribute("error", "Không tìm thấy Dealer của email: " + email);
+            return "dealerPage/createADealerDiscount";
+        }
+        DTODealerPriceAdjustment discount = daoDiscount.getDiscountById(id);
+        if (discount == null) {
+            model.addAttribute("error", "Discount không tồn tại");
+            return "redirect:/discount";
+        }
+        // Load vehicle models
+        List<DTOVehicleModel> vehicleModels = daoVehicleModel.getAllModels();
+        if (vehicleSearch != null && !vehicleSearch.isBlank()) {
+            vehicleModels = vehicleModels.stream()
+                    .filter(v -> v.getModelName().toLowerCase().contains(vehicleSearch.toLowerCase()))
+                    .toList();
+            model.addAttribute("vehicleSearch", vehicleSearch);
+        }
+        model.addAttribute("vehicleModels", vehicleModels);
+        model.addAttribute("discounts", daoDiscount.getDiscountsByDealer(dealerID));
+        model.addAttribute("editDiscount", discount);
+        // Determine scope & selected models
+        if (discount.getApplicableModelIDs() == null) {
+            if (discount.getVehicleModel() == null) {
+                model.addAttribute("applyScope", "ALL");
+            } else {
+                model.addAttribute("applyScope", "SPECIFIC_SINGLE");
+                model.addAttribute("selectedModelIds", List.of(discount.getVehicleModel().getModelID()));
+            }
+        } else {
+            model.addAttribute("applyScope", "SPECIFIC");
+            List<Integer> ids = java.util.Arrays.stream(discount.getApplicableModelIDs().split(","))
+                    .filter(s -> !s.isBlank())
+                    .map(Integer::valueOf)
+                    .toList();
+            model.addAttribute("selectedModelIds", ids);
+        }
+        return "dealerPage/createADealerDiscount";
+    }
+
+    @PostMapping("/update/{id}")
+    public String updateDiscount(@PathVariable int id,
+                                 @RequestParam("promotionName") String promotionName,
+                                 @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+                                 @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+                                 @RequestParam("discountPercent") Double discountPercent,
+                                 @RequestParam("applyScope") String applyScope,
+                                 @RequestParam(value = "selectedModels", required = false) List<Integer> selectedModels,
+                                 @RequestParam(value = "notes", required = false) String notes,
+                                 Model model) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+        Integer dealerID = daoAccount.getDealerIdByEmail(email);
+        if (dealerID == null) {
+            model.addAttribute("error", "Không tìm thấy Dealer");
+            return "redirect:/discount";
+        }
+        DTODealerPriceAdjustment existing = daoDiscount.getDiscountById(id);
+        if (existing == null) {
+            model.addAttribute("error", "Discount không tồn tại");
+            return "redirect:/discount";
+        }
+        existing.setPromotionName(promotionName);
+        existing.setStartDate(startDate);
+        existing.setEndDate(endDate);
+        existing.setDiscountPercent(discountPercent);
+        existing.setNotes(notes);
+        existing.setDiscountAmount(0.0);
+        if ("ALL".equalsIgnoreCase(applyScope)) {
+            existing.setVehicleModel(null);
+            existing.setApplicableModelIDs(null);
+        } else {
+            if (selectedModels == null || selectedModels.isEmpty()) {
+                model.addAttribute("error", "Vui lòng chọn ít nhất một mẫu xe");
+                return "redirect:/discount/edit/" + id;
+            }
+            if (selectedModels.size() == 1) {
+                DTOVehicleModel vm = new DTOVehicleModel();
+                vm.setModelID(selectedModels.get(0));
+                existing.setVehicleModel(vm);
+                existing.setApplicableModelIDs(null);
+            } else {
+                String ids = selectedModels.stream().map(String::valueOf).reduce((a,b)->a+","+b).orElse("");
+                existing.setApplicableModelIDs(ids);
+                DTOVehicleModel primary = new DTOVehicleModel();
+                primary.setModelID(selectedModels.get(0));
+                existing.setVehicleModel(primary);
+            }
+        }
+        boolean success = daoDiscount.updateDiscount(existing);
+        if (success) model.addAttribute("message", "Cập nhật discount thành công!");
+        else model.addAttribute("error", "Cập nhật thất bại!");
+        return "redirect:/discount";
+    }
+
+    @PostMapping("/delete/{id}")
+    public String deleteDiscount(@PathVariable int id, Model model) {
+        boolean success = daoDiscount.deleteDiscount(id);
+        if (success) model.addAttribute("message", "Xóa discount thành công!");
+        else model.addAttribute("error", "Xóa discount thất bại!");
+        return "redirect:/discount";
+    }
+
+    //  Show discount detail page
+    @GetMapping("/detail/{id}")
+    public String showDiscountDetail(@PathVariable int id, Model model) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+        Integer dealerID = daoAccount.getDealerIdByEmail(email);
+
+        if (dealerID == null) {
+            model.addAttribute("error", "Không tìm thấy Dealer");
+            return "redirect:/discount";
+        }
+
+        DTODealerPriceAdjustment discount = daoDiscount.getDiscountById(id);
+
+        if (discount == null) {
+            model.addAttribute("error", "Discount không tồn tại");
+            return "redirect:/discount";
+        }
+
+        // Verify discount belongs to this dealer
+        if (discount.getDealer().getDealerID() != dealerID) {
+            model.addAttribute("error", "Bạn không có quyền xem discount này");
+            return "redirect:/discount";
+        }
+
+        model.addAttribute("discount", discount);
+        return "dealerPage/discountDetail";
     }
 }

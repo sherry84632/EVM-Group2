@@ -213,14 +213,13 @@ public class OrderController {
                         continue;
                     }
                 }
-                // Use stacked discounted unit price: finalNetAfterAll already represents net per unit after all discounts.
                 java.math.BigDecimal unitNet = qd.getFinalNetAfterAll();
+                java.math.BigDecimal grossUnit = qd.getUnitPrice()!=null? qd.getUnitPrice(): java.math.BigDecimal.ZERO;
                 if (unitNet == null) {
-                    java.math.BigDecimal unitGross = qd.getUnitPrice()!=null? qd.getUnitPrice(): java.math.BigDecimal.ZERO;
-                    double dealerPct = qd.getAppliedDealerDiscountPercent()!=null? qd.getAppliedDealerDiscountPercent():0.0;
-                    double basePct = quotation.getDiscountPercent()!=null ? quotation.getDiscountPercent() : 0.0;
-                    java.math.BigDecimal afterDealer = unitGross.multiply(java.math.BigDecimal.valueOf(1 - dealerPct/100.0));
-                    unitNet = afterDealer.multiply(java.math.BigDecimal.valueOf(1 - basePct/100.0));
+                    // Recompute stacking if not present (dealer + quotation + promo)
+                    java.math.BigDecimal afterDealer = grossUnit.multiply(java.math.BigDecimal.valueOf(1 - qd.getAppliedDealerDiscountPercent()/100.0));
+                    java.math.BigDecimal afterQuotation = afterDealer.multiply(java.math.BigDecimal.valueOf(1 - quotation.getDiscountPercent()/100.0));
+                    unitNet = afterQuotation; // promo fields not persisted yet here
                 }
                 for (int i=0;i<lineQty;i++) {
                     DTOSaleOrderDetail sod = new DTOSaleOrderDetail();
@@ -229,9 +228,16 @@ public class OrderController {
                     veh.setVehicleID(vehicleIds.get(i));
                     sod.setVehicle(veh);
                     sod.setPrice(unitNet);
+                    sod.setGrossUnitPrice(grossUnit);
                     sod.setQuantity(1);
-                    if (quotation.getDealer()!=null && quotation.getDealer().getPolicyID() > 0) {
-                        DTODiscountPolicy policy = new DTODiscountPolicy(); policy.setPolicyID(quotation.getDealer().getPolicyID()); sod.setDiscountPolicy(policy);
+                    // Map dealer discount & promo from quotation detail
+                    sod.setDealerDiscountPercent(qd.getAppliedDealerDiscountPercent());
+                    sod.setPromoCode(qd.getPromoCode());
+                    sod.setPromoDiscountPercent(qd.getPromoDiscountPercent());
+                    sod.setPromoDiscountAmount(qd.getPromoDiscountAmount());
+                    if (qd.getPromoPolicy()!=null) {
+                        sod.setPromoPolicyID(qd.getPromoPolicy().getPolicyID());
+                        sod.setDiscountPolicy(qd.getPromoPolicy());
                     }
                     details.add(sod);
                     computedTotalQty += 1;
@@ -239,21 +245,20 @@ public class OrderController {
                 }
             }
         } else {
-            // fallback single line if no quotation details
+            // Fallback single line
             DTOSaleOrderDetail sod = new DTOSaleOrderDetail();
             if (vehicleId != null) {
                 DTOVehicle veh = new DTOVehicle(); veh.setVehicleID(vehicleId); sod.setVehicle(veh);
             }
-            // quotation total already discounted, derive per-unit directly
             int qtyFallback = (quantity != null && quantity > 0) ? quantity : 1;
             java.math.BigDecimal perUnit = java.math.BigDecimal.valueOf(quotation.getTotalPrice())
                     .divide(java.math.BigDecimal.valueOf(Math.max(1, qtyFallback)), java.math.MathContext.DECIMAL64);
             sod.setPrice(perUnit);
+            sod.setGrossUnitPrice(perUnit);
             sod.setQuantity(1);
-            if (quotation.getDealer()!=null && quotation.getDealer().getPolicyID()>0) {
-                DTODiscountPolicy policy = new DTODiscountPolicy(); policy.setPolicyID(quotation.getDealer().getPolicyID()); sod.setDiscountPolicy(policy);
-            }
-            for (int i=0;i<qtyFallback;i++){ details.add(sod); computedTotalQty += 1; computedTotalAmount = computedTotalAmount.add(sod.getPrice()); }
+            sod.setDealerDiscountPercent(quotation.getDiscountPercent()); // approximate
+            details.add(sod);
+            for (int i=0;i<qtyFallback;i++){ computedTotalQty += 1; computedTotalAmount = computedTotalAmount.add(perUnit); }
         }
 
         // 🔹 XỬ LÝ SHORTAGES - Tạo 1 PurchaseOrder duy nhất cho tất cả xe thiếu
@@ -321,6 +326,22 @@ public class OrderController {
             model.addAttribute("error", "Không tìm thấy đơn hàng!");
             return "redirect:/saleorder";
         }
+        // Compute financial breakdown server-side to avoid complex SpEL lambdas
+        java.math.BigDecimal grossTotal = java.math.BigDecimal.ZERO;
+        java.math.BigDecimal dealerDiscountTotal = java.math.BigDecimal.ZERO;
+        java.math.BigDecimal promoDiscountTotal = java.math.BigDecimal.ZERO;
+        if (order.getDetail() != null) {
+            for (DTOSaleOrderDetail d : order.getDetail()) {
+                int qty = d.getQuantity() != null ? d.getQuantity() : 1;
+                java.math.BigDecimal grossUnit = d.getGrossUnitPrice() != null ? d.getGrossUnitPrice() : (d.getPrice() != null ? d.getPrice() : java.math.BigDecimal.ZERO);
+                grossTotal = grossTotal.add(grossUnit.multiply(java.math.BigDecimal.valueOf(qty)));
+                dealerDiscountTotal = dealerDiscountTotal.add(d.getDealerDiscountAmountPerUnit().multiply(java.math.BigDecimal.valueOf(qty)));
+                promoDiscountTotal = promoDiscountTotal.add(d.getPromoDiscountAmountPerUnit().multiply(java.math.BigDecimal.valueOf(qty)));
+            }
+        }
+        model.addAttribute("grossTotal", grossTotal);
+        model.addAttribute("dealerDiscountTotal", dealerDiscountTotal);
+        model.addAttribute("promoDiscountTotal", promoDiscountTotal);
         model.addAttribute("order", order);
         return "dealerPage/dealerCustomerOrderDetail";
     }

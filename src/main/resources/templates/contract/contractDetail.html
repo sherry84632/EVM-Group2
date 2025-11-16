@@ -22,7 +22,11 @@
         <h5 class="mb-3">Vehicles</h5>
         <div th:if="${so.detail != null and !so.detail.isEmpty()}">
             <table class="table table-sm table-hover">
-                <thead class="table-light"><tr><th>#</th><th>VehicleID</th><th>Model</th><th>Version</th><th>Color</th><th>Unit Price</th></tr></thead>
+                <thead class="table-light">
+                <tr>
+                    <th>#</th><th>VehicleID</th><th>Model</th><th>Version</th><th>Color</th>
+                    <th>Dealer Disc (%)</th><th>Promo Code</th><th>Promo %</th><th>Promo Amt</th><th>Policy</th><th>Unit Net</th>
+                </tr></thead>
                 <tbody>
                 <tr th:each="d,stat : ${so.detail}">
                     <td th:text="${stat.index+1}"></td>
@@ -30,7 +34,12 @@
                     <td th:text="${d.vehicle?.version?.model?.modelName ?: '-'}"></td>
                     <td th:text="${d.vehicle?.version?.versionName ?: '-'}"></td>
                     <td th:text="${d.vehicle?.color?.colorName ?: '-'}"></td>
-                    <td th:text="'$' + ${#numbers.formatDecimal(d.price,0,'COMMA',0,'POINT')}"></td>
+                    <td th:text="${d.dealerDiscountPercent != null ? d.dealerDiscountPercent + '%' : '—'}"></td>
+                    <td th:text="${d.promoCode != null ? d.promoCode : '—'}"></td>
+                    <td th:text="${d.promoDiscountPercent != null ? d.promoDiscountPercent + '%' : '—'}"></td>
+                    <td th:text="${d.promoDiscountAmount != null ? '$' + #numbers.formatDecimal(d.promoDiscountAmount,0,'COMMA',0,'POINT') : '—'}"></td>
+                    <td th:text="${d.discountPolicy != null ? d.discountPolicy.policyName : (d.promoPolicyID != null ? 'Policy #' + d.promoPolicyID : '—')}"></td>
+                    <td th:text="${d.getFormattedUnitPrice()}"></td>
                 </tr>
                 </tbody>
             </table>

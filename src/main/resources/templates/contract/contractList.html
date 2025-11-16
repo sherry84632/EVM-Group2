@@ -12,7 +12,7 @@
     <tr><th>ID</th><th>SaleOrder</th><th>Date</th><th>Status</th><th>Total</th><th></th></tr>
     </thead>
     <tbody>
-    <tr th:each="c : ${contracts}">
+    <tr th:each="c : ${contracts}" th:with="so=${c.saleOrder}">
         <td th:text="${c.contractID}"></td>
         <td th:text="${c.saleOrder?.saleOrderID}"></td>
         <td th:text="${#dates.format(c.contractDate,'dd/MM/yyyy')}"></td>
@@ -26,4 +26,3 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-

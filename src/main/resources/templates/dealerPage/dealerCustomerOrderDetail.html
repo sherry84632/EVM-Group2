@@ -412,50 +412,83 @@
                         </div>
                     </div>
                 </div>
-                <!-- Vehicles -->
+                <!-- Line Items -->
                 <div class="card-soft">
-                    <h5><i class="fa fa-car"></i>Vehicles</h5>
+                    <h5><i class="fa fa-list"></i>Line Items</h5>
                     <div th:if="${order.detail != null and !order.detail.isEmpty()}">
-                        <table class="table table-hover table-sm mb-3">
+                        <table class="table table-sm table-bordered align-middle">
                             <thead>
                             <tr>
                                 <th>#</th>
-                                <th>VIN</th>
+                                <th>Vehicle ID</th>
                                 <th>Model</th>
                                 <th>Version</th>
                                 <th>Color</th>
-                                <th>Unit Price</th>
+                                <th>Dealer Disc (%)</th>
+                                <th>Promo Code</th>
+                                <th>Promo %</th>
+                                <th>Promo Amt</th>
+                                <th>Policy</th>
+                                <th>Unit Net</th>
+                                <th>Qty</th>
                                 <th>Line Total</th>
                             </tr>
                             </thead>
                             <tbody>
-                            <tr th:each="d,stat : ${order.detail}">
-                                <td th:text="${stat.index+1}"></td>
-                                <td><span class="badge bg-info text-dark"
-                                          th:text="${d.vin != null ? d.vin : 'N/A'}">N/A</span></td>
+                            <tr th:each="d, stat : ${order.detail}">
+                                <td th:text="${stat.index + 1}"></td>
+                                <td th:text="${d.vehicle != null ? d.vehicle.vehicleID : '-'}"></td>
                                 <td th:text="${d.vehicle?.version?.model?.modelName ?: '-'}"></td>
                                 <td th:text="${d.vehicle?.version?.versionName ?: '-'}"></td>
                                 <td th:text="${d.vehicle?.color?.colorName ?: '-'}"></td>
+                                <td th:text="${d.dealerDiscountPercent != null ? d.dealerDiscountPercent + '%' : '—'}"></td>
+                                <td th:text="${d.promoCode != null ? d.promoCode : '—'}"></td>
+                                <td th:text="${d.promoDiscountPercent != null ? d.promoDiscountPercent + '%' : '—'}"></td>
+                                <td th:text="${d.promoDiscountAmount != null ? '$' + #numbers.formatDecimal(d.promoDiscountAmount,0,'COMMA',0,'POINT') : '—'}"></td>
+                                <td th:text="${d.discountPolicy != null ? d.discountPolicy.policyName : (d.promoPolicyID != null ? 'Policy #' + d.promoPolicyID : '—')}"></td>
                                 <td th:text="${d.getFormattedUnitPrice()}"></td>
+                                <td th:text="${d.quantity}"></td>
                                 <td th:text="${d.getFormattedLineTotal()}"></td>
                             </tr>
                             </tbody>
                         </table>
-                        <div class="summary-box">
-                            <div class="summary-item"><span>Items</span><span th:text="${order.detail.size()}">0</span>
+                        <!-- Discount Summary -->
+                        <div class="summary-box mt-3">
+                            <div class="summary-item">
+                                <span>Lines</span>
+                                <span th:text="${order.detail.size()}">0</span>
                             </div>
-                            <div class="summary-item"><span>Total Qty</span><span
-                                    th:text="${order.totalQuantity}">0</span></div>
-                            <div class="summary-item" th:if="${order.quotation != null}"><span>Base Discount</span><span
-                                    th:text="${order.quotation.discountPercent != null ? order.quotation.discountPercent + '%' : '0%'}">0%</span>
+                            <div class="summary-item">
+                                <span>Total Quantity</span>
+                                <span th:text="${order.totalQuantity}">0</span>
                             </div>
-                            <div class="summary-item"><span>Total Amount</span><span
-                                    th:text="${order.getFormattedTotalAmount()}">0 ₫</span></div>
+                            <div class="summary-item">
+                                <span>Total Net</span>
+                                <span th:text="'$' + ${#numbers.formatDecimal(order.totalAmount,0,'COMMA',0,'POINT')}">$0</span>
+                            </div>
+                            <div class="summary-item">
+                                <span>Promo Codes Used</span>
+                                <span th:text="${#lists.size(#lists.toList(order.detail.?[promoCode != null].![promoCode]))} == 0 ? 'None' : ${#lists.toList(order.detail.?[promoCode != null].![promoCode]).stream().distinct().count()}" >None</span>
+                            </div>
+                            <div class="summary-item">
+                                <span>Gross Total</span>
+                                <span th:text="'$' + ${#numbers.formatDecimal(grossTotal != null ? grossTotal : 0,0,'COMMA',0,'POINT')}">$0</span>
+                            </div>
+                            <div class="summary-item">
+                                <span>Dealer Disc Total</span>
+                                <span th:text="'$' + ${#numbers.formatDecimal(dealerDiscountTotal != null ? dealerDiscountTotal : 0,0,'COMMA',0,'POINT')}">$0</span>
+                            </div>
+                            <div class="summary-item">
+                                <span>Promo Disc Total</span>
+                                <span th:text="'$' + ${#numbers.formatDecimal(promoDiscountTotal != null ? promoDiscountTotal : 0,0,'COMMA',0,'POINT')}">$0</span>
+                            </div>
+                            <div class="summary-item">
+                                <span>Net Total</span>
+                                <span th:text="'$' + ${#numbers.formatDecimal(order.totalAmount,0,'COMMA',0,'POINT')}">$0</span>
+                            </div>
                         </div>
                     </div>
-                    <div th:if="${order.detail == null or order.detail.isEmpty()}">
-                        <p class="text-muted mb-0">No vehicle details.</p>
-                    </div>
+                    <p class="text-muted" th:if="${order.detail == null or order.detail.isEmpty()}">No line items.</p>
                 </div>
                 <!-- Contract Placeholder -->
                 <div class="card-soft"

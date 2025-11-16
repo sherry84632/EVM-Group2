@@ -16,8 +16,8 @@ public class DAOSaleOrder {
     //  TẠO SALE ORDER MỚI
     // ======================================================
     public boolean createSaleOrder(DTOSaleOrder saleOrder) {
-        String sqlOrder = "INSERT INTO SaleOrder (CustomerID, DealerID, StaffID, CreatedAt, Status, Quantity, TotalAmount, PlannedDeliveryDate, ActualDeliveryDate, EtaDays) VALUES (?, ?, ?, GETDATE(), ?, ?, ?, ?, ?, ?)";
-        String sqlDetail = "INSERT INTO SaleOrderDetail (SaleOrderID, VehicleID, Price, PolicyID) VALUES (?, ?, ?, ?)";
+        String sqlOrder = "INSERT INTO SaleOrder (CustomerID, DealerID, StaffID, CreatedAt, Status, Quantity, TotalAmount, PlannedDeliveryDate, ActualDeliveryDate, EtaDays, QuotationID) VALUES (?, ?, ?, GETDATE(), ?, ?, ?, ?, ?, ?, ?)";
+        String sqlDetail = "INSERT INTO SaleOrderDetail (SaleOrderID, VehicleID, Price, Quantity, DealerDiscountPercent, PromoCode, PromoDiscountPercent, PromoDiscountAmount, PromoPolicyID, PolicyID, GrossUnitPrice) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         Connection conn = null; PreparedStatement psOrder = null; PreparedStatement psDetail = null; ResultSet rs = null;
         try {
             if (saleOrder.getDetail()==null || saleOrder.getDetail().isEmpty()) {
@@ -52,24 +52,29 @@ public class DAOSaleOrder {
             psOrder.setTimestamp(7, saleOrder.getPlannedDeliveryDate());
             psOrder.setTimestamp(8, saleOrder.getActualDeliveryDate());
             if (saleOrder.getEtaDays()!=null) psOrder.setInt(9, saleOrder.getEtaDays()); else psOrder.setNull(9, java.sql.Types.INTEGER);
+            if (saleOrder.getQuotation()!=null) psOrder.setInt(10, saleOrder.getQuotation().getQuotationID()); else psOrder.setNull(10, java.sql.Types.INTEGER);
             psOrder.executeUpdate();
             rs = psOrder.getGeneratedKeys(); int saleOrderID = 0; if (rs.next()) saleOrderID = rs.getInt(1); saleOrder.setSaleOrderID(saleOrderID);
             log.info("[SaleOrder] Header inserted id={}", saleOrderID);
             psDetail = conn.prepareStatement(sqlDetail);
-            int detailCount = 0;
             for (DTOSaleOrderDetail d : saleOrder.getDetail()) {
-                if (d.getVehicle()==null) { log.warn("[SaleOrder] Skipping detail without vehicle"); continue; }
+                if (d.getVehicle()==null) continue;
                 psDetail.setInt(1, saleOrderID);
                 psDetail.setInt(2, d.getVehicle().getVehicleID());
-                psDetail.setBigDecimal(3, d.getPrice()!=null? d.getPrice(): java.math.BigDecimal.ZERO);
-                if (d.getDiscountPolicy()!=null) {
-                    psDetail.setInt(4, d.getDiscountPolicy().getPolicyID());
-                } else {
-                    psDetail.setNull(4, java.sql.Types.INTEGER);
-                }
-                psDetail.addBatch(); detailCount++;
+                // ensure grossUnitPrice captured (if not set, fallback to price)
+                java.math.BigDecimal gross = d.getGrossUnitPrice();
+                java.math.BigDecimal net = d.getPrice()!=null? d.getPrice(): java.math.BigDecimal.ZERO;
+                psDetail.setBigDecimal(3, net);
+                psDetail.setInt(4, d.getQuantity()!=null? d.getQuantity():1);
+                if (d.getDealerDiscountPercent()!=null) psDetail.setDouble(5, d.getDealerDiscountPercent()); else psDetail.setNull(5, java.sql.Types.DECIMAL);
+                psDetail.setString(6, d.getPromoCode());
+                if (d.getPromoDiscountPercent()!=null) psDetail.setDouble(7, d.getPromoDiscountPercent()); else psDetail.setNull(7, java.sql.Types.DECIMAL);
+                psDetail.setBigDecimal(8, d.getPromoDiscountAmount());
+                if (d.getPromoPolicyID()!=null) psDetail.setInt(9, d.getPromoPolicyID()); else psDetail.setNull(9, java.sql.Types.INTEGER);
+                if (d.getDiscountPolicy()!=null) psDetail.setInt(10, d.getDiscountPolicy().getPolicyID()); else psDetail.setNull(10, java.sql.Types.INTEGER);
+                psDetail.setBigDecimal(11, gross);
+                psDetail.addBatch();
             }
-            if (detailCount==0) { log.error("[SaleOrder] No valid details to insert, rolling back"); conn.rollback(); return false; }
             int[] res = psDetail.executeBatch();
             log.debug("[SaleOrder] Inserted {} detail rows", res.length);
             conn.commit();
@@ -227,14 +232,14 @@ public class DAOSaleOrder {
     // ======================================================
     public List<DTOSaleOrderDetail> getSaleOrderDetails(int saleOrderID) {
         List<DTOSaleOrderDetail> details = new ArrayList<>();
-
         String sql = """
-                    SELECT sod.SODetailID, sod.SaleOrderID, sod.VehicleID, sod.Price, sod.PolicyID,
+                    SELECT sod.SODetailID, sod.SaleOrderID, sod.VehicleID, sod.Price, sod.Quantity,
+                           sod.DealerDiscountPercent, sod.PromoCode, sod.PromoDiscountPercent, sod.PromoDiscountAmount, sod.PromoPolicyID, sod.PolicyID, sod.GrossUnitPrice,
                            v.ManufactureYear, v.Status, v.EngineNumber,
                            vc.ColorID, vc.ColorName,
                            vv.VersionID, vv.VersionName,
                            vm.ModelID, vm.ModelName, vm.BasePrice AS ModelBasePrice,
-                           dp.PolicyID, dp.PolicyName,
+                           dp.PolicyID AS MPolicyID, dp.PolicyName,
                            di.VIN
                     FROM SaleOrderDetail sod
                     JOIN Vehicle v ON sod.VehicleID = v.VehicleID
@@ -245,30 +250,21 @@ public class DAOSaleOrder {
                     LEFT JOIN DealerInventory di ON di.VehicleID = v.VehicleID
                     WHERE sod.SaleOrderID = ?
                 """;
-
-        try (Connection conn = DBUtils.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
+        try (Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, saleOrderID);
             ResultSet rs = ps.executeQuery();
-
             while (rs.next()) {
-                // Vehicle info
                 DTOVehicle vehicle = new DTOVehicle();
                 vehicle.setVehicleID(rs.getInt("VehicleID"));
                 vehicle.setManufactureYear(rs.getInt("ManufactureYear"));
                 vehicle.setEngineNumber(rs.getString("EngineNumber"));
                 vehicle.setStatus(VehicleStatus.valueOf(rs.getString("Status")));
-
-                // Color info
                 if (rs.getString("ColorName") != null) {
                     DTOVehicleColor color = new DTOVehicleColor();
                     color.setColorID(rs.getInt("ColorID"));
                     color.setColorName(rs.getString("ColorName"));
                     vehicle.setColor(color);
                 }
-
-                // Version & Model info
                 if (rs.getString("VersionName") != null) {
                     DTOVehicleVersion version = new DTOVehicleVersion();
                     version.setVersionID(rs.getInt("VersionID"));
@@ -282,28 +278,30 @@ public class DAOSaleOrder {
                     }
                     vehicle.setVersion(version);
                 }
-
-                // Discount Policy info
                 DTODiscountPolicy discountPolicy = null;
-                if (rs.getString("PolicyName") != null) {
+                Integer mPolicyId = (Integer) rs.getObject("MPolicyID");
+                if (mPolicyId != null) {
                     discountPolicy = new DTODiscountPolicy();
-                    discountPolicy.setPolicyID(rs.getInt("PolicyID"));
+                    discountPolicy.setPolicyID(mPolicyId);
                     discountPolicy.setPolicyName(rs.getString("PolicyName"));
                 }
-
                 DTOSaleOrderDetail detail = new DTOSaleOrderDetail();
                 detail.setSoDetailID(rs.getInt("SODetailID"));
                 detail.setVehicle(vehicle);
                 detail.setPrice(rs.getBigDecimal("Price"));
-                detail.setDiscountPolicy(discountPolicy);
-
-                // Lấy VIN từ DealerInventory
-                String vin = rs.getString("VIN");
-                detail.setVin(vin != null ? vin : "N/A");
-
+                detail.setQuantity((Integer) rs.getObject("Quantity"));
+                detail.setDealerDiscountPercent((Double) rs.getObject("DealerDiscountPercent"));
+                detail.setPromoCode(rs.getString("PromoCode"));
+                Double ppct = (Double) rs.getObject("PromoDiscountPercent");
+                if (ppct != null) detail.setPromoDiscountPercent(ppct);
+                detail.setPromoDiscountAmount(rs.getBigDecimal("PromoDiscountAmount"));
+                Integer promoPolicyId = (Integer) rs.getObject("PromoPolicyID");
+                if (promoPolicyId != null) detail.setPromoPolicyID(promoPolicyId);
+                if (discountPolicy != null) detail.setDiscountPolicy(discountPolicy);
+                detail.setVin(rs.getString("VIN") != null ? rs.getString("VIN") : "N/A");
+                detail.setGrossUnitPrice(rs.getBigDecimal("GrossUnitPrice"));
                 details.add(detail);
             }
-
         } catch (SQLException e) {
             log.error("Error retrieving SaleOrder details saleOrderID={}", saleOrderID, e);
         }
@@ -314,14 +312,14 @@ public class DAOSaleOrder {
     // LẤY 1 CHI TIẾT SALE ORDER DETAIL THEO ID
     // ======================================================
     public DTOSaleOrderDetail getDetailById(int detailId) {
-        DTOSaleOrderDetail detail = null;
         String sql = """
-                    SELECT sod.SODetailID, sod.SaleOrderID, sod.VehicleID, sod.Price, sod.PolicyID,
+                    SELECT sod.SODetailID, sod.SaleOrderID, sod.VehicleID, sod.Price, sod.Quantity,
+                           sod.DealerDiscountPercent, sod.PromoCode, sod.PromoDiscountPercent, sod.PromoDiscountAmount, sod.PromoPolicyID, sod.PolicyID, sod.GrossUnitPrice,
                            v.ManufactureYear, v.Status, v.EngineNumber,
                            vc.ColorID, vc.ColorName,
                            vv.VersionID, vv.VersionName,
                            vm.ModelID, vm.ModelName, vm.BasePrice AS ModelBasePrice,
-                           dp.PolicyID, dp.PolicyName,
+                           dp.PolicyID AS MPolicyID, dp.PolicyName,
                            di.VIN
                     FROM SaleOrderDetail sod
                     JOIN Vehicle v ON sod.VehicleID = v.VehicleID
@@ -332,10 +330,7 @@ public class DAOSaleOrder {
                     LEFT JOIN DealerInventory di ON di.VehicleID = v.VehicleID
                     WHERE sod.SODetailID = ?
                 """;
-
-        try (Connection conn = DBUtils.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
+        try (Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, detailId);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -344,14 +339,12 @@ public class DAOSaleOrder {
                     vehicle.setManufactureYear(rs.getInt("ManufactureYear"));
                     vehicle.setEngineNumber(rs.getString("EngineNumber"));
                     vehicle.setStatus(VehicleStatus.valueOf(rs.getString("Status")));
-
                     if (rs.getString("ColorName") != null) {
                         DTOVehicleColor color = new DTOVehicleColor();
                         color.setColorID(rs.getInt("ColorID"));
                         color.setColorName(rs.getString("ColorName"));
                         vehicle.setColor(color);
                     }
-
                     if (rs.getString("VersionName") != null) {
                         DTOVehicleVersion version = new DTOVehicleVersion();
                         version.setVersionID(rs.getInt("VersionID"));
@@ -365,31 +358,35 @@ public class DAOSaleOrder {
                         }
                         vehicle.setVersion(version);
                     }
-
                     DTODiscountPolicy discountPolicy = null;
-                    if (rs.getString("PolicyName") != null) {
+                    Integer mPolicyId = (Integer) rs.getObject("MPolicyID");
+                    if (mPolicyId != null) {
                         discountPolicy = new DTODiscountPolicy();
-                        discountPolicy.setPolicyID(rs.getInt("PolicyID"));
+                        discountPolicy.setPolicyID(mPolicyId);
                         discountPolicy.setPolicyName(rs.getString("PolicyName"));
                     }
-
-                    detail = new DTOSaleOrderDetail();
+                    DTOSaleOrderDetail detail = new DTOSaleOrderDetail();
                     detail.setSoDetailID(rs.getInt("SODetailID"));
                     detail.setVehicle(vehicle);
                     detail.setPrice(rs.getBigDecimal("Price"));
-                    detail.setDiscountPolicy(discountPolicy);
-
-                    //Lấy VIN từ DealerInventory
-                    String vin = rs.getString("VIN");
-                    detail.setVin(vin != null ? vin : "N/A");
+                    detail.setQuantity((Integer) rs.getObject("Quantity"));
+                    detail.setDealerDiscountPercent((Double) rs.getObject("DealerDiscountPercent"));
+                    detail.setPromoCode(rs.getString("PromoCode"));
+                    Double ppct = (Double) rs.getObject("PromoDiscountPercent");
+                    if (ppct != null) detail.setPromoDiscountPercent(ppct);
+                    detail.setPromoDiscountAmount(rs.getBigDecimal("PromoDiscountAmount"));
+                    Integer promoPolicyId = (Integer) rs.getObject("PromoPolicyID");
+                    if (promoPolicyId != null) detail.setPromoPolicyID(promoPolicyId);
+                    if (discountPolicy != null) detail.setDiscountPolicy(discountPolicy);
+                    detail.setVin(rs.getString("VIN") != null ? rs.getString("VIN") : "N/A");
+                    detail.setGrossUnitPrice(rs.getBigDecimal("GrossUnitPrice"));
+                    return detail;
                 }
             }
-
         } catch (SQLException e) {
             log.error("Error retrieving SaleOrderDetail by id={}", detailId, e);
         }
-
-        return detail;
+        return null;
     }
 
     // ======================================================

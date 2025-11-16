@@ -38,6 +38,9 @@ public class DTODealerPriceAdjustment {
     @Column(name = "PromotionName")
     private String promotionName;
 
+    @Column(name = "ApplicableModelIDs", columnDefinition = "NVARCHAR(MAX)")
+    private String applicableModelIDs; // Comma-separated list of model IDs when multiple selected (null = single or ALL)
+
 
     public DTODealerPriceAdjustment() {}
 
@@ -127,4 +130,14 @@ public class DTODealerPriceAdjustment {
     public void setPromotionName(String promotionName) {
         this.promotionName = promotionName;
     }
+
+    public String getApplicableModelIDs() { return applicableModelIDs; }
+    public void setApplicableModelIDs(String applicableModelIDs) { this.applicableModelIDs = applicableModelIDs; }
+    @Transient
+    public int getApplicableModelCount() {
+        if (applicableModelIDs == null || applicableModelIDs.trim().isEmpty()) return 0;
+        return (int) java.util.Arrays.stream(applicableModelIDs.split(",")).filter(s -> !s.isBlank()).count();
+    }
+    @Transient
+    public boolean isAllModels() { return applicableModelIDs == null && vehicleModel == null; }
 }

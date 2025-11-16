@@ -143,7 +143,7 @@ public class SecurityConfig {
                 // EVM/Admin role endpoints - ADMIN has all EVM functions
                 .requestMatchers("/showEVMHomePage", "/evmVehicleList", "/evmCreateANewVehicleToList",
                                "/evmOrderList", "/evmOrderHistory", "/vehicleDistributionManagement",
-                               "/getVehicleList").hasAnyRole("ADMIN", "EVMSTAFF")
+                               "/getVehicleList", "/evm/settlement").hasAnyRole("ADMIN", "EVMSTAFF")
 
                 // Account Management (ADMIN only - manages all accounts and dealers)
                 .requestMatchers("/account/**").hasRole("ADMIN")

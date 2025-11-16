@@ -7,6 +7,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "Quotation")
+@SuppressWarnings({"JpaDataSourceORMInspection", "unused"})
 public class DTOQuotation {
 
     @Id
@@ -47,6 +48,14 @@ public class DTOQuotation {
 
     @Column(name = "DiscountPercent")
     private Double discountPercent; // nullable discount applied to whole quotation
+
+    // ===== MÃ GIẢM GIÁ CỦA HÃNG (MANUFACTURER PROMO CODE) - Cấp toàn báo giá =====
+    @Column(name = "PromoCode")
+    private String promoCode; // Mã giảm giá áp dụng cho toàn bộ quotation
+
+    @ManyToOne
+    @JoinColumn(name = "PromoPolicyID", referencedColumnName = "PolicyID")
+    private DTODiscountPolicy promoPolicy; // Reference đến DiscountPolicy
 
     public DTOQuotation() {
     }
@@ -154,6 +163,57 @@ public class DTOQuotation {
 
     public void setDiscountPercent(Double discountPercent) {
         this.discountPercent = discountPercent;
+    }
+
+    // ===== PROMO CODE GETTERS/SETTERS =====
+    public String getPromoCode() {
+        return promoCode;
+    }
+
+    public void setPromoCode(String promoCode) {
+        this.promoCode = promoCode;
+    }
+
+    public DTODiscountPolicy getPromoPolicy() {
+        return promoPolicy;
+    }
+
+    public void setPromoPolicy(DTODiscountPolicy promoPolicy) {
+        this.promoPolicy = promoPolicy;
+    }
+
+    /**
+     * Tính tổng giá trị báo giá sau khi áp dụng promo code
+     */
+    @Transient
+    public java.math.BigDecimal getTotalAfterPromo() {
+        if (quotationDetails == null || quotationDetails.isEmpty()) {
+            return java.math.BigDecimal.ZERO;
+        }
+
+        java.math.BigDecimal total = java.math.BigDecimal.ZERO;
+        for (DTOQuotationDetail detail : quotationDetails) {
+            total = total.add(detail.getNetAfterAllDiscounts());
+        }
+
+        return total;
+    }
+
+    /**
+     * Tính tổng tiền giảm từ promo code
+     */
+    @Transient
+    public java.math.BigDecimal getTotalPromoDiscount() {
+        if (quotationDetails == null || quotationDetails.isEmpty()) {
+            return java.math.BigDecimal.ZERO;
+        }
+
+        java.math.BigDecimal totalDiscount = java.math.BigDecimal.ZERO;
+        for (DTOQuotationDetail detail : quotationDetails) {
+            totalDiscount = totalDiscount.add(detail.getPromoDiscountTotal());
+        }
+
+        return totalDiscount;
     }
 
     @Transient

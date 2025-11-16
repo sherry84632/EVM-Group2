@@ -100,6 +100,11 @@
             font-weight: bold;
             margin: 0 8px;
         }
+        .line-manufacturer { background:#e3fafc; }
+        .line-manufacturer td { border-top:2px solid #66d9e8; }
+        .badge-policy { background:#ffe8cc; color:#d9480f; font-size:11px; padding:4px 8px; border-radius:8px; font-weight:600; }
+        .badge-policy-active { background:#ffd43b; color:#5c3c00; }
+        .small-note { font-size:11px; color:#6c757d; }
     </style>
 </head>
 <body style="overflow: hidden" class="bg-light" th:classappend="${promotionApplied} ? 'promotion-active' : ''">
@@ -221,24 +226,44 @@
                                     <th>Version</th>
                                     <th>Color</th>
                                     <th>Unit Price</th>
-                                    <th>Quantity</th>
+                                    <th>Dealer %</th>
+                                    <th>Manuf %</th>
+                                    <th>Qty</th>
                                     <th>Subtotal</th>
+                                    <th>Net After Discounts</th>
                                 </tr>
                                 </thead>
                                 <tbody>
-                                <tr th:each="detail,iter : ${details}" th:classappend="${quotationLocked}? 'table-secondary' : ''">
-                                    <td th:text="${detail.modelName ?: 'N/A'}"></td>
+                                <tr th:each="detail,iter : ${details}" th:with="promoClass=${(detail.promoDiscountPercent != null and detail.promoDiscountPercent > 0) or (detail.promoPolicy != null)} ? ' line-manufacturer' : ''" th:classappend="${quotationLocked} ? 'table-secondary' : '' + promoClass">
+                                    <td>
+                                        <span th:text="${detail.modelName ?: 'N/A'}"></span>
+                                        <span th:if="${detail.promoPolicy != null}" class="badge-policy" th:classappend="${detail.promoDiscountPercent != null && detail.promoDiscountPercent > 0}? ' badge-policy-active' : ''" th:title="${detail.promoPolicy.policyName}">
+                                            <i class="fas fa-industry"></i>
+                                            <span th:text="${detail.promoPolicy.promoCode ?: detail.promoPolicy.policyName}"></span>
+                                        </span>
+                                    </td>
                                     <td th:text="${detail.versionName ?: 'N/A'}"></td>
                                     <td th:text="${detail.colorName ?: 'N/A'}"></td>
                                     <td>
                                         <strong>$<span th:text="${#numbers.formatDecimal(detail.unitPrice, 0, 'COMMA', 0, 'POINT')}"></span></strong>
                                         <input type="hidden" name="unitPrices" th:value="${detail.unitPrice}" />
+                                        <div class="small-note" th:if="${detail.promoPolicy != null}">
+                                            <span th:if="${detail.promoDiscountPercent != null && detail.promoDiscountPercent > 0}" th:text="'Manufacturer -' + detail.promoDiscountPercent + '%'" class="text-warning"></span>
+                                            <span th:if="${(detail.promoDiscountPercent == null || detail.promoDiscountPercent == 0) && detail.promoDiscountAmount != null}" th:text="'Manufacturer - $' + #numbers.formatDecimal(detail.promoDiscountAmount,0,'COMMA',0,'POINT')" class="text-warning"></span>
+                                            <span th:if="${detail.promoDiscountPercent == null && detail.promoDiscountAmount == null}" class="text-muted">Policy applied (no discount data)</span>
+                                        </div>
                                     </td>
+                                    <td th:text="${detail.appliedDealerDiscountPercent != null ? detail.appliedDealerDiscountPercent + '%' : '—'}"></td>
+                                    <td th:text="${detail.promoDiscountPercent != null ? detail.promoDiscountPercent + '%' : (detail.promoPolicy != null ? '0%' : '—')}"></td>
                                     <td>
                                         <input type="number" min="1" class="form-control form-control-sm" name="quantities" th:value="${detail.quantity}" th:disabled="${quotationLocked}" />
                                     </td>
                                     <td>
                                         <strong>$<span th:text="${#numbers.formatDecimal(detail.subtotal, 0, 'COMMA', 0, 'POINT')}"></span></strong>
+                                    </td>
+                                    <td>
+                                        <strong class="text-success">$<span th:text="${#numbers.formatDecimal(detail.finalNetAfterAll,0,'COMMA',0,'POINT')}"></span></strong>
+                                        <div class="small-note" th:if="${detail.finalNetAfterAll != null}" th:text="'Saved: $' + ${#numbers.formatDecimal(detail.subtotal.subtract(detail.finalNetAfterAll),0,'COMMA',0,'POINT')}"></div>
                                     </td>
                                     <input type="hidden" name="detailIds" th:value="${detail.quotationDetailID}" />
                                 </tr>
@@ -309,6 +334,90 @@
                     </div>
                 </div>
 
+                <!-- Apply Manufacturer Discount Policy Section -->
+                <div class="detail-card" th:if="${manufacturerPolicies != null and !manufacturerPolicies.isEmpty()}">
+                    <h5><i class="fas fa-industry me-2"></i>Apply Manufacturer Discount Policy <span th:if="${quotationLocked}">(Locked)</span></h5>
+
+                    <div th:if="${appliedManufacturerPolicy != null}" class="alert alert-success mb-3">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <strong>Applied Policy:</strong> <span th:text="${appliedManufacturerPolicy.policyName}"></span>
+                        (<span th:text="${appliedManufacturerPolicy.discountPercent}"></span>% discount from manufacturer)
+                        <form th:if="${!quotationLocked}" th:action="@{/quotation/manufacturer-policy/apply}" method="post" class="d-inline float-end">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                            <input type="hidden" name="quotationID" th:value="${quotation.quotationID}" />
+                            <input type="hidden" name="policyId" value="0" />
+                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                <i class="fas fa-times me-1"></i>Remove
+                            </button>
+                        </form>
+                    </div>
+
+                    <div th:if="${!quotationLocked}" class="promo-select-wrapper border rounded p-3" style="max-height:200px; overflow-y:auto;">
+                        <p class="text-muted mb-2">
+                            <small>
+                                <i class="fas fa-info-circle"></i>
+                                Select a manufacturer policy to apply special discount from the manufacturer:
+                            </small>
+                        </p>
+                        <div class="list-group">
+                            <form th:each="policy : ${manufacturerPolicies}"
+                                  th:action="@{/quotation/manufacturer-policy/apply}"
+                                  method="post"
+                                  class="mb-2">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                                <input type="hidden" name="quotationID" th:value="${quotation.quotationID}" />
+                                <input type="hidden" name="policyId" th:value="${policy.policyID}" />
+                                <button type="submit"
+                                        class="list-group-item list-group-item-action w-100 text-start"
+                                        th:classappend="${appliedManufacturerPolicy != null and appliedManufacturerPolicy.policyID == policy.policyID} ? 'active' : ''">
+                                    <div class="d-flex w-100 justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-1">
+                                                <i class="fas fa-tag me-1"></i>
+                                                <span th:text="${policy.policyName}">Policy Name</span>
+                                            </h6>
+                                            <small>
+                                                <span class="badge bg-warning text-dark" th:text="${policy.discountPercent + '%'}">10%</span>
+                                                off ·
+                                                <strong th:if="${policy.applicableToModels == null or policy.applicableToModels.isEmpty()}">
+                                                    <i class="fas fa-globe"></i> All Models
+                                                </strong>
+                                                <strong th:if="${policy.applicableToModels != null and !policy.applicableToModels.isEmpty()}">
+                                                    <i class="fas fa-layer-group"></i>
+                                                    <span th:text="${#strings.arraySplit(policy.applicableToModels, ',').length + ' Models'}">3 Models</span>
+                                                </strong>
+                                            </small>
+                                            <br>
+                                            <small class="text-muted" th:if="${policy.description != null and !policy.description.isBlank()}">
+                                                <i class="fas fa-info-circle"></i>
+                                                <span th:text="${policy.description}">Description</span>
+                                            </small>
+                                        </div>
+                                        <div class="text-end">
+                                            <small class="text-muted d-block">
+                                                <i class="far fa-calendar-alt"></i>
+                                                <span th:text="${policy.startDate != null ? #temporals.format(policy.startDate, 'dd/MM/yyyy') : 'N/A'}"></span>
+                                            </small>
+                                            <small class="text-muted d-block">
+                                                to <span th:text="${policy.endDate != null ? #temporals.format(policy.endDate, 'dd/MM/yyyy') : 'No end'}"></span>
+                                            </small>
+                                            <span class="badge mt-1"
+                                                  th:classappend="${policy.status != null and policy.status.name() == 'ACTIVE' ? 'bg-success' : 'bg-secondary'}"
+                                                  th:text="${policy.status != null ? policy.status.name() : 'ACTIVE'}">
+                                                ACTIVE
+                                            </span>
+                                        </div>
+                                    </div>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div th:if="${quotationLocked}" class="alert alert-secondary">
+                        <i class="fas fa-lock me-2"></i>Manufacturer policy cannot be changed - quotation is locked.
+                    </div>
+                </div>
+
                 <!-- Price Summary with Applied Discounts -->
                 <div class="detail-card" th:if="${details != null and !details.isEmpty()}">
                     <h5><i class="fas fa-calculator me-2"></i>Price Summary</h5>
@@ -318,7 +427,11 @@
                             <span th:text="${lineLevelGross != null ? ('$' + #numbers.formatDecimal(lineLevelGross, 0, 'COMMA', 0, 'POINT')) : 'N/A'}"></span>
                         </div>
                         <div th:if="${promotionApplied}" class="d-flex justify-content-between mb-2 text-success">
-                            <span>After Line Discount (<span th:text="${lineLevelDiscountPercent}"></span>%):</span>
+                            <span>After Dealer Line Discount (<span th:text="${lineLevelDiscountPercent}"></span>%):</span>
+                            <span th:text="'$' + ${#numbers.formatDecimal(lineLevelNet, 0, 'COMMA', 0, 'POINT')}"></span>
+                        </div>
+                        <div th:if="${manufacturerPromoApplied}" class="d-flex justify-content-between mb-2 text-warning">
+                            <span>After Manufacturer Discount (<span th:text="${appliedManufacturerPolicy != null ? appliedManufacturerPolicy.discountPercent : '0'}"></span>%):</span>
                             <span th:text="'$' + ${#numbers.formatDecimal(lineLevelNet, 0, 'COMMA', 0, 'POINT')}"></span>
                         </div>
                         <div th:if="${baseDiscountPercent != null and baseDiscountPercent > 0}" class="d-flex justify-content-between mb-2 text-info">
@@ -331,7 +444,7 @@
                             <span class="price-highlight" th:text="'$' + ${#numbers.formatDecimal(finalNetTotal, 0, 'COMMA', 0, 'POINT')}"></span>
                         </div>
                         <div th:if="${finalCombinedDiscountPercent != null and finalCombinedDiscountPercent > 0}" class="text-end mt-1">
-                            <small class="text-muted">Total Discount: <span th:text="${#numbers.formatDecimal(finalCombinedDiscountPercent, 1, 0)}"></span>%</small>
+                            <small class="text-muted">Effective Total Discount: <span th:text="${#numbers.formatDecimal(finalCombinedDiscountPercent, 1, 0)}"></span>%</small>
                         </div>
                     </div>
                 </div>

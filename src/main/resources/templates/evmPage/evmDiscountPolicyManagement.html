@@ -205,34 +205,61 @@
                         <!-- Dealer Info (when editing) -->
                         <div class="form-group" th:if="${policy != null}">
                             <label>Dealer</label>
-                            <input type="text" th:value="${policy.dealer != null ? (policy.dealer.dealerName + ' (ID: ' + policy.dealer.dealerID + ')') : 'N/A'}" readonly>
+                            <input type="text" th:value="${policyDealer != null ? (policyDealer.dealerName + ' (ID: ' + policyDealer.dealerID + ')') : 'N/A'}" readonly>
                         </div>
 
-                        <!-- Discount Percent -->
+                        <!-- Manufacturer Discount for Customers -->
                         <div class="form-group">
-                            <label for="discountPercent">Dealer Discount (%) *</label>
+                            <label for="discountPercent">Manufacturer Discount for Customers (%) *</label>
                             <input type="number" id="discountPercent" name="discountPercent"
                                    th:value="${policy != null and policy.discountPercent != null ? policy.discountPercent : ''}"
-                                   placeholder="e.g., 25" min="0" max="100" step="0.01" required>
-                            <div class="small-text">Discount percentage dealer receives off base price</div>
+                                   placeholder="e.g., 10" min="0" max="100" step="0.01" required>
+                            <div class="small-text">
+                                <i class="fas fa-info-circle"></i>
+                                Discount percentage from manufacturer for customers buying from this dealer
+                                <br>
+                                <strong>Example:</strong> 10% discount = Customer saves 10% off vehicle price
+                            </div>
                         </div>
 
-                        <!-- Manufacturer Share -->
+                        <!-- Applicable Vehicle Models -->
                         <div class="form-group">
-                            <label for="hangPercent">Manufacturer Share (%) *</label>
-                            <input type="number" id="hangPercent" name="hangPercent"
-                                   th:value="${policy != null and policy.hangPercent != null ? policy.hangPercent : ''}"
-                                   placeholder="e.g., 95" min="0" max="100" step="0.01" required>
-                            <div class="small-text">Manufacturer gets this % of discounted price</div>
+                            <label for="applicableModels">Apply to Vehicle Models *</label>
+                            <select id="applicableModels" name="applicableModels" required onchange="toggleVehicleSelection(this.value)">
+                                <option value="ALL" th:selected="${policy == null or policy.applicableToModels == null or policy.applicableToModels.isEmpty()}">
+                                    All Vehicle Models
+                                </option>
+                                <option value="SPECIFIC" th:selected="${policy != null and policy.applicableToModels != null and !policy.applicableToModels.isEmpty()}">
+                                    Specific Vehicle Models
+                                </option>
+                            </select>
+                            <div class="small-text">
+                                <i class="fas fa-car"></i>
+                                Choose whether to apply discount to all vehicles or specific models only
+                            </div>
                         </div>
 
-                        <!-- Dealer Reward -->
-                        <div class="form-group">
-                            <label for="dailyPercent">Dealer Reward (%) *</label>
-                            <input type="number" id="dailyPercent" name="dailyPercent"
-                                   th:value="${policy != null and policy.dailyPercent != null ? policy.dailyPercent : ''}"
-                                   placeholder="e.g., 5" min="0" max="100" step="0.01" required>
-                            <div class="small-text">Dealer reward % (Manufacturer + Reward should = 100%)</div>
+                        <!-- Specific Vehicle Selection (hidden by default) -->
+                        <div class="form-group" id="specificVehiclesDiv" style="display: none;">
+                            <label>Select Vehicle Models</label>
+                            <div style="max-height: 200px; overflow-y: auto; border: 2px solid #ccc; border-radius: 10px; padding: 10px; background: #fafafa;">
+                                <div th:each="model : ${vehicleModels}" style="margin-bottom: 8px;">
+                                    <label style="display: flex; align-items: center; cursor: pointer; padding: 5px; border-radius: 5px; transition: background 0.2s; flex:1;">
+                                        <input type="checkbox" name="selectedModels" th:value="${model.modelID}"
+                                               th:checked="${policy != null and policy.applicableToModels != null and #strings.contains(policy.applicableToModels, model.modelID.toString())}"
+                                               style="margin-right: 10px; width: 18px; height: 18px; cursor: pointer;">
+                                        <span th:text="${model.modelName}" style="flex: 1; font-weight: 500;">Model Name</span>
+                                        <span th:text="'ID: ' + ${model.modelID}" style="color: #666; font-size: 12px; margin-right:10px;">ID: 1</span>
+                                        <button type="button" class="btn btn-sm btn-outline-primary" style="padding:4px 10px;" th:attr="data-model-id=${model.modelID}" onclick="openModelDetails(this)">
+                                            <i class="fas fa-info-circle"></i> Details
+                                        </button>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="small-text mt-2">
+                                <i class="fas fa-check-square"></i>
+                                Select one or more vehicle models for this discount policy
+                            </div>
                         </div>
 
                         <!-- Start Date -->
@@ -318,22 +345,43 @@
                                     <!-- Percentages -->
                                     <div class="discount-info">
                                         <div class="info-row">
-                                            <span class="info-label" th:text="${p.dealer?.dealerName}"></span>
+                                            <span class="info-label" th:text="${dealerMap != null and dealerMap[p.policyID] != null ? dealerMap[p.policyID].dealerName : (p.dealerID != null ? 'Dealer ID: ' + p.dealerID : 'N/A')}">Dealer Name</span>
                                         </div>
                                         <div class="info-row">
-                                            <span class="info-label">Dealer Discount</span>
+                                            <span class="info-label">
+                                                <i class="fas fa-tag"></i> Customer Discount
+                                            </span>
                                             <span class="percent-badge percent-badge-discount"
-                                                  th:text="${p.discountPercent != null ? p.discountPercent + '%' : 'N/A'}">25%</span>
+                                                  th:text="${p.discountPercent != null ? p.discountPercent + '%' : 'N/A'}">10%</span>
                                         </div>
                                         <div class="info-row">
-                                            <span class="info-label">Dealer Reward</span>
-                                            <span class="percent-badge percent-badge-reward"
-                                                  th:text="${p.dailyPercent + '%'}">5%</span>
+                                            <span class="info-label">
+                                                <i class="fas fa-info-circle"></i> Description
+                                            </span>
+                                            <span class="date-value"
+                                                  th:text="${p.description != null and p.description.length() > 50 ? p.description.substring(0, 50) + '...' : (p.description != null ? p.description : 'N/A')}"
+                                                  style="font-size: 12px;">
+                                                Discount for customers
+                                            </span>
                                         </div>
                                         <div class="info-row">
-                                            <span class="info-label">Manufacturer Share</span>
-                                            <span class="percent-badge percent-badge-manufacturer"
-                                                  th:text="${p.hangPercent + '%'}">95%</span>
+                                            <span class="info-label">
+                                                <i class="fas fa-car"></i> Applicable Vehicles
+                                            </span>
+                                            <!-- Case 1: All Models -->
+                                            <span th:if="${p.applicableToModels == null or p.applicableToModels.isEmpty()}"
+                                                  class="badge bg-success" style="font-size:12px;padding:6px 12px;">
+                                                <i class="fas fa-globe"></i> All Vehicle Models
+                                            </span>
+                                            <!-- Case 2: Specific Models (clickable) -->
+                                            <span th:if="${p.applicableToModels != null and !p.applicableToModels.isEmpty()}"
+                                                  class="badge bg-info" style="font-size:12px;padding:6px 12px;cursor:pointer;"
+                                                  th:attr="onclick='showAppliedModels(' + ${p.policyID} + ', \'' + ${p.applicableToModels} + '\')'"
+                                                  title="Click to view applied models">
+                                                <i class="fas fa-layer-group"></i>
+                                                <span th:text="${#strings.arraySplit(p.applicableToModels, ',').length + ' Models'}">3 Models</span>
+                                                <i class="fas fa-eye ms-1"></i>
+                                            </span>
                                         </div>
                                         <div class="info-row">
                                             <span class="info-label">Start Date</span>
@@ -377,9 +425,89 @@
 
 </div>
 
+<!-- Applied Models Modal -->
+<div class="modal fade" id="appliedModelsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-layer-group me-2"></i>Applied Vehicle Models
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="appliedModelsContent" style="min-height:200px;">
+                    <div class="text-center py-5">
+                        <i class="fas fa-spinner fa-spin fa-3x text-info"></i>
+                        <p class="mt-3">Loading models...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Vehicle Model Detail Modal -->
+<div class="modal fade" id="vehicleModelDetailModal" tabindex="-1" aria-labelledby="vehicleModelDetailLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="vehicleModelDetailLabel">Vehicle Model Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div id="vehicleModelDetailContent">
+          <div class="text-center text-muted">Loading...</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="/scripts/navBarMenuProject.js"></script>
 <script>
+    // Toggle vehicle selection based on dropdown
+    function toggleVehicleSelection(value) {
+        const specificDiv = document.getElementById('specificVehiclesDiv');
+        if (value === 'SPECIFIC') {
+            specificDiv.style.display = 'block';
+        } else {
+            specificDiv.style.display = 'none';
+            // Uncheck all checkboxes when switching to ALL
+            const checkboxes = document.querySelectorAll('input[name="selectedModels"]');
+            checkboxes.forEach(cb => cb.checked = false);
+        }
+    }
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        const applicableModels = document.getElementById('applicableModels');
+        if (applicableModels) {
+            toggleVehicleSelection(applicableModels.value);
+        }
+
+        // Add hover effect to vehicle checkboxes
+        const labels = document.querySelectorAll('#specificVehiclesDiv label');
+        labels.forEach(label => {
+            label.addEventListener('mouseenter', function() {
+                this.style.background = '#e8f4f8';
+            });
+            label.addEventListener('mouseleave', function() {
+                this.style.background = 'transparent';
+            });
+        });
+    });
+
     // Auto-dismiss alerts after 5 seconds
     setTimeout(() => {
         const alerts = document.querySelectorAll('.alert-message');
@@ -406,6 +534,167 @@
             updateDisplay();
         }
     });
+
+    // Version: 20251115215724 - Price format USD
+    // Helper function to format price as USD
+    function formatPriceUSD(price) {
+      if (typeof price === 'string') {
+        price = price.replace(/[^0-9.-]/g, '');
+        price = parseFloat(price);
+      }
+      if (price == null || price === '' || isNaN(price)) return 'N/A';
+      return '$' + new Intl.NumberFormat('en-US', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+      }).format(price);
+    }
+
+    console.log('EVM Discount Policy - Price format:', formatPriceUSD(60000));
+
+    // Function to show applied models in modal
+    function showAppliedModels(policyId, modelIdsString){
+      const appliedModelsModal = new bootstrap.Modal(document.getElementById('appliedModelsModal'));
+      appliedModelsModal.show();
+
+      const contentDiv = document.getElementById('appliedModelsContent');
+      contentDiv.innerHTML = '<div class="text-center py-5"><i class="fas fa-spinner fa-spin fa-3x text-info"></i><p class="mt-3">Loading models...</p></div>';
+
+      // Parse model IDs
+      const modelIds = modelIdsString.split(',').filter(id => id.trim() !== '');
+
+      // Fetch all models in parallel
+      Promise.all(modelIds.map(id =>
+        fetch('/api/vehicle-model/' + id.trim())
+          .then(r => r.ok ? r.json() : null)
+          .catch(() => null)
+      ))
+      .then(modelsData => {
+        // Filter out nulls
+        const validModels = modelsData.filter(m => m !== null);
+
+        if(validModels.length === 0){
+          contentDiv.innerHTML = '<div class="alert alert-warning"><i class="fas fa-exclamation-triangle"></i> No models found.</div>';
+          return;
+        }
+
+        // Build grid display
+        let html = '<div class="row g-3">';
+        validModels.forEach(model => {
+          html += `
+            <div class="col-md-4">
+              <div class="card h-100 shadow-sm" style="transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+                <div style="height:180px;overflow:hidden;background:#f8f9fa;display:flex;align-items:center;justify-content:center;">
+                  ${model.imageBase64
+                    ? '<img src="data:image/jpeg;base64,' + model.imageBase64 + '" style="max-height:100%;max-width:100%;object-fit:cover;" alt="' + model.modelName + '">'
+                    : '<div style="color:#ccc;text-align:center;"><i class="fas fa-car fa-4x"></i><p class="mt-2">No Image</p></div>'
+                  }
+                </div>
+                <div class="card-body">
+                  <h6 class="card-title text-primary fw-bold mb-2">
+                    <i class="fas fa-car-side"></i> ${model.modelName || 'N/A'}
+                  </h6>
+                  <p class="card-text small mb-1"><strong>Brand:</strong> ${model.brand || 'N/A'}</p>
+                  <p class="card-text small mb-1"><strong>Year:</strong> ${model.year || 'N/A'}</p>
+                  <p class="card-text small mb-1"><strong>Body Type:</strong> ${model.bodyType || 'N/A'}</p>
+                  <p class="card-text small mb-1"><strong>Base Price:</strong> ${formatPriceUSD(model.basePrice)}</p>
+                  <button class="btn btn-sm btn-outline-info w-100 mt-2" onclick="openModelDetailsById(${model.modelId})">
+                    <i class="fas fa-info-circle"></i> View Full Details
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+        html += '</div>';
+
+        // Add summary header
+        contentDiv.innerHTML = `
+          <div class="alert alert-info mb-3">
+            <i class="fas fa-info-circle"></i>
+            <strong>Total Applied Models:</strong> ${validModels.length}
+          </div>
+          ${html}
+        `;
+      })
+      .catch(err => {
+        console.error('Error loading models:', err);
+        contentDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> Error loading models. Please try again.</div>';
+      });
+    }
+
+    // Helper function to open vehicle detail modal by ID
+    function openModelDetailsById(modelId){
+      const modalEl = document.getElementById('vehicleModelDetailModal');
+      const contentEl = document.getElementById('vehicleModelDetailContent');
+      contentEl.innerHTML = '<div class="text-center text-muted">Loading...</div>';
+      const bsModal = new bootstrap.Modal(modalEl);
+      bsModal.show();
+      fetch('/api/vehicle-model/' + modelId)
+        .then(r => r.json())
+        .then(data => {
+           if(data.error){
+              contentEl.innerHTML = '<div class="alert alert-danger">'+data.error+'</div>';
+              return;
+           }
+           let imgHtml = '';
+           if(data.imageBase64){
+             imgHtml = '<div class="text-center mb-3"><img src="data:image/jpeg;base64,'+data.imageBase64+'" style="max-height:200px;object-fit:cover;border-radius:8px;"/></div>';
+           }
+           contentEl.innerHTML = imgHtml + `
+              <table class="table table-sm table-bordered">
+                <tbody>
+                  <tr><th style="width:150px">Model ID</th><td>${data.modelId || data.modelID}</td></tr>
+                  <tr><th>Model Name</th><td>${data.modelName || 'N/A'}</td></tr>
+                  <tr><th>Brand</th><td>${data.brand || 'N/A'}</td></tr>
+                  <tr><th>Year</th><td>${data.year || 'N/A'}</td></tr>
+                  <tr><th>Body Type</th><td>${data.bodyType || 'N/A'}</td></tr>
+                  <tr><th>Base Price</th><td>${formatPriceUSD(data.basePrice)}</td></tr>
+                  <tr><th>Description</th><td>${data.description || 'No description'}</td></tr>
+                </tbody>
+              </table>
+           `;
+        })
+        .catch(err => {
+           contentEl.innerHTML = '<div class="alert alert-danger">Error loading vehicle details</div>';
+        });
+    }
+
+    function openModelDetails(btn){
+      const id = btn.getAttribute('data-model-id');
+      const modalEl = document.getElementById('vehicleModelDetailModal');
+      const contentEl = document.getElementById('vehicleModelDetailContent');
+      contentEl.innerHTML = '<div class="text-center text-muted">Loading...</div>';
+      const bsModal = new bootstrap.Modal(modalEl);
+      bsModal.show();
+      fetch('/api/vehicle-model/' + id)
+        .then(r => r.json())
+        .then(data => {
+           if(data.error){
+              contentEl.innerHTML = '<div class="alert alert-danger">'+data.error+'</div>';
+              return;
+           }
+           let imgHtml = '';
+           if(data.imageBase64){
+             imgHtml = '<div class="text-center mb-3"><img src="data:image/jpeg;base64,'+data.imageBase64+'" style="max-height:200px;object-fit:cover;border-radius:8px;"/></div>';
+           }
+           contentEl.innerHTML = imgHtml + `
+              <table class="table table-sm table-bordered">
+                <tbody>
+                  <tr><th style="width:150px">Model ID</th><td>${data.modelID}</td></tr>
+                  <tr><th>Model Name</th><td>${data.modelName || ''}</td></tr>
+                  <tr><th>Brand</th><td>${data.brand || ''}</td></tr>
+                  <tr><th>Year</th><td>${data.year || ''}</td></tr>
+                  <tr><th>Body Type</th><td>${data.bodyType || ''}</td></tr>
+                  <tr><th>Base Price</th><td>${data.basePrice != null ? data.basePrice : ''}</td></tr>
+                  <tr><th>Description</th><td style="white-space:pre-wrap">${data.description || ''}</td></tr>
+                </tbody>
+              </table>`;
+        })
+        .catch(err => {
+           contentEl.innerHTML = '<div class="alert alert-danger">Failed to load model details</div>';
+           console.error(err);
+        });
+    }
 </script>
 
 </body>

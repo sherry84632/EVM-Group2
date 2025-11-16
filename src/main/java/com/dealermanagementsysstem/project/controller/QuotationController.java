@@ -13,7 +13,6 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -155,7 +154,7 @@ public class QuotationController {
                 System.out.println(" FILTERED RESULT:");
                 System.out.println("   ├─ Found " + customerList.size() + " customers for DealerID=" + targetDealerId);
 
-                if (customerList.size() > 0) {
+                if (!customerList.isEmpty()) {
                     System.out.println("   ├─ Sample customers:");
                     int sampleCount = Math.min(3, customerList.size());
                     for (int i = 0; i < sampleCount; i++) {
@@ -182,7 +181,7 @@ public class QuotationController {
                 System.out.println("   ├─ Reason: dealer is " + (dealer == null ? "NULL" : "ID=" + dealer.getDealerID()));
                 System.out.println("   └─ This is normal for Admin/EVM users");
 
-                if (customerList.size() > 0 && dealer == null) {
+                if (!customerList.isEmpty() && dealer == null) {
                     System.out.println(" IMPORTANT: If you are a DEALER user, this is WRONG!");
                     System.out.println("   → Your account may not be linked to a dealer");
                     System.out.println("   → Check database: Account → DealerStaff → Dealer relationship");
@@ -196,7 +195,6 @@ public class QuotationController {
         } catch (Exception ex) {
             System.err.println(" EXCEPTION while loading customer list:");
             System.err.println("   Error: " + ex.getMessage());
-            ex.printStackTrace();
             log.error("Failed loading customer list", ex);
         }
 
@@ -207,7 +205,7 @@ public class QuotationController {
         model.addAttribute("vehicle", vehicle);
         model.addAttribute("createdAt", createdAt);
 
-        return "dealerPage/quotationForm"; //  Tên file HTML của bạn
+        return "dealerPage/quotationForm"; // view name FIXME ensure template exists
     }
 
     //  CORE FLOW STEP 2: Save quotation to database
@@ -449,11 +447,39 @@ public class QuotationController {
                 if (appliedDiscount != null) {
                     model.addAttribute("appliedDealerDiscount", appliedDiscount);
                 }
+
+                // Load manufacturer discount policies for this dealer
+                DAODiscountPolicy daoPolicy = new DAODiscountPolicy();
+                java.util.List<DTODiscountPolicy> allPolicies = daoPolicy.getPoliciesByDealerId(quotation.getDealer().getDealerID());
+                java.time.LocalDate today = java.time.LocalDate.now();
+                java.util.List<DTODiscountPolicy> manufacturerPolicies = allPolicies.stream()
+                        .filter(p -> p.getStatus() == null || p.getStatus() == DiscountPolicyStatus.ACTIVE)
+                        .filter(p -> (p.getStartDate() == null || !p.getStartDate().isAfter(today)) &&
+                                     (p.getEndDate() == null || !p.getEndDate().isBefore(today)))
+                        .toList();
+                log.debug("Filtered ACTIVE manufacturer policies dealer={} count={}", quotation.getDealer().getDealerID(), manufacturerPolicies.size());
+                model.addAttribute("manufacturerPolicies", manufacturerPolicies);
+
+                // Check if any detail has applied manufacturer policy
+                DTODiscountPolicy appliedManufacturerPolicy = null;
+                for (DTOQuotationDetail d : details) {
+                    if (d.getPromoPolicy() != null) {
+                        appliedManufacturerPolicy = d.getPromoPolicy();
+                        break;
+                    }
+                }
+
+                if (appliedManufacturerPolicy != null) {
+                    model.addAttribute("appliedManufacturerPolicy", appliedManufacturerPolicy);
+                }
             }
 
             // Check if any line has dealer discount applied
-            boolean promotionAppliedFlag = details.stream()
+            boolean promotionAppliedFlag = (details != null) && details.stream()
                 .anyMatch(d -> d.getAppliedDealerDiscountPercent() != null && d.getAppliedDealerDiscountPercent() > 0);
+            // Manufacturer promo flag
+            boolean manufacturerPromoApplied = (details != null) && details.stream()
+                .anyMatch(d -> d.getPromoDiscountPercent() != null && d.getPromoDiscountPercent() > 0);
 
             Double appliedLineDiscountPercent = null;
             if (promotionAppliedFlag) {
@@ -466,21 +492,29 @@ public class QuotationController {
 
             // Calculate final net: apply line-level then base discount stacking
             double baseDiscountPct = quotation.getDiscountPercent() != null ? quotation.getDiscountPercent() : 0.0;
-            double grossAll = details.stream().mapToDouble(d -> d.getSubtotal().doubleValue()).sum();
-            double afterLine = details.stream().mapToDouble(d -> {
+            double grossAll = details != null ? details.stream().mapToDouble(d -> d.getSubtotal().doubleValue()).sum() : 0.0;
+            double afterLine = details != null ? details.stream().mapToDouble(d -> {
                 double sub = d.getSubtotal().doubleValue();
-                double lp = d.getAppliedDealerDiscountPercent() != null ? d.getAppliedDealerDiscountPercent() : 0.0;
-                return sub * (1 - lp / 100.0);
-            }).sum();
+                double dealerPct = d.getAppliedDealerDiscountPercent() != null ? d.getAppliedDealerDiscountPercent() : 0.0;
+                double manufacturerPct = d.getPromoDiscountPercent() != null ? d.getPromoDiscountPercent() : 0.0;
+                double afterDealer = sub * (1 - dealerPct / 100.0);
+                // manufacturer discount applies AFTER dealer discount (stacking)
+                double afterManufacturer = afterDealer * (1 - manufacturerPct / 100.0);
+                return afterManufacturer;
+            }).sum() : 0.0;
             double finalNetTotal = afterLine * (1 - baseDiscountPct / 100.0);
 
             // Calculate per line final net
-            for (DTOQuotationDetail d : details) {
-                double lp = d.getAppliedDealerDiscountPercent() != null ? d.getAppliedDealerDiscountPercent() : 0.0;
-                double sub = d.getSubtotal().doubleValue();
-                double lineAfterLine = sub * (1 - lp / 100.0);
-                double lineFinal = lineAfterLine * (1 - baseDiscountPct / 100.0);
-                d.setFinalNetAfterAll(java.math.BigDecimal.valueOf(lineFinal));
+            if (details != null) {
+                for (DTOQuotationDetail d : details) {
+                    double dealerPct = d.getAppliedDealerDiscountPercent() != null ? d.getAppliedDealerDiscountPercent() : 0.0;
+                    double manufacturerPct = d.getPromoDiscountPercent() != null ? d.getPromoDiscountPercent() : 0.0;
+                    double sub = d.getSubtotal().doubleValue();
+                    double afterDealer = sub * (1 - dealerPct / 100.0);
+                    double afterManufacturer = afterDealer * (1 - manufacturerPct / 100.0);
+                    double lineFinal = afterManufacturer * (1 - baseDiscountPct / 100.0);
+                    d.setFinalNetAfterAll(java.math.BigDecimal.valueOf(lineFinal));
+                }
             }
 
             // Set model attributes for display
@@ -490,9 +524,11 @@ public class QuotationController {
                 model.addAttribute("lineLevelDiscountPercent", appliedLineDiscountPercent);
             }
             model.addAttribute("promotionApplied", promotionAppliedFlag);
+            model.addAttribute("manufacturerPromoApplied", manufacturerPromoApplied);
             model.addAttribute("finalNetTotal", finalNetTotal);
             model.addAttribute("baseDiscountPercent", baseDiscountPct);
-            model.addAttribute("finalCombinedDiscountPercent", grossAll > 0 ? (1 - finalNetTotal / grossAll) * 100.0 : 0.0);
+            double effectiveCombinedPercent = grossAll > 0 ? (1 - finalNetTotal / grossAll) * 100.0 : 0.0;
+            model.addAttribute("finalCombinedDiscountPercent", effectiveCombinedPercent);
 
             // Add quotation locked status
             boolean quotationLocked = dao.isQuotationLocked(id);
@@ -972,6 +1008,105 @@ public class QuotationController {
         } catch (Exception e) {
             log.error("Error applying dealer discount", e);
             ra.addFlashAttribute("error", "Failed to apply dealer discount: " + e.getMessage());
+        }
+
+        return "redirect:/quotation/detail/" + quotationID;
+    }
+
+    /**
+     * Apply manufacturer discount policy to quotation line items and SAVE to database
+     */
+    @PostMapping("/manufacturer-policy/apply")
+    public String applyManufacturerPolicy(@RequestParam int quotationID,
+                                         @RequestParam int policyId,
+                                         RedirectAttributes ra) {
+        if (dao.isQuotationLocked(quotationID)) {
+            ra.addFlashAttribute("error", "Quotation locked; cannot change manufacturer policy.");
+            return "redirect:/quotation/detail/" + quotationID;
+        }
+
+        try {
+            List<DTOQuotationDetail> details = dao.getQuotationDetails(quotationID);
+
+            if (policyId == 0) {
+                // Remove manufacturer policy
+                for (DTOQuotationDetail d : details) {
+                    d.setPromoCode(null);
+                    d.setPromoDiscountPercent(null);
+                    d.setPromoDiscountAmount(null);
+                    d.setPromoPolicy(null);
+                    dao.updateQuotationDetail(d);
+                }
+                dao.recalcQuotationTotal(quotationID);
+                ra.addFlashAttribute("message", "Manufacturer policy removed successfully");
+            } else {
+                // Apply manufacturer policy
+                DAODiscountPolicy daoPolicy = new DAODiscountPolicy();
+                DTODiscountPolicy policy = daoPolicy.getPolicyById(policyId);
+
+                if (policy == null || policy.getDiscountPercent() == null) {
+                    ra.addFlashAttribute("error", "Invalid manufacturer policy selected");
+                    return "redirect:/quotation/detail/" + quotationID;
+                }
+
+                // Check if policy applies to all models or specific models
+                String applicableModels = policy.getApplicableToModels();
+                boolean applyToAll = (applicableModels == null || applicableModels.trim().isEmpty());
+                java.util.List<Integer> modelIds = new java.util.ArrayList<>();
+
+                if (!applyToAll) {
+                    // Parse comma-separated model IDs
+                    String[] ids = applicableModels.split(",");
+                    for (String id : ids) {
+                        try {
+                            modelIds.add(Integer.parseInt(id.trim()));
+                        } catch (NumberFormatException e) {
+                            // Skip invalid IDs
+                        }
+                    }
+                }
+
+                double discountPercent = policy.getDiscountPercent() != null ? policy.getDiscountPercent().doubleValue() : 0.0;
+                boolean anyMatched = false;
+
+                for (DTOQuotationDetail d : details) {
+                    boolean shouldApply = false;
+
+                    if (applyToAll) {
+                        shouldApply = true;
+                    } else if (d.getVersion() != null && d.getVersion().getModel() != null) {
+                        int lineModelId = d.getVersion().getModel().getModelID();
+                        shouldApply = modelIds.contains(lineModelId);
+                    }
+
+                    if (shouldApply) {
+                        d.setPromoCode(policy.getPolicyName());
+                        d.setPromoDiscountPercent(discountPercent);
+                        d.setPromoDiscountAmount(null); // Using percent, not fixed amount
+                        d.setPromoPolicy(policy);
+                        dao.updateQuotationDetail(d);
+                        anyMatched = true;
+                    } else {
+                        // Clear manufacturer policy from this line
+                        d.setPromoCode(null);
+                        d.setPromoDiscountPercent(null);
+                        d.setPromoDiscountAmount(null);
+                        d.setPromoPolicy(null);
+                        dao.updateQuotationDetail(d);
+                    }
+                }
+
+                if (anyMatched) {
+                    dao.recalcQuotationTotal(quotationID);
+                    ra.addFlashAttribute("message", "Manufacturer policy applied: " +
+                                       policy.getPolicyName() + " (" + discountPercent + "%)");
+                } else {
+                    ra.addFlashAttribute("error", "Policy does not match any line items");
+                }
+            }
+        } catch (Exception e) {
+            log.error("Error applying manufacturer policy", e);
+            ra.addFlashAttribute("error", "Failed to apply manufacturer policy: " + e.getMessage());
         }
 
         return "redirect:/quotation/detail/" + quotationID;

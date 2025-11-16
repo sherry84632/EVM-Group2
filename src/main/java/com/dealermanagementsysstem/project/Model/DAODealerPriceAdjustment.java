@@ -16,23 +16,24 @@ public class DAODealerPriceAdjustment {
     // ============ INSERT NEW DISCOUNT ============
     public boolean createDiscount(DTODealerPriceAdjustment dto) {
         String sql = "INSERT INTO DealerPriceAdjustment " +
-                "(DealerID, ModelID, DiscountAmount, DiscountPercent, StartDate, EndDate, Notes, PromotionName) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                "(DealerID, ModelID, DiscountAmount, DiscountPercent, StartDate, EndDate, Notes, PromotionName, ApplicableModelIDs) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, dto.getDealer().getDealerID());
-            ps.setInt(2, dto.getVehicleModel().getModelID());
+            ps.setObject(2, dto.getVehicleModel() != null ? dto.getVehicleModel().getModelID() : null);
             ps.setObject(3, dto.getDiscountAmount());
             ps.setObject(4, dto.getDiscountPercent());
             ps.setDate(5, Date.valueOf(dto.getStartDate()));
             ps.setDate(6, dto.getEndDate() != null ? Date.valueOf(dto.getEndDate()) : null);
             ps.setString(7, dto.getNotes());
             ps.setString(8, dto.getPromotionName());
+            ps.setString(9, dto.getApplicableModelIDs());
 
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
-            log.error("Error creating discount dealerID={} modelID={}", dto.getDealer().getDealerID(), dto.getVehicleModel().getModelID(), e);
+            log.error("Error creating discount dealerID={} modelIDs={}", dto.getDealer().getDealerID(), dto.getApplicableModelIDs(), e);
         }
         return false;
     }
@@ -69,6 +70,7 @@ public class DAODealerPriceAdjustment {
                         rs.getString("Notes"),
                         rs.getString("PromotionName")
                 );
+                dto.setApplicableModelIDs(rs.getString("ApplicableModelIDs"));
                 list.add(dto);
             }
         } catch (Exception e) {
@@ -110,6 +112,7 @@ public class DAODealerPriceAdjustment {
                         rs.getString("Notes"),
                         rs.getString("PromotionName")
                 );
+                dto.setApplicableModelIDs(rs.getString("ApplicableModelIDs"));
                 list.add(dto);
             }
         } catch (Exception e) {
@@ -144,6 +147,7 @@ public class DAODealerPriceAdjustment {
                             rs.getString("Notes"),
                             rs.getString("PromotionName")
                     );
+                    dto.setApplicableModelIDs(rs.getString("ApplicableModelIDs"));
                     return dto;
                 }
             }
@@ -184,6 +188,7 @@ public class DAODealerPriceAdjustment {
                             rs.getObject("DiscountPercent", Double.class),
                             start, end, rs.getString("Notes"), rs.getString("PromotionName")
                     );
+                    dto.setApplicableModelIDs(rs.getString("ApplicableModelIDs"));
                     list.add(dto);
                 }
             }
@@ -192,5 +197,34 @@ public class DAODealerPriceAdjustment {
         }
         return list;
     }
-}
 
+    public boolean updateDiscount(DTODealerPriceAdjustment dto) {
+        String sql = "UPDATE DealerPriceAdjustment SET ModelID = ?, DiscountAmount = ?, DiscountPercent = ?, StartDate = ?, EndDate = ?, Notes = ?, PromotionName = ?, ApplicableModelIDs = ? WHERE AdjustmentID = ?";
+        try (Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setObject(1, dto.getVehicleModel() != null ? dto.getVehicleModel().getModelID() : null);
+            ps.setObject(2, dto.getDiscountAmount());
+            ps.setObject(3, dto.getDiscountPercent());
+            ps.setDate(4, Date.valueOf(dto.getStartDate()));
+            ps.setDate(5, dto.getEndDate() != null ? Date.valueOf(dto.getEndDate()) : null);
+            ps.setString(6, dto.getNotes());
+            ps.setString(7, dto.getPromotionName());
+            ps.setString(8, dto.getApplicableModelIDs());
+            ps.setInt(9, dto.getAdjustmentID());
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            log.error("Error updating discount adjustmentID={}", dto.getAdjustmentID(), e);
+        }
+        return false;
+    }
+
+    public boolean deleteDiscount(int adjustmentID) {
+        String sql = "DELETE FROM DealerPriceAdjustment WHERE AdjustmentID = ?";
+        try (Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, adjustmentID);
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            log.error("Error deleting discount adjustmentID={}", adjustmentID, e);
+        }
+        return false;
+    }
+}
