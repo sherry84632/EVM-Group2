@@ -18,6 +18,17 @@ public class SaleContractController {
 
     @PostMapping("/create")
     public String createFromSaleOrder(@RequestParam("saleOrderID") int saleOrderID, RedirectAttributes ra) {
+        // Check if user has permission to create contracts (DEALER/DEALERSTAFF only)
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getName() != null) {
+            DAOAccount daoAccount = new DAOAccount();
+            DTOAccount acc = daoAccount.findAccountByEmail(auth.getName());
+            if (acc != null && (acc.getRole() == Role.ADMIN || acc.getRole() == Role.EVMSTAFF)) {
+                ra.addFlashAttribute("error", "You do not have permission to create contracts. This action is restricted to dealers.");
+                return "redirect:/saleorder/detail/" + saleOrderID;
+            }
+        }
+
         DTOSaleOrder so = daoSaleOrder.getSaleOrderById(saleOrderID);
         if (so == null) { ra.addFlashAttribute("error","Sale order not found"); return "redirect:/saleorder/detail/"+saleOrderID; }
         DTOSaleContract existing = daoContract.getSaleContractBySaleOrderId(saleOrderID);
@@ -39,7 +50,24 @@ public class SaleContractController {
         if (c == null) { ra.addFlashAttribute("error","Contract not found"); return "redirect:/saleorder"; }
         DTOSaleOrder so = daoSaleOrder.getSaleOrderById(c.getSaleOrder().getSaleOrderID());
         c.setSaleOrder(so);
+
+        // Check if current user is EVM role (read-only mode)
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        boolean isReadOnly = false;
+        if (auth != null && auth.getName() != null) {
+            DAOAccount daoAccount = new DAOAccount();
+            DTOAccount acc = daoAccount.findAccountByEmail(auth.getName());
+            if (acc != null && (acc.getRole() == Role.ADMIN || acc.getRole() == Role.EVMSTAFF)) {
+                isReadOnly = true;
+                System.out.println("✓ Contract view - Setting isReadOnly=true for user: " + auth.getName() + " (Role: " + acc.getRole() + ")");
+            } else if (acc != null) {
+                System.out.println("✓ Contract view - Setting isReadOnly=false for user: " + auth.getName() + " (Role: " + acc.getRole() + ")");
+            }
+        }
+
         model.addAttribute("contract", c);
+        model.addAttribute("isReadOnly", isReadOnly);
+        System.out.println("✓ Model attributes - contract ID: " + c.getContractID() + ", isReadOnly: " + isReadOnly);
         return "contract/contractDetail";
     }
 
@@ -51,6 +79,17 @@ public class SaleContractController {
 
     @PostMapping("/updateStatus")
     public String updateStatus(@RequestParam int contractID, @RequestParam String status, RedirectAttributes ra) {
+        // Check if user has permission to update contract status (DEALER/DEALERSTAFF only)
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getName() != null) {
+            DAOAccount daoAccount = new DAOAccount();
+            DTOAccount acc = daoAccount.findAccountByEmail(auth.getName());
+            if (acc != null && (acc.getRole() == Role.ADMIN || acc.getRole() == Role.EVMSTAFF)) {
+                ra.addFlashAttribute("error", "You do not have permission to update contract status. This action is restricted to dealers.");
+                return "redirect:/contract/detail/" + contractID;
+            }
+        }
+
         try {
             SaleContractStatus st = SaleContractStatus.valueOf(status.toUpperCase());
             boolean ok = daoContract.updateSaleContractStatus(contractID, st);

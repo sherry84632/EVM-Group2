@@ -280,8 +280,13 @@
         <!-- Header -->
         <div class="so-header">
             <h1 class="so-title">Sale Order #<span th:text="${order.saleOrderID}">-</span></h1>
-            <div class="badge-status" th:classappend="' st-' + ${order.status.name()}"
-                 th:text="${order.status.name()}"></div>
+            <div style="display:flex; gap:10px; align-items:center;">
+                <div class="badge-status" th:classappend="' st-' + ${order.status.name()}"
+                     th:text="${order.status.name()}"></div>
+                <span th:if="${isReadOnly}" class="badge" style="background:#e7f5ff; color:#0c5460; padding:8px 14px; border-radius:8px; font-size:12px; font-weight:600;">
+                    <i class="fa fa-eye me-1"></i>Read-Only
+                </span>
+            </div>
         </div>
         <!-- Layout -->
         <div class="layout-columns">
@@ -307,47 +312,45 @@
                                                                                                  th:text="'$' + ${#numbers.formatDecimal(order.totalAmount, 0, 'COMMA', 0, 'POINT')}">$0</span>
                         </div>
                     </div>
-                    <div class="status-actions">
+                    <div class="status-actions" th:unless="${isReadOnly}">
                         <form th:action="@{/saleorder/updateStatus}" method="post"
                               th:if="${order.status.name()=='CREATED'}">
-                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"><input
-                                type="hidden" name="saleOrderID" th:value="${order.saleOrderID}"><input type="hidden"
-                                                                                                        name="status"
-                                                                                                        value="CONTRACT_SIGNED">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                            <input type="hidden" name="saleOrderID" th:value="${order.saleOrderID}">
+                            <input type="hidden" name="status" value="CONTRACT_SIGNED">
                             <button class="btn btn-outline-primary btn-sm" type="submit">Contract Signed</button>
                         </form>
                         <form th:action="@{/saleorder/updateStatus}" method="post"
                               th:if="${order.status.name()=='CONTRACT_SIGNED'}">
-                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"><input
-                                type="hidden" name="saleOrderID" th:value="${order.saleOrderID}"><input type="hidden"
-                                                                                                        name="status"
-                                                                                                        value="PROCESSING">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                            <input type="hidden" name="saleOrderID" th:value="${order.saleOrderID}">
+                            <input type="hidden" name="status" value="PROCESSING">
                             <button class="btn btn-outline-primary btn-sm" type="submit">Processing</button>
                         </form>
                         <form th:action="@{/saleorder/updateStatus}" method="post"
                               th:if="${order.status.name()=='PROCESSING'}">
-                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"><input
-                                type="hidden" name="saleOrderID" th:value="${order.saleOrderID}"><input type="hidden"
-                                                                                                        name="status"
-                                                                                                        value="SHIPPED">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                            <input type="hidden" name="saleOrderID" th:value="${order.saleOrderID}">
+                            <input type="hidden" name="status" value="SHIPPED">
                             <button class="btn btn-outline-warning btn-sm" type="submit">Shipped</button>
                         </form>
                         <form th:action="@{/saleorder/updateStatus}" method="post"
                               th:if="${order.status.name()=='SHIPPED'}">
-                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"><input
-                                type="hidden" name="saleOrderID" th:value="${order.saleOrderID}"><input type="hidden"
-                                                                                                        name="status"
-                                                                                                        value="COMPLETED">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                            <input type="hidden" name="saleOrderID" th:value="${order.saleOrderID}">
+                            <input type="hidden" name="status" value="COMPLETED">
                             <button class="btn btn-outline-success btn-sm" type="submit">Completed</button>
                         </form>
                         <form th:action="@{/saleorder/updateStatus}" method="post"
                               th:if="${order.status.name()!='CANCELLED' and order.status.name()!='COMPLETED'}">
-                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"><input
-                                type="hidden" name="saleOrderID" th:value="${order.saleOrderID}"><input type="hidden"
-                                                                                                        name="status"
-                                                                                                        value="CANCELLED">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                            <input type="hidden" name="saleOrderID" th:value="${order.saleOrderID}">
+                            <input type="hidden" name="status" value="CANCELLED">
                             <button class="btn btn-outline-danger btn-sm" type="submit">Cancel</button>
                         </form>
+                    </div>
+                    <div th:if="${isReadOnly}" class="alert alert-info mt-3" style="font-size:13px; padding:10px;">
+                        <i class="fa fa-eye me-1"></i> Read-only mode (EVM). Status changes are restricted to dealer users.
                     </div>
                 </div>
                 <!-- Delivery -->
@@ -364,7 +367,7 @@
                                                                                                    th:text="${order.getDaysRemaining()}">0</span>
                         </div>
                     </div>
-                    <form th:action="@{/saleorder/delivery/update}" method="post" class="mt-3 d-flex gap-2 flex-wrap">
+                    <form th:action="@{/saleorder/delivery/update}" method="post" class="mt-3 d-flex gap-2 flex-wrap" th:unless="${isReadOnly}">
                         <input type="hidden" name="saleOrderID" th:value="${order.saleOrderID}"/>
                         <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
                         <input type="date" name="plannedDate" class="form-control form-control-sm"
@@ -372,6 +375,7 @@
                                th:value="${order.plannedDeliveryDate != null ? #dates.format(order.plannedDeliveryDate,'yyyy-MM-dd') : ''}"/>
                         <button type="submit" class="btn btn-sm btn-outline-primary">Update</button>
                     </form>
+                    <div th:if="${isReadOnly}" class="text-muted" style="font-size:12px;">Delivery data is view-only for EVM.</div>
                 </div>
             </div>
             <!-- Right Column -->
@@ -502,13 +506,18 @@
                            class="btn btn-sm btn-outline-primary">View Contract</a>
                     </div>
                     <div th:if="${contract == null}">
-                        <p class="contract-hint" th:if="${order.status.name()!='COMPLETED'}">Bạn có thể tạo hợp đồng từ
-                            sale order này.</p>
-                        <form th:action="@{/contract/create}" method="post">
-                            <input type="hidden" name="saleOrderID" th:value="${order.saleOrderID}"/>
-                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                            <button type="submit" class="btn btn-sm btn-outline-secondary">Create Contract</button>
-                        </form>
+                        <div th:unless="${isReadOnly}">
+                            <p class="contract-hint" th:if="${order.status.name()!='COMPLETED'}">Bạn có thể tạo hợp đồng từ
+                                sale order này.</p>
+                            <form th:action="@{/contract/create}" method="post">
+                                <input type="hidden" name="saleOrderID" th:value="${order.saleOrderID}"/>
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                                <button type="submit" class="btn btn-sm btn-outline-secondary">Create Contract</button>
+                            </form>
+                        </div>
+                        <div th:if="${isReadOnly}">
+                            <p class="contract-hint text-muted">No contract created yet.</p>
+                        </div>
                     </div>
                 </div>
             </div>

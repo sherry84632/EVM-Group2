@@ -326,6 +326,33 @@ public class OrderController {
             model.addAttribute("error", "Không tìm thấy đơn hàng!");
             return "redirect:/saleorder";
         }
+
+        // Check if current user is EVM role (read-only mode)
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean isReadOnly = false;
+        System.out.println("=== SALE ORDER DETAIL DEBUG ===");
+        System.out.println("Order ID: " + id);
+        if (auth != null && auth.getName() != null) {
+            System.out.println("User email: " + auth.getName());
+            DAOAccount daoAccount = new DAOAccount();
+            DTOAccount acc = daoAccount.findAccountByEmail(auth.getName());
+            if (acc != null) {
+                System.out.println("User role: " + acc.getRole());
+                if (acc.getRole() == Role.ADMIN || acc.getRole() == Role.EVMSTAFF) {
+                    isReadOnly = true;
+                    System.out.println("✓ Setting isReadOnly = TRUE (EVM user)");
+                } else {
+                    System.out.println("✓ Setting isReadOnly = FALSE (Dealer user)");
+                }
+            } else {
+                System.out.println("⚠ Account not found for email: " + auth.getName());
+            }
+        } else {
+            System.out.println("⚠ No authentication found");
+        }
+        System.out.println("Final isReadOnly value: " + isReadOnly);
+        System.out.println("================================");
+
         // Compute financial breakdown server-side to avoid complex SpEL lambdas
         java.math.BigDecimal grossTotal = java.math.BigDecimal.ZERO;
         java.math.BigDecimal dealerDiscountTotal = java.math.BigDecimal.ZERO;
@@ -343,6 +370,7 @@ public class OrderController {
         model.addAttribute("dealerDiscountTotal", dealerDiscountTotal);
         model.addAttribute("promoDiscountTotal", promoDiscountTotal);
         model.addAttribute("order", order);
+        model.addAttribute("isReadOnly", isReadOnly);
         return "dealerPage/dealerCustomerOrderDetail";
     }
 
@@ -366,6 +394,17 @@ public class OrderController {
             @RequestParam("status") String status,
             RedirectAttributes ra
     ) {
+        // Check if user has permission to update status (DEALER/DEALERSTAFF only)
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getName() != null) {
+            DAOAccount daoAccount = new DAOAccount();
+            DTOAccount acc = daoAccount.findAccountByEmail(auth.getName());
+            if (acc != null && (acc.getRole() == Role.ADMIN || acc.getRole() == Role.EVMSTAFF)) {
+                ra.addFlashAttribute("error", "You do not have permission to update order status. This action is restricted to dealers.");
+                return "redirect:/saleorder/detail/" + saleOrderID;
+            }
+        }
+
         SaleOrderStatus newStatus = SaleOrderStatus.valueOf(status.toUpperCase());
         DTOSaleOrder order = dao.getSaleOrderById(saleOrderID);
 
@@ -556,6 +595,17 @@ public class OrderController {
     // ======================================================
     @PostMapping("/delete/{id}")
     public String deleteSaleOrder(@PathVariable int id, RedirectAttributes ra) {
+        // Check if user has permission to delete (DEALER/DEALERSTAFF only)
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getName() != null) {
+            DAOAccount daoAccount = new DAOAccount();
+            DTOAccount acc = daoAccount.findAccountByEmail(auth.getName());
+            if (acc != null && (acc.getRole() == Role.ADMIN || acc.getRole() == Role.EVMSTAFF)) {
+                ra.addFlashAttribute("error", "You do not have permission to delete orders. This action is restricted to dealers.");
+                return "redirect:/saleorder";
+            }
+        }
+
         // remove contracts first to satisfy FK constraint
         DAOSaleContract contractDAO = new DAOSaleContract();
         int removed = contractDAO.deleteContractsBySaleOrderID(id);
@@ -576,6 +626,17 @@ public class OrderController {
                                      @RequestParam(required=false) String plannedDate,
                                      @RequestParam(required=false) Integer etaDays,
                                      RedirectAttributes ra) {
+        // Check if user has permission to update delivery (DEALER/DEALERSTAFF only)
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getName() != null) {
+            DAOAccount daoAccount = new DAOAccount();
+            DTOAccount acc = daoAccount.findAccountByEmail(auth.getName());
+            if (acc != null && (acc.getRole() == Role.ADMIN || acc.getRole() == Role.EVMSTAFF)) {
+                ra.addFlashAttribute("error", "You do not have permission to update delivery information. This action is restricted to dealers.");
+                return "redirect:/saleorder/detail/" + saleOrderID;
+            }
+        }
+
         DTOSaleOrder order = dao.getSaleOrderById(saleOrderID);
         if (order == null) { ra.addFlashAttribute("error","Sale order not found"); return "redirect:/saleorder"; }
         java.sql.Timestamp plannedTs = order.getPlannedDeliveryDate();
