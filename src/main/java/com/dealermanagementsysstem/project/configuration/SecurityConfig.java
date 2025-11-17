@@ -143,7 +143,7 @@ public class SecurityConfig {
                 // EVM/Admin role endpoints - ADMIN has all EVM functions
                 .requestMatchers("/showEVMHomePage", "/evmVehicleList", "/evmCreateANewVehicleToList",
                                "/evmOrderList", "/evmOrderHistory", "/vehicleDistributionManagement",
-                               "/getVehicleList").hasAnyRole("ADMIN", "EVMSTAFF")
+                               "/getVehicleList", "/evm/settlement").hasAnyRole("ADMIN", "EVMSTAFF")
 
                 // Account Management (ADMIN only - manages all accounts and dealers)
                 .requestMatchers("/account/**").hasRole("ADMIN")
@@ -170,6 +170,16 @@ public class SecurityConfig {
                 // Quotation management (authenticated dealer/admin for actions beyond opening form)
                 .requestMatchers("/quotation/list", "/quotation/detail/**", "/quotation/approve/**", "/quotation/reject/**").hasAnyRole("DEALER", "DEALERSTAFF", "ADMIN")
                 
+                // Sale Order management - read access for all authenticated, write access for DEALER only
+                .requestMatchers(HttpMethod.GET, "/saleorder", "/saleorder/detail/**", "/order", "/order/detail/**").authenticated()
+                .requestMatchers(HttpMethod.POST, "/saleorder/updateStatus", "/saleorder/delivery/update", "/order/updateStatus", "/order/delivery/update").hasAnyRole("DEALER", "DEALERSTAFF")
+                .requestMatchers("/saleorder/**", "/order/**").hasAnyRole("DEALER", "DEALERSTAFF", "ADMIN")
+
+                // Contract management - read access for all authenticated, write access for DEALER only
+                .requestMatchers(HttpMethod.GET, "/contract/detail/**", "/contract/list").authenticated()
+                .requestMatchers(HttpMethod.POST, "/contract/updateStatus", "/contract/create").hasAnyRole("DEALER", "DEALERSTAFF")
+                .requestMatchers("/contract/**").hasAnyRole("DEALER", "DEALERSTAFF", "ADMIN")
+
                 // All other requests require authentication
                 .anyRequest().authenticated()
             )

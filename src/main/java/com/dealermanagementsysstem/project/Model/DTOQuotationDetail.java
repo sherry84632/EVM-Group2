@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 
 @Entity
 @Table(name = "QuotationDetail")
+@SuppressWarnings({"JpaDataSourceORMInspection", "unused"})
 public class DTOQuotationDetail {
     
     @Id
@@ -32,6 +33,20 @@ public class DTOQuotationDetail {
 
     @Column(name = "AppliedDealerDiscountPercent")
     private Double appliedDealerDiscountPercent; // line-level dealer promotion percent (if model matches)
+
+    // ===== MÃ GIẢM GIÁ CỦA HÃNG (MANUFACTURER PROMO CODE) =====
+    @Column(name = "PromoCode")
+    private String promoCode; // Mã giảm giá của hãng áp dụng cho dòng này (e.g., "SUMMER2024")
+
+    @Column(name = "PromoDiscountPercent")
+    private Double promoDiscountPercent; // % giảm giá từ promo code
+
+    @Column(name = "PromoDiscountAmount")
+    private BigDecimal promoDiscountAmount; // Số tiền giảm cố định từ promo code
+
+    @ManyToOne
+    @JoinColumn(name = "PromoPolicyID", referencedColumnName = "PolicyID")
+    private DTODiscountPolicy promoPolicy; // Reference đến bảng DiscountPolicy
 
     @Transient
     private java.math.BigDecimal finalNetAfterAll; // line net after line-level + base discount stacking
@@ -104,6 +119,39 @@ public class DTOQuotationDetail {
         this.appliedDealerDiscountPercent = appliedDealerDiscountPercent;
     }
 
+    // ===== PROMO CODE GETTERS/SETTERS =====
+    public String getPromoCode() {
+        return promoCode;
+    }
+
+    public void setPromoCode(String promoCode) {
+        this.promoCode = promoCode;
+    }
+
+    public Double getPromoDiscountPercent() {
+        return promoDiscountPercent;
+    }
+
+    public void setPromoDiscountPercent(Double promoDiscountPercent) {
+        this.promoDiscountPercent = promoDiscountPercent;
+    }
+
+    public java.math.BigDecimal getPromoDiscountAmount() {
+        return promoDiscountAmount;
+    }
+
+    public void setPromoDiscountAmount(java.math.BigDecimal promoDiscountAmount) {
+        this.promoDiscountAmount = promoDiscountAmount;
+    }
+
+    public DTODiscountPolicy getPromoPolicy() {
+        return promoPolicy;
+    }
+
+    public void setPromoPolicy(DTODiscountPolicy promoPolicy) {
+        this.promoPolicy = promoPolicy;
+    }
+
     public BigDecimal getSubtotal() {
         return unitPrice != null ? unitPrice.multiply(BigDecimal.valueOf(Math.max(1, quantity))) : BigDecimal.ZERO;
     }
@@ -125,6 +173,50 @@ public class DTOQuotationDetail {
         java.math.BigDecimal sub = getSubtotal();
         double pct = appliedDealerDiscountPercent != null ? appliedDealerDiscountPercent : 0.0;
         return sub.multiply(java.math.BigDecimal.valueOf(1 - pct/100.0));
+    }
+
+    /**
+     * Tính giá cuối cùng sau khi áp dụng MÃ GIẢM GIÁ CỦA HÃNG
+     * Áp dụng theo thứ tự:
+     * 1. Dealer discount (appliedDealerDiscountPercent)
+     * 2. Manufacturer promo code (promoCode)
+     */
+    @Transient
+    public java.math.BigDecimal getNetAfterAllDiscounts() {
+        // Bước 1: Tính giá sau dealer discount
+        java.math.BigDecimal afterDealerDiscount = getNetAfterLineDiscount();
+        
+        // Bước 2: Áp dụng manufacturer promo code
+        java.math.BigDecimal promoDiscount = java.math.BigDecimal.ZERO;
+        
+        if (promoDiscountPercent != null && promoDiscountPercent > 0) {
+            // Discount theo phần trăm
+            promoDiscount = afterDealerDiscount.multiply(
+                java.math.BigDecimal.valueOf(promoDiscountPercent / 100.0)
+            );
+        } else if (promoDiscountAmount != null && promoDiscountAmount.compareTo(java.math.BigDecimal.ZERO) > 0) {
+            // Discount cố định (fixed amount)
+            promoDiscount = promoDiscountAmount.multiply(java.math.BigDecimal.valueOf(quantity));
+        }
+        
+        java.math.BigDecimal finalPrice = afterDealerDiscount.subtract(promoDiscount);
+        
+        // Đảm bảo giá không âm
+        if (finalPrice.compareTo(java.math.BigDecimal.ZERO) < 0) {
+            finalPrice = java.math.BigDecimal.ZERO;
+        }
+        
+        return finalPrice;
+    }
+
+    /**
+     * Tính tổng tiền giảm từ promo code
+     */
+    @Transient
+    public java.math.BigDecimal getPromoDiscountTotal() {
+        java.math.BigDecimal afterDealerDiscount = getNetAfterLineDiscount();
+        java.math.BigDecimal afterPromo = getNetAfterAllDiscounts();
+        return afterDealerDiscount.subtract(afterPromo);
     }
 
     public java.math.BigDecimal getFinalNetAfterAll() {

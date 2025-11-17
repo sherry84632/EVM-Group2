@@ -19,41 +19,74 @@
     <link rel="stylesheet" href="/css/mainPageStyle.css">
 
     <style>
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
         .mainContent {
-            padding: 40px;
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 35px 40px;
+            background: transparent;
             width: 100%;
-            height: 95vh;
+            height: 97vh;
             overflow-y: auto;
             overflow-x: hidden;
         }
 
-        .breadcrumb {
-            background: rgba(255, 255, 255, 0.9);
-            border-radius: 12px;
-            padding: 12px 20px;
-            margin-bottom: 24px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        /* Page Header */
+        .page-header-section {
+            background: white;
+            padding: 30px 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            margin-bottom: 35px;
             border: 1px solid rgba(0, 0, 0, 0.05);
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        .breadcrumb {
+            background: transparent;
+            padding: 0;
+            margin-bottom: 16px;
         }
 
         .breadcrumb-item {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 500;
         }
 
         .breadcrumb-item a {
-            color: #6c757d;
+            color: #888;
             text-decoration: none;
             transition: color 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
         .breadcrumb-item a:hover {
-            color: #007bff;
+            color: #ff6b16;
         }
 
         .breadcrumb-item.active {
-            color: #495057;
+            color: #333;
             font-weight: 600;
         }
 
@@ -61,37 +94,154 @@
             content: "›";
             color: #adb5bd;
             font-weight: bold;
-            margin: 0 8px;
+            padding: 0 8px;
         }
 
         .page-title {
-            color: #2c3e50;
+            color: #333;
             font-weight: 700;
             margin-bottom: 8px;
-            font-size: 2.2rem;
+            font-size: 32px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .page-title .title-icon {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #ff6b16 0%, #ff8e46 100%);
+            color: white;
+            border-radius: 14px;
+            font-size: 22px;
+            box-shadow: 0 5px 15px rgba(255, 107, 22, 0.3);
         }
 
         .page-subtitle {
-            color: #6c757d;
-            font-size: 1.1rem;
+            color: #888;
+            font-size: 14px;
+            margin: 0;
+        }
+
+        /* Status Overview Cards */
+        .status-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
             margin-bottom: 30px;
         }
 
+        .status-card {
+            background: white;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 16px;
+            padding: 24px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.06);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            animation: fadeInUp 0.6s ease-out backwards;
+        }
+
+        .status-card:nth-child(1) { animation-delay: 0.1s; }
+        .status-card:nth-child(2) { animation-delay: 0.2s; }
+        .status-card:nth-child(3) { animation-delay: 0.3s; }
+
+        .status-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, #ff6b16, #ff8e46);
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.4s ease;
+        }
+
+        .status-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .status-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 15px 40px rgba(255, 107, 22, 0.15);
+        }
+
+        .status-card-icon {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 32px;
+            opacity: 0.12;
+            transition: all 0.4s ease;
+        }
+
+        .status-card:hover .status-card-icon {
+            opacity: 0.25;
+            transform: scale(1.1) rotate(8deg);
+        }
+
+        .status-card-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #888;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .status-card-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 6px;
+        }
+
+        .status-card-desc {
+            font-size: 12px;
+            color: #999;
+        }
+
+        /* Detail Cards */
         .detail-card {
             background: white;
             border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-            padding: 24px;
-            margin-bottom: 24px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+            padding: 20px;
+            margin-bottom: 20px;
             border: 1px solid rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            animation: slideInLeft 0.6s ease-out backwards;
+        }
+
+        .detail-card:nth-child(odd) { animation-delay: 0.1s; }
+        .detail-card:nth-child(even) { animation-delay: 0.2s; }
+
+        .detail-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
         }
 
         .detail-card h6 {
-            color: #495057;
-            font-weight: 600;
+            color: #333;
+            font-weight: 700;
             margin-bottom: 16px;
-            padding-bottom: 8px;
-            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 15px;
+        }
+
+        .detail-card h6 i {
+            color: #ff6b16;
+            font-size: 16px;
         }
 
         .info-row {
@@ -100,6 +250,16 @@
             align-items: center;
             padding: 8px 0;
             border-bottom: 1px solid #f8f9fa;
+            transition: background 0.2s ease;
+        }
+
+        .info-row:hover {
+            background: rgba(255, 107, 22, 0.02);
+            padding-left: 8px;
+            padding-right: 8px;
+            margin-left: -8px;
+            margin-right: -8px;
+            border-radius: 6px;
         }
 
         .info-row:last-child {
@@ -108,62 +268,94 @@
 
         .info-label {
             font-weight: 600;
-            color: #495057;
-            min-width: 120px;
+            color: #555;
+            min-width: 130px;
+            font-size: 13px;
         }
 
         .info-value {
-            color: #6c757d;
+            color: #333;
             flex: 1;
             text-align: right;
+            font-size: 13px;
+        }
+
+        /* Compact spacing for better screen fit */
+        .row.g-4 {
+            margin-bottom: 20px;
+        }
+
+        .mainContent {
+            padding: 25px 35px;
+        }
+
+        .page-header-section {
+            padding: 25px 35px;
+            margin-bottom: 25px;
+        }
+
+        .status-overview {
+            margin-bottom: 25px;
+        }
+
+        .status-card {
+            padding: 20px;
+        }
+
+        .alert {
+            margin-bottom: 20px;
+            padding: 16px 20px;
         }
 
         .status-badge {
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
+            padding: 7px 15px;
+            border-radius: 25px;
+            font-size: 11px;
+            font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
 
         .status-pending {
-            background-color: #fff3cd;
-            color: #856404;
+            background: linear-gradient(135deg, #ffc107, #ffca2c);
+            color: #664d03;
         }
 
         .status-approved {
-            background-color: #d4edda;
-            color: #155724;
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
         }
 
         .status-rejected {
-            background-color: #f8d7da;
-            color: #721c24;
+            background: linear-gradient(135deg, #dc3545, #c82333);
+            color: white;
         }
 
         .action-buttons {
             display: flex;
-            gap: 16px;
+            gap: 12px;
             justify-content: center;
-            margin-top: 32px;
+            margin-top: 24px;
+            flex-wrap: wrap;
         }
-
 
         .btn-delete {
             background: linear-gradient(135deg, #dc3545, #c82333);
             border: none;
             color: white;
-            padding: 12px 24px;
-            border-radius: 8px;
+            padding: 12px 28px;
+            border-radius: 10px;
             font-weight: 600;
-            transition: all 0.2s ease;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
         }
 
         .btn-delete:hover {
             background: linear-gradient(135deg, #c82333, #a71e2a);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(220, 53, 69, 0.4);
             color: white;
         }
 
@@ -173,35 +365,46 @@
         }
 
         .price-info {
-            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            background: linear-gradient(135deg, #f8f9fa, #f0f0f0);
             border-radius: 12px;
             padding: 16px;
             margin-top: 16px;
+            border: 1px solid #e9ecef;
         }
 
         .price-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 4px 0;
+            padding: 6px 0;
         }
 
         .price-label {
-            font-weight: 500;
-            color: #495057;
+            font-weight: 600;
+            color: #555;
+            font-size: 13px;
         }
 
         .price-value {
-            font-weight: 600;
-            color: #2c3e50;
+            font-weight: 700;
+            color: #333;
+            font-size: 14px;
         }
 
         .total-price {
             border-top: 2px solid #dee2e6;
-            padding-top: 8px;
-            margin-top: 8px;
-            font-size: 1.1rem;
-            font-weight: 700;
+            padding-top: 10px;
+            margin-top: 10px;
+        }
+
+        .total-price .price-label {
+            font-size: 14px;
+            color: #333;
+        }
+
+        .total-price .price-value {
+            font-size: 18px;
+            color: #ff6b16;
         }
 
         .table {
@@ -213,17 +416,154 @@
             border-top: none;
             font-weight: 600;
             color: #495057;
-            font-size: 14px;
+            font-size: 13px;
+            padding: 15px;
         }
 
         .table td {
-            font-size: 14px;
-            color: #6c757d;
+            font-size: 13px;
+            color: #666;
             vertical-align: middle;
+            padding: 14px 15px;
+        }
+
+        .table-hover tbody tr {
+            transition: all 0.2s ease;
         }
 
         .table-hover tbody tr:hover {
-            background-color: rgba(0, 123, 255, 0.05);
+            background-color: rgba(255, 107, 22, 0.04);
+            transform: scale(1.01);
+        }
+
+        .table-responsive {
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        /* Alert improvements */
+        .alert {
+            border-radius: 14px;
+            border: none;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        .alert-info {
+            background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+            color: #0c5460;
+            border-left: 4px solid #17a2b8;
+        }
+
+        .alert-success {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+
+        .alert-warning {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%);
+            color: #856404;
+            border-left: 4px solid #ffc107;
+        }
+
+        /* Badge enhancements */
+        .badge {
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+            padding: 8px 14px;
+            border-radius: 20px;
+        }
+
+        /* Button styling improvements */
+        .btn {
+            border-radius: 8px;
+            padding: 10px 24px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            font-size: 13px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn:active {
+            transform: translateY(0px);
+        }
+
+        .btn-sm {
+            padding: 8px 18px;
+            font-size: 12px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            border: none;
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            border: none;
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+            border: none;
+            color: #664d03;
+            font-weight: 700;
+        }
+
+        .btn-outline-secondary, .btn-outline-primary {
+            border: 2px solid #e0e0e0;
+            background: white;
+            color: #555;
+            box-shadow: none;
+        }
+
+        .btn-outline-primary:hover {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: transparent;
+            color: white;
+        }
+
+        .btn-outline-secondary:hover {
+            background: #f8f9fa;
+            border-color: #adb5bd;
+        }
+
+        /* Form elements */
+        .form-control, .form-select {
+            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+            padding: 10px 14px;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: #ff6b16;
+            box-shadow: 0 0 0 3px rgba(255, 107, 22, 0.1);
+            outline: none;
+        }
+
+        /* Payment badge styling */
+        .badge[style*="background-color: #28a745"] {
+            background: linear-gradient(135deg, #28a745, #20c997) !important;
+        }
+
+        .badge[style*="background-color: #dc3545"] {
+            background: linear-gradient(135deg, #dc3545, #c82333) !important;
         }
     </style>
 </head>
@@ -236,29 +576,85 @@
     <!-- Main content -->
     <div class="mainContent flex-grow-1">
 
-        <!-- Breadcrumb Navigation -->
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item">
-                    <a href="/showEVMHomePage" class="d-flex align-items-center">
-                        <i class="fas fa-home me-1"></i>
-                        Home
-                    </a>
-                </li>
-                <li class="breadcrumb-item">
-                    <a href="/vehicleDistributionManagement">Vehicle Distribution</a>
-                </li>
-                <li class="breadcrumb-item">
-                    <a href="/evm/orders/list">Orders</a>
-                </li>
-                <li class="breadcrumb-item active" aria-current="page">
-                    Order #<span th:text="${order.purchaseOrderId}">-</span>
-                </li>
-            </ol>
-        </nav>
+        <!-- Page Header Section -->
+        <div class="page-header-section">
+            <!-- Breadcrumb Navigation -->
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="/showEVMHomePage">
+                            <i class="fas fa-home"></i>
+                            Home
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item">
+                        <a href="/vehicleDistributionManagement">Vehicle Distribution</a>
+                    </li>
+                    <li class="breadcrumb-item">
+                        <a href="/evm/orders/list">Orders</a>
+                    </li>
+                    <li class="breadcrumb-item active" aria-current="page">
+                        Order #<span th:text="${order.purchaseOrderId}">-</span>
+                    </li>
+                </ol>
+            </nav>
 
-        <h1 class="page-title">Order #<span th:text="${order.purchaseOrderId}">-</span></h1>
-        <p class="page-subtitle">Detailed information and management for this purchase order</p>
+            <h1 class="page-title">
+                <span class="title-icon">
+                    <i class="fas fa-file-invoice"></i>
+                </span>
+                Order #<span th:text="${order.purchaseOrderId}">-</span>
+            </h1>
+            <p class="page-subtitle">Detailed information and management for this purchase order</p>
+        </div>
+
+        <!-- Status Overview Cards -->
+        <div class="status-overview">
+            <div class="status-card">
+                <i class="fas fa-clipboard-check status-card-icon" style="color: #ff6b16;"></i>
+                <div class="status-card-label">Order Status</div>
+                <div class="status-card-value">
+                    <span th:if="${order.status.name() == 'REQUESTED' or order.status.name() == 'PENDING'}" class="status-badge status-pending" th:text="'PENDING'"></span>
+                    <span th:if="${order.status.name() == 'APPROVED'}" class="status-badge status-approved" th:text="${order.status}"></span>
+                    <span th:if="${order.status.name() == 'CANCELLED'}" class="status-badge status-rejected" th:text="${order.status}"></span>
+                    <span th:if="${order.status.name() == 'IN_PROCESS'}" class="status-badge status-pending" th:text="${order.status}"></span>
+                    <span th:if="${order.status.name() == 'DELIVERED'}" class="status-badge status-approved" th:text="${order.status}"></span>
+                </div>
+                <div class="status-card-desc" th:text="${#dates.format(order.createdAt, 'dd/MM/yyyy HH:mm')}">-</div>
+            </div>
+            <div class="status-card" th:if="${paymentTotalItems != null}">
+                <i class="fas fa-credit-card status-card-icon" th:style="${paymentAllPaid ? 'color: #28a745;' : 'color: #ffc107;'}"></i>
+                <div class="status-card-label">Payment Status</div>
+                <div class="status-card-value">
+                    <span th:if="${paymentAllPaid}" class="badge" style="background: linear-gradient(135deg, #28a745, #20c997); color: white; padding: 8px 14px; border-radius: 20px; font-size: 13px;">
+                        <i class="fas fa-check-circle"></i> PAID
+                    </span>
+                    <span th:unless="${paymentAllPaid}" class="badge" style="background: linear-gradient(135deg, #ffc107, #ffca2c); color: #664d03; padding: 8px 14px; border-radius: 20px; font-size: 13px;">
+                        <i class="fas fa-clock"></i> PENDING
+                    </span>
+                </div>
+                <div class="status-card-desc">
+                    <span th:text="${paymentPaidItems}">0</span> / <span th:text="${paymentTotalItems}">0</span> items paid
+                </div>
+            </div>
+            <div class="status-card">
+                <i class="fas fa-dollar-sign status-card-icon" style="color: #ff6b16;"></i>
+                <div class="status-card-label">Total Amount</div>
+                <div class="status-card-value" style="color: #ff6b16;">
+                    $<span th:text="${invoiceTotalWithVat != null ? #numbers.formatDecimal(invoiceTotalWithVat,0,'COMMA',0,'POINT') : '0'}">0</span>
+                </div>
+                <div class="status-card-desc">Including VAT</div>
+            </div>
+            <div class="status-card">
+                <i class="fas fa-truck status-card-icon" th:style="${order.shippingStatus == 'DELIVERED' ? 'color: #28a745;' : 'color: #ff6b16;'}"></i>
+                <div class="status-card-label">Delivery Status</div>
+                <div class="status-card-value" th:text="${order.shippingStatus ?: (order.status.name()=='APPROVED' ? 'PLANNED' : 'PENDING')} ">-</div>
+                <div class="status-card-desc" th:if="${order.plannedDeliveryDate != null}">
+                    ETA: <span th:text="${#dates.format(order.plannedDeliveryDate,'dd/MM/yyyy')}">-</span>
+                </div>
+                <div class="status-card-desc" th:unless="${order.plannedDeliveryDate != null}">Not scheduled</div>
+            </div>
+        </div>
 
         <!-- Payment Status Alert - Show for all orders -->
         <div class="alert d-flex align-items-center mb-4" role="alert"
@@ -290,72 +686,56 @@
 
         <!-- Order Summary Card -->
         <div class="detail-card mb-4" th:if="${order.orderDetails != null and !order.orderDetails.isEmpty()}">
-            <h6><i class="fas fa-list-alt me-2"></i>Order Summary</h6>
+            <h6><i class="fas fa-list-alt"></i>Order Summary</h6>
             <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead class="table-light">
+                <table class="table table-hover align-middle" style="margin-bottom: 0;">
+                    <thead style="background: linear-gradient(135deg, #ff6b16 0%, #ff8e46 100%); color: white;">
                         <tr>
-                            <th>Model</th>
-                            <th>Version</th>
-                            <th>Color</th>
-                            <th>Quantity</th>
-                            <th>Base Price</th>
-                            <th>Discount</th>
-                            <th>Unit Price</th>
-                            <th>Subtotal</th>
-                            <th>VAT</th>
-                            <th>Total + VAT</th>
-                            <th>Payment</th>
+                            <th style="padding: 16px; border: none; font-weight: 700; font-size: 13px; letter-spacing: 0.5px;">MODEL</th>
+                            <th style="padding: 16px; border: none; font-weight: 700; font-size: 13px; letter-spacing: 0.5px;">VERSION</th>
+                            <th style="padding: 16px; border: none; font-weight: 700; font-size: 13px; letter-spacing: 0.5px;">COLOR</th>
+                            <th style="padding: 16px; border: none; font-weight: 700; font-size: 13px; text-align: center; letter-spacing: 0.5px;">QTY</th>
+                            <th style="padding: 16px; border: none; font-weight: 700; font-size: 13px; text-align: right; letter-spacing: 0.5px;">UNIT PRICE</th>
+                            <th style="padding: 16px; border: none; font-weight: 700; font-size: 13px; text-align: right; letter-spacing: 0.5px;">SUBTOTAL</th>
+                            <th style="padding: 16px; border: none; font-weight: 700; font-size: 13px; text-align: right; letter-spacing: 0.5px;">VAT</th>
+                            <th style="padding: 16px; border: none; font-weight: 700; font-size: 13px; text-align: right; letter-spacing: 0.5px;">TOTAL + VAT</th>
+                            <th style="padding: 16px; border: none; font-weight: 700; font-size: 13px; text-align: center; letter-spacing: 0.5px;">PAYMENT</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr th:each="detail : ${order.orderDetails}" th:with="subVal=${detail.subtotal != null ? detail.subtotal : (detail.unitPrice != null ? detail.unitPrice.multiply(T(java.math.BigDecimal).valueOf(detail.quantity)) : T(java.math.BigDecimal).ZERO)}, vatPct=${vatRate != null ? vatRate : 10}, vatVal=${subVal.multiply(T(java.math.BigDecimal).valueOf(vatPct/100.0))}, totalWithVat=${subVal.add(vatVal)}">
-                            <td th:text="${detail.modelName != null ? detail.modelName : (detail.version != null && detail.version.model != null ? detail.version.model.modelName : 'N/A')}">-</td>
-                            <td th:text="${detail.versionName != null ? detail.versionName : (detail.version != null ? detail.version.versionName : 'N/A')}">-</td>
-                            <td th:text="${detail.colorName != null ? detail.colorName : (detail.color != null ? detail.color.colorName : 'N/A')}">-</td>
-                            <td th:text="${detail.quantity}">-</td>
-                            <!-- Base Price -->
-                            <td th:if="${detail.basePrice != null}" class="text-muted" style="text-decoration: line-through;">
-                                <span th:text="${'$' + #numbers.formatDecimal(detail.basePrice,0,0)}">$0</span>
-                            </td>
-                            <td th:unless="${detail.basePrice != null}">-</td>
-                            <!-- Discount -->
-                            <td th:if="${detail.discountPercent != null and detail.discountPercent > 0}" class="text-success">
-                                <span th:text="${detail.discountPercent + '%'}">-</span><br/>
-                                <small th:if="${detail.discountAmount != null}">(-<span th:text="${'$' + #numbers.formatDecimal(detail.discountAmount,0,0)}">$0</span>)</small>
-                            </td>
-                            <td th:unless="${detail.discountPercent != null and detail.discountPercent > 0}">-</td>
-                            <!-- Unit Price After Discount -->
-                            <td class="fw-bold text-primary"><span th:text="${detail.unitPrice != null ? ('$' + #numbers.formatDecimal(detail.unitPrice,0,0)) : '$0'}">$0</span></td>
-                            <!-- Subtotal -->
-                            <td class="fw-bold"><span th:text="${'$' + #numbers.formatDecimal(subVal,0,0)}">$0</span></td>
-                            <td class="text-secondary"><span th:text="${'$' + #numbers.formatDecimal(vatVal,0,0)}">$0</span></td>
-                            <td class="fw-bold text-success"><span th:text="${'$' + #numbers.formatDecimal(totalWithVat,0,0)}">$0</span></td>
-                            <!-- Payment Status -->
-                            <td>
-                                <span th:if="${detail.paymentStatus == 'PAID'}" class="badge bg-success">
+                        <tr th:each="detail : ${order.orderDetails}" th:with="subVal=${detail.subtotal != null ? detail.subtotal : (detail.unitPrice != null ? detail.unitPrice.multiply(T(java.math.BigDecimal).valueOf(detail.quantity)) : T(java.math.BigDecimal).ZERO)}, vatPct=${vatRate != null ? vatRate : 10}, vatVal=${subVal.multiply(T(java.math.BigDecimal).valueOf(vatPct/100.0))}, totalWithVat=${subVal.add(vatVal)}" style="border-bottom: 1px solid #e9ecef;">
+                            <td style="padding: 12px 15px; font-weight: 500;" th:text="${detail.modelName != null ? detail.modelName : (detail.version != null && detail.version.model != null ? detail.version.model.modelName : 'N/A')}">-</td>
+                            <td style="padding: 12px 15px; color: #6c757d;" th:text="${detail.versionName != null ? detail.versionName : (detail.version != null ? detail.version.versionName : 'N/A')}">-</td>
+                            <td style="padding: 12px 15px; color: #6c757d;" th:text="${detail.colorName != null ? detail.colorName : (detail.color != null ? detail.color.colorName : 'N/A')}">-</td>
+                            <td style="padding: 12px 15px; text-align: center; font-weight: 600;" th:text="${detail.quantity}">-</td>
+                            <td style="padding: 12px 15px; text-align: right; font-weight: 700; color: #0066cc; font-size: 1.05rem;"><span th:text="${detail.unitPrice != null ? ('$' + #numbers.formatDecimal(detail.unitPrice,0,'COMMA',0,'POINT')) : '$0'}">$0</span></td>
+                            <td style="padding: 12px 15px; text-align: right; font-weight: 600; font-size: 1.05rem;"><span th:text="${'$' + #numbers.formatDecimal(subVal,0,'COMMA',0,'POINT')}">$0</span></td>
+                            <td style="padding: 12px 15px; text-align: right; color: #6c757d; font-size: 0.95rem;"><span th:text="${'$' + #numbers.formatDecimal(vatVal,0,'COMMA',0,'POINT')}">$0</span></td>
+                            <td style="padding: 12px 15px; text-align: right; font-weight: 700; color: #28a745; font-size: 1.1rem;"><span th:text="${'$' + #numbers.formatDecimal(totalWithVat,0,'COMMA',0,'POINT')}">$0</span></td>
+                            <td style="padding: 12px 15px; text-align: center;">
+                                <span th:if="${detail.paymentStatus == 'PAID'}" class="badge" style="background-color: #28a745; padding: 8px 14px; border-radius: 20px; font-size: 0.85rem;">
                                     <i class="fas fa-check-circle"></i> PAID
                                 </span>
-                                <span th:unless="${detail.paymentStatus == 'PAID'}" class="badge bg-danger">
+                                <span th:unless="${detail.paymentStatus == 'PAID'}" class="badge" style="background-color: #dc3545; padding: 8px 14px; border-radius: 20px; font-size: 0.85rem;">
                                     <i class="fas fa-times-circle"></i> UNPAID
                                 </span>
                             </td>
                         </tr>
                     </tbody>
-                    <tfoot class="table-light" th:if="${invoiceNet != null}">
-                        <tr>
-                            <td colspan="8" class="text-end fw-semibold">Subtotal after Discount (Pre-VAT)</td>
-                            <td colspan="2" class="text-end fw-bold text-primary">$<span th:text="${#numbers.formatDecimal(invoiceNet,0,0)}"></span></td>
+                    <tfoot th:if="${invoiceNet != null}" style="background: linear-gradient(135deg, #f8f9fa 0%, #f0f0f0 100%); border-top: 3px solid #ff6b16;">
+                        <tr style="border-bottom: 1px solid #e0e0e0;">
+                            <td colspan="5" style="padding: 14px 16px; text-align: right; font-weight: 700; color: #555; font-size: 14px;">Subtotal (Pre-VAT)</td>
+                            <td colspan="3" style="padding: 14px 16px; text-align: right; font-weight: 700; color: #333; font-size: 17px;">$<span th:text="${#numbers.formatDecimal(invoiceNet,0,'COMMA',0,'POINT')}"></span></td>
                             <td></td>
                         </tr>
-                        <tr>
-                            <td colspan="8" class="text-end fw-semibold">Total VAT (<span th:text="${vatRate != null ? vatRate : 10}"></span>%)</td>
-                            <td colspan="2" class="text-end fw-bold text-secondary">$<span th:text="${invoiceVatAmount != null ? #numbers.formatDecimal(invoiceVatAmount,0,0) : '0'}"></span></td>
+                        <tr style="border-bottom: 1px solid #e0e0e0;">
+                            <td colspan="5" style="padding: 14px 16px; text-align: right; font-weight: 700; color: #555; font-size: 14px;">Total VAT (<span th:text="${vatRate != null ? vatRate : 10}"></span>%)</td>
+                            <td colspan="3" style="padding: 14px 16px; text-align: right; font-weight: 700; color: #666; font-size: 16px;">$<span th:text="${invoiceVatAmount != null ? #numbers.formatDecimal(invoiceVatAmount,0,'COMMA',0,'POINT') : '0'}"></span></td>
                             <td></td>
                         </tr>
-                        <tr>
-                            <td colspan="8" class="text-end fw-bold">Total Amount (Incl. VAT)</td>
-                            <td colspan="2" class="text-end fw-bold text-success">$<span th:text="${invoiceTotalWithVat != null ? #numbers.formatDecimal(invoiceTotalWithVat,0,0) : '0'}"></span></td>
+                        <tr style="background: linear-gradient(135deg, #fff3e6 0%, #ffe8cc 100%);">
+                            <td colspan="5" style="padding: 18px 16px; text-align: right; font-weight: 800; color: #333; font-size: 16px;">TOTAL AMOUNT (Incl. VAT)</td>
+                            <td colspan="3" style="padding: 18px 16px; text-align: right; font-weight: 800; color: #ff6b16; font-size: 22px;">$<span th:text="${invoiceTotalWithVat != null ? #numbers.formatDecimal(invoiceTotalWithVat,0,'COMMA',0,'POINT') : '0'}"></span></td>
                             <td></td>
                         </tr>
                     </tfoot>
@@ -363,47 +743,10 @@
             </div>
         </div>
 
-        <!-- Pricing Summary Card -->
-        <div class="detail-card" th:if="${invoiceGross != null}" style="background:linear-gradient(135deg,#ffffff,#f1f5f9)">
-            <h6><i class="fas fa-calculator me-2"></i>Pricing Summary</h6>
-            <div class="row g-3">
-                <div class="col-md-4">
-                    <div class="p-3 border rounded" style="background:#f8fafc">
-                        <div class="small text-muted">Gross Before Discount</div>
-                        <div class="fw-bold" th:text="${'$' + #numbers.formatDecimal(invoiceGross,0,0)}">$0</div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="p-3 border rounded" style="background:#fff1f2">
-                        <div class="small text-muted">Dealer Discount</div>
-                        <div class="fw-bold text-danger" th:text="${invoiceDiscountPercent != null ? #numbers.formatDecimal(invoiceDiscountPercent,0,0) : 0} + '%'">0%</div>
-                        <div class="small" th:text="${'(-$' + #numbers.formatDecimal(invoiceDiscountAmount,0,0) + ')'}">-$0</div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="p-3 border rounded" style="background:#eef2ff">
-                        <div class="small text-muted">Net (After Discount)</div>
-                        <div class="fw-bold text-primary" th:text="${'$' + #numbers.formatDecimal(invoiceNet,0,0)}">$0</div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="p-3 border rounded" style="background:#f0fdfa">
-                        <div class="small text-muted">VAT (<span th:text="${vatRate}"></span>%)</div>
-                        <div class="fw-bold text-secondary" th:text="${'$' + #numbers.formatDecimal(invoiceVatAmount,0,0)}">$0</div>
-                    </div>
-                </div>
-                <div class="col-md-8">
-                    <div class="p-3 border rounded" style="background:#ecfdf5">
-                        <div class="small text-muted">Total (Incl. VAT)</div>
-                        <div class="fw-bold text-success" style="font-size:1.3rem" th:text="${'$' + #numbers.formatDecimal(invoiceTotalWithVat,0,0)}">$0</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row">
+        <!-- Two Column Layout for Details -->
+        <div class="row g-4">
             <!-- Left Column -->
-            <div class="col-lg-6">
+            <div class="col-lg-5">
                 <!-- Order Information Card -->
                 <div class="detail-card">
                     <h6><i class="fas fa-info-circle me-2"></i>Order Information</h6>
@@ -440,7 +783,7 @@
                     <h6><i class="fas fa-building me-2"></i>Dealer Information</h6>
                     <div class="info-row">
                         <span class="info-label">Dealer Name:</span>
-                        <span class="info-value" th:text="${order.dealer?.dealerName ?: order.dealerName ?: 'N/A'}">-</span>
+                        <span class="info-value" th:text="${order.dealer != null and order.dealer.dealerName != null ? order.dealer.dealerName : (order.dealerName != null ? order.dealerName : 'N/A')}">-</span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Dealer Level:</span>
@@ -489,24 +832,9 @@
                                 <span class="info-label">Quantity:</span>
                                 <span class="info-value" th:text="${detail.quantity}">-</span>
                             </div>
-                            <!-- ✅ Giá gốc (BasePrice) -->
-                            <div class="info-row" th:if="${detail.basePrice != null}">
-                                <span class="info-label">Base Price:</span>
-                                <span class="info-value text-muted" style="text-decoration: line-through;" th:text="${'$' + #numbers.formatDecimal(detail.basePrice, 1, 0)}">$0</span>
-                            </div>
-                            <!-- ✅ Chiết khấu -->
-                            <div class="info-row" th:if="${detail.discountPercent != null and detail.discountPercent > 0}">
-                                <span class="info-label">Discount:</span>
-                                <span class="info-value text-success">
-                                    <span th:text="${detail.discountPercent + '%'}">-</span>
-                                    <span th:if="${detail.discountAmount != null}">
-                                        (-<span th:text="${'$' + #numbers.formatDecimal(detail.discountAmount, 1, 0)}">$0</span>)
-                                    </span>
-                                </span>
-                            </div>
-                            <!-- ✅ Giá sau chiết khấu (Unit Price) -->
+                            <!-- ✅ Unit Price -->
                             <div class="info-row">
-                                <span class="info-label">Unit Price (After Discount):</span>
+                                <span class="info-label">Unit Price:</span>
                                 <span class="info-value fw-bold text-primary" th:text="${'$' + #numbers.formatDecimal(detail.unitPrice, 1, 0)}">$0</span>
                             </div>
                             <div class="info-row">
@@ -526,7 +854,7 @@
             </div>
 
             <!-- Right Column -->
-            <div class="col-lg-6">
+            <div class="col-lg-7">
                 <!-- Order Status & Pricing Card -->
                 <div class="detail-card">
                     <h6><i class="fas fa-chart-line me-2"></i>Order Status & Pricing</h6>
@@ -543,14 +871,6 @@
                     <div class="info-row">
                         <span class="info-label">Approved by:</span>
                         <span class="info-value" th:text="${order.approvedByStaffName ?: (order.status.name() == 'APPROVED' ? order.staff?.fullName : 'Pending Approval')}">-</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Discount Policy:</span>
-                        <span class="info-value" th:text="${order.policyName ?: 'No Policy Applied'}">-</span>
-                    </div>
-                    <div class="info-row" th:if="${order.policyDiscountPercent != null}">
-                        <span class="info-label">Policy Discount:</span>
-                        <span class="info-value" th:text="${order.policyDiscountPercent + '%'}">-</span>
                     </div>
                     <div class="price-info">
                         <div class="price-row">

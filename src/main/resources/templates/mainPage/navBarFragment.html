@@ -47,12 +47,13 @@
                 Settings
             </a>
         </li>
-<!--        <li>-->
-<!--            <a href="#" class="nav-link text-white">-->
-<!--                <i class="fa-solid fa-computer"></i>-->
-<!--                AI Planning-->
-<!--            </a>-->
-<!--        </li>-->
+        <!-- Manufacturer Discount Settlement - ADMIN & EVMSTAFF -->
+        <li sec:authorize="hasAnyRole('ADMIN','EVMSTAFF')">
+            <a href="/evm/settlement" class="nav-link text-white">
+                <i class="fa-solid fa-coins"></i>
+                Discount Settlement
+            </a>
+        </li>
         <li>
             <a href="/logout" class="nav-link text-white">
                 <i class="fa-solid fa-right-from-bracket"></i>
