@@ -308,10 +308,10 @@
         }
     </style>
 </head>
-<body class="bg-light">
+<body class="bg-light" style="overflow: hidden">
 <div class="d-flex">
     <div th:replace="~{mainPage/navBarFragment :: navBar}"></div>
-    <div class="mainContent flex-grow-1 p-3" style="overflow: hidden">
+    <div class="mainContent flex-grow-1 p-3" style="overflow-y: auto; overflow-x: hidden;">
         <nav aria-label="breadcrumb" class="mb-4">
             <ol class="breadcrumb">
                 <li class="breadcrumb-item">
