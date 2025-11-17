@@ -23,7 +23,7 @@
         <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
         
         <div th:if="${account}" class="row g-3">
-            <div class="col-12">
+            <div class="col-6">
                 <div class="card shadow-sm">
                     <div class="card-header">
                         <h5 class="mb-0"><i class="fa-solid fa-user"></i> Account Information</h5>
@@ -68,7 +68,7 @@
                 </div>
             </div>
 
-            <div class="col-12" sec:authorize="hasAnyRole('DEALER','DEALERSTAFF')" th:if="${account.dealerStaff}">
+            <div class="col-6" sec:authorize="hasAnyRole('DEALER','DEALERSTAFF')" th:if="${account.dealerStaff}">
                 <div class="card shadow-sm">
                     <div class="card-header">
                         <h5 class="mb-0"><i class="fa-solid fa-user-tie"></i> Staff Information</h5>
@@ -100,7 +100,7 @@
                 </div>
             </div>
 
-            <div class="col-12" sec:authorize="hasAnyRole('DEALER','DEALERSTAFF')" th:if="${account.dealerStaff != null and account.dealerStaff.dealer != null}">
+            <div class="col-6" sec:authorize="hasAnyRole('DEALER','DEALERSTAFF')" th:if="${account.dealerStaff != null and account.dealerStaff.dealer != null}">
                 <div class="card shadow-sm">
                     <div class="card-header">
                         <h5 class="mb-0"><i class="fa-solid fa-store"></i> Dealer Information</h5>
