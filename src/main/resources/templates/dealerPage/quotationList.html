@@ -385,83 +385,88 @@
             <div th:if="${quotations != null and !#lists.isEmpty(quotations)}">
                 <div class="row">
                     <div th:each="quotation : ${quotations}" class="col-md-6 col-lg-4 mb-3">
-                        <div class="quotation-card">
-                            <div class="d-flex justify-content-between align-items-start mb-3">
-                                <h5 class="mb-0">Quotation #<span th:text="${quotation.quotationID}"></span></h5>
-                                <span class="status-badge"
-                                      th:classappend="${quotation.status.name() == 'CREATED' ? ' status-pending' : (quotation.status.name() == 'APPROVED' ? ' status-accepted' : (quotation.status.name() == 'REJECTED' ? ' status-rejected' : ' status-pending'))}"
-                                      th:text="${quotation.status.name() == 'CREATED' ? 'PENDING' : quotation.status.name()}"></span>
-                            </div>
-                            <div class="mb-3">
-                                <div class="row">
-                                    <div class="col-6">
-                                        <strong>Customer:</strong><br>
-                                        <span th:text="${quotation.customer.fullName}"></span><br>
-                                        <small class="text-muted" th:text="${quotation.customer.email}"></small>
-                                    </div>
-                                    <div class="col-6">
-                                        <strong>Vehicle:</strong><br>
-                                        <span th:if="${quotation.firstModelName != null}"
-                                              th:text="${quotation.firstModelName}"></span>
-                                        <span th:if="${quotation.firstModelName == null}"
-                                              class="text-muted">No model</span><br>
-                                        <small class="text-muted" th:if="${quotation.firstColorName != null}"
-                                               th:text="${quotation.firstColorName}"></small>
-                                    </div>
+                        <div class="card shadow">
+                            <div class="card-header">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <h5 class="mb-0">Quotation #<span th:text="${quotation.quotationID}"></span></h5>
+                                    <span class="status-badge"
+                                          th:classappend="${quotation.status.name() == 'CREATED' ? ' status-pending' : (quotation.status.name() == 'APPROVED' ? ' status-accepted' : (quotation.status.name() == 'REJECTED' ? ' status-rejected' : ' status-pending'))}"
+                                          th:text="${quotation.status.name() == 'CREATED' ? 'PENDING' : quotation.status.name()}"></span>
                                 </div>
                             </div>
-                            <div class="mb-3">
-                                <div class="row">
-                                    <div class="col-6">
-                                        <strong>Created:</strong><br>
-                                        <span th:text="${#dates.format(quotation.createdAt, 'dd/MM/yyyy HH:mm')}"></span>
-                                    </div>
-                                    <div class="col-6">
-                                        <strong>Total:</strong><br>
-                                        <span class="price-highlight" th:text="'$' + ${#numbers.formatDecimal(quotation.totalPrice, 0, 'COMMA', 0, 'POINT')}"></span>
+
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <strong>Customer:</strong><br>
+                                            <span th:text="${quotation.customer.fullName}"></span><br>
+                                            <small class="text-muted" th:text="${quotation.customer.email}"></small>
+                                        </div>
+                                        <div class="col-6">
+                                            <strong>Vehicle:</strong><br>
+                                            <span th:if="${quotation.firstModelName != null}"
+                                                  th:text="${quotation.firstModelName}"></span>
+                                            <span th:if="${quotation.firstModelName == null}"
+                                                  class="text-muted">No model</span><br>
+                                            <small class="text-muted" th:if="${quotation.firstColorName != null}"
+                                                   th:text="${quotation.firstColorName}"></small>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="mb-2">
-                                <small class="text-muted">Discount: <span
-                                        th:text="${quotation.effectiveDiscountPercent} + '%'">0%</span></small>
-                            </div>
-                            <div class="mb-3">
-                                <strong>Net Total:</strong>
-                                <span class="price-highlight" th:text="'$' + ${#numbers.formatDecimal(quotation.netTotal, 0, 'COMMA', 0, 'POINT')}">$0</span>
-                            </div>
-                            <div class="action-buttons">
-                                <a th:href="@{/quotation/detail/{id}(id=${quotation.quotationID})}"
-                                   class="btn btn-outline-secondary btn-action">
-                                    <i class="fas fa-eye me-1"></i>Details
-                                </a>
-                                <div th:if="${quotation.status.name() == 'CREATED'}">
-                                    <form th:action="@{/quotation/approve/{id}(id=${quotation.quotationID})}"
-                                          method="post" style="display:inline;">
-                                        <input type="hidden" th:name="${_csrf.parameterName}"
-                                               th:value="${_csrf.token}"/>
-                                        <button type="submit" class="btn btn-success btn-action"
-                                                onclick="return confirm('Approve this quotation?')">
-                                            <i class="fas fa-check me-1"></i>Approve
+                                <div class="mb-3">
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <strong>Created:</strong><br>
+                                            <span th:text="${#dates.format(quotation.createdAt, 'dd/MM/yyyy HH:mm')}"></span>
+                                        </div>
+                                        <div class="col-6">
+                                            <strong>Total:</strong><br>
+                                            <span class="price-highlight" th:text="'$' + ${#numbers.formatDecimal(quotation.totalPrice, 0, 'COMMA', 0, 'POINT')}"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <small class="text-muted">Discount: <span
+                                            th:text="${quotation.effectiveDiscountPercent} + '%'">0%</span></small>
+                                </div>
+                                <div class="mb-3">
+                                    <strong>Net Total:</strong>
+                                    <span class="price-highlight" th:text="'$' + ${#numbers.formatDecimal(quotation.netTotal, 0, 'COMMA', 0, 'POINT')}">$0</span>
+                                </div>
+                                <div class="action-buttons">
+                                    <a th:href="@{/quotation/detail/{id}(id=${quotation.quotationID})}"
+                                       class="btn btn-outline-secondary btn-action">
+                                        <i class="fas fa-eye me-1"></i>Details
+                                    </a>
+                                    <div th:if="${quotation.status.name() == 'CREATED'}">
+                                        <form th:action="@{/quotation/approve/{id}(id=${quotation.quotationID})}"
+                                              method="post" style="display:inline;">
+                                            <input type="hidden" th:name="${_csrf.parameterName}"
+                                                   th:value="${_csrf.token}"/>
+                                            <button type="submit" class="btn btn-success btn-action"
+                                                    onclick="return confirm('Approve this quotation?')">
+                                                <i class="fas fa-check me-1"></i>Approve
+                                            </button>
+                                        </form>
+                                        <form th:action="@{/quotation/reject/{id}(id=${quotation.quotationID})}"
+                                              method="post" style="display:inline;">
+                                            <input type="hidden" th:name="${_csrf.parameterName}"
+                                                   th:value="${_csrf.token}"/>
+                                            <button type="submit" class="btn btn-danger btn-action"
+                                                    onclick="return confirm('Reject this quotation?')">
+                                                <i class="fas fa-times me-1"></i>Reject
+                                            </button>
+                                        </form>
+                                    </div>
+                                    <form th:action="@{/quotation/delete/{id}(id=${quotation.quotationID})}" method="post"
+                                          th:attr="onsubmit='return confirm(\'Delete quotation #' + ${quotation.quotationID} + ' ?\');'">
+                                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                                        <button type="submit" class="btn btn-danger btn-action">
+                                            <i class="fas fa-trash me-1"></i>Delete
                                         </button>
                                     </form>
-                                    <form th:action="@{/quotation/reject/{id}(id=${quotation.quotationID})}"
-                                          method="post" style="display:inline;">
-                                        <input type="hidden" th:name="${_csrf.parameterName}"
-                                               th:value="${_csrf.token}"/>
-                                        <button type="submit" class="btn btn-danger btn-action"
-                                                onclick="return confirm('Reject this quotation?')">
-                                            <i class="fas fa-times me-1"></i>Reject
-                                        </button>
-                                    </form>
                                 </div>
-                                <form th:action="@{/quotation/delete/{id}(id=${quotation.quotationID})}" method="post"
-                                      th:attr="onsubmit='return confirm(\'Delete quotation #' + ${quotation.quotationID} + ' ?\');'">
-                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                                    <button type="submit" class="btn btn-danger btn-action">
-                                        <i class="fas fa-trash me-1"></i>Delete
-                                    </button>
-                                </form>
                             </div>
                         </div>
                     </div>
