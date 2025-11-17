@@ -487,6 +487,10 @@
                                 <span th:text="'$' + ${#numbers.formatDecimal(promoDiscountTotal != null ? promoDiscountTotal : 0,0,'COMMA',0,'POINT')}">$0</span>
                             </div>
                             <div class="summary-item">
+                                <span>Base Quotation Disc</span>
+                                <span th:text="'$' + ${#numbers.formatDecimal(baseQuotationDiscountTotal != null ? baseQuotationDiscountTotal : 0,0,'COMMA',0,'POINT')}">$0</span>
+                            </div>
+                            <div class="summary-item">
                                 <span>Net Total</span>
                                 <span th:text="'$' + ${#numbers.formatDecimal(order.totalAmount,0,'COMMA',0,'POINT')}">$0</span>
                             </div>

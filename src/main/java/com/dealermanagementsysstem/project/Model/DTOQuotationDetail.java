@@ -51,6 +51,11 @@ public class DTOQuotationDetail {
     @Transient
     private java.math.BigDecimal finalNetAfterAll; // line net after line-level + base discount stacking
 
+    @Transient
+    private Double baseQuotationDiscountPercent; // new transient percent from parent quotation
+    @Transient
+    private java.math.BigDecimal baseQuotationDiscountAmount; // computed per line after manufacturer discount
+
     public DTOQuotationDetail() {
     }
 
@@ -168,11 +173,55 @@ public class DTOQuotationDetail {
         return color != null ? color.getColorName() : null;
     }
 
+    public Double getBaseQuotationDiscountPercent() { return baseQuotationDiscountPercent; }
+    public void setBaseQuotationDiscountPercent(Double pct) { this.baseQuotationDiscountPercent = pct; }
+    public java.math.BigDecimal getBaseQuotationDiscountAmount() { return baseQuotationDiscountAmount; }
+    public void setBaseQuotationDiscountAmount(java.math.BigDecimal v) { this.baseQuotationDiscountAmount = v; }
+
+    // Helper: safe percent
+    private double safePct(Double v){ return (v!=null && v>0)? v : 0.0; }
+
     @Transient
-    public java.math.BigDecimal getNetAfterLineDiscount() {
+    public java.math.BigDecimal getDealerDiscountAmount(){
+        double pct = safePct(appliedDealerDiscountPercent);
         java.math.BigDecimal sub = getSubtotal();
-        double pct = appliedDealerDiscountPercent != null ? appliedDealerDiscountPercent : 0.0;
-        return sub.multiply(java.math.BigDecimal.valueOf(1 - pct/100.0));
+        return pct>0? sub.multiply(java.math.BigDecimal.valueOf(pct/100.0)) : java.math.BigDecimal.ZERO;
+    }
+    @Transient
+    public java.math.BigDecimal getAfterDealer(){
+        return getSubtotal().subtract(getDealerDiscountAmount());
+    }
+    @Transient
+    public java.math.BigDecimal getManufacturerDiscountAmount(){
+        java.math.BigDecimal afterDealer = getAfterDealer();
+        if (afterDealer.compareTo(java.math.BigDecimal.ZERO)<=0) return java.math.BigDecimal.ZERO;
+        double promoPct = safePct(promoDiscountPercent);
+        if (promoPct>0){
+            return afterDealer.multiply(java.math.BigDecimal.valueOf(promoPct/100.0));
+        }
+        if (promoDiscountAmount!=null && promoDiscountAmount.compareTo(java.math.BigDecimal.ZERO)>0){
+            // treat promoDiscountAmount as total for the line if originally stored per line; clamp
+            java.math.BigDecimal fixed = promoDiscountAmount.multiply(java.math.BigDecimal.valueOf(Math.max(1, quantity)));
+            return fixed.min(afterDealer);
+        }
+        return java.math.BigDecimal.ZERO;
+    }
+    @Transient
+    public java.math.BigDecimal getAfterManufacturer(){
+        return getAfterDealer().subtract(getManufacturerDiscountAmount());
+    }
+    @Transient
+    public java.math.BigDecimal getBaseQuotationDiscountAmountComputed(){
+        java.math.BigDecimal afterManufacturer = getAfterManufacturer();
+        double basePct = safePct(baseQuotationDiscountPercent);
+        if (afterManufacturer.compareTo(java.math.BigDecimal.ZERO)<=0 || basePct<=0) return java.math.BigDecimal.ZERO;
+        return afterManufacturer.multiply(java.math.BigDecimal.valueOf(basePct/100.0));
+    }
+    @Transient
+    public java.math.BigDecimal getNetAfterFullStack(){
+        java.math.BigDecimal net = getAfterManufacturer().subtract(getBaseQuotationDiscountAmountComputed());
+        if (net.compareTo(java.math.BigDecimal.ZERO)<0) net = java.math.BigDecimal.ZERO;
+        return net;
     }
 
     /**
@@ -183,29 +232,10 @@ public class DTOQuotationDetail {
      */
     @Transient
     public java.math.BigDecimal getNetAfterAllDiscounts() {
-        // Bước 1: Tính giá sau dealer discount
-        java.math.BigDecimal afterDealerDiscount = getNetAfterLineDiscount();
-        
-        // Bước 2: Áp dụng manufacturer promo code
-        java.math.BigDecimal promoDiscount = java.math.BigDecimal.ZERO;
-        
-        if (promoDiscountPercent != null && promoDiscountPercent > 0) {
-            // Discount theo phần trăm
-            promoDiscount = afterDealerDiscount.multiply(
-                java.math.BigDecimal.valueOf(promoDiscountPercent / 100.0)
-            );
-        } else if (promoDiscountAmount != null && promoDiscountAmount.compareTo(java.math.BigDecimal.ZERO) > 0) {
-            // Discount cố định (fixed amount)
-            promoDiscount = promoDiscountAmount.multiply(java.math.BigDecimal.valueOf(quantity));
-        }
-        
+        java.math.BigDecimal afterDealerDiscount = getAfterDealer();
+        java.math.BigDecimal promoDiscount = getManufacturerDiscountAmount();
         java.math.BigDecimal finalPrice = afterDealerDiscount.subtract(promoDiscount);
-        
-        // Đảm bảo giá không âm
-        if (finalPrice.compareTo(java.math.BigDecimal.ZERO) < 0) {
-            finalPrice = java.math.BigDecimal.ZERO;
-        }
-        
+        if (finalPrice.compareTo(java.math.BigDecimal.ZERO) < 0) finalPrice = java.math.BigDecimal.ZERO;
         return finalPrice;
     }
 
@@ -214,9 +244,7 @@ public class DTOQuotationDetail {
      */
     @Transient
     public java.math.BigDecimal getPromoDiscountTotal() {
-        java.math.BigDecimal afterDealerDiscount = getNetAfterLineDiscount();
-        java.math.BigDecimal afterPromo = getNetAfterAllDiscounts();
-        return afterDealerDiscount.subtract(afterPromo);
+        return getManufacturerDiscountAmount();
     }
 
     public java.math.BigDecimal getFinalNetAfterAll() {

@@ -493,27 +493,20 @@ public class QuotationController {
             // Calculate final net: apply line-level then base discount stacking
             double baseDiscountPct = quotation.getDiscountPercent() != null ? quotation.getDiscountPercent() : 0.0;
             double grossAll = details != null ? details.stream().mapToDouble(d -> d.getSubtotal().doubleValue()).sum() : 0.0;
-            double afterLine = details != null ? details.stream().mapToDouble(d -> {
-                double sub = d.getSubtotal().doubleValue();
-                double dealerPct = d.getAppliedDealerDiscountPercent() != null ? d.getAppliedDealerDiscountPercent() : 0.0;
-                double manufacturerPct = d.getPromoDiscountPercent() != null ? d.getPromoDiscountPercent() : 0.0;
-                double afterDealer = sub * (1 - dealerPct / 100.0);
-                // manufacturer discount applies AFTER dealer discount (stacking)
-                double afterManufacturer = afterDealer * (1 - manufacturerPct / 100.0);
-                return afterManufacturer;
-            }).sum() : 0.0;
-            double finalNetTotal = afterLine * (1 - baseDiscountPct / 100.0);
-
-            // Calculate per line final net
+            double afterLine = 0.0;
             if (details != null) {
                 for (DTOQuotationDetail d : details) {
-                    double dealerPct = d.getAppliedDealerDiscountPercent() != null ? d.getAppliedDealerDiscountPercent() : 0.0;
-                    double manufacturerPct = d.getPromoDiscountPercent() != null ? d.getPromoDiscountPercent() : 0.0;
-                    double sub = d.getSubtotal().doubleValue();
-                    double afterDealer = sub * (1 - dealerPct / 100.0);
-                    double afterManufacturer = afterDealer * (1 - manufacturerPct / 100.0);
-                    double lineFinal = afterManufacturer * (1 - baseDiscountPct / 100.0);
-                    d.setFinalNetAfterAll(java.math.BigDecimal.valueOf(lineFinal));
+                    d.setBaseQuotationDiscountPercent(baseDiscountPct);
+                    java.math.BigDecimal lineAfterManufacturer = d.getAfterManufacturer();
+                    afterLine += lineAfterManufacturer.doubleValue();
+                }
+            }
+            double finalNetTotal = 0.0;
+            if (details != null) {
+                for (DTOQuotationDetail d : details) {
+                    java.math.BigDecimal net = d.getNetAfterFullStack();
+                    d.setFinalNetAfterAll(net); // now includes base discount
+                    finalNetTotal += net.doubleValue();
                 }
             }
 

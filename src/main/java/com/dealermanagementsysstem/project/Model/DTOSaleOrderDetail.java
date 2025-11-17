@@ -21,7 +21,7 @@ public class DTOSaleOrderDetail {
     private DTOVehicle vehicle;
 
     @Column(name = "Price")
-    private BigDecimal price; // final net unit price after all discounts (dealer + promo)
+    private BigDecimal price; // final net unit price after all discounts (dealer + promo + base quotation)
 
     // Manufacturer discount policy applied (promo)
     @ManyToOne
@@ -48,17 +48,18 @@ public class DTOSaleOrderDetail {
     @Column(name = "Quantity")
     private Integer quantity; // defaults handled in getter
 
-    // Transient VIN loaded from inventory join
-    private transient String vin;
+    private transient String vin; // Transient VIN loaded from inventory join
 
     @Column(name = "GrossUnitPrice")
-    private BigDecimal grossUnitPrice; // original price before dealer & promo discounts
+    private BigDecimal grossUnitPrice; // original price before dealer & promo discounts (and before base quotation discount)
+
+    // ================= NEW TRANSIENT FIELD =================
+    // Base quotation discount percent (quotation-level stacking after dealer + manufacturer)
+    @Transient
+    private Double baseQuotationDiscountPercent; // not persisted to DB (avoid schema change)
 
     // === CONSTRUCTORS ===
-
-    public DTOSaleOrderDetail() {
-    }
-
+    public DTOSaleOrderDetail() {}
     public DTOSaleOrderDetail(int soDetailID, DTOSaleOrder saleOrder, DTOVehicle vehicle,
                               BigDecimal price, DTODiscountPolicy discountPolicy) {
         this.soDetailID = soDetailID;
@@ -68,147 +69,129 @@ public class DTOSaleOrderDetail {
         this.discountPolicy = discountPolicy;
     }
 
-
     // === GETTERS / SETTERS ===
+    public DTOSaleOrder getSaleOrder() { return saleOrder; }
+    public void setSaleOrder(DTOSaleOrder saleOrder) { this.saleOrder = saleOrder; }
 
-    public DTOSaleOrder getSaleOrder() {
-        return saleOrder;
-    }
+    public int getSoDetailID() { return soDetailID; }
+    public void setSoDetailID(int soDetailID) { this.soDetailID = soDetailID; }
 
-    public void setSaleOrder(DTOSaleOrder saleOrder) {
-        this.saleOrder = saleOrder;
-    }
+    public DTODiscountPolicy getDiscountPolicy() { return discountPolicy; }
+    public void setDiscountPolicy(DTODiscountPolicy discountPolicy) { this.discountPolicy = discountPolicy; }
 
-    public int getSoDetailID() {
-        return soDetailID;
-    }
+    public DTOVehicle getVehicle() { return vehicle; }
+    public void setVehicle(DTOVehicle vehicle) { this.vehicle = vehicle; }
 
-    public void setSoDetailID(int soDetailID) {
-        this.soDetailID = soDetailID;
-    }
+    public BigDecimal getPrice() { return price; }
+    public void setPrice(BigDecimal price) { this.price = price; }
 
-    public DTODiscountPolicy getDiscountPolicy() {
-        return discountPolicy;
-    }
+    public Integer getQuantity() { return quantity != null ? quantity : 1; }
+    public void setQuantity(Integer quantity) { this.quantity = quantity; }
 
-    public void setDiscountPolicy(DTODiscountPolicy discountPolicy) {
-        this.discountPolicy = discountPolicy;
-    }
+    public String getVin() { return vin; }
+    public void setVin(String vin) { this.vin = vin; }
 
+    public Double getDealerDiscountPercent() { return dealerDiscountPercent; }
+    public void setDealerDiscountPercent(Double dealerDiscountPercent) { this.dealerDiscountPercent = dealerDiscountPercent; }
 
-    public DTOVehicle getVehicle() {
-        return vehicle;
-    }
+    public String getPromoCode() { return promoCode; }
+    public void setPromoCode(String promoCode) { this.promoCode = promoCode; }
 
-    public void setVehicle(DTOVehicle vehicle) {
-        this.vehicle = vehicle;
-    }
+    public Double getPromoDiscountPercent() { return promoDiscountPercent; }
+    public void setPromoDiscountPercent(Double promoDiscountPercent) { this.promoDiscountPercent = promoDiscountPercent; }
 
-    public BigDecimal getPrice() {
-        return price;
-    }
+    public BigDecimal getPromoDiscountAmount() { return promoDiscountAmount; }
+    public void setPromoDiscountAmount(BigDecimal promoDiscountAmount) { this.promoDiscountAmount = promoDiscountAmount; }
 
-    public void setPrice(BigDecimal price) {
-        this.price = price;
-    }
-
-    public Integer getQuantity() {
-        return quantity != null ? quantity : 1;
-    }
-
-    public void setQuantity(Integer quantity) {
-        this.quantity = quantity;
-    }
-
-    public String getVin() {
-        return vin;
-    }
-
-    public void setVin(String vin) {
-        this.vin = vin;
-    }
-
-    public Double getDealerDiscountPercent() {
-        return dealerDiscountPercent;
-    }
-
-    public void setDealerDiscountPercent(Double dealerDiscountPercent) {
-        this.dealerDiscountPercent = dealerDiscountPercent;
-    }
-
-    public String getPromoCode() {
-        return promoCode;
-    }
-
-    public void setPromoCode(String promoCode) {
-        this.promoCode = promoCode;
-    }
-
-    public Double getPromoDiscountPercent() {
-        return promoDiscountPercent;
-    }
-
-    public void setPromoDiscountPercent(Double promoDiscountPercent) {
-        this.promoDiscountPercent = promoDiscountPercent;
-    }
-
-    public BigDecimal getPromoDiscountAmount() {
-        return promoDiscountAmount;
-    }
-
-    public void setPromoDiscountAmount(BigDecimal promoDiscountAmount) {
-        this.promoDiscountAmount = promoDiscountAmount;
-    }
-
-    public Integer getPromoPolicyID() {
-        return promoPolicyID;
-    }
-
-    public void setPromoPolicyID(Integer promoPolicyID) {
-        this.promoPolicyID = promoPolicyID;
-    }
+    public Integer getPromoPolicyID() { return promoPolicyID; }
+    public void setPromoPolicyID(Integer promoPolicyID) { this.promoPolicyID = promoPolicyID; }
 
     public BigDecimal getGrossUnitPrice() { return grossUnitPrice != null ? grossUnitPrice : price; }
     public void setGrossUnitPrice(BigDecimal g) { this.grossUnitPrice = g; }
 
-    // Formatted helpers
-    public String getFormattedUnitPrice() {
-        return utils.NumberFormatUtil.formatCurrency(price);
-    }
+    public Double getBaseQuotationDiscountPercent() { return baseQuotationDiscountPercent; }
+    public void setBaseQuotationDiscountPercent(Double baseQuotationDiscountPercent) { this.baseQuotationDiscountPercent = baseQuotationDiscountPercent; }
 
-    public BigDecimal getLineTotal() {
-        BigDecimal p = price != null ? price : BigDecimal.ZERO;
-        return p.multiply(BigDecimal.valueOf(getQuantity()));
-    }
-
-    public String getFormattedLineTotal() {
-        return utils.NumberFormatUtil.formatCurrency(getLineTotal());
-    }
+    // ================== DISCOUNT CALCULATION HELPERS ==================
+    private double safePct(Double v) { return (v != null && v > 0) ? v : 0.0; }
 
     @Transient
     public BigDecimal getDealerDiscountAmountPerUnit() {
-        if (dealerDiscountPercent == null || dealerDiscountPercent <= 0) return BigDecimal.ZERO;
-        BigDecimal gross = getGrossUnitPrice();
-        return gross.multiply(BigDecimal.valueOf(dealerDiscountPercent/100.0));
+        double pct = safePct(dealerDiscountPercent);
+        if (pct <= 0) return BigDecimal.ZERO;
+        BigDecimal gross = getGrossUnitPrice() != null ? getGrossUnitPrice() : BigDecimal.ZERO;
+        return gross.multiply(BigDecimal.valueOf(pct / 100.0));
     }
+
     @Transient
     public BigDecimal getPriceAfterDealerPerUnit() {
-        BigDecimal gross = getGrossUnitPrice();
+        BigDecimal gross = getGrossUnitPrice() != null ? getGrossUnitPrice() : BigDecimal.ZERO;
         return gross.subtract(getDealerDiscountAmountPerUnit());
     }
+
     @Transient
     public BigDecimal getPromoDiscountAmountPerUnit() {
         BigDecimal afterDealer = getPriceAfterDealerPerUnit();
-        if (promoDiscountPercent != null && promoDiscountPercent > 0) {
-            return afterDealer.multiply(BigDecimal.valueOf(promoDiscountPercent/100.0));
+        if (afterDealer.compareTo(BigDecimal.ZERO) <= 0) return BigDecimal.ZERO;
+        // Percentage manufacturer discount
+        double promoPct = safePct(promoDiscountPercent);
+        if (promoPct > 0) {
+            return afterDealer.multiply(BigDecimal.valueOf(promoPct / 100.0));
         }
-        if (promoDiscountAmount != null) return promoDiscountAmount.min(afterDealer);
+        // Fixed amount (treat as per-unit if provided); clamp not to exceed afterDealer
+        if (promoDiscountAmount != null && promoDiscountAmount.compareTo(BigDecimal.ZERO) > 0) {
+            return promoDiscountAmount.min(afterDealer);
+        }
         return BigDecimal.ZERO;
     }
+
     @Transient
-    public BigDecimal getNetUnitPrice() { return price != null ? price : getPriceAfterDealerPerUnit().subtract(getPromoDiscountAmountPerUnit()); }
+    public BigDecimal getPriceAfterManufacturerPerUnit() {
+        return getPriceAfterDealerPerUnit().subtract(getPromoDiscountAmountPerUnit());
+    }
+
     @Transient
-    public BigDecimal getDealerDiscountTotal() { return getDealerDiscountAmountPerUnit().multiply(BigDecimal.valueOf(getQuantity())); }
+    public BigDecimal getBaseQuotationDiscountAmountPerUnit() {
+        BigDecimal afterManufacturer = getPriceAfterManufacturerPerUnit();
+        double basePct = safePct(baseQuotationDiscountPercent);
+        if (basePct <= 0) return BigDecimal.ZERO;
+        return afterManufacturer.multiply(BigDecimal.valueOf(basePct / 100.0));
+    }
+
     @Transient
-    public BigDecimal getPromoDiscountTotal() { return getPromoDiscountAmountPerUnit().multiply(BigDecimal.valueOf(getQuantity())); }
+    public BigDecimal getPriceAfterBaseQuotationPerUnit() {
+        return getPriceAfterManufacturerPerUnit().subtract(getBaseQuotationDiscountAmountPerUnit());
+    }
+
+    @Transient
+    public BigDecimal getNetUnitPrice() {
+        // If price already stored (persisted net), use it; else compute full stacking.
+        if (price != null) return price;
+        BigDecimal net = getPriceAfterBaseQuotationPerUnit();
+        return net.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : net;
+    }
+
+    @Transient
+    public BigDecimal getDealerDiscountTotal() {
+        return getDealerDiscountAmountPerUnit().multiply(BigDecimal.valueOf(getQuantity()));
+    }
+
+    @Transient
+    public BigDecimal getPromoDiscountTotal() {
+        return getPromoDiscountAmountPerUnit().multiply(BigDecimal.valueOf(getQuantity()));
+    }
+
+    @Transient
+    public BigDecimal getBaseQuotationDiscountTotal() {
+        return getBaseQuotationDiscountAmountPerUnit().multiply(BigDecimal.valueOf(getQuantity()));
+    }
+
+    @Transient
+    public BigDecimal getLineTotal() {
+        // Net * quantity
+        return getNetUnitPrice().multiply(BigDecimal.valueOf(getQuantity()));
+    }
+
+    public String getFormattedUnitPrice() { return utils.NumberFormatUtil.formatCurrency(getNetUnitPrice()); }
+    public String getFormattedLineTotal() { return utils.NumberFormatUtil.formatCurrency(getLineTotal()); }
 }

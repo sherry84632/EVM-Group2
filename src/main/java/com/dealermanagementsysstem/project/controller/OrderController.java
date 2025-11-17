@@ -213,52 +213,67 @@ public class OrderController {
                         continue;
                     }
                 }
-                java.math.BigDecimal unitNet = qd.getFinalNetAfterAll();
-                java.math.BigDecimal grossUnit = qd.getUnitPrice()!=null? qd.getUnitPrice(): java.math.BigDecimal.ZERO;
-                if (unitNet == null) {
-                    // Recompute stacking if not present (dealer + quotation + promo)
-                    java.math.BigDecimal afterDealer = grossUnit.multiply(java.math.BigDecimal.valueOf(1 - qd.getAppliedDealerDiscountPercent()/100.0));
-                    java.math.BigDecimal afterQuotation = afterDealer.multiply(java.math.BigDecimal.valueOf(1 - quotation.getDiscountPercent()/100.0));
-                    unitNet = afterQuotation; // promo fields not persisted yet here
+                java.math.BigDecimal unitGross = qd.getUnitPrice()!=null? qd.getUnitPrice(): java.math.BigDecimal.ZERO;
+                double dealerPct = qd.getAppliedDealerDiscountPercent() != null ? qd.getAppliedDealerDiscountPercent() : 0.0;
+                double manufPct = qd.getPromoDiscountPercent() != null ? qd.getPromoDiscountPercent() : 0.0;
+                double basePct = quotation.getDiscountPercent() != null ? quotation.getDiscountPercent() : 0.0;
+                // Apply stacking: dealer -> manufacturer -> base quotation
+                java.math.BigDecimal afterDealer = unitGross.multiply(java.math.BigDecimal.valueOf(1 - dealerPct/100.0));
+                java.math.BigDecimal afterManufacturer;
+                if (qd.getPromoDiscountAmount() != null && qd.getPromoDiscountAmount().compareTo(java.math.BigDecimal.ZERO) > 0 && manufPct == 0.0) {
+                    // fixed amount per unit (clamped)
+                    java.math.BigDecimal fixed = qd.getPromoDiscountAmount().min(afterDealer);
+                    afterManufacturer = afterDealer.subtract(fixed);
+                } else {
+                    afterManufacturer = afterDealer.multiply(java.math.BigDecimal.valueOf(1 - manufPct/100.0));
                 }
+                java.math.BigDecimal unitNet = afterManufacturer.multiply(java.math.BigDecimal.valueOf(1 - basePct/100.0));
+                if (unitNet.compareTo(java.math.BigDecimal.ZERO) < 0) unitNet = java.math.BigDecimal.ZERO;
+
+                // If DTOQuotationDetail already has finalNetAfterAll (without base discount) update for reference
+                qd.setFinalNetAfterAll(unitNet);
+
                 for (int i=0;i<lineQty;i++) {
                     DTOSaleOrderDetail sod = new DTOSaleOrderDetail();
                     sod.setSaleOrder(order);
                     DTOVehicle veh = new DTOVehicle();
                     veh.setVehicleID(vehicleIds.get(i));
                     sod.setVehicle(veh);
-                    sod.setPrice(unitNet);
-                    sod.setGrossUnitPrice(grossUnit);
-                    sod.setQuantity(1);
-                    // Map dealer discount & promo from quotation detail
-                    sod.setDealerDiscountPercent(qd.getAppliedDealerDiscountPercent());
+                    sod.setGrossUnitPrice(unitGross);
+                    sod.setDealerDiscountPercent(dealerPct);
                     sod.setPromoCode(qd.getPromoCode());
-                    sod.setPromoDiscountPercent(qd.getPromoDiscountPercent());
+                    sod.setPromoDiscountPercent(manufPct);
                     sod.setPromoDiscountAmount(qd.getPromoDiscountAmount());
+                    sod.setBaseQuotationDiscountPercent(basePct); // NEW stacking layer
+                    sod.setQuantity(1);
                     if (qd.getPromoPolicy()!=null) {
                         sod.setPromoPolicyID(qd.getPromoPolicy().getPolicyID());
                         sod.setDiscountPolicy(qd.getPromoPolicy());
                     }
+                    // Persist final net unit price explicitly for performance & reporting
+                    sod.setPrice(unitNet);
                     details.add(sod);
                     computedTotalQty += 1;
                     computedTotalAmount = computedTotalAmount.add(unitNet);
                 }
             }
         } else {
-            // Fallback single line
+            // Fallback single line (quotation had no details) - avoid approximating dealer discount with base quotation discount
             DTOSaleOrderDetail sod = new DTOSaleOrderDetail();
             if (vehicleId != null) {
                 DTOVehicle veh = new DTOVehicle(); veh.setVehicleID(vehicleId); sod.setVehicle(veh);
             }
             int qtyFallback = (quantity != null && quantity > 0) ? quantity : 1;
-            java.math.BigDecimal perUnit = java.math.BigDecimal.valueOf(quotation.getTotalPrice())
+            double basePct = quotation.getDiscountPercent() != null ? quotation.getDiscountPercent() : 0.0;
+            java.math.BigDecimal gross = java.math.BigDecimal.valueOf(quotation.getTotalPrice())
                     .divide(java.math.BigDecimal.valueOf(Math.max(1, qtyFallback)), java.math.MathContext.DECIMAL64);
-            sod.setPrice(perUnit);
-            sod.setGrossUnitPrice(perUnit);
+            java.math.BigDecimal net = gross.multiply(java.math.BigDecimal.valueOf(1 - basePct/100.0));
+            sod.setGrossUnitPrice(gross);
+            sod.setBaseQuotationDiscountPercent(basePct);
+            sod.setPrice(net);
             sod.setQuantity(1);
-            sod.setDealerDiscountPercent(quotation.getDiscountPercent()); // approximate
             details.add(sod);
-            for (int i=0;i<qtyFallback;i++){ computedTotalQty += 1; computedTotalAmount = computedTotalAmount.add(perUnit); }
+            for (int i=0;i<qtyFallback;i++){ computedTotalQty += 1; computedTotalAmount = computedTotalAmount.add(net); }
         }
 
         // 🔹 XỬ LÝ SHORTAGES - Tạo 1 PurchaseOrder duy nhất cho tất cả xe thiếu
@@ -357,6 +372,7 @@ public class OrderController {
         java.math.BigDecimal grossTotal = java.math.BigDecimal.ZERO;
         java.math.BigDecimal dealerDiscountTotal = java.math.BigDecimal.ZERO;
         java.math.BigDecimal promoDiscountTotal = java.math.BigDecimal.ZERO;
+        java.math.BigDecimal baseQuotationDiscountTotal = java.math.BigDecimal.ZERO; // NEW
         if (order.getDetail() != null) {
             for (DTOSaleOrderDetail d : order.getDetail()) {
                 int qty = d.getQuantity() != null ? d.getQuantity() : 1;
@@ -364,11 +380,13 @@ public class OrderController {
                 grossTotal = grossTotal.add(grossUnit.multiply(java.math.BigDecimal.valueOf(qty)));
                 dealerDiscountTotal = dealerDiscountTotal.add(d.getDealerDiscountAmountPerUnit().multiply(java.math.BigDecimal.valueOf(qty)));
                 promoDiscountTotal = promoDiscountTotal.add(d.getPromoDiscountAmountPerUnit().multiply(java.math.BigDecimal.valueOf(qty)));
+                baseQuotationDiscountTotal = baseQuotationDiscountTotal.add(d.getBaseQuotationDiscountAmountPerUnit().multiply(java.math.BigDecimal.valueOf(qty))); // stacking last
             }
         }
         model.addAttribute("grossTotal", grossTotal);
         model.addAttribute("dealerDiscountTotal", dealerDiscountTotal);
         model.addAttribute("promoDiscountTotal", promoDiscountTotal);
+        model.addAttribute("baseQuotationDiscountTotal", baseQuotationDiscountTotal); // expose to view
         model.addAttribute("order", order);
         model.addAttribute("isReadOnly", isReadOnly);
         return "dealerPage/dealerCustomerOrderDetail";

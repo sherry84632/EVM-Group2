@@ -52,6 +52,8 @@ public class EvmSettlementController {
         BigDecimal totalGross = BigDecimal.ZERO;
         BigDecimal totalNet = BigDecimal.ZERO;
         BigDecimal totalManufacturerDiscount = BigDecimal.ZERO;
+        BigDecimal totalDealerDiscount = BigDecimal.ZERO; // new
+        BigDecimal totalBaseQuotationDiscount = BigDecimal.ZERO; // new
 
         // Policy aggregate container
         class PolicyAgg { BigDecimal discount = BigDecimal.ZERO; int orders = 0; int vehicles = 0; String name; }
@@ -71,9 +73,12 @@ public class EvmSettlementController {
                     int qty = d.getQuantity() != null ? d.getQuantity() : 1;
                     BigDecimal grossUnit = d.getGrossUnitPrice() != null ? d.getGrossUnitPrice() : (d.getPrice() != null ? d.getPrice() : BigDecimal.ZERO);
                     orderGross = orderGross.add(grossUnit.multiply(BigDecimal.valueOf(qty)));
-                    // manufacturer discount amount (per unit * qty)
+                    BigDecimal dealerLine = d.getDealerDiscountAmountPerUnit().multiply(BigDecimal.valueOf(qty));
+                    totalDealerDiscount = totalDealerDiscount.add(dealerLine);
                     BigDecimal manufLine = d.getPromoDiscountAmountPerUnit().multiply(BigDecimal.valueOf(qty));
                     orderManufacturerDiscount = orderManufacturerDiscount.add(manufLine);
+                    BigDecimal baseLine = d.getBaseQuotationDiscountAmountPerUnit() != null ? d.getBaseQuotationDiscountAmountPerUnit().multiply(BigDecimal.valueOf(qty)) : BigDecimal.ZERO;
+                    totalBaseQuotationDiscount = totalBaseQuotationDiscount.add(baseLine);
 
                     Integer pid = d.getDiscountPolicy() != null ? d.getDiscountPolicy().getPolicyID() : d.getPromoPolicyID();
                     if (pid != null) {
@@ -108,6 +113,8 @@ public class EvmSettlementController {
             row.put("manufDiscount", orderManufacturerDiscount);
             row.put("manufPercent", percent);
             row.put("policyNames", policyNames);
+            row.put("dealerDiscount", totalDealerDiscount); // cumulative dealer discount (global, optional)
+            row.put("baseDiscount", totalBaseQuotationDiscount); // cumulative base discount
             orderRows.add(row);
 
             totalGross = totalGross.add(orderGross);
@@ -142,6 +149,8 @@ public class EvmSettlementController {
         model.addAttribute("dealerFilter", dealerFilter);
         model.addAttribute("statuses", SaleOrderStatus.values());
         model.addAttribute("dealers", dealerDAO.getAllDealers());
+        model.addAttribute("totalDealerDiscount", totalDealerDiscount);
+        model.addAttribute("totalBaseQuotationDiscount", totalBaseQuotationDiscount);
 
         return "evmPage/evmManufacturerSettlement";
     }
