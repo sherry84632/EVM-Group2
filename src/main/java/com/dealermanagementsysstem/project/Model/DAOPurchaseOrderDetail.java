@@ -54,36 +54,15 @@ public class DAOPurchaseOrderDetail {
         return insertOrderDetail(purchaseOrderId, colorId, versionId, quantity, unit);
     }
 
-    // Dealer-aware unit price (DiscountPolicy.HangPercent filtered by DealerID if provided)
+    // Dealer-aware unit price (REMOVE discount logic: always use pure BasePrice)
     public BigDecimal computeUnitPrice(int versionId, Integer dealerId) {
-        String sql = """
-            SELECT vm.BasePrice,
-                   pol.DiscountPercent AS DealerDiscountPercent
-            FROM VehicleVersion vv
-            JOIN VehicleModel vm ON vv.ModelID = vm.ModelID
-            OUTER APPLY (
-                SELECT TOP 1 DiscountPercent
-                FROM DiscountPolicy pol
-                WHERE (? IS NULL OR pol.DealerID = ?)
-                ORDER BY pol.CreatedAt DESC
-            ) pol
-            WHERE vv.VersionID = ?
-        """;
-        try (Connection conn = DBUtils.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            if (dealerId == null) { ps.setNull(1, java.sql.Types.INTEGER); ps.setNull(2, java.sql.Types.INTEGER); }
-            else { ps.setInt(1, dealerId); ps.setInt(2, dealerId); }
-            ps.setInt(3, versionId);
+        String sql = "SELECT vm.BasePrice FROM VehicleVersion vv JOIN VehicleModel vm ON vv.ModelID = vm.ModelID WHERE vv.VersionID = ?";
+        try (Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, versionId);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     BigDecimal base = rs.getBigDecimal("BasePrice");
-                    Double dealerDiscountPct = rs.getObject("DealerDiscountPercent", Double.class);
-                    if (base == null) return BigDecimal.ZERO;
-                    if (dealerDiscountPct != null && dealerDiscountPct > 0) {
-                        BigDecimal discountAmt = base.multiply(BigDecimal.valueOf(dealerDiscountPct / 100.0));
-                        return base.subtract(discountAmt);
-                    }
-                    return base;
+                    return base != null ? base : BigDecimal.ZERO;
                 }
             }
         } catch (SQLException e) { e.printStackTrace(); }

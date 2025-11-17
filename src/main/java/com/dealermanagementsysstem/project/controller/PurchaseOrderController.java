@@ -312,32 +312,7 @@ public class PurchaseOrderController {
                 model.addAttribute("message", "Order not found!");
                 return "dealerPage/orderStatusList";
             }
-            boolean needsRecalc = false;
-            // --- Detect wrong unit price logic (unit price ~= basePrice * (1 - manufacturerSharePercent/100)) when dealer discount is small ---
-            if (order.getOrderDetails() != null && !order.getOrderDetails().isEmpty()) {
-                Double dealerDisc = order.getPolicyDiscountPercent();
-                for (DTOPurchaseOrderDetail d : order.getOrderDetails()) {
-                    java.math.BigDecimal base = d.getBasePrice();
-                    java.math.BigDecimal unit = d.getUnitPrice();
-                    if (base != null && unit != null && dealerDisc != null && dealerDisc >= 0) {
-                        java.math.BigDecimal expected = base;
-                        if (dealerDisc > 0) expected = base.subtract(base.multiply(java.math.BigDecimal.valueOf(dealerDisc / 100.0)));
-                        if (order.getManufacturerSharePercent() != null) {
-                            double manufShare = order.getManufacturerSharePercent();
-                            java.math.BigDecimal wrongPattern = base.multiply(java.math.BigDecimal.valueOf((100.0 - manufShare) / 100.0));
-                            if (unit.subtract(wrongPattern).abs().doubleValue() < 0.01) { needsRecalc = true; break; }
-                        }
-                        if (unit.subtract(expected).abs().doubleValue() > base.doubleValue() * 0.01) { needsRecalc = true; break; }
-                    }
-                }
-            }
-            if (needsRecalc) {
-                int fixed = daoPurchaseOrder.recalcDetailPrices(id);
-                if (fixed > 0) {
-                    order = daoPurchaseOrder.getPurchaseOrderById(id);
-                    model.addAttribute("fixMessage", "Auto-corrected " + fixed + " detail price(s) based on dealer discount.");
-                }
-            }
+
             model.addAttribute("order", order);
             Double vatRateConfig = businessConfig.getVat().getRate();
             model.addAttribute("vatRate", vatRateConfig);

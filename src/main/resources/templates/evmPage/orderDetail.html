@@ -84,6 +84,12 @@
             padding: 24px;
             margin-bottom: 24px;
             border: 1px solid rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .detail-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
         }
 
         .detail-card h6 {
@@ -223,7 +229,66 @@
         }
 
         .table-hover tbody tr:hover {
-            background-color: rgba(0, 123, 255, 0.05);
+            background-color: rgba(102, 126, 234, 0.05);
+            transition: background-color 0.2s ease;
+        }
+
+        .table-responsive {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+
+        /* Alert improvements */
+        .alert {
+            border-radius: 12px;
+            border: none;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .alert-info {
+            background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+            color: #0c5460;
+        }
+
+        .alert-success {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            color: #155724;
+        }
+
+        /* Badge enhancements */
+        .badge {
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Button styling improvements */
+        .btn {
+            border-radius: 8px;
+            padding: 10px 24px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            border: none;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            border: none;
         }
     </style>
 </head>
@@ -292,70 +357,54 @@
         <div class="detail-card mb-4" th:if="${order.orderDetails != null and !order.orderDetails.isEmpty()}">
             <h6><i class="fas fa-list-alt me-2"></i>Order Summary</h6>
             <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead class="table-light">
+                <table class="table table-hover align-middle" style="margin-bottom: 0;">
+                    <thead style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
                         <tr>
-                            <th>Model</th>
-                            <th>Version</th>
-                            <th>Color</th>
-                            <th>Quantity</th>
-                            <th>Base Price</th>
-                            <th>Discount</th>
-                            <th>Unit Price</th>
-                            <th>Subtotal</th>
-                            <th>VAT</th>
-                            <th>Total + VAT</th>
-                            <th>Payment</th>
+                            <th style="padding: 15px; border: none; font-weight: 600; font-size: 0.9rem;">Model</th>
+                            <th style="padding: 15px; border: none; font-weight: 600; font-size: 0.9rem;">Version</th>
+                            <th style="padding: 15px; border: none; font-weight: 600; font-size: 0.9rem;">Color</th>
+                            <th style="padding: 15px; border: none; font-weight: 600; font-size: 0.9rem; text-align: center;">Quantity</th>
+                            <th style="padding: 15px; border: none; font-weight: 600; font-size: 0.9rem; text-align: right;">Unit Price</th>
+                            <th style="padding: 15px; border: none; font-weight: 600; font-size: 0.9rem; text-align: right;">Subtotal</th>
+                            <th style="padding: 15px; border: none; font-weight: 600; font-size: 0.9rem; text-align: right;">VAT</th>
+                            <th style="padding: 15px; border: none; font-weight: 600; font-size: 0.9rem; text-align: right;">Total + VAT</th>
+                            <th style="padding: 15px; border: none; font-weight: 600; font-size: 0.9rem; text-align: center;">Payment</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr th:each="detail : ${order.orderDetails}" th:with="subVal=${detail.subtotal != null ? detail.subtotal : (detail.unitPrice != null ? detail.unitPrice.multiply(T(java.math.BigDecimal).valueOf(detail.quantity)) : T(java.math.BigDecimal).ZERO)}, vatPct=${vatRate != null ? vatRate : 10}, vatVal=${subVal.multiply(T(java.math.BigDecimal).valueOf(vatPct/100.0))}, totalWithVat=${subVal.add(vatVal)}">
-                            <td th:text="${detail.modelName != null ? detail.modelName : (detail.version != null && detail.version.model != null ? detail.version.model.modelName : 'N/A')}">-</td>
-                            <td th:text="${detail.versionName != null ? detail.versionName : (detail.version != null ? detail.version.versionName : 'N/A')}">-</td>
-                            <td th:text="${detail.colorName != null ? detail.colorName : (detail.color != null ? detail.color.colorName : 'N/A')}">-</td>
-                            <td th:text="${detail.quantity}">-</td>
-                            <!-- Base Price -->
-                            <td th:if="${detail.basePrice != null}" class="text-muted" style="text-decoration: line-through;">
-                                <span th:text="${'$' + #numbers.formatDecimal(detail.basePrice,0,0)}">$0</span>
-                            </td>
-                            <td th:unless="${detail.basePrice != null}">-</td>
-                            <!-- Discount -->
-                            <td th:if="${detail.discountPercent != null and detail.discountPercent > 0}" class="text-success">
-                                <span th:text="${detail.discountPercent + '%'}">-</span><br/>
-                                <small th:if="${detail.discountAmount != null}">(-<span th:text="${'$' + #numbers.formatDecimal(detail.discountAmount,0,0)}">$0</span>)</small>
-                            </td>
-                            <td th:unless="${detail.discountPercent != null and detail.discountPercent > 0}">-</td>
-                            <!-- Unit Price After Discount -->
-                            <td class="fw-bold text-primary"><span th:text="${detail.unitPrice != null ? ('$' + #numbers.formatDecimal(detail.unitPrice,0,0)) : '$0'}">$0</span></td>
-                            <!-- Subtotal -->
-                            <td class="fw-bold"><span th:text="${'$' + #numbers.formatDecimal(subVal,0,0)}">$0</span></td>
-                            <td class="text-secondary"><span th:text="${'$' + #numbers.formatDecimal(vatVal,0,0)}">$0</span></td>
-                            <td class="fw-bold text-success"><span th:text="${'$' + #numbers.formatDecimal(totalWithVat,0,0)}">$0</span></td>
-                            <!-- Payment Status -->
-                            <td>
-                                <span th:if="${detail.paymentStatus == 'PAID'}" class="badge bg-success">
+                        <tr th:each="detail : ${order.orderDetails}" th:with="subVal=${detail.subtotal != null ? detail.subtotal : (detail.unitPrice != null ? detail.unitPrice.multiply(T(java.math.BigDecimal).valueOf(detail.quantity)) : T(java.math.BigDecimal).ZERO)}, vatPct=${vatRate != null ? vatRate : 10}, vatVal=${subVal.multiply(T(java.math.BigDecimal).valueOf(vatPct/100.0))}, totalWithVat=${subVal.add(vatVal)}" style="border-bottom: 1px solid #e9ecef;">
+                            <td style="padding: 12px 15px; font-weight: 500;" th:text="${detail.modelName != null ? detail.modelName : (detail.version != null && detail.version.model != null ? detail.version.model.modelName : 'N/A')}">-</td>
+                            <td style="padding: 12px 15px; color: #6c757d;" th:text="${detail.versionName != null ? detail.versionName : (detail.version != null ? detail.version.versionName : 'N/A')}">-</td>
+                            <td style="padding: 12px 15px; color: #6c757d;" th:text="${detail.colorName != null ? detail.colorName : (detail.color != null ? detail.color.colorName : 'N/A')}">-</td>
+                            <td style="padding: 12px 15px; text-align: center; font-weight: 600;" th:text="${detail.quantity}">-</td>
+                            <td style="padding: 12px 15px; text-align: right; font-weight: 700; color: #0066cc; font-size: 1.05rem;"><span th:text="${detail.unitPrice != null ? ('$' + #numbers.formatDecimal(detail.unitPrice,0,'COMMA',0,'POINT')) : '$0'}">$0</span></td>
+                            <td style="padding: 12px 15px; text-align: right; font-weight: 600; font-size: 1.05rem;"><span th:text="${'$' + #numbers.formatDecimal(subVal,0,'COMMA',0,'POINT')}">$0</span></td>
+                            <td style="padding: 12px 15px; text-align: right; color: #6c757d; font-size: 0.95rem;"><span th:text="${'$' + #numbers.formatDecimal(vatVal,0,'COMMA',0,'POINT')}">$0</span></td>
+                            <td style="padding: 12px 15px; text-align: right; font-weight: 700; color: #28a745; font-size: 1.1rem;"><span th:text="${'$' + #numbers.formatDecimal(totalWithVat,0,'COMMA',0,'POINT')}">$0</span></td>
+                            <td style="padding: 12px 15px; text-align: center;">
+                                <span th:if="${detail.paymentStatus == 'PAID'}" class="badge" style="background-color: #28a745; padding: 8px 14px; border-radius: 20px; font-size: 0.85rem;">
                                     <i class="fas fa-check-circle"></i> PAID
                                 </span>
-                                <span th:unless="${detail.paymentStatus == 'PAID'}" class="badge bg-danger">
+                                <span th:unless="${detail.paymentStatus == 'PAID'}" class="badge" style="background-color: #dc3545; padding: 8px 14px; border-radius: 20px; font-size: 0.85rem;">
                                     <i class="fas fa-times-circle"></i> UNPAID
                                 </span>
                             </td>
                         </tr>
                     </tbody>
-                    <tfoot class="table-light" th:if="${invoiceNet != null}">
-                        <tr>
-                            <td colspan="8" class="text-end fw-semibold">Subtotal after Discount (Pre-VAT)</td>
-                            <td colspan="2" class="text-end fw-bold text-primary">$<span th:text="${#numbers.formatDecimal(invoiceNet,0,0)}"></span></td>
+                    <tfoot th:if="${invoiceNet != null}" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-top: 3px solid #667eea;">
+                        <tr style="border-bottom: 1px solid #dee2e6;">
+                            <td colspan="5" style="padding: 12px 15px; text-align: right; font-weight: 600; color: #495057;">Subtotal (Pre-VAT)</td>
+                            <td colspan="3" style="padding: 12px 15px; text-align: right; font-weight: 700; color: #0066cc; font-size: 1.15rem;">$<span th:text="${#numbers.formatDecimal(invoiceNet,0,'COMMA',0,'POINT')}"></span></td>
                             <td></td>
                         </tr>
-                        <tr>
-                            <td colspan="8" class="text-end fw-semibold">Total VAT (<span th:text="${vatRate != null ? vatRate : 10}"></span>%)</td>
-                            <td colspan="2" class="text-end fw-bold text-secondary">$<span th:text="${invoiceVatAmount != null ? #numbers.formatDecimal(invoiceVatAmount,0,0) : '0'}"></span></td>
+                        <tr style="border-bottom: 1px solid #dee2e6;">
+                            <td colspan="5" style="padding: 12px 15px; text-align: right; font-weight: 600; color: #495057;">Total VAT (<span th:text="${vatRate != null ? vatRate : 10}"></span>%)</td>
+                            <td colspan="3" style="padding: 12px 15px; text-align: right; font-weight: 700; color: #6c757d; font-size: 1.1rem;">$<span th:text="${invoiceVatAmount != null ? #numbers.formatDecimal(invoiceVatAmount,0,'COMMA',0,'POINT') : '0'}"></span></td>
                             <td></td>
                         </tr>
-                        <tr>
-                            <td colspan="8" class="text-end fw-bold">Total Amount (Incl. VAT)</td>
-                            <td colspan="2" class="text-end fw-bold text-success">$<span th:text="${invoiceTotalWithVat != null ? #numbers.formatDecimal(invoiceTotalWithVat,0,0) : '0'}"></span></td>
+                        <tr style="background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);">
+                            <td colspan="5" style="padding: 16px 15px; text-align: right; font-weight: 700; color: #155724; font-size: 1.1rem;">Total Amount (Incl. VAT)</td>
+                            <td colspan="3" style="padding: 16px 15px; text-align: right; font-weight: 800; color: #28a745; font-size: 1.3rem;">$<span th:text="${invoiceTotalWithVat != null ? #numbers.formatDecimal(invoiceTotalWithVat,0,'COMMA',0,'POINT') : '0'}"></span></td>
                             <td></td>
                         </tr>
                     </tfoot>
@@ -363,42 +412,7 @@
             </div>
         </div>
 
-        <!-- Pricing Summary Card -->
-        <div class="detail-card" th:if="${invoiceGross != null}" style="background:linear-gradient(135deg,#ffffff,#f1f5f9)">
-            <h6><i class="fas fa-calculator me-2"></i>Pricing Summary</h6>
-            <div class="row g-3">
-                <div class="col-md-4">
-                    <div class="p-3 border rounded" style="background:#f8fafc">
-                        <div class="small text-muted">Gross Before Discount</div>
-                        <div class="fw-bold" th:text="${'$' + #numbers.formatDecimal(invoiceGross,0,0)}">$0</div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="p-3 border rounded" style="background:#fff1f2">
-                        <div class="small text-muted">Dealer Discount</div>
-                        <div class="fw-bold text-danger" th:text="${invoiceDiscountPercent != null ? #numbers.formatDecimal(invoiceDiscountPercent,0,0) : 0} + '%'">0%</div>
-                        <div class="small" th:text="${'(-$' + #numbers.formatDecimal(invoiceDiscountAmount,0,0) + ')'}">-$0</div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="p-3 border rounded" style="background:#eef2ff">
-                        <div class="small text-muted">Net (After Discount)</div>
-                        <div class="fw-bold text-primary" th:text="${'$' + #numbers.formatDecimal(invoiceNet,0,0)}">$0</div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="p-3 border rounded" style="background:#f0fdfa">
-                        <div class="small text-muted">VAT (<span th:text="${vatRate}"></span>%)</div>
-                        <div class="fw-bold text-secondary" th:text="${'$' + #numbers.formatDecimal(invoiceVatAmount,0,0)}">$0</div>
-                    </div>
-                </div>
-                <div class="col-md-8">
-                    <div class="p-3 border rounded" style="background:#ecfdf5">
-                        <div class="small text-muted">Total (Incl. VAT)</div>
-                        <div class="fw-bold text-success" style="font-size:1.3rem" th:text="${'$' + #numbers.formatDecimal(invoiceTotalWithVat,0,0)}">$0</div>
-                    </div>
-                </div>
-            </div>
+
         </div>
 
         <div class="row">
@@ -440,7 +454,7 @@
                     <h6><i class="fas fa-building me-2"></i>Dealer Information</h6>
                     <div class="info-row">
                         <span class="info-label">Dealer Name:</span>
-                        <span class="info-value" th:text="${order.dealer?.dealerName ?: order.dealerName ?: 'N/A'}">-</span>
+                        <span class="info-value" th:text="${order.dealer != null and order.dealer.dealerName != null ? order.dealer.dealerName : (order.dealerName != null ? order.dealerName : 'N/A')}">-</span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Dealer Level:</span>
@@ -489,24 +503,9 @@
                                 <span class="info-label">Quantity:</span>
                                 <span class="info-value" th:text="${detail.quantity}">-</span>
                             </div>
-                            <!-- ✅ Giá gốc (BasePrice) -->
-                            <div class="info-row" th:if="${detail.basePrice != null}">
-                                <span class="info-label">Base Price:</span>
-                                <span class="info-value text-muted" style="text-decoration: line-through;" th:text="${'$' + #numbers.formatDecimal(detail.basePrice, 1, 0)}">$0</span>
-                            </div>
-                            <!-- ✅ Chiết khấu -->
-                            <div class="info-row" th:if="${detail.discountPercent != null and detail.discountPercent > 0}">
-                                <span class="info-label">Discount:</span>
-                                <span class="info-value text-success">
-                                    <span th:text="${detail.discountPercent + '%'}">-</span>
-                                    <span th:if="${detail.discountAmount != null}">
-                                        (-<span th:text="${'$' + #numbers.formatDecimal(detail.discountAmount, 1, 0)}">$0</span>)
-                                    </span>
-                                </span>
-                            </div>
-                            <!-- ✅ Giá sau chiết khấu (Unit Price) -->
+                            <!-- ✅ Unit Price -->
                             <div class="info-row">
-                                <span class="info-label">Unit Price (After Discount):</span>
+                                <span class="info-label">Unit Price:</span>
                                 <span class="info-value fw-bold text-primary" th:text="${'$' + #numbers.formatDecimal(detail.unitPrice, 1, 0)}">$0</span>
                             </div>
                             <div class="info-row">
@@ -543,14 +542,6 @@
                     <div class="info-row">
                         <span class="info-label">Approved by:</span>
                         <span class="info-value" th:text="${order.approvedByStaffName ?: (order.status.name() == 'APPROVED' ? order.staff?.fullName : 'Pending Approval')}">-</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Discount Policy:</span>
-                        <span class="info-value" th:text="${order.policyName ?: 'No Policy Applied'}">-</span>
-                    </div>
-                    <div class="info-row" th:if="${order.policyDiscountPercent != null}">
-                        <span class="info-label">Policy Discount:</span>
-                        <span class="info-value" th:text="${order.policyDiscountPercent + '%'}">-</span>
                     </div>
                     <div class="price-info">
                         <div class="price-row">
