@@ -263,87 +263,99 @@
 
                     <div class="col-6">
                         <!-- Order Information -->
-                        <div class="detail-card">
-                            <h3><i class="fa-solid fa-info-circle"></i> Order Information</h3>
-                            <div class="info-row">
-                                <div class="info-label">Order ID:</div>
-                                <div class="info-value" th:text="${order.purchaseOrderId}"></div>
+                        <div class="card shadow" style="margin-bottom: 12px">
+                            <div class="card-header">
+                                <h3><i class="fa-solid fa-info-circle"></i> Order Information</h3>
                             </div>
-                            <div class="info-row">
-                                <div class="info-label">Status:</div>
-                                <div class="info-value">
-                        <span class="status-badge"
-                              th:classappend="'status-' + ${#strings.toLowerCase(order.status.name())}"
-                              th:text="${order.status}"></span>
+
+                            <div class="card-body">
+                                <div class="info-row">
+                                    <div class="info-label">Order ID:</div>
+                                    <div class="info-value" th:text="${order.purchaseOrderId}"></div>
+                                </div>
+                                <div class="info-row">
+                                    <div class="info-label">Status:</div>
+                                    <div class="info-value">
+                            <span class="status-badge"
+                                  th:classappend="'status-' + ${#strings.toLowerCase(order.status.name())}"
+                                  th:text="${order.status}"></span>
+                                    </div>
+                                </div>
+                                <div class="info-row">
+                                    <div class="info-label">Created At:</div>
+                                    <div class="info-value" th:text="${#dates.format(order.createdAt, 'dd/MM/yyyy HH:mm:ss')}"></div>
+                                </div>
+                                <div class="info-row">
+                                    <div class="info-label">Total Amount:</div>
+                                    <div class="info-value">
+                                        <strong th:text="${order.totalAmount != null ? ('$' + #numbers.formatDecimal(order.totalAmount, 0, 'COMMA', 0, 'POINT')) : '$0'}"></strong>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="info-row">
-                                <div class="info-label">Created At:</div>
-                                <div class="info-value" th:text="${#dates.format(order.createdAt, 'dd/MM/yyyy HH:mm:ss')}"></div>
-                            </div>
-                            <div class="info-row">
-                                <div class="info-label">Total Amount:</div>
-                                <div class="info-value">
-                                    <strong th:text="${order.totalAmount != null ? ('$' + #numbers.formatDecimal(order.totalAmount, 0, 'COMMA', 0, 'POINT')) : '$0'}"></strong>
-                                </div>
-                            </div>
+
+
                         </div>
 
                         <!-- Payment Status Card -->
-                        <div class="detail-card" th:if="${paymentTotalItems != null}">
-                            <h3><i class="fa-solid fa-credit-card"></i> Payment Status</h3>
-
-                            <!-- Payment Summary -->
-                            <div class="info-row">
-                                <div class="info-label">Total Items:</div>
-                                <div class="info-value" th:text="${paymentTotalItems}">0</div>
+                        <div class="card shadow" style="margin-bottom: 12px" th:if="${paymentTotalItems != null}">
+                            <div class="card-header">
+                                <h3><i class="fa-solid fa-credit-card"></i> Payment Status</h3>
                             </div>
-                            <div class="info-row">
-                                <div class="info-label">Paid Items:</div>
-                                <div class="info-value">
-                                    <span th:text="${paymentPaidItems}">0</span>
-                                    <span class="payment-badge payment-paid" th:if="${paymentPaidItems > 0}">
+
+                            <div class="card-body">
+                                <!-- Payment Summary -->
+                                <div class="info-row">
+                                    <div class="info-label">Total Items:</div>
+                                    <div class="info-value" th:text="${paymentTotalItems}">0</div>
+                                </div>
+                                <div class="info-row">
+                                    <div class="info-label">Paid Items:</div>
+                                    <div class="info-value">
+                                        <span th:text="${paymentPaidItems}">0</span>
+                                        <span class="payment-badge payment-paid" th:if="${paymentPaidItems > 0}">
                             <i class="fa-solid fa-check"></i> PAID
                         </span>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="info-row">
-                                <div class="info-label">Unpaid Items:</div>
-                                <div class="info-value">
-                                    <span th:text="${paymentUnpaidItems}">0</span>
-                                    <span class="payment-badge payment-unpaid" th:if="${paymentUnpaidItems > 0}">
+                                <div class="info-row">
+                                    <div class="info-label">Unpaid Items:</div>
+                                    <div class="info-value">
+                                        <span th:text="${paymentUnpaidItems}">0</span>
+                                        <span class="payment-badge payment-unpaid" th:if="${paymentUnpaidItems > 0}">
                             <i class="fa-solid fa-exclamation-triangle"></i> UNPAID
                         </span>
+                                    </div>
+                                </div>
+
+                                <!-- Payment Alert for REQUESTED orders -->
+                                <div th:if="${order.status.name() == 'REQUESTED'}">
+                                    <div class="payment-alert" th:if="${!paymentAllPaid}">
+                                        <h5 style="color: #e65100; margin-bottom: 10px;">
+                                            <i class="fa-solid fa-exclamation-circle"></i> Payment Pending
+                                        </h5>
+                                        <p style="margin: 0; color: #5d4037;">
+                                            Please complete the payment for this order. EVM will confirm payment receipt before approving the order.
+                                            You have <strong th:text="${paymentUnpaidItems}">0</strong> unpaid item(s).
+                                        </p>
+                                    </div>
+
+                                    <div class="payment-success-alert" th:if="${paymentAllPaid}">
+                                        <h5 style="color: #2e7d32; margin-bottom: 10px;">
+                                            <i class="fa-solid fa-check-circle"></i> Payment Received
+                                        </h5>
+                                        <p style="margin: 0; color: #1b5e20;">
+                                            EVM has confirmed receipt of payment for all items. This order is ready for approval.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <!-- Info for non-REQUESTED orders -->
+                                <div th:if="${order.status.name() != 'REQUESTED'}" class="alert alert-info" style="margin-top: 15px;">
+                                    <i class="fa-solid fa-info-circle"></i>
+                                    Payment confirmation is managed by EVM for REQUESTED orders.
                                 </div>
                             </div>
 
-                            <!-- Payment Alert for REQUESTED orders -->
-                            <div th:if="${order.status.name() == 'REQUESTED'}">
-                                <div class="payment-alert" th:if="${!paymentAllPaid}">
-                                    <h5 style="color: #e65100; margin-bottom: 10px;">
-                                        <i class="fa-solid fa-exclamation-circle"></i> Payment Pending
-                                    </h5>
-                                    <p style="margin: 0; color: #5d4037;">
-                                        Please complete the payment for this order. EVM will confirm payment receipt before approving the order.
-                                        You have <strong th:text="${paymentUnpaidItems}">0</strong> unpaid item(s).
-                                    </p>
-                                </div>
-
-                                <div class="payment-success-alert" th:if="${paymentAllPaid}">
-                                    <h5 style="color: #2e7d32; margin-bottom: 10px;">
-                                        <i class="fa-solid fa-check-circle"></i> Payment Received
-                                    </h5>
-                                    <p style="margin: 0; color: #1b5e20;">
-                                        EVM has confirmed receipt of payment for all items. This order is ready for approval.
-                                    </p>
-                                </div>
-                            </div>
-
-                            <!-- Info for non-REQUESTED orders -->
-                            <div th:if="${order.status.name() != 'REQUESTED'}" class="alert alert-info" style="margin-top: 15px;">
-                                <i class="fa-solid fa-info-circle"></i>
-                                Payment confirmation is managed by EVM for REQUESTED orders.
-                            </div>
                         </div>
 
 
@@ -351,53 +363,65 @@
 
                     <div class="col-6">
                         <!-- Dealer Information -->
-                        <div class="detail-card">
-                            <h3><i class="fa-solid fa-building"></i> Dealer Information</h3>
-                            <div class="info-row">
-                                <div class="info-label">Dealer ID:</div>
-                                <div class="info-value" th:text="${order.dealer?.dealerID ?: 'N/A'}"></div>
+                        <div class="card shadow" style="margin-bottom: 12px">
+                            <div class="card-header">
+                                <h3><i class="fa-solid fa-building"></i> Dealer Information</h3>
                             </div>
-                            <div class="info-row">
-                                <div class="info-label">Dealer Name:</div>
-                                <div class="info-value" th:text="${order.dealer?.dealerName ?: 'N/A'}"></div>
+
+                            <div class="card-body">
+                                <div class="info-row">
+                                    <div class="info-label">Dealer ID:</div>
+                                    <div class="info-value" th:text="${order.dealer?.dealerID ?: 'N/A'}"></div>
+                                </div>
+                                <div class="info-row">
+                                    <div class="info-label">Dealer Name:</div>
+                                    <div class="info-value" th:text="${order.dealer?.dealerName ?: 'N/A'}"></div>
+                                </div>
+                                <div class="info-row">
+                                    <div class="info-label">Dealer Level:</div>
+                                    <div class="info-value" th:text="${order.dealerLevelName ?: 'N/A'}"></div>
+                                </div>
+                                <div class="info-row">
+                                    <div class="info-label">Address:</div>
+                                    <div class="info-value" th:text="${order.dealer?.address ?: 'N/A'}"></div>
+                                </div>
+                                <div class="info-row">
+                                    <div class="info-label">Phone:</div>
+                                    <div class="info-value" th:text="${order.dealer?.phone ?: 'N/A'}"></div>
+                                </div>
+                                <div class="info-row">
+                                    <div class="info-label">Email:</div>
+                                    <div class="info-value" th:text="${order.dealer?.email ?: 'N/A'}"></div>
+                                </div>
                             </div>
-                            <div class="info-row">
-                                <div class="info-label">Dealer Level:</div>
-                                <div class="info-value" th:text="${order.dealerLevelName ?: 'N/A'}"></div>
-                            </div>
-                            <div class="info-row">
-                                <div class="info-label">Address:</div>
-                                <div class="info-value" th:text="${order.dealer?.address ?: 'N/A'}"></div>
-                            </div>
-                            <div class="info-row">
-                                <div class="info-label">Phone:</div>
-                                <div class="info-value" th:text="${order.dealer?.phone ?: 'N/A'}"></div>
-                            </div>
-                            <div class="info-row">
-                                <div class="info-label">Email:</div>
-                                <div class="info-value" th:text="${order.dealer?.email ?: 'N/A'}"></div>
-                            </div>
+
                         </div>
 
                         <!-- Staff Information -->
-                        <div class="detail-card">
-                            <h3><i class="fa-solid fa-user-tie"></i> Staff Information</h3>
-                            <div class="info-row">
-                                <div class="info-label">Staff ID:</div>
-                                <div class="info-value" th:text="${order.staff?.staffID ?: 'N/A'}"></div>
+                        <div class="card shadow" style="margin-bottom: 12px">
+                            <div class="card-header">
+                                <h3><i class="fa-solid fa-user-tie"></i> Staff Information</h3>
                             </div>
-                            <div class="info-row">
-                                <div class="info-label">Staff Name:</div>
-                                <div class="info-value" th:text="${order.staff?.fullName ?: 'N/A'}"></div>
+
+                            <div class="card-body">
+                                <div class="info-row">
+                                    <div class="info-label">Staff ID:</div>
+                                    <div class="info-value" th:text="${order.staff?.staffID ?: 'N/A'}"></div>
+                                </div>
+                                <div class="info-row">
+                                    <div class="info-label">Staff Name:</div>
+                                    <div class="info-value" th:text="${order.staff?.fullName ?: 'N/A'}"></div>
+                                </div>
+                                <div class="info-row">
+                                    <div class="info-label">Position:</div>
+                                    <div class="info-value" th:text="${order.staff?.position ?: 'N/A'}"></div>
+                                </div>
+                                <div class="info-row" th:if="${order.approvedByStaffName != null}">
+                                    <div class="info-label">Approved By:</div>
+                                    <div class="info-value" th:text="${order.approvedByStaffName}"></div>
+                                </div>
                             </div>
-                            <div class="info-row">
-                                <div class="info-label">Position:</div>
-                                <div class="info-value" th:text="${order.staff?.position ?: 'N/A'}"></div>
-                            </div>
-                            <div class="info-row" th:if="${order.approvedByStaffName != null}">
-                                <div class="info-label">Approved By:</div>
-                                <div class="info-value" th:text="${order.approvedByStaffName}"></div>
-                            </div>
+
                         </div>
                     </div>
 
@@ -408,113 +432,123 @@
                     <div class="col-12">
 
                         <!-- Order Details -->
-                        <div class="detail-card" th:if="${order.orderDetails != null and !#lists.isEmpty(order.orderDetails)}">
-                            <h3><i class="fa-solid fa-list"></i> Order Items</h3>
-                            <table class="table-modern">
-                                <thead>
-                                <tr>
-                                    <th>Item #</th>
-                                    <th>Model</th>
-                                    <th>Version</th>
-                                    <th>Color</th>
-                                    <th>Quantity</th>
-                                    <th>Unit Price</th>
-                                    <th>Subtotal</th>
-                                    <th>VAT</th>
-                                    <th>Total + VAT</th>
-                                    <th>Payment Status</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                <tr th:each="detail, iterStat : ${order.orderDetails}" th:with="subVal=${detail.subtotal != null ? detail.subtotal : (detail.unitPrice != null ? detail.unitPrice.multiply(T(java.math.BigDecimal).valueOf(detail.quantity)) : T(java.math.BigDecimal).ZERO)}, vatPct=${vatRate != null ? vatRate : 10}, vatVal=${subVal.multiply(T(java.math.BigDecimal).valueOf(vatPct/100.0))}, totalWithVat=${subVal.add(vatVal)}">
-                                    <td th:text="${iterStat.count}"></td>
-                                    <td th:text="${detail.modelName != null ? detail.modelName : (detail.version != null and detail.version.model != null ? detail.version.model.modelName : 'N/A')}"></td>
-                                    <td th:text="${detail.versionName != null ? detail.versionName : (detail.version != null ? detail.version.versionName : 'N/A')}"></td>
-                                    <td th:text="${detail.colorName != null ? detail.colorName : (detail.color != null ? detail.color.colorName : 'N/A')}"></td>
-                                    <td th:text="${detail.quantity}"></td>
-                                    <!-- Unit Price -->
-                                    <td style="font-weight: bold; color: #007bff;">
-                                        <span th:text="${detail.unitPrice != null ? ('$' + #numbers.formatDecimal(detail.unitPrice,0,0)) : '$0'}"></span>
-                                    </td>
-                                    <!-- Subtotal -->
-                                    <td style="font-weight: bold;">
-                                        <span th:text="${'$' + #numbers.formatDecimal(subVal,0,0)}"></span>
-                                    </td>
-                                    <!-- VAT -->
-                                    <td style="color:#6b7280; font-weight:600;">
-                                        <span th:text="${'$' + #numbers.formatDecimal(vatVal,0,0)}"></span>
-                                    </td>
-                                    <!-- Total with VAT -->
-                                    <td style="color:#16a34a; font-weight:700;">
-                                        <span th:text="${'$' + #numbers.formatDecimal(totalWithVat,0,0)}"></span>
-                                    </td>
-                                    <!-- Payment Status -->
-                                    <td>
-                                        <span class="payment-badge" th:classappend="${detail.paymentStatus == 'PAID' ? 'payment-paid' : 'payment-unpaid'}" th:text="${detail.paymentStatus != null ? detail.paymentStatus : 'UNPAID'}"></span>
-                                    </td>
-                                </tr>
-                                </tbody>
-                                <tfoot style="background:#f8fafc;">
-                                <tr style="border-top:2px solid #e2e8f0;">
-                                    <td colspan="6" style="text-align:right; font-weight:600;">Subtotal (Pre-VAT)</td>
-                                    <td colspan="2" style="text-align:right; font-weight:700; color:#1d4ed8;">$<span th:text="${invoiceNet != null ? #numbers.formatDecimal(invoiceNet,0,0) : '0'}"></span></td>
-                                    <td colspan="2"></td>
-                                </tr>
-                                <tr>
-                                    <td colspan="6" style="text-align:right; font-weight:600;">Total VAT (<span th:text="${vatRate != null ? vatRate : 10}"></span>%)</td>
-                                    <td colspan="2" style="text-align:right; font-weight:700; color:#6b7280;">$<span th:text="${invoiceVatAmount != null ? #numbers.formatDecimal(invoiceVatAmount,0,0) : '0'}"></span></td>
-                                    <td colspan="2"></td>
-                                </tr>
-                                <tr>
-                                    <td colspan="6" style="text-align:right; font-weight:700;">Total Amount (Incl. VAT)</td>
-                                    <td colspan="2" style="text-align:right; font-weight:800; color:#16a34a;">$<span th:text="${invoiceTotalWithVat != null ? #numbers.formatDecimal(invoiceTotalWithVat,0,0) : '0'}"></span></td>
-                                    <td colspan="2"></td>
-                                </tr>
-                                </tfoot>
-                            </table>
+                        <div class="card shadow" style="margin-bottom: 12px" th:if="${order.orderDetails != null and !#lists.isEmpty(order.orderDetails)}">
+                            <div class="card-header">
+                                <h3><i class="fa-solid fa-list"></i> Order Items</h3>
+                            </div>
+                            <div class="card-body">
+                                <table class="table-modern">
+                                    <thead>
+                                    <tr>
+                                        <th>Item #</th>
+                                        <th>Model</th>
+                                        <th>Version</th>
+                                        <th>Color</th>
+                                        <th>Quantity</th>
+                                        <th>Unit Price</th>
+                                        <th>Subtotal</th>
+                                        <th>VAT</th>
+                                        <th>Total + VAT</th>
+                                        <th>Payment Status</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr th:each="detail, iterStat : ${order.orderDetails}" th:with="subVal=${detail.subtotal != null ? detail.subtotal : (detail.unitPrice != null ? detail.unitPrice.multiply(T(java.math.BigDecimal).valueOf(detail.quantity)) : T(java.math.BigDecimal).ZERO)}, vatPct=${vatRate != null ? vatRate : 10}, vatVal=${subVal.multiply(T(java.math.BigDecimal).valueOf(vatPct/100.0))}, totalWithVat=${subVal.add(vatVal)}">
+                                        <td th:text="${iterStat.count}"></td>
+                                        <td th:text="${detail.modelName != null ? detail.modelName : (detail.version != null and detail.version.model != null ? detail.version.model.modelName : 'N/A')}"></td>
+                                        <td th:text="${detail.versionName != null ? detail.versionName : (detail.version != null ? detail.version.versionName : 'N/A')}"></td>
+                                        <td th:text="${detail.colorName != null ? detail.colorName : (detail.color != null ? detail.color.colorName : 'N/A')}"></td>
+                                        <td th:text="${detail.quantity}"></td>
+                                        <!-- Unit Price -->
+                                        <td style="font-weight: bold; color: #007bff;">
+                                            <span th:text="${detail.unitPrice != null ? ('$' + #numbers.formatDecimal(detail.unitPrice,0,0)) : '$0'}"></span>
+                                        </td>
+                                        <!-- Subtotal -->
+                                        <td style="font-weight: bold;">
+                                            <span th:text="${'$' + #numbers.formatDecimal(subVal,0,0)}"></span>
+                                        </td>
+                                        <!-- VAT -->
+                                        <td style="color:#6b7280; font-weight:600;">
+                                            <span th:text="${'$' + #numbers.formatDecimal(vatVal,0,0)}"></span>
+                                        </td>
+                                        <!-- Total with VAT -->
+                                        <td style="color:#16a34a; font-weight:700;">
+                                            <span th:text="${'$' + #numbers.formatDecimal(totalWithVat,0,0)}"></span>
+                                        </td>
+                                        <!-- Payment Status -->
+                                        <td>
+                                            <span class="payment-badge" th:classappend="${detail.paymentStatus == 'PAID' ? 'payment-paid' : 'payment-unpaid'}" th:text="${detail.paymentStatus != null ? detail.paymentStatus : 'UNPAID'}"></span>
+                                        </td>
+                                    </tr>
+                                    </tbody>
+                                    <tfoot style="background:#f8fafc;">
+                                    <tr style="border-top:2px solid #e2e8f0;">
+                                        <td colspan="6" style="text-align:right; font-weight:600;">Subtotal (Pre-VAT)</td>
+                                        <td colspan="2" style="text-align:right; font-weight:700; color:#1d4ed8;">$<span th:text="${invoiceNet != null ? #numbers.formatDecimal(invoiceNet,0,0) : '0'}"></span></td>
+                                        <td colspan="2"></td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="6" style="text-align:right; font-weight:600;">Total VAT (<span th:text="${vatRate != null ? vatRate : 10}"></span>%)</td>
+                                        <td colspan="2" style="text-align:right; font-weight:700; color:#6b7280;">$<span th:text="${invoiceVatAmount != null ? #numbers.formatDecimal(invoiceVatAmount,0,0) : '0'}"></span></td>
+                                        <td colspan="2"></td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="6" style="text-align:right; font-weight:700;">Total Amount (Incl. VAT)</td>
+                                        <td colspan="2" style="text-align:right; font-weight:800; color:#16a34a;">$<span th:text="${invoiceTotalWithVat != null ? #numbers.formatDecimal(invoiceTotalWithVat,0,0) : '0'}"></span></td>
+                                        <td colspan="2"></td>
+                                    </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+
                         </div>
 
 
-                        <!-- 🔥 INVENTORY VEHICLES - Danh sách VIN xe đã về kho -->
-                        <div class="detail-card" th:if="${inventoryVehicles != null and !#lists.isEmpty(inventoryVehicles)}">
-                            <h3><i class="fa-solid fa-warehouse me-2"></i> Vehicles Received in Inventory</h3>
-
-                            <div class="alert alert-success" role="alert">
-                                <i class="fa-solid fa-check-circle me-2"></i>
-                                <strong>Good news!</strong> The following vehicles have been delivered to your inventory:
+                        <!-- INVENTORY VEHICLES -->
+                        <div class="card shadow" style="margin-bottom: 12px" th:if="${inventoryVehicles != null and !#lists.isEmpty(inventoryVehicles)}">
+                            <div class="card-header">
+                                <h3><i class="fa-solid fa-warehouse me-2"></i> Vehicles Received in Inventory</h3>
                             </div>
+                            <div class="card-body">
+                                <div class="alert alert-success" role="alert">
+                                    <i class="fa-solid fa-check-circle me-2"></i>
+                                    <strong>Good news!</strong> The following vehicles have been delivered to your inventory:
+                                </div>
 
-                            <table class="table-modern">
-                                <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>VIN</th>
-                                    <th>Model</th>
-                                    <th>Version</th>
-                                    <th>Color</th>
-                                    <th>Status</th>
-                                    <th>Received Date</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                <tr th:each="vehicle, iterStat : ${inventoryVehicles}">
-                                    <td th:text="${iterStat.count}"></td>
-                                    <td style="font-family: monospace; font-weight: bold; color: #007bff;">
-                                        <span th:text="${vehicle.vin ?: 'N/A'}"></span>
-                                    </td>
-                                    <td th:text="${vehicle.modelName ?: 'N/A'}"></td>
-                                    <td th:text="${vehicle.versionName ?: 'N/A'}"></td>
-                                    <td th:text="${vehicle.colorName ?: 'N/A'}"></td>
-                                    <td>
+                                <table class="table-modern">
+                                    <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>VIN</th>
+                                        <th>Model</th>
+                                        <th>Version</th>
+                                        <th>Color</th>
+                                        <th>Status</th>
+                                        <th>Received Date</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr th:each="vehicle, iterStat : ${inventoryVehicles}">
+                                        <td th:text="${iterStat.count}"></td>
+                                        <td style="font-family: monospace; font-weight: bold; color: #007bff;">
+                                            <span th:text="${vehicle.vin ?: 'N/A'}"></span>
+                                        </td>
+                                        <td th:text="${vehicle.modelName ?: 'N/A'}"></td>
+                                        <td th:text="${vehicle.versionName ?: 'N/A'}"></td>
+                                        <td th:text="${vehicle.colorName ?: 'N/A'}"></td>
+                                        <td>
                                 <span class="badge"
                                       th:classappend="${vehicle.status != null and vehicle.status.name() == 'IN_STOCK'} ? 'bg-success' : 'bg-warning'"
                                       th:text="${vehicle.status != null ? vehicle.status.name() : 'PENDING'}">
                                 </span>
-                                    </td>
-                                    <td th:text="${vehicle.receivedDate != null ? #dates.format(vehicle.receivedDate, 'dd/MM/yyyy HH:mm') : 'N/A'}"></td>
-                                </tr>
-                                </tbody>
-                            </table>
+                                        </td>
+                                        <td th:text="${vehicle.receivedDate != null ? #dates.format(vehicle.receivedDate, 'dd/MM/yyyy HH:mm') : 'N/A'}"></td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+
                         </div>
 
                         <div class="detail-card" th:if="${inventoryVehicles == null or #lists.isEmpty(inventoryVehicles)}">
