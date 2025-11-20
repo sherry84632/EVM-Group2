@@ -415,14 +415,13 @@
                                             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
                                             <button type="submit" class="btn btn-success" onclick="return confirm('Approve this quotation?')">
                                                 <i class="fas fa-check me-2"></i>Approve
-                                            </button>
-                                        </form>
-                                        <form th:action="@{/quotation/reject/{id}(id=${quotation.quotationID})}" method="post" class="d-inline">
-                                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
-                                            <button type="submit" class="btn btn-danger" onclick="return confirm('Reject this quotation?')">
-                                                <i class="fas fa-times me-2"></i>Reject
-                                            </button>
-                                        </form>
+                                            </form>
+                                            <form th:action="@{/quotation/reject/{id}(id=${quotation.quotationID})}" method="post" class="d-inline">
+                                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                                                <button type="submit" class="btn btn-danger" onclick="return confirm('Reject this quotation?')">
+                                                    <i class="fas fa-times me-2"></i>Reject
+                                                </button>
+                                            </form>
                                     </div>
                                     <div th:if="${quotation.status.name() == 'APPROVED' and !quotationLocked}">
                                         <form th:action="@{/saleorder/insert}" method="post" class="d-inline">

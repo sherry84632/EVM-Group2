@@ -14,6 +14,25 @@
     <div th:replace="~{mainPage/navBarFragment :: navBar}"></div>
 
     <div class="mainContent flex-grow-1 p-4">
+        <!-- Breadcrumb Navigation -->
+        <nav aria-label="breadcrumb" class="mb-3">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a href="/showDealerHomePage">
+                        <i class="fa-solid fa-home me-1"></i>Home
+                    </a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="/orderdealer">
+                        <i class="fa-solid fa-clipboard-list me-1"></i>Orders
+                    </a>
+                </li>
+                <li class="breadcrumb-item active" aria-current="page">
+                    <i class="fa-solid fa-history me-1"></i>Order History
+                </li>
+            </ol>
+        </nav>
+
         <div class="container-fluid">
 
             <h1 class="mb-4">
@@ -122,4 +141,3 @@
 <script src="/scripts/navBarMenuProject.js"></script>
 </body>
 </html>
-

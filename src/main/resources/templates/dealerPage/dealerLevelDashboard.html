@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -41,15 +41,21 @@
         @media (max-width:768px){ .level-header { flex-direction:column; align-items:flex-start; gap:12px; } }
     </style>
 </head>
-<body style="overflow: hidden">
+<body>
 <div class="d-flex">
     <div th:replace="~{mainPage/navBarFragment :: navBar}"></div>
-    <div class="mainContent flex-grow-1 p-4">
-        <div class="container-fluid">
+    <div class="mainContent flex-grow-1 p-3" style="overflow-y:auto; height:100vh;">
+        <nav aria-label="breadcrumb" class="mb-3">
+            <ol class="breadcrumb" style="background:#fff; border:1px solid #e0e0e0; border-radius:6px; padding:8px 12px; margin:0;">
+                <li class="breadcrumb-item"><a href="/showDealerHomePage"><i class="fa-solid fa-home me-1"></i>Home</a></li>
+                <li class="breadcrumb-item active" aria-current="page"><i class="fa-solid fa-ranking-star me-1"></i>Dealer Level</li>
+            </ol>
+        </nav>
+        <div class="level-container">
             <div class="level-header">
                 <h1>🏆 Dealer Level Dashboard</h1>
                 <div class="nav-shortcut" style="display:flex; gap:10px; flex-wrap:wrap;">
-                    <a href="/showDealerHomePage">← Trang chủ Dealer</a>
+                    <a href="/showDealerHomePage">← Dealer Home</a>
                     <a href="/saleorder">📄 Sale Orders</a>
                 </div>
             </div>
@@ -58,34 +64,34 @@
 
             <div class="stat-grid" th:unless="${error}">
                 <div class="stat-card">
-                    <h3>🎯 Cấp hiện tại</h3>
+                    <h3>🎯 Current Level</h3>
                     <div class="stat-value" th:text="${dbLevelName}"></div>
                     <div class="stat-sub">
-                        <span th:if="${currentTierName != dbLevelName}" th:text="'Chuẩn hoá: ' + ${currentTierName}"></span>
+                        <span th:if="${currentTierName != dbLevelName}" th:text="'Normalized: ' + ${currentTierName}"></span>
                     </div>
                 </div>
                 <div class="stat-card">
-                    <h3>🚗 Tổng xe đã bán</h3>
+                    <h3>🚗 Total Vehicles Sold</h3>
                     <div class="stat-value" th:text="${soldQty}"></div>
-                    <div class="stat-sub">Tính theo đơn hàng hoàn tất</div>
+                    <div class="stat-sub">Based on completed sale orders</div>
                 </div>
                 <div class="stat-card">
-                    <h3>🎁 Mục tiêu kế tiếp</h3>
+                    <h3>🎁 Next Target Tier</h3>
                     <div class="stat-value" th:text="${nextTierName != null ? nextTierName : '—'}"></div>
-                    <div class="stat-sub" th:text="${nextThreshold != null ? ('Cần đạt: ' + nextThreshold + ' xe') : 'Đã đạt cấp cao nhất'}"></div>
+                    <div class="stat-sub" th:text="${nextThreshold != null ? ('Target: ' + nextThreshold + ' vehicles') : 'Reached top tier'}"></div>
                 </div>
                 <div class="stat-card">
-                    <h3>📊 Còn thiếu</h3>
+                    <h3>📊 Remaining</h3>
                     <div class="stat-value" th:text="${nextThreshold != null ? remainingToNext : 0}"></div>
-                    <div class="stat-sub" th:if="${nextThreshold != null}" th:text="'Xe nữa để lên ' + ${nextTierName}"></div>
-                    <div class="stat-sub" th:if="${nextThreshold == null}">Bạn đang ở cấp tối đa ⭐</div>
+                    <div class="stat-sub" th:if="${nextThreshold != null}" th:text="${remainingToNext} + ' more to reach ' + ${nextTierName}"></div>
+                    <div class="stat-sub" th:if="${nextThreshold == null}">You are at the highest tier ⭐</div>
                 </div>
             </div>
 
             <div class="progress-wrap" th:if="${nextThreshold != null}">
                 <div class="progress-label">
-                    <span th:text="'Tiến độ tới ' + ${nextTierName}"></span>
-                    <span th:text="${#numbers.formatDecimal(progressPercent,1, 'COMMA', 1, 'POINT')} + '%'" ></span>
+                    <span th:text="'Progress to ' + ${nextTierName}"></span>
+                    <span th:text="${#numbers.formatDecimal(progressPercent,1,'COMMA',1,'POINT')} + '%' "></span>
                 </div>
                 <div class="progress-bar">
                     <div th:style="'width:' + ${progressPercent} + '%'" ></div>
@@ -93,58 +99,45 @@
             </div>
 
             <div class="next-goal" th:if="${nextThreshold != null}">
-                <strong th:text="${remainingToNext > 0 ? ('🎯 Còn ' + remainingToNext + ' xe') : '🎉 Sắp lên cấp!'}"></strong>
-                <span th:text="${remainingToNext > 0 ? (' nữa để đạt ' + nextTierName) : (' Chỉ cần thêm ít giao dịch nữa để xác nhận ' + nextTierName)}"></span>
+                <strong th:text="${remainingToNext > 0 ? ('🎯 ' + remainingToNext + ' remaining') : '🎉 Almost there!'}"></strong>
+                <span th:text="${remainingToNext > 0 ? (' to reach ' + nextTierName) : (' Just a few more sales to confirm ' + nextTierName)}"></span>
             </div>
 
-            <h2 class="section-title">📋 Danh sách các cấp độ</h2>
+            <h2 class="section-title">📋 Tier List</h2>
             <table class="tier-table">
                 <thead>
                 <tr>
-                    <th>Cấp độ</th>
-                    <th>LevelID</th>
+                    <th>Tier</th>
+                    <th>Level ID</th>
                     <th>Discount Share (%)</th>
-                    <th>Trạng thái</th>
+                    <th>Status</th>
                 </tr>
                 </thead>
                 <tbody>
                 <tr th:each="lvl : ${levels}" th:class="${lvl.levelName == currentTierName} ? 'current-tier-row' : ''">
                     <td>
                         <span th:text="${lvl.levelName}"></span>
-                        <span class="badge"
-                              th:if="${lvl.levelName != null}"
-                              th:classappend="${lvl.levelName.contains('Bronze')}? ' badge-bronze' : ''"
-                              th:text="${lvl.levelName.contains('Bronze') ? 'Bronze' : ''}"></span>
-                        <span class="badge"
-                              th:if="${lvl.levelName != null and lvl.levelName.contains('Silver')}"
-                              th:classappend="badge-silver" th:text="Silver"></span>
-                        <span class="badge"
-                              th:if="${lvl.levelName != null and lvl.levelName.contains('Gold')}"
-                              th:classappend="badge-gold" th:text="Gold"></span>
-                        <span class="badge"
-                              th:if="${lvl.levelName != null and lvl.levelName.contains('Platinum')}"
-                              th:classappend="badge-platinum" th:text="Platinum"></span>
+                        <span class="badge" th:if="${lvl.levelName != null}" th:classappend="${lvl.levelName.contains('Bronze')}? ' badge-bronze' : ''" th:text="${lvl.levelName.contains('Bronze') ? 'Bronze' : ''}"></span>
+                        <span class="badge" th:if="${lvl.levelName != null and lvl.levelName.contains('Silver')}" th:classappend="badge-silver" th:text="Silver"></span>
+                        <span class="badge" th:if="${lvl.levelName != null and lvl.levelName.contains('Gold')}" th:classappend="badge-gold" th:text="Gold"></span>
+                        <span class="badge" th:if="${lvl.levelName != null and lvl.levelName.contains('Platinum')}" th:classappend="badge-platinum" th:text="Platinum"></span>
                     </td>
                     <td th:text="${lvl.levelID}"></td>
                     <td th:text="${lvl.discountSharePercent != null ? lvl.discountSharePercent : 0}"></td>
                     <td>
-                        <span th:if="${lvl.levelName == currentTierName}" style="color:#047857; font-weight:600;">✓ Hiện tại</span>
+                        <span th:if="${lvl.levelName == currentTierName}" style="color:#047857; font-weight:600;">✓ Current</span>
                         <span th:if="${lvl.levelName != currentTierName}" style="color:#64748b;">—</span>
                     </td>
                 </tr>
                 </tbody>
             </table>
         </div>
-
     </div>
-
 </div>
-
 <script th:inline="javascript">
-    /* Set progress width without animation */
     const pct = /*[[${progressPercent}]]*/ 0;
     const bar = document.querySelector('.progress-bar > div');
-    if(bar){ bar.style.width = (pct>100?100:pct) + '%'; }
+    if (bar) { bar.style.width = (pct>100?100:pct) + '%'; }
 </script>
 </body>
 </html>
