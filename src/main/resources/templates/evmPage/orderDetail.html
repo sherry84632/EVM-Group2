@@ -565,6 +565,9 @@
         .badge[style*="background-color: #dc3545"] {
             background: linear-gradient(135deg, #dc3545, #c82333) !important;
         }
+        .card {
+            margin-bottom: 12px;
+        }
     </style>
 </head>
 
@@ -577,82 +580,71 @@
     <div class="mainContent flex-grow-1">
 
         <!-- Page Header Section -->
-        <div class="page-header-section">
-            <!-- Breadcrumb Navigation -->
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item">
-                        <a href="/showEVMHomePage">
-                            <i class="fas fa-home"></i>
-                            Home
-                        </a>
-                    </li>
-                    <li class="breadcrumb-item">
-                        <a href="/vehicleDistributionManagement">Vehicle Distribution</a>
-                    </li>
-                    <li class="breadcrumb-item">
-                        <a href="/evm/orders/list">Orders</a>
-                    </li>
-                    <li class="breadcrumb-item active" aria-current="page">
-                        Order #<span th:text="${order.purchaseOrderId}">-</span>
-                    </li>
-                </ol>
-            </nav>
-
-            <h1 class="page-title">
+        <div class="card shadow">
+            <div class="card-body">
+                <h1 class="page-title">
                 <span class="title-icon">
                     <i class="fas fa-file-invoice"></i>
                 </span>
-                Order #<span th:text="${order.purchaseOrderId}">-</span>
-            </h1>
-            <p class="page-subtitle">Detailed information and management for this purchase order</p>
+                    Order #<span th:text="${order.purchaseOrderId}">-</span>
+                </h1>
+                <p class="page-subtitle">Detailed information and management for this purchase order</p>
+            </div>
         </div>
 
         <!-- Status Overview Cards -->
         <div class="status-overview">
-            <div class="status-card">
-                <i class="fas fa-clipboard-check status-card-icon" style="color: #ff6b16;"></i>
-                <div class="status-card-label">Order Status</div>
-                <div class="status-card-value">
-                    <span th:if="${order.status.name() == 'REQUESTED' or order.status.name() == 'PENDING'}" class="status-badge status-pending" th:text="'PENDING'"></span>
-                    <span th:if="${order.status.name() == 'APPROVED'}" class="status-badge status-approved" th:text="${order.status}"></span>
-                    <span th:if="${order.status.name() == 'CANCELLED'}" class="status-badge status-rejected" th:text="${order.status}"></span>
-                    <span th:if="${order.status.name() == 'IN_PROCESS'}" class="status-badge status-pending" th:text="${order.status}"></span>
-                    <span th:if="${order.status.name() == 'DELIVERED'}" class="status-badge status-approved" th:text="${order.status}"></span>
+            <div class="card shadow">
+                <div class="card-body">
+                    <i class="fas fa-clipboard-check status-card-icon" style="color: #ff6b16;"></i>
+                    <div class="status-card-label">Order Status</div>
+                    <div class="status-card-value">
+                        <span th:if="${order.status.name() == 'REQUESTED' or order.status.name() == 'PENDING'}" class="status-badge status-pending" th:text="'PENDING'"></span>
+                        <span th:if="${order.status.name() == 'APPROVED'}" class="status-badge status-approved" th:text="${order.status}"></span>
+                        <span th:if="${order.status.name() == 'CANCELLED'}" class="status-badge status-rejected" th:text="${order.status}"></span>
+                        <span th:if="${order.status.name() == 'IN_PROCESS'}" class="status-badge status-pending" th:text="${order.status}"></span>
+                        <span th:if="${order.status.name() == 'DELIVERED'}" class="status-badge status-approved" th:text="${order.status}"></span>
+                    </div>
+                    <div class="status-card-desc" th:text="${#dates.format(order.createdAt, 'dd/MM/yyyy HH:mm')}">-</div>
                 </div>
-                <div class="status-card-desc" th:text="${#dates.format(order.createdAt, 'dd/MM/yyyy HH:mm')}">-</div>
             </div>
-            <div class="status-card" th:if="${paymentTotalItems != null}">
-                <i class="fas fa-credit-card status-card-icon" th:style="${paymentAllPaid ? 'color: #28a745;' : 'color: #ffc107;'}"></i>
-                <div class="status-card-label">Payment Status</div>
-                <div class="status-card-value">
+            <div class="card shadow" th:if="${paymentTotalItems != null}">
+                <div class="card-body">
+                    <i class="fas fa-credit-card status-card-icon" th:style="${paymentAllPaid ? 'color: #28a745;' : 'color: #ffc107;'}"></i>
+                    <div class="status-card-label">Payment Status</div>
+                    <div class="status-card-value">
                     <span th:if="${paymentAllPaid}" class="badge" style="background: linear-gradient(135deg, #28a745, #20c997); color: white; padding: 8px 14px; border-radius: 20px; font-size: 13px;">
                         <i class="fas fa-check-circle"></i> PAID
                     </span>
-                    <span th:unless="${paymentAllPaid}" class="badge" style="background: linear-gradient(135deg, #ffc107, #ffca2c); color: #664d03; padding: 8px 14px; border-radius: 20px; font-size: 13px;">
+                        <span th:unless="${paymentAllPaid}" class="badge" style="background: linear-gradient(135deg, #ffc107, #ffca2c); color: #664d03; padding: 8px 14px; border-radius: 20px; font-size: 13px;">
                         <i class="fas fa-clock"></i> PENDING
                     </span>
-                </div>
-                <div class="status-card-desc">
-                    <span th:text="${paymentPaidItems}">0</span> / <span th:text="${paymentTotalItems}">0</span> items paid
+                    </div>
+                    <div class="status-card-desc">
+                        <span th:text="${paymentPaidItems}">0</span> / <span th:text="${paymentTotalItems}">0</span> items paid
+                    </div>
                 </div>
             </div>
-            <div class="status-card">
-                <i class="fas fa-dollar-sign status-card-icon" style="color: #ff6b16;"></i>
-                <div class="status-card-label">Total Amount</div>
-                <div class="status-card-value" style="color: #ff6b16;">
-                    $<span th:text="${invoiceTotalWithVat != null ? #numbers.formatDecimal(invoiceTotalWithVat,0,'COMMA',0,'POINT') : '0'}">0</span>
+            <div class="card shadow">
+                <div class="card-body">
+                    <i class="fas fa-dollar-sign status-card-icon" style="color: #ff6b16;"></i>
+                    <div class="status-card-label">Total Amount</div>
+                    <div class="status-card-value" style="color: #ff6b16;">
+                        $<span th:text="${invoiceTotalWithVat != null ? #numbers.formatDecimal(invoiceTotalWithVat,0,'COMMA',0,'POINT') : '0'}">0</span>
+                    </div>
+                    <div class="status-card-desc">Including VAT</div>
                 </div>
-                <div class="status-card-desc">Including VAT</div>
             </div>
-            <div class="status-card">
-                <i class="fas fa-truck status-card-icon" th:style="${order.shippingStatus == 'DELIVERED' ? 'color: #28a745;' : 'color: #ff6b16;'}"></i>
-                <div class="status-card-label">Delivery Status</div>
-                <div class="status-card-value" th:text="${order.shippingStatus ?: (order.status.name()=='APPROVED' ? 'PLANNED' : 'PENDING')} ">-</div>
-                <div class="status-card-desc" th:if="${order.plannedDeliveryDate != null}">
-                    ETA: <span th:text="${#dates.format(order.plannedDeliveryDate,'dd/MM/yyyy')}">-</span>
+            <div class="card shadow">
+                <div class="card-body">
+                    <i class="fas fa-truck status-card-icon" th:style="${order.shippingStatus == 'DELIVERED' ? 'color: #28a745;' : 'color: #ff6b16;'}"></i>
+                    <div class="status-card-label">Delivery Status</div>
+                    <div class="status-card-value" th:text="${order.shippingStatus ?: (order.status.name()=='APPROVED' ? 'PLANNED' : 'PENDING')} ">-</div>
+                    <div class="status-card-desc" th:if="${order.plannedDeliveryDate != null}">
+                        ETA: <span th:text="${#dates.format(order.plannedDeliveryDate,'dd/MM/yyyy')}">-</span>
+                    </div>
+                    <div class="status-card-desc" th:unless="${order.plannedDeliveryDate != null}">Not scheduled</div>
                 </div>
-                <div class="status-card-desc" th:unless="${order.plannedDeliveryDate != null}">Not scheduled</div>
             </div>
         </div>
 
@@ -685,11 +677,14 @@
         </div>
 
         <!-- Order Summary Card -->
-        <div class="detail-card mb-4" th:if="${order.orderDetails != null and !order.orderDetails.isEmpty()}">
-            <h6><i class="fas fa-list-alt"></i>Order Summary</h6>
-            <div class="table-responsive">
-                <table class="table table-hover align-middle" style="margin-bottom: 0;">
-                    <thead style="background: linear-gradient(135deg, #ff6b16 0%, #ff8e46 100%); color: white;">
+        <div class="card shadow" th:if="${order.orderDetails != null and !order.orderDetails.isEmpty()}">
+            <div class="card-header">
+                <h6><i class="fas fa-list-alt"></i>Order Summary</h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle" style="margin-bottom: 0;">
+                        <thead style="background: linear-gradient(135deg, #ff6b16 0%, #ff8e46 100%); color: white;">
                         <tr>
                             <th style="padding: 16px; border: none; font-weight: 700; font-size: 13px; letter-spacing: 0.5px;">MODEL</th>
                             <th style="padding: 16px; border: none; font-weight: 700; font-size: 13px; letter-spacing: 0.5px;">VERSION</th>
@@ -701,8 +696,8 @@
                             <th style="padding: 16px; border: none; font-weight: 700; font-size: 13px; text-align: right; letter-spacing: 0.5px;">TOTAL + VAT</th>
                             <th style="padding: 16px; border: none; font-weight: 700; font-size: 13px; text-align: center; letter-spacing: 0.5px;">PAYMENT</th>
                         </tr>
-                    </thead>
-                    <tbody>
+                        </thead>
+                        <tbody>
                         <tr th:each="detail : ${order.orderDetails}" th:with="subVal=${detail.subtotal != null ? detail.subtotal : (detail.unitPrice != null ? detail.unitPrice.multiply(T(java.math.BigDecimal).valueOf(detail.quantity)) : T(java.math.BigDecimal).ZERO)}, vatPct=${vatRate != null ? vatRate : 10}, vatVal=${subVal.multiply(T(java.math.BigDecimal).valueOf(vatPct/100.0))}, totalWithVat=${subVal.add(vatVal)}" style="border-bottom: 1px solid #e9ecef;">
                             <td style="padding: 12px 15px; font-weight: 500;" th:text="${detail.modelName != null ? detail.modelName : (detail.version != null && detail.version.model != null ? detail.version.model.modelName : 'N/A')}">-</td>
                             <td style="padding: 12px 15px; color: #6c757d;" th:text="${detail.versionName != null ? detail.versionName : (detail.version != null ? detail.version.versionName : 'N/A')}">-</td>
@@ -721,8 +716,8 @@
                                 </span>
                             </td>
                         </tr>
-                    </tbody>
-                    <tfoot th:if="${invoiceNet != null}" style="background: linear-gradient(135deg, #f8f9fa 0%, #f0f0f0 100%); border-top: 3px solid #ff6b16;">
+                        </tbody>
+                        <tfoot th:if="${invoiceNet != null}" style="background: linear-gradient(135deg, #f8f9fa 0%, #f0f0f0 100%); border-top: 3px solid #ff6b16;">
                         <tr style="border-bottom: 1px solid #e0e0e0;">
                             <td colspan="5" style="padding: 14px 16px; text-align: right; font-weight: 700; color: #555; font-size: 14px;">Subtotal (Pre-VAT)</td>
                             <td colspan="3" style="padding: 14px 16px; text-align: right; font-weight: 700; color: #333; font-size: 17px;">$<span th:text="${#numbers.formatDecimal(invoiceNet,0,'COMMA',0,'POINT')}"></span></td>
@@ -738,8 +733,9 @@
                             <td colspan="3" style="padding: 18px 16px; text-align: right; font-weight: 800; color: #ff6b16; font-size: 22px;">$<span th:text="${invoiceTotalWithVat != null ? #numbers.formatDecimal(invoiceTotalWithVat,0,'COMMA',0,'POINT') : '0'}"></span></td>
                             <td></td>
                         </tr>
-                    </tfoot>
-                </table>
+                        </tfoot>
+                    </table>
+                </div>
             </div>
         </div>
 
@@ -748,106 +744,118 @@
             <!-- Left Column -->
             <div class="col-lg-5">
                 <!-- Order Information Card -->
-                <div class="detail-card">
-                    <h6><i class="fas fa-info-circle me-2"></i>Order Information</h6>
-                    <div class="info-row">
-                        <span class="info-label">Order ID:</span>
-                        <span class="info-value" th:text="${order.purchaseOrderId}">-</span>
+                <div class="card shadow">
+                    <div class="card-header">
+                        <h6><i class="fas fa-info-circle me-2"></i>Order Information</h6>
                     </div>
-                    <div class="info-row">
-                        <span class="info-label">Dealer Name:</span>
-                        <span class="info-value" th:text="${order.dealer != null && order.dealer.dealerName != null ? order.dealer.dealerName : (order.dealerName != null ? order.dealerName : 'N/A')}">-</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Dealer ID:</span>
-                        <span class="info-value" th:text="${order.dealer?.dealerID ?: 'N/A'}">-</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Status:</span>
-                        <span class="info-value">
+                    <div class="card-body">
+                        <div class="info-row">
+                            <span class="info-label">Order ID:</span>
+                            <span class="info-value" th:text="${order.purchaseOrderId}">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Dealer Name:</span>
+                            <span class="info-value" th:text="${order.dealer != null && order.dealer.dealerName != null ? order.dealer.dealerName : (order.dealerName != null ? order.dealerName : 'N/A')}">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Dealer ID:</span>
+                            <span class="info-value" th:text="${order.dealer?.dealerID ?: 'N/A'}">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Status:</span>
+                            <span class="info-value">
                             <span th:if="${order.status.name() == 'REQUESTED' or order.status.name() == 'PENDING'}" class="status-badge status-pending" th:text="'PENDING'"></span>
                             <span th:if="${order.status.name() == 'APPROVED'}" class="status-badge status-approved" th:text="${order.status}"></span>
                             <span th:if="${order.status.name() == 'CANCELLED'}" class="status-badge status-rejected" th:text="${order.status}"></span>
                             <span th:if="${order.status.name() == 'IN_PROCESS'}" class="status-badge status-pending" th:text="${order.status}"></span>
                             <span th:if="${order.status.name() == 'DELIVERED'}" class="status-badge status-approved" th:text="${order.status}"></span>
                         </span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Date:</span>
-                        <span class="info-value" th:text="${#dates.format(order.createdAt, 'dd/MM/yyyy HH:mm')}">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Date:</span>
+                            <span class="info-value" th:text="${#dates.format(order.createdAt, 'dd/MM/yyyy HH:mm')}">-</span>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Dealer Contact Card -->
-                <div class="detail-card">
-                    <h6><i class="fas fa-building me-2"></i>Dealer Information</h6>
-                    <div class="info-row">
-                        <span class="info-label">Dealer Name:</span>
-                        <span class="info-value" th:text="${order.dealer != null and order.dealer.dealerName != null ? order.dealer.dealerName : (order.dealerName != null ? order.dealerName : 'N/A')}">-</span>
+                <div class="card shadow">
+                    <div class="card-header">
+                        <h6><i class="fas fa-building me-2"></i>Dealer Information</h6>
                     </div>
-                    <div class="info-row">
-                        <span class="info-label">Dealer Level:</span>
-                        <span class="info-value" th:text="${order.dealerLevelName ?: 'N/A'}">-</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Phone:</span>
-                        <span class="info-value" th:text="${order.dealer?.phone ?: 'N/A'}">-</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Email:</span>
-                        <span class="info-value" th:text="${order.dealer?.email ?: 'N/A'}">-</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Address:</span>
-                        <span class="info-value" th:text="${order.dealer?.address ?: 'N/A'}">-</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Contact Person:</span>
-                        <span class="info-value" th:text="${order.staff?.fullName ?: 'N/A'}">-</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Position:</span>
-                        <span class="info-value" th:text="${order.staff?.position ?: 'N/A'}">-</span>
+                    <div class="card-body">
+                        <div class="info-row">
+                            <span class="info-label">Dealer Name:</span>
+                            <span class="info-value" th:text="${order.dealer != null and order.dealer.dealerName != null ? order.dealer.dealerName : (order.dealerName != null ? order.dealerName : 'N/A')}">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Dealer Level:</span>
+                            <span class="info-value" th:text="${order.dealerLevelName ?: 'N/A'}">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Phone:</span>
+                            <span class="info-value" th:text="${order.dealer?.phone ?: 'N/A'}">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Email:</span>
+                            <span class="info-value" th:text="${order.dealer?.email ?: 'N/A'}">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Address:</span>
+                            <span class="info-value" th:text="${order.dealer?.address ?: 'N/A'}">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Contact Person:</span>
+                            <span class="info-value" th:text="${order.staff?.fullName ?: 'N/A'}">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Position:</span>
+                            <span class="info-value" th:text="${order.staff?.position ?: 'N/A'}">-</span>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Vehicle Information Card -->
-                <div class="detail-card">
-                    <h6><i class="fas fa-car me-2"></i>Vehicle Information</h6>
-                    <div th:if="${order.orderDetails != null and !order.orderDetails.isEmpty()}">
-                        <div th:each="detail, detailStat : ${order.orderDetails}">
-                            <div class="info-row">
-                                <span class="info-label">Model:</span>
-                                <span class="info-value" th:text="${detail.modelName != null ? detail.modelName : (detail.version != null && detail.version.model != null ? detail.version.model.modelName : 'N/A')}">-</span>
-                            </div>
-                            <div class="info-row">
-                                <span class="info-label">Version:</span>
-                                <span class="info-value" th:text="${detail.versionName != null ? detail.versionName : (detail.version != null ? detail.version.versionName : 'N/A')}">-</span>
-                            </div>
-                            <div class="info-row">
-                                <span class="info-label">Color:</span>
-                                <span class="info-value" th:text="${detail.colorName != null ? detail.colorName : (detail.color != null ? detail.color.colorName : 'N/A')}">-</span>
-                            </div>
-                            <div class="info-row">
-                                <span class="info-label">Quantity:</span>
-                                <span class="info-value" th:text="${detail.quantity}">-</span>
-                            </div>
-                            <!-- ✅ Unit Price -->
-                            <div class="info-row">
-                                <span class="info-label">Unit Price:</span>
-                                <span class="info-value fw-bold text-primary" th:text="${'$' + #numbers.formatDecimal(detail.unitPrice, 1, 0)}">$0</span>
-                            </div>
-                            <div class="info-row">
-                                <span class="info-label">Subtotal:</span>
-                                <span class="info-value fw-bold" th:text="${'$' + #numbers.formatDecimal(detail.subtotal, 1, 0)}">$0</span>
-                            </div>
-                            <hr th:if="${!detailStat.last}">
-                        </div>
+                <div class="card shadow">
+                    <div class="card-header">
+                        <h6><i class="fas fa-car me-2"></i>Vehicle Information</h6>
                     </div>
-                    <div th:if="${order.orderDetails == null or order.orderDetails.isEmpty()}">
-                        <div class="info-row">
-                            <span class="info-label">No vehicle details</span>
-                            <span class="info-value empty-field">-</span>
+                    <div class="card-body">
+                        <div th:if="${order.orderDetails != null and !order.orderDetails.isEmpty()}">
+                            <div th:each="detail, detailStat : ${order.orderDetails}">
+                                <div class="info-row">
+                                    <span class="info-label">Model:</span>
+                                    <span class="info-value" th:text="${detail.modelName != null ? detail.modelName : (detail.version != null && detail.version.model != null ? detail.version.model.modelName : 'N/A')}">-</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Version:</span>
+                                    <span class="info-value" th:text="${detail.versionName != null ? detail.versionName : (detail.version != null ? detail.version.versionName : 'N/A')}">-</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Color:</span>
+                                    <span class="info-value" th:text="${detail.colorName != null ? detail.colorName : (detail.color != null ? detail.color.colorName : 'N/A')}">-</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Quantity:</span>
+                                    <span class="info-value" th:text="${detail.quantity}">-</span>
+                                </div>
+                                <!-- ✅ Unit Price -->
+                                <div class="info-row">
+                                    <span class="info-label">Unit Price:</span>
+                                    <span class="info-value fw-bold text-primary" th:text="${'$' + #numbers.formatDecimal(detail.unitPrice, 1, 0)}">$0</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Subtotal:</span>
+                                    <span class="info-value fw-bold" th:text="${'$' + #numbers.formatDecimal(detail.subtotal, 1, 0)}">$0</span>
+                                </div>
+                                <hr th:if="${!detailStat.last}">
+                            </div>
+                        </div>
+                        <div th:if="${order.orderDetails == null or order.orderDetails.isEmpty()}">
+                            <div class="info-row">
+                                <span class="info-label">No vehicle details</span>
+                                <span class="info-value empty-field">-</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -856,110 +864,118 @@
             <!-- Right Column -->
             <div class="col-lg-7">
                 <!-- Order Status & Pricing Card -->
-                <div class="detail-card">
-                    <h6><i class="fas fa-chart-line me-2"></i>Order Status & Pricing</h6>
-                    <div class="info-row">
-                        <span class="info-label">Status:</span>
-                        <span class="info-value">
+                <div class="card shadow">
+                    <div class="card-header">
+                        <h6><i class="fas fa-chart-line me-2"></i>Order Status & Pricing</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="info-row">
+                            <span class="info-label">Status:</span>
+                            <span class="info-value">
                             <span th:if="${order.status.name() == 'REQUESTED' or order.status.name() == 'PENDING'}" class="status-badge status-pending" th:text="'PENDING'"></span>
                             <span th:if="${order.status.name() == 'APPROVED'}" class="status-badge status-approved" th:text="${order.status}"></span>
                             <span th:if="${order.status.name() == 'CANCELLED'}" class="status-badge status-rejected" th:text="${order.status}"></span>
                             <span th:if="${order.status.name() == 'IN_PROCESS'}" class="status-badge status-pending" th:text="${order.status}"></span>
                             <span th:if="${order.status.name() == 'DELIVERED'}" class="status-badge status-approved" th:text="${order.status}"></span>
                         </span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Approved by:</span>
-                        <span class="info-value" th:text="${order.approvedByStaffName ?: (order.status.name() == 'APPROVED' ? order.staff?.fullName : 'Pending Approval')}">-</span>
-                    </div>
-                    <div class="price-info">
-                        <div class="price-row">
-                            <span class="price-label">Total Items:</span>
-                            <span class="price-value" th:text="${order.orderDetails != null ? order.orderDetails.size() : 0}">0</span>
                         </div>
-                        <div class="price-row">
-                            <span class="price-label">Total Quantity:</span>
-                            <span class="price-value" th:text="${order.totalQuantity != null ? order.totalQuantity : 0}">0</span>
+                        <div class="info-row">
+                            <span class="info-label">Approved by:</span>
+                            <span class="info-value" th:text="${order.approvedByStaffName ?: (order.status.name() == 'APPROVED' ? order.staff?.fullName : 'Pending Approval')}">-</span>
                         </div>
-                        <div class="price-row">
-                            <span class="price-label">Unit Price:</span>
-                            <span class="price-value" th:text="${'$' + #numbers.formatDecimal(order.primaryUnitPrice, 1, 0)}">$0</span>
-                        </div>
-                        <div class="price-row">
-                            <span class="price-label">Subtotal:</span>
-                            <span class="price-value" th:text="${'$' + #numbers.formatDecimal(order.primarySubtotal, 1, 0)}">$0</span>
-                        </div>
-                        <div class="price-row total-price">
-                            <span class="price-label">Total Amount:</span>
-                            <span class="price-value" th:text="${'$' + #numbers.formatDecimal(order.totalAmount, 1, 0)}">$0</span>
-                        </div>
-                        <div class="price-row total-price" th:unless="${order.totalAmount != null}">
-                            <span class="price-label">Order Total Price:</span>
-                            <span class="price-value">Calculating...</span>
+                        <div class="price-info">
+                            <div class="price-row">
+                                <span class="price-label">Total Items:</span>
+                                <span class="price-value" th:text="${order.orderDetails != null ? order.orderDetails.size() : 0}">0</span>
+                            </div>
+                            <div class="price-row">
+                                <span class="price-label">Total Quantity:</span>
+                                <span class="price-value" th:text="${order.totalQuantity != null ? order.totalQuantity : 0}">0</span>
+                            </div>
+                            <div class="price-row">
+                                <span class="price-label">Unit Price:</span>
+                                <span class="price-value" th:text="${'$' + #numbers.formatDecimal(order.primaryUnitPrice, 1, 0)}">$0</span>
+                            </div>
+                            <div class="price-row">
+                                <span class="price-label">Subtotal:</span>
+                                <span class="price-value" th:text="${'$' + #numbers.formatDecimal(order.primarySubtotal, 1, 0)}">$0</span>
+                            </div>
+                            <div class="price-row total-price">
+                                <span class="price-label">Total Amount:</span>
+                                <span class="price-value" th:text="${'$' + #numbers.formatDecimal(order.totalAmount, 1, 0)}">$0</span>
+                            </div>
+                            <div class="price-row total-price" th:unless="${order.totalAmount != null}">
+                                <span class="price-label">Order Total Price:</span>
+                                <span class="price-value">Calculating...</span>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Delivery & Production Card -->
-                <div class="detail-card">
-                    <h6><i class="fas fa-truck me-2"></i>Delivery & Production</h6>
-                    <div class="info-row">
-                        <span class="info-label">Planned Delivery:</span>
-                        <span class="info-value" th:text="${order.plannedDeliveryDate != null ? #dates.format(order.plannedDeliveryDate,'dd/MM/yyyy') : '-'}">-</span>
+                <div class="card shadow">
+                    <div class="card-header">
+                        <h6><i class="fas fa-truck me-2"></i>Delivery & Production</h6>
                     </div>
-                    <div class="info-row">
-                        <span class="info-label">Actual Delivery:</span>
-                        <span class="info-value" th:text="${order.actualDeliveryDate != null ? #dates.format(order.actualDeliveryDate,'dd/MM/yyyy') : '-'}">-</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Shipping Status:</span>
-                        <span class="info-value" th:text="${order.shippingStatus ?: (order.status.name()=='APPROVED' ? 'PLANNED' : '-')} ">-</span>
-                    </div>
-                    <div class="info-row" th:if="${order.logisticsNotes}">
-                        <span class="info-label">Notes:</span>
-                        <span class="info-value" th:text="${order.logisticsNotes}">-</span>
-                    </div>
-                    <!-- Form update planned delivery date khi đã approved -->
-                    <div class="mt-3" th:if="${order.status.name() == 'APPROVED' or order.status.name()=='IN_PROCESS'}">
-                        <form th:action="@{'/evm/orders/delivery/' + ${order.purchaseOrderId} + '/date'}" method="post" class="row g-2 align-items-end">
-                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
-                            <div class="col-auto">
-                                <label for="plannedDate" class="form-label mb-0">Planned Date</label>
-                                <input type="date" name="plannedDate" id="plannedDate" class="form-control form-control-sm" th:value="${order.plannedDeliveryDate != null ? #dates.format(order.plannedDeliveryDate,'yyyy-MM-dd') : ''}" />
-                            </div>
-                            <div class="col-auto">
-                                <button type="submit" class="btn btn-outline-secondary btn-sm"><i class="fas fa-calendar-check me-1"></i>Save</button>
-                            </div>
-                        </form>
-                    </div>
-                    <!-- Existing status update form -->
-                    <div class="mt-3" th:if="${order.status.name() == 'APPROVED' or order.status.name()=='IN_PROCESS'}">
-                        <!-- Warning message if payment not confirmed -->
-                        <div class="alert alert-warning alert-sm mb-2" th:if="${paymentTotalItems != null and !paymentAllPaid}">
-                            <i class="fas fa-exclamation-triangle me-1"></i>
-                            <small><strong>Payment required:</strong> Confirm payment first before updating delivery status.</small>
+                    <div class="card-body">
+                        <div class="info-row">
+                            <span class="info-label">Planned Delivery:</span>
+                            <span class="info-value" th:text="${order.plannedDeliveryDate != null ? #dates.format(order.plannedDeliveryDate,'dd/MM/yyyy') : '-'}">-</span>
                         </div>
+                        <div class="info-row">
+                            <span class="info-label">Actual Delivery:</span>
+                            <span class="info-value" th:text="${order.actualDeliveryDate != null ? #dates.format(order.actualDeliveryDate,'dd/MM/yyyy') : '-'}">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Shipping Status:</span>
+                            <span class="info-value" th:text="${order.shippingStatus ?: (order.status.name()=='APPROVED' ? 'PLANNED' : '-')} ">-</span>
+                        </div>
+                        <div class="info-row" th:if="${order.logisticsNotes}">
+                            <span class="info-label">Notes:</span>
+                            <span class="info-value" th:text="${order.logisticsNotes}">-</span>
+                        </div>
+                        <!-- Form update planned delivery date khi đã approved -->
+                        <div class="mt-3" th:if="${order.status.name() == 'APPROVED' or order.status.name()=='IN_PROCESS'}">
+                            <form th:action="@{'/evm/orders/delivery/' + ${order.purchaseOrderId} + '/date'}" method="post" class="row g-2 align-items-end">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                                <div class="col-auto">
+                                    <label for="plannedDate" class="form-label mb-0">Planned Date</label>
+                                    <input type="date" name="plannedDate" id="plannedDate" class="form-control form-control-sm" th:value="${order.plannedDeliveryDate != null ? #dates.format(order.plannedDeliveryDate,'yyyy-MM-dd') : ''}" />
+                                </div>
+                                <div class="col-auto">
+                                    <button type="submit" class="btn btn-outline-secondary btn-sm"><i class="fas fa-calendar-check me-1"></i>Save</button>
+                                </div>
+                            </form>
+                        </div>
+                        <!-- Existing status update form -->
+                        <div class="mt-3" th:if="${order.status.name() == 'APPROVED' or order.status.name()=='IN_PROCESS'}">
+                            <!-- Warning message if payment not confirmed -->
+                            <div class="alert alert-warning alert-sm mb-2" th:if="${paymentTotalItems != null and !paymentAllPaid}">
+                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                <small><strong>Payment required:</strong> Confirm payment first before updating delivery status.</small>
+                            </div>
 
-                        <form th:action="@{'/evm/orders/delivery/' + ${order.purchaseOrderId} + '/status'}" method="post" class="row g-2 align-items-end">
-                            <!-- CSRF Token -->
-                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
-                            <div class="col-auto">
-                                <label for="newStatus" class="form-label mb-0">Update Delivery Status</label>
-                                <select name="newStatus" id="newStatus" class="form-select form-select-sm"
-                                        th:disabled="${paymentTotalItems != null and !paymentAllPaid}">
-                                    <option value="CREATED" th:selected="${order.shippingStatus=='CREATED'}">CREATED</option>
-                                    <option value="IN_TRANSIT" th:selected="${order.shippingStatus=='IN_TRANSIT'}">IN TRANSIT</option>
-                                    <option value="DELIVERED" th:selected="${order.shippingStatus=='DELIVERED'}">DELIVERED</option>
-                                    <option value="CANCELLED" th:selected="${order.shippingStatus=='CANCELLED'}">CANCELLED</option>
-                                </select>
-                            </div>
-                            <div class="col-auto">
-                                <button type="submit" class="btn btn-outline-primary btn-sm"
-                                        th:disabled="${paymentTotalItems != null and !paymentAllPaid}">
-                                    <i class="fas fa-sync me-1"></i>Apply
-                                </button>
-                            </div>
-                        </form>
+                            <form th:action="@{'/evm/orders/delivery/' + ${order.purchaseOrderId} + '/status'}" method="post" class="row g-2 align-items-end">
+                                <!-- CSRF Token -->
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                                <div class="col-auto">
+                                    <label for="newStatus" class="form-label mb-0">Update Delivery Status</label>
+                                    <select name="newStatus" id="newStatus" class="form-select form-select-sm"
+                                            th:disabled="${paymentTotalItems != null and !paymentAllPaid}">
+                                        <option value="CREATED" th:selected="${order.shippingStatus=='CREATED'}">CREATED</option>
+                                        <option value="IN_TRANSIT" th:selected="${order.shippingStatus=='IN_TRANSIT'}">IN TRANSIT</option>
+                                        <option value="DELIVERED" th:selected="${order.shippingStatus=='DELIVERED'}">DELIVERED</option>
+                                        <option value="CANCELLED" th:selected="${order.shippingStatus=='CANCELLED'}">CANCELLED</option>
+                                    </select>
+                                </div>
+                                <div class="col-auto">
+                                    <button type="submit" class="btn btn-outline-primary btn-sm"
+                                            th:disabled="${paymentTotalItems != null and !paymentAllPaid}">
+                                        <i class="fas fa-sync me-1"></i>Apply
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
