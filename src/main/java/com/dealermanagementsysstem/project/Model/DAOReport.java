@@ -60,6 +60,30 @@ public class DAOReport {
               AND (? IS NULL OR DealerID = ?)
               AND (? IS NULL OR ? IS NULL OR CreatedAt BETWEEN ? AND ?)
         """;
+        String sqlGrossRevenue = """
+            SELECT COALESCE(SUM(CAST(COALESCE(sod.GrossUnitPrice, sod.Price, 0) AS DECIMAL(18,2)) * CAST(ISNULL(sod.Quantity,1) AS INT)),0) AS GrossRevenue
+            FROM SaleOrder so
+            JOIN SaleOrderDetail sod ON sod.SaleOrderID = so.SaleOrderID
+            WHERE so.Status IN ('CONTRACT_SIGNED','PROCESSING','SHIPPED','COMPLETED')
+              AND (? IS NULL OR so.DealerID = ?)
+              AND (? IS NULL OR ? IS NULL OR so.CreatedAt BETWEEN ? AND ?)
+        """;
+        String sqlManufacturerDiscount = """
+            SELECT COALESCE(SUM(
+                     CASE 
+                       WHEN sod.PromoDiscountAmount IS NOT NULL AND sod.PromoDiscountAmount > 0 THEN CAST(sod.PromoDiscountAmount AS DECIMAL(18,2)) * CAST(ISNULL(sod.Quantity,1) AS INT)
+                       WHEN sod.PromoDiscountPercent IS NOT NULL AND sod.PromoDiscountPercent > 0 THEN CAST(sod.GrossUnitPrice AS DECIMAL(18,2)) * (sod.PromoDiscountPercent/100.0) * CAST(ISNULL(sod.Quantity,1) AS INT)
+                       WHEN dp.DiscountPercent IS NOT NULL AND dp.DiscountPercent > 0 THEN CAST(sod.GrossUnitPrice AS DECIMAL(18,2)) * (dp.DiscountPercent/100.0) * CAST(ISNULL(sod.Quantity,1) AS INT)
+                       WHEN dp.DiscountAmount IS NOT NULL AND dp.DiscountAmount > 0 THEN CAST(dp.DiscountAmount AS DECIMAL(18,2)) * CAST(ISNULL(sod.Quantity,1) AS INT)
+                       ELSE 0 END
+                   ),0) AS ManufDiscount
+            FROM SaleOrder so
+            JOIN SaleOrderDetail sod ON sod.SaleOrderID = so.SaleOrderID
+            LEFT JOIN DiscountPolicy dp ON sod.PolicyID = dp.PolicyID
+            WHERE so.Status IN ('CONTRACT_SIGNED','PROCESSING','SHIPPED','COMPLETED')
+              AND (? IS NULL OR so.DealerID = ?)
+              AND (? IS NULL OR ? IS NULL OR so.CreatedAt BETWEEN ? AND ?)
+        """;
 
         try (Connection conn = DBUtils.getConnection()) {
             try (PreparedStatement ps = conn.prepareStatement(sqlVehiclesSold)) {
@@ -79,6 +103,31 @@ public class DAOReport {
                 if (fromDate == null || toDate == null) { ps.setNull(3, java.sql.Types.DATE); ps.setNull(4, java.sql.Types.DATE); ps.setNull(5, java.sql.Types.DATE); ps.setNull(6, java.sql.Types.DATE); }
                 else { ps.setDate(3, fromDate); ps.setDate(4, toDate); ps.setDate(5, fromDate); ps.setDate(6, toDate); }
                 try (ResultSet rs = ps.executeQuery()) { if (rs.next()) k.put("totalRevenue", rs.getBigDecimal("TotalRevenue")); }
+            }
+            // Gross (pre-discount) revenue
+            try (PreparedStatement ps = conn.prepareStatement(sqlGrossRevenue)) {
+                if (dealerId == null) { ps.setNull(1, java.sql.Types.INTEGER); ps.setNull(2, java.sql.Types.INTEGER); } else { ps.setInt(1, dealerId); ps.setInt(2, dealerId); }
+                if (fromDate == null || toDate == null) { ps.setNull(3, java.sql.Types.DATE); ps.setNull(4, java.sql.Types.DATE); ps.setNull(5, java.sql.Types.DATE); ps.setNull(6, java.sql.Types.DATE); }
+                else { ps.setDate(3, fromDate); ps.setDate(4, toDate); ps.setDate(5, fromDate); ps.setDate(6, toDate); }
+                try (ResultSet rs = ps.executeQuery()) { if (rs.next()) k.put("grossRevenue", rs.getBigDecimal("GrossRevenue")); }
+            }
+            // Manufacturer discount (optional, may be zero)
+            try (PreparedStatement ps = conn.prepareStatement(sqlManufacturerDiscount)) {
+                if (dealerId == null) { ps.setNull(1, java.sql.Types.INTEGER); ps.setNull(2, java.sql.Types.INTEGER); } else { ps.setInt(1, dealerId); ps.setInt(2, dealerId); }
+                if (fromDate == null || toDate == null) { ps.setNull(3, java.sql.Types.DATE); ps.setNull(4, java.sql.Types.DATE); ps.setNull(5, java.sql.Types.DATE); ps.setNull(6, java.sql.Types.DATE); }
+                else { ps.setDate(3, fromDate); ps.setDate(4, toDate); ps.setDate(5, fromDate); ps.setDate(6, toDate); }
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        java.math.BigDecimal manufDiscount = rs.getBigDecimal("ManufDiscount");
+                        if (manufDiscount == null) manufDiscount = java.math.BigDecimal.ZERO;
+                        k.put("manufacturerDiscountTotal", manufDiscount);
+                        // Net revenue after discounts for dealer (already totalRevenue, but expose explicit value)
+                        java.math.BigDecimal totalRev = (java.math.BigDecimal) k.getOrDefault("totalRevenue", java.math.BigDecimal.ZERO);
+                        java.math.BigDecimal grossRev = (java.math.BigDecimal) k.getOrDefault("grossRevenue", java.math.BigDecimal.ZERO);
+                        k.put("netRevenueAfterDiscount", totalRev); // net already after discount
+                        k.put("discountSavings", grossRev.subtract(totalRev));
+                    }
+                }
             }
         } catch (SQLException e) {
             // ignore for summary
@@ -109,35 +158,64 @@ public class DAOReport {
                   AND (? IS NULL OR DealerID = ?)
                   AND (? IS NULL OR ? IS NULL OR ReceivedDate BETWEEN ? AND ?)
                 GROUP BY DealerID
+            ), gross AS (
+                SELECT so.DealerID, COALESCE(SUM(CAST(COALESCE(sod.GrossUnitPrice, sod.Price, 0) AS DECIMAL(18,2)) * CAST(ISNULL(sod.Quantity,1) AS INT)),0) AS GrossRevenue
+                FROM SaleOrderDetail sod JOIN SaleOrder so ON sod.SaleOrderID = so.SaleOrderID
+                WHERE so.Status IN ('CONTRACT_SIGNED','PROCESSING','SHIPPED','COMPLETED')
+                  AND (? IS NULL OR so.DealerID = ?)
+                  AND (? IS NULL OR ? IS NULL OR so.CreatedAt BETWEEN ? AND ?)
+                GROUP BY so.DealerID
+            ), manuf AS (
+                SELECT so.DealerID, COALESCE(SUM(
+                         CASE 
+                           WHEN sod.PromoDiscountAmount IS NOT NULL AND sod.PromoDiscountAmount > 0 THEN CAST(sod.PromoDiscountAmount AS DECIMAL(18,2)) * CAST(ISNULL(sod.Quantity,1) AS INT)
+                           WHEN sod.PromoDiscountPercent IS NOT NULL AND sod.PromoDiscountPercent > 0 THEN CAST(sod.GrossUnitPrice AS DECIMAL(18,2)) * (sod.PromoDiscountPercent/100.0) * CAST(ISNULL(sod.Quantity,1) AS INT)
+                           WHEN dp.DiscountPercent IS NOT NULL AND dp.DiscountPercent > 0 THEN CAST(sod.GrossUnitPrice AS DECIMAL(18,2)) * (dp.DiscountPercent/100.0) * CAST(ISNULL(sod.Quantity,1) AS INT)
+                           WHEN dp.DiscountAmount IS NOT NULL AND dp.DiscountAmount > 0 THEN CAST(dp.DiscountAmount AS DECIMAL(18,2)) * CAST(ISNULL(sod.Quantity,1) AS INT)
+                           ELSE 0 END
+                       ),0) AS ManufDiscount
+                FROM SaleOrderDetail sod JOIN SaleOrder so ON sod.SaleOrderID = so.SaleOrderID
+                LEFT JOIN DiscountPolicy dp ON sod.PolicyID = dp.PolicyID
+                WHERE so.Status IN ('CONTRACT_SIGNED','PROCESSING','SHIPPED','COMPLETED')
+                  AND (? IS NULL OR so.DealerID = ?)
+                  AND (? IS NULL OR ? IS NULL OR so.CreatedAt BETWEEN ? AND ?)
+                GROUP BY so.DealerID
             )
             SELECT d.DealerID, d.DealerName,
                    COALESCE(po.PurchaseOrders,0) AS PurchaseOrders,
                    COALESCE(so.SaleOrders,0) AS SaleOrders,
                    COALESCE(so.VehiclesSold,0) AS VehiclesSold,
+                   COALESCE(gross.GrossRevenue,0) AS GrossRevenue,
                    COALESCE(so.TotalRevenue,0) AS TotalRevenue,
-                   COALESCE(inv.Inventory,0) AS Inventory
+                   COALESCE(inv.Inventory,0) AS Inventory,
+                   COALESCE(manuf.ManufDiscount,0) AS ManufacturerDiscount,
+                   COALESCE(so.TotalRevenue,0) AS NetRevenueAfterDiscount
             FROM Dealer d
             LEFT JOIN po ON po.DealerID = d.DealerID
             LEFT JOIN so ON so.DealerID = d.DealerID
             LEFT JOIN inv ON inv.DealerID = d.DealerID
+            LEFT JOIN gross ON gross.DealerID = d.DealerID
+            LEFT JOIN manuf ON manuf.DealerID = d.DealerID
             WHERE (? IS NULL OR d.DealerID = ?)
             ORDER BY d.DealerName
         """;
         try (Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            // bind existing + new manuf block params
+            int idx = 1;
             // po
-            if (dealerId == null) { ps.setNull(1, java.sql.Types.INTEGER); ps.setNull(2, java.sql.Types.INTEGER); } else { ps.setInt(1, dealerId); ps.setInt(2, dealerId); }
-            if (fromDate == null || toDate == null) { ps.setNull(3, java.sql.Types.DATE); ps.setNull(4, java.sql.Types.DATE); ps.setNull(5, java.sql.Types.DATE); ps.setNull(6, java.sql.Types.DATE); }
-            else { ps.setDate(3, fromDate); ps.setDate(4, toDate); ps.setDate(5, fromDate); ps.setDate(6, toDate); }
+            if (dealerId == null) { ps.setNull(idx++, java.sql.Types.INTEGER); ps.setNull(idx++, java.sql.Types.INTEGER); } else { ps.setInt(idx++, dealerId); ps.setInt(idx++, dealerId); }
+            if (fromDate == null || toDate == null) { ps.setNull(idx++, java.sql.Types.DATE); ps.setNull(idx++, java.sql.Types.DATE); ps.setNull(idx++, java.sql.Types.DATE); ps.setNull(idx++, java.sql.Types.DATE); } else { ps.setDate(idx++, fromDate); ps.setDate(idx++, toDate); ps.setDate(idx++, fromDate); ps.setDate(idx++, toDate); }
             // so
-            if (dealerId == null) { ps.setNull(7, java.sql.Types.INTEGER); ps.setNull(8, java.sql.Types.INTEGER); } else { ps.setInt(7, dealerId); ps.setInt(8, dealerId); }
-            if (fromDate == null || toDate == null) { ps.setNull(9, java.sql.Types.DATE); ps.setNull(10, java.sql.Types.DATE); ps.setNull(11, java.sql.Types.DATE); ps.setNull(12, java.sql.Types.DATE); }
-            else { ps.setDate(9, fromDate); ps.setDate(10, toDate); ps.setDate(11, fromDate); ps.setDate(12, toDate); }
+            if (dealerId == null) { ps.setNull(idx++, java.sql.Types.INTEGER); ps.setNull(idx++, java.sql.Types.INTEGER); } else { ps.setInt(idx++, dealerId); ps.setInt(idx++, dealerId); }
+            if (fromDate == null || toDate == null) { ps.setNull(idx++, java.sql.Types.DATE); ps.setNull(idx++, java.sql.Types.DATE); ps.setNull(idx++, java.sql.Types.DATE); ps.setNull(idx++, java.sql.Types.DATE); } else { ps.setDate(idx++, fromDate); ps.setDate(idx++, toDate); ps.setDate(idx++, fromDate); ps.setDate(idx++, toDate); }
             // inv
-            if (dealerId == null) { ps.setNull(13, java.sql.Types.INTEGER); ps.setNull(14, java.sql.Types.INTEGER); } else { ps.setInt(13, dealerId); ps.setInt(14, dealerId); }
-            if (fromDate == null || toDate == null) { ps.setNull(15, java.sql.Types.DATE); ps.setNull(16, java.sql.Types.DATE); ps.setNull(17, java.sql.Types.DATE); ps.setNull(18, java.sql.Types.DATE); }
-            else { ps.setDate(15, fromDate); ps.setDate(16, toDate); ps.setDate(17, fromDate); ps.setDate(18, toDate); }
+            if (dealerId == null) { ps.setNull(idx++, java.sql.Types.INTEGER); ps.setNull(idx++, java.sql.Types.INTEGER); } else { ps.setInt(idx++, dealerId); ps.setInt(idx++, dealerId); }
+            if (fromDate == null || toDate == null) { ps.setNull(idx++, java.sql.Types.DATE); ps.setNull(idx++, java.sql.Types.DATE); ps.setNull(idx++, java.sql.Types.DATE); ps.setNull(idx++, java.sql.Types.DATE); } else { ps.setDate(idx++, fromDate); ps.setDate(idx++, toDate); ps.setDate(idx++, fromDate); ps.setDate(idx++, toDate); }
+            // manuf
+            if (dealerId == null) { ps.setNull(idx++, java.sql.Types.INTEGER); ps.setNull(idx++, java.sql.Types.INTEGER); } else { ps.setInt(idx++, dealerId); ps.setInt(idx++, dealerId); }
+            if (fromDate == null || toDate == null) { ps.setNull(idx++, java.sql.Types.DATE); ps.setNull(idx++, java.sql.Types.DATE); ps.setNull(idx++, java.sql.Types.DATE); ps.setNull(idx++, java.sql.Types.DATE); } else { ps.setDate(idx++, fromDate); ps.setDate(idx++, toDate); ps.setDate(idx++, fromDate); ps.setDate(idx++, toDate); }
             // final filter
-            if (dealerId == null) { ps.setNull(19, java.sql.Types.INTEGER); ps.setNull(20, java.sql.Types.INTEGER); } else { ps.setInt(19, dealerId); ps.setInt(20, dealerId); }
+            if (dealerId == null) { ps.setNull(idx++, java.sql.Types.INTEGER); ps.setNull(idx++, java.sql.Types.INTEGER); } else { ps.setInt(idx++, dealerId); ps.setInt(idx++, dealerId); }
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -149,6 +227,9 @@ public class DAOReport {
                     row.put("vehiclesSold", rs.getInt("VehiclesSold"));
                     row.put("totalRevenue", rs.getBigDecimal("TotalRevenue"));
                     row.put("inventory", rs.getInt("Inventory"));
+                    row.put("manufacturerDiscount", rs.getBigDecimal("ManufacturerDiscount"));
+                    row.put("netRevenueAfterDiscount", rs.getBigDecimal("NetRevenueAfterDiscount"));
+                    row.put("grossRevenue", rs.getBigDecimal("GrossRevenue"));
                     list.add(row);
                 }
             }
@@ -311,5 +392,4 @@ public class DAOReport {
         return list;
     }
 }
-
 

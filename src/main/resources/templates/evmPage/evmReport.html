@@ -86,8 +86,36 @@
             <div class="col-12 col-sm-6 col-xl-3">
                 <div class="card shadow-sm stat-card">
                     <div class="card-body">
-                        <div class="text-muted small">💰 Total Revenue</div>
-                        <div class="fs-3 fw-semibold text-success" th:text="${T(utils.NumberFormatUtil).formatCurrency(kpis['totalRevenue'] != null ? kpis['totalRevenue'] : 0)}">$0</div>
+                        <div class="text-muted small">📈 Gross Revenue (Before Discounts)</div>
+                        <div class="fs-5 fw-semibold" th:text="${T(utils.NumberFormatUtil).formatCurrency(kpis['grossRevenue'] != null ? kpis['grossRevenue'] : 0)}">$0</div>
+                        <div class="small text-muted">Sum gross unit * qty</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="card shadow-sm stat-card">
+                    <div class="card-body">
+                        <div class="text-muted small">💰 Net Revenue (After Discounts)</div>
+                        <div class="fs-5 fw-semibold text-success" th:text="${T(utils.NumberFormatUtil).formatCurrency(kpis['totalRevenue'] != null ? kpis['totalRevenue'] : 0)}">$0</div>
+                        <div class="small text-muted">= TotalAmount (net)</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="card shadow-sm stat-card">
+                    <div class="card-body">
+                        <div class="text-muted small">🏷️ Manufacturer Discount Total</div>
+                        <div class="fs-5 fw-semibold text-danger" th:text="${T(utils.NumberFormatUtil).formatCurrency(kpis['manufacturerDiscountTotal'] != null ? kpis['manufacturerDiscountTotal'] : 0)}">$0</div>
+                        <div class="small text-muted">Applied manufacturer promos</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="card shadow-sm stat-card">
+                    <div class="card-body">
+                        <div class="text-muted small">💾 Discount Savings</div>
+                        <div class="fs-5 fw-semibold text-primary" th:text="${T(utils.NumberFormatUtil).formatCurrency(kpis['discountSavings'] != null ? kpis['discountSavings'] : 0)}">$0</div>
+                        <div class="small text-muted" th:text="${kpis['grossRevenue'] != null && kpis['grossRevenue'] > 0 ? ( (kpis['discountSavings'] / kpis['grossRevenue']) * 100.0 ) : 0} + '% saved'">0% saved</div>
                     </div>
                 </div>
             </div>
@@ -161,6 +189,8 @@
                                     <th class="text-end">Sale Orders</th>
                                     <th class="text-end">Vehicles Sold</th>
                                     <th class="text-end">Total Revenue (USD)</th>
+                                    <th class="text-end">Mfr Discount (USD)</th>
+                                    <th class="text-end">Net Rev After Disc (USD)</th>
                                     <th class="text-end">Inventory</th>
                                 </tr>
                                 </thead>
@@ -171,6 +201,8 @@
                                     <td class="text-end" th:text="${r.saleOrders}">0</td>
                                     <td class="text-end" th:text="${r.vehiclesSold}">0</td>
                                     <td class="text-end" th:text="${T(utils.NumberFormatUtil).formatCurrency(r.totalRevenue != null ? r.totalRevenue : 0)}">$0</td>
+                                    <td class="text-end" th:text="${T(utils.NumberFormatUtil).formatCurrency(r.manufacturerDiscount != null ? r.manufacturerDiscount : 0)}">$0</td>
+                                    <td class="text-end" th:text="${T(utils.NumberFormatUtil).formatCurrency(r.netRevenueAfterDiscount != null ? r.netRevenueAfterDiscount : 0)}">$0</td>
                                     <td class="text-end" th:text="${r.inventory}">0</td>
                                 </tr>
                                 </tbody>

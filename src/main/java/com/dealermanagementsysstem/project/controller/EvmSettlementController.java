@@ -24,6 +24,7 @@ public class EvmSettlementController {
     @GetMapping
     public String settlementPage(@RequestParam(value = "status", required = false) String statusFilter,
                                  @RequestParam(value = "dealerID", required = false) Integer dealerFilter,
+                                 @RequestParam(value = "policyID", required = false) Integer policyFilter,
                                  Model model) {
         List<DTOSaleOrder> all = saleOrderDAO.getAllSaleOrders();
 
@@ -48,13 +49,18 @@ public class EvmSettlementController {
                     .collect(Collectors.toList());
         }
 
+        if (policyFilter != null && policyFilter > 0) {
+            withManufacturer = withManufacturer.stream().filter(o -> o.getDetail()!=null && o.getDetail().stream().anyMatch(d -> {
+                Integer pid = d.getDiscountPolicy()!=null? d.getDiscountPolicy().getPolicyID() : d.getPromoPolicyID();
+                return pid != null && pid.equals(policyFilter);
+            })).collect(java.util.stream.Collectors.toList());
+        }
+
         // Global aggregates
         BigDecimal totalGross = BigDecimal.ZERO;
         BigDecimal totalNet = BigDecimal.ZERO;
         BigDecimal totalManufacturerDiscount = BigDecimal.ZERO;
-        BigDecimal totalDealerDiscount = BigDecimal.ZERO; // new
-        BigDecimal totalBaseQuotationDiscount = BigDecimal.ZERO; // new
-        BigDecimal totalDealerLevelShare = BigDecimal.ZERO; // new aggregate
+        BigDecimal totalDiscountSavings = BigDecimal.ZERO; // gross - net
 
         // Policy aggregate container
         class PolicyAgg { BigDecimal discount = BigDecimal.ZERO; int orders = 0; int vehicles = 0; String name; }
@@ -64,12 +70,8 @@ public class EvmSettlementController {
         List<Map<String,Object>> orderRows = new ArrayList<>();
 
         for (DTOSaleOrder order : withManufacturer) {
-            BigDecimal orderGross = BigDecimal.ZERO;
             BigDecimal orderManufacturerDiscount = BigDecimal.ZERO;
-            BigDecimal orderDealerDiscount = BigDecimal.ZERO; // per order
-            BigDecimal orderBaseDiscount = BigDecimal.ZERO;   // per order
-            BigDecimal orderDealerLevelShare = BigDecimal.ZERO;
-            Double levelSharePct = null;
+            BigDecimal orderGross = BigDecimal.ZERO; // ensure defined top
             Set<String> policyNames = new LinkedHashSet<>();
             Set<Integer> policiesInOrder = new HashSet<>();
 
@@ -78,12 +80,8 @@ public class EvmSettlementController {
                     int qty = d.getQuantity() != null ? d.getQuantity() : 1;
                     BigDecimal grossUnit = d.getGrossUnitPrice() != null ? d.getGrossUnitPrice() : (d.getPrice() != null ? d.getPrice() : BigDecimal.ZERO);
                     orderGross = orderGross.add(grossUnit.multiply(BigDecimal.valueOf(qty)));
-                    BigDecimal dealerLine = d.getDealerDiscountAmountPerUnit().multiply(BigDecimal.valueOf(qty));
-                    orderDealerDiscount = orderDealerDiscount.add(dealerLine);
                     BigDecimal manufLine = d.getPromoDiscountAmountPerUnit().multiply(BigDecimal.valueOf(qty));
                     orderManufacturerDiscount = orderManufacturerDiscount.add(manufLine);
-                    BigDecimal baseLine = d.getBaseQuotationDiscountAmountPerUnit() != null ? d.getBaseQuotationDiscountAmountPerUnit().multiply(BigDecimal.valueOf(qty)) : BigDecimal.ZERO;
-                    orderBaseDiscount = orderBaseDiscount.add(baseLine);
 
                     Integer pid = d.getDiscountPolicy() != null ? d.getDiscountPolicy().getPolicyID() : d.getPromoPolicyID();
                     if (pid != null) {
@@ -111,43 +109,35 @@ public class EvmSettlementController {
                     orderManufacturerDiscount.divide(orderGross, 6, java.math.RoundingMode.HALF_UP)
                             .multiply(BigDecimal.valueOf(100)).doubleValue() : 0.0;
 
-            if (order.getDealer() != null && order.getDealer().getLevelID() > 0) {
-                var lvlObj = dealerDAO.getDealerLevelById(order.getDealer().getLevelID());
-                if (lvlObj != null && lvlObj.getDiscountSharePercent() != null) {
-                    levelSharePct = lvlObj.getDiscountSharePercent();
-                }
-            }
-            if (levelSharePct != null && levelSharePct > 0 && orderManufacturerDiscount.compareTo(BigDecimal.ZERO) > 0) {
-                // share calculated on manufacturer discount portion
-                orderDealerLevelShare = orderManufacturerDiscount.multiply(BigDecimal.valueOf(levelSharePct / 100.0));
-            }
+            BigDecimal orderNet = order.getTotalAmount() != null ? order.getTotalAmount() : BigDecimal.ZERO;
+            BigDecimal orderSavings = orderGross.subtract(orderNet);
 
             Map<String,Object> row = new LinkedHashMap<>();
             row.put("order", order);
             row.put("gross", orderGross);
-            row.put("net", order.getTotalAmount() != null ? order.getTotalAmount() : BigDecimal.ZERO);
+            row.put("net", orderNet);
             row.put("manufDiscount", orderManufacturerDiscount);
             row.put("manufPercent", percent);
             row.put("policyNames", policyNames);
-            row.put("dealerDiscount", orderDealerDiscount); // per-order dealer discount
-            row.put("baseDiscount", orderBaseDiscount);     // per-order base discount
-            row.put("dealerLevelShare", orderDealerLevelShare);
-            row.put("dealerLevelSharePercent", levelSharePct != null ? levelSharePct : 0.0);
-            // New: total saved (dealer + manufacturer + base)
-            row.put("savedTotal", orderDealerDiscount.add(orderManufacturerDiscount).add(orderBaseDiscount));
+            row.put("savings", orderSavings);
+            double savingsPct = orderGross.compareTo(BigDecimal.ZERO)>0 ? orderSavings.divide(orderGross,6,java.math.RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)).doubleValue() : 0.0;
+            row.put("savingsPercent", savingsPct);
             orderRows.add(row);
 
             totalGross = totalGross.add(orderGross);
-            totalNet = totalNet.add(order.getTotalAmount() != null ? order.getTotalAmount() : BigDecimal.ZERO);
+            totalNet = totalNet.add(orderNet);
             totalManufacturerDiscount = totalManufacturerDiscount.add(orderManufacturerDiscount);
-            totalDealerDiscount = totalDealerDiscount.add(orderDealerDiscount);
-            totalBaseQuotationDiscount = totalBaseQuotationDiscount.add(orderBaseDiscount);
-            totalDealerLevelShare = totalDealerLevelShare.add(orderDealerLevelShare);
+            totalDiscountSavings = totalDiscountSavings.add(orderSavings);
         }
 
         double effectivePercent = totalGross.compareTo(BigDecimal.ZERO) > 0 ?
                 totalManufacturerDiscount.divide(totalGross, 6, java.math.RoundingMode.HALF_UP)
                         .multiply(BigDecimal.valueOf(100)).doubleValue() : 0.0;
+
+        double savingsPercentOverall = totalGross.compareTo(BigDecimal.ZERO)>0 ? totalDiscountSavings.divide(totalGross,6,java.math.RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)).doubleValue() : 0.0;
+        model.addAttribute("totalDiscountSavings", totalDiscountSavings);
+        model.addAttribute("discountSavingsPercent", savingsPercentOverall);
+        model.addAttribute("reimbursementDue", totalManufacturerDiscount); // alias for clarity
 
         // build policy breakdown list
         List<Map<String,Object>> policyBreakdown = new ArrayList<>();
@@ -170,18 +160,9 @@ public class EvmSettlementController {
         model.addAttribute("policyBreakdown", policyBreakdown);
         model.addAttribute("statusFilter", statusFilter);
         model.addAttribute("dealerFilter", dealerFilter);
+        model.addAttribute("policyFilter", policyFilter);
         model.addAttribute("statuses", SaleOrderStatus.values());
         model.addAttribute("dealers", dealerDAO.getAllDealers());
-        model.addAttribute("totalDealerDiscount", totalDealerDiscount);
-        model.addAttribute("totalBaseQuotationDiscount", totalBaseQuotationDiscount);
-        model.addAttribute("totalSaved", totalDealerDiscount.add(totalManufacturerDiscount).add(totalBaseQuotationDiscount));
-        model.addAttribute("totalDealerLevelShare", totalDealerLevelShare);
-
-        double aggregatedDealerLevelSharePercent = (totalManufacturerDiscount.compareTo(BigDecimal.ZERO) > 0)
-                ? totalDealerLevelShare.divide(totalManufacturerDiscount, 6, java.math.RoundingMode.HALF_UP)
-                    .multiply(BigDecimal.valueOf(100)).doubleValue()
-                : 0.0;
-        model.addAttribute("aggregatedDealerLevelSharePercent", aggregatedDealerLevelSharePercent);
 
         return "evmPage/evmManufacturerSettlement";
     }

@@ -99,7 +99,7 @@ public class DAOSaleOrder {
                     SELECT so.SaleOrderID, so.CreatedAt, so.Status, so.TotalAmount, so.Quantity,
                            so.PlannedDeliveryDate, so.ActualDeliveryDate, so.EtaDays,
                            c.CustomerID, c.FullName AS CustomerName, c.Email AS CustomerEmail, c.Phone AS CustomerPhone, c.Address AS CustomerAddress,
-                           d.DealerID, d.DealerName, d.Email AS DealerEmail, d.Phone AS DealerPhone, d.Address AS DealerAddress,
+                           d.DealerID, d.DealerName, d.Email AS DealerEmail, d.Phone AS DealerPhone, d.Address AS DealerAddress, d.LevelID AS DealerLevelID,
                            s.StaffID, s.FullName AS StaffName
                     FROM SaleOrder so
                     JOIN Customer c ON so.CustomerID = c.CustomerID
@@ -141,6 +141,8 @@ public class DAOSaleOrder {
                 dealer.setEmail(rs.getString("DealerEmail"));
                 dealer.setPhone(rs.getString("DealerPhone"));
                 dealer.setAddress(rs.getString("DealerAddress"));
+                // NEW: set level id
+                try { dealer.setLevelID(rs.getInt("DealerLevelID")); } catch (Exception ignore) {}
                 order.setDealer(dealer);
 
                 // Staff
@@ -169,7 +171,7 @@ public class DAOSaleOrder {
                     SELECT so.SaleOrderID, so.CreatedAt, so.Status, so.TotalAmount, so.Quantity,
                            so.PlannedDeliveryDate, so.ActualDeliveryDate, so.EtaDays,
                            c.CustomerID, c.FullName AS CustomerName, c.Email AS CustomerEmail, c.Phone AS CustomerPhone, c.Address AS CustomerAddress,
-                           d.DealerID, d.DealerName, d.Email AS DealerEmail, d.Phone AS DealerPhone, d.Address AS DealerAddress,
+                           d.DealerID, d.DealerName, d.Email AS DealerEmail, d.Phone AS DealerPhone, d.Address AS DealerAddress, d.LevelID AS DealerLevelID,
                            s.StaffID, s.FullName AS StaffName
                     FROM SaleOrder so
                     JOIN Customer c ON so.CustomerID = c.CustomerID
@@ -211,6 +213,8 @@ public class DAOSaleOrder {
                 d.setEmail(rs.getString("DealerEmail"));
                 d.setPhone(rs.getString("DealerPhone"));
                 d.setAddress(rs.getString("DealerAddress"));
+                // NEW: set level id for single order retrieval
+                try { d.setLevelID(rs.getInt("DealerLevelID")); } catch (Exception ignore) {}
                 order.setDealer(d);
 
                 DTODealerStaff s = new DTODealerStaff();
@@ -239,7 +243,7 @@ public class DAOSaleOrder {
                            vc.ColorID, vc.ColorName,
                            vv.VersionID, vv.VersionName,
                            vm.ModelID, vm.ModelName, vm.BasePrice AS ModelBasePrice,
-                           dp.PolicyID AS MPolicyID, dp.PolicyName,
+                           dp.PolicyID AS MPolicyID, dp.PolicyName, dp.DiscountPercent AS PolicyDiscountPercent, dp.DiscountAmount AS PolicyDiscountAmount,
                            di.VIN,
                            q.DiscountPercent AS BaseQuotationDiscountPercent
                     FROM SaleOrderDetail sod
@@ -287,6 +291,8 @@ public class DAOSaleOrder {
                     discountPolicy = new DTODiscountPolicy();
                     discountPolicy.setPolicyID(mPolicyId);
                     discountPolicy.setPolicyName(rs.getString("PolicyName"));
+                    try { discountPolicy.setDiscountPercent(rs.getBigDecimal("PolicyDiscountPercent")); } catch (Exception ignore) {}
+                    try { discountPolicy.setDiscountAmount(rs.getBigDecimal("PolicyDiscountAmount")); } catch (Exception ignore) {}
                 }
                 DTOSaleOrderDetail detail = new DTOSaleOrderDetail();
                 detail.setSoDetailID(rs.getInt("SODetailID"));
@@ -325,7 +331,7 @@ public class DAOSaleOrder {
                            vc.ColorID, vc.ColorName,
                            vv.VersionID, vv.VersionName,
                            vm.ModelID, vm.ModelName, vm.BasePrice AS ModelBasePrice,
-                           dp.PolicyID AS MPolicyID, dp.PolicyName,
+                           dp.PolicyID AS MPolicyID, dp.PolicyName, dp.DiscountPercent AS PolicyDiscountPercent, dp.DiscountAmount AS PolicyDiscountAmount,
                            di.VIN,
                            q.DiscountPercent AS BaseQuotationDiscountPercent
                     FROM SaleOrderDetail sod
@@ -373,6 +379,8 @@ public class DAOSaleOrder {
                         discountPolicy = new DTODiscountPolicy();
                         discountPolicy.setPolicyID(mPolicyId);
                         discountPolicy.setPolicyName(rs.getString("PolicyName"));
+                        try { discountPolicy.setDiscountPercent(rs.getBigDecimal("PolicyDiscountPercent")); } catch (Exception ignore) {}
+                        try { discountPolicy.setDiscountAmount(rs.getBigDecimal("PolicyDiscountAmount")); } catch (Exception ignore) {}
                     }
                     DTOSaleOrderDetail detail = new DTOSaleOrderDetail();
                     detail.setSoDetailID(rs.getInt("SODetailID"));

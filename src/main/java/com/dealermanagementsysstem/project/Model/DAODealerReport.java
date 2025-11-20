@@ -14,31 +14,88 @@ public class DAODealerReport {
 
     public Map<String, Object> getSalesKpis(Integer dealerId, java.sql.Date fromDate, java.sql.Date toDate) {
         Map<String, Object> kpi = new HashMap<>();
-        String sqlOrders = """
+        String sqlNet = """
             SELECT COUNT(*) AS TotalOrders,
                    COALESCE(SUM(CAST(Quantity AS INT)),0) AS TotalVehicles,
-                   COALESCE(SUM(CAST(TotalAmount AS DECIMAL(18,2))),0) AS TotalRevenue
+                   COALESCE(SUM(CAST(TotalAmount AS DECIMAL(18,2))),0) AS NetRevenue
             FROM SaleOrder
             WHERE (? IS NULL OR DealerID = ?)
               AND (? IS NULL OR ? IS NULL OR CreatedAt BETWEEN ? AND ?)
         """;
+        String sqlGross = """
+            SELECT COALESCE(SUM(CAST(sod.GrossUnitPrice AS DECIMAL(18,2)) * CAST(ISNULL(sod.Quantity,1) AS INT)),0) AS GrossRevenue
+            FROM SaleOrder so
+            JOIN SaleOrderDetail sod ON sod.SaleOrderID = so.SaleOrderID
+            WHERE (? IS NULL OR so.DealerID = ?)
+              AND (? IS NULL OR ? IS NULL OR so.CreatedAt BETWEEN ? AND ?)
+        """;
         try (Connection conn = DBUtils.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sqlOrders)) {
-            ps.setObject(1, dealerId);
-            ps.setObject(2, dealerId);
-            ps.setObject(3, fromDate);
-            ps.setObject(4, toDate);
-            ps.setObject(5, fromDate);
-            ps.setObject(6, toDate);
-            try (ResultSet rs = ps.executeQuery()) {
+             PreparedStatement psNet = conn.prepareStatement(sqlNet);
+             PreparedStatement psGross = conn.prepareStatement(sqlGross)) {
+            // Net params
+            psNet.setObject(1, dealerId); psNet.setObject(2, dealerId);
+            psNet.setObject(3, fromDate); psNet.setObject(4, toDate); psNet.setObject(5, fromDate); psNet.setObject(6, toDate);
+            java.math.BigDecimal netRevenue = java.math.BigDecimal.ZERO; int totalOrders = 0; int totalVehicles = 0;
+            try (ResultSet rs = psNet.executeQuery()) {
                 if (rs.next()) {
-                    kpi.put("totalOrders", rs.getInt("TotalOrders"));
-                    kpi.put("totalVehicles", rs.getInt("TotalVehicles"));
-                    kpi.put("totalRevenue", rs.getBigDecimal("TotalRevenue"));
+                    totalOrders = rs.getInt("TotalOrders");
+                    totalVehicles = rs.getInt("TotalVehicles");
+                    netRevenue = rs.getBigDecimal("NetRevenue");
+                    if (netRevenue == null) netRevenue = java.math.BigDecimal.ZERO;
                 }
+            }
+            // Gross params
+            psGross.setObject(1, dealerId); psGross.setObject(2, dealerId);
+            psGross.setObject(3, fromDate); psGross.setObject(4, toDate); psGross.setObject(5, fromDate); psGross.setObject(6, toDate);
+            java.math.BigDecimal grossRevenue = java.math.BigDecimal.ZERO;
+            try (ResultSet rs2 = psGross.executeQuery()) {
+                if (rs2.next()) {
+                    grossRevenue = rs2.getBigDecimal("GrossRevenue");
+                    if (grossRevenue == null) grossRevenue = java.math.BigDecimal.ZERO;
+                }
+            }
+            kpi.put("totalOrders", totalOrders);
+            kpi.put("totalVehicles", totalVehicles);
+            kpi.put("grossRevenue", grossRevenue); // BEFORE discounts
+            kpi.put("netRevenue", netRevenue);     // AFTER discounts (current sale order total)
+            kpi.put("discountSavings", grossRevenue.subtract(netRevenue));
+            java.math.BigDecimal savings = grossRevenue.subtract(netRevenue);
+            double savingsPct = (grossRevenue.compareTo(java.math.BigDecimal.ZERO) > 0)
+                    ? savings.divide(grossRevenue, 6, java.math.RoundingMode.HALF_UP)
+                    .multiply(java.math.BigDecimal.valueOf(100)).doubleValue() : 0.0;
+            kpi.put("discountSavingsPercent", savingsPct);
+            if (dealerId != null) {
+                Double levelSharePercent = fetchDealerLevelSharePercent(conn, dealerId);
+                kpi.put("levelSharePercent", levelSharePercent);
+                java.math.BigDecimal dealerLevelShareTotal = netRevenue.multiply(java.math.BigDecimal.valueOf(levelSharePercent / 100.0));
+                kpi.put("dealerLevelShareTotal", dealerLevelShareTotal);
+                // Dealer income after discounts & share (net revenue + share commission)
+                kpi.put("dealerIncomeAfterShare", netRevenue.add(dealerLevelShareTotal));
             }
         } catch (SQLException ignored) { }
         return kpi;
+    }
+
+    // Helper to derive level share percent for a dealer (Bronze 5 / Silver 7 / Gold 9 / Platinum 12)
+    private Double fetchDealerLevelSharePercent(Connection externalConn, Integer dealerId) {
+        if (dealerId == null) return 0.0;
+        String sql = "SELECT dl.LevelName FROM Dealer d JOIN DealerLevel dl ON d.LevelID = dl.LevelID WHERE d.DealerID=?";
+        try (PreparedStatement ps = externalConn.prepareStatement(sql)) {
+            ps.setInt(1, dealerId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    String levelName = rs.getString("LevelName");
+                    if (levelName != null) {
+                        String n = levelName.toLowerCase();
+                        if (n.contains("platinum")) return 12.0;
+                        if (n.contains("gold")) return 9.0;
+                        if (n.contains("silver")) return 7.0;
+                        if (n.contains("bronze")) return 5.0;
+                    }
+                }
+            }
+        } catch (SQLException ignored) { }
+        return 0.0;
     }
 
     public List<Map<String, Object>> getSalesByMonth(Integer dealerId, java.sql.Date fromDate, java.sql.Date toDate) {
@@ -364,5 +421,3 @@ public class DAODealerReport {
         return m;
     }
 }
-
-

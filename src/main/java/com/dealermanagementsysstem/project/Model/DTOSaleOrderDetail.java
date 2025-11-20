@@ -126,8 +126,16 @@ public class DTOSaleOrderDetail {
         if (cachedBreakdown != null) return cachedBreakdown;
         BigDecimal grossUnit = getGrossUnitPrice()!=null? getGrossUnitPrice(): BigDecimal.ZERO;
         double dealerPct = safePct(dealerDiscountPercent);
+        // Fallback: if explicit promo percent missing, try discountPolicy percent
         double manufPct = safePct(promoDiscountPercent);
-        BigDecimal manufFixed = promoDiscountAmount; // treated per-unit (already clamped in service)
+        if (manufPct == 0.0 && discountPolicy != null && discountPolicy.getDiscountPercent() != null) {
+            manufPct = safePct(discountPolicy.getDiscountPercent().doubleValue());
+        }
+        // Fallback fixed amount from policy if line promo amount absent
+        BigDecimal manufFixed = promoDiscountAmount;
+        if ((manufFixed == null || manufFixed.compareTo(BigDecimal.ZERO) <= 0) && discountPolicy != null && discountPolicy.getDiscountAmount() != null) {
+            manufFixed = discountPolicy.getDiscountAmount();
+        }
         double basePct = safePct(baseQuotationDiscountPercent);
         cachedBreakdown = ensureService().calculate(grossUnit, dealerPct, manufPct, manufFixed, basePct);
         return cachedBreakdown;

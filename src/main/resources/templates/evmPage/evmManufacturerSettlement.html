@@ -29,6 +29,11 @@
                     <option value="">All Statuses</option>
                     <option th:each="st : ${statuses}" th:value="${st.name()}" th:text="${st.name()}" th:selected="${statusFilter == st.name()}"></option>
                 </select>
+                <label class="visually-hidden" for="policyFilterSelect">Policy</label>
+                <select id="policyFilterSelect" name="policyID" class="form-select form-select-sm">
+                    <option value="">All Policies</option>
+                    <option th:each="p : ${policyBreakdown}" th:value="${p.policyID}" th:text="${p.policyName}" th:selected="${policyFilter != null && policyFilter == p.policyID}"></option>
+                </select>
                 <button class="btn btn-sm btn-primary">
                     <i class="fas fa-filter me-1"></i>Filter
                 </button>
@@ -40,14 +45,7 @@
                 <span class="summary-icon"><i class="fas fa-file-invoice-dollar"></i></span>
                 <div class="label">Sale Orders</div>
                 <div class="value" th:text="${ordersData.size()}">0</div>
-                <div class="subnote">
-                    <span th:if="${dealerFilter == null && (statusFilter == null || statusFilter.isBlank())}">All dealers • All statuses</span>
-                    <span th:if="${dealerFilter != null || (statusFilter != null && !statusFilter.isBlank())}">
-                        <span th:if="${dealerFilter != null}">Dealer Filter Active</span>
-                        <span th:if="${dealerFilter != null && statusFilter != null && !statusFilter.isBlank()}"> • </span>
-                        <span th:if="${statusFilter != null && !statusFilter.isBlank()}" th:text="'Status: ' + ${statusFilter}"></span>
-                    </span>
-                </div>
+                <div class="subnote" th:text="${dealerFilter != null ? 'Dealer Filter Active' : 'All Dealers'}"></div>
             </div>
             <div class="summary-card gross">
                 <span class="summary-icon"><i class="fas fa-layer-group"></i></span>
@@ -60,39 +58,20 @@
                 <div class="value text-mono" th:text="'$' + ${#numbers.formatDecimal(totalNet,0,'COMMA',0,'POINT')}">$0</div>
             </div>
             <div class="summary-card discount">
-                <span class="summary-icon"><i class="fas fa-tags"></i></span>
-                <div class="label">Manufacturer Discount</div>
-                <div class="value text-mono disc-positive" th:text="'$' + ${#numbers.formatDecimal(totalManufacturerDiscount,0,'COMMA',0,'POINT')}">$0</div>
+                <span class="summary-icon"><i class="fas fa-handshake"></i></span>
+                <div class="label">Reimbursement Due</div>
+                <div class="value text-mono" th:text="'$' + ${#numbers.formatDecimal(reimbursementDue,0,'COMMA',0,'POINT')}">$0</div>
             </div>
             <div class="summary-card discount">
-                <span class="summary-icon"><i class="fas fa-store"></i></span>
-                <div class="label">Dealer Discounts</div>
-                <div class="value text-mono" th:text="'$' + ${#numbers.formatDecimal(totalDealerDiscount,0,'COMMA',0,'POINT')}">$0</div>
-            </div>
-            <div class="summary-card discount">
-                <span class="summary-icon"><i class="fas fa-receipt"></i></span>
-                <div class="label">Base Quotation Discount</div>
-                <div class="value text-mono" th:text="'$' + ${#numbers.formatDecimal(totalBaseQuotationDiscount,0,'COMMA',0,'POINT')}">$0</div>
-            </div>
-            <div class="summary-card discount">
-                <span class="summary-icon"><i class="fas fa-piggy-bank"></i></span>
-                <div class="label">Total Saved</div>
-                <div class="value text-mono" th:text="${T(utils.NumberFormatUtil).formatCurrency(totalSaved)}">$0</div>
+                <span class="summary-icon"><i class="fas fa-scissors"></i></span>
+                <div class="label">Discount Savings</div>
+                <div class="value text-mono" th:text="'$' + ${#numbers.formatDecimal(totalDiscountSavings,0,'COMMA',0,'POINT')}">$0</div>
+                <div class="subnote" th:text="${#numbers.formatDecimal(discountSavingsPercent,2,0)} + '%'">0%</div>
             </div>
             <div class="summary-card percent">
                 <span class="summary-icon"><i class="fas fa-percent"></i></span>
-                <div class="label">Effective Manufacturer %</div>
+                <div class="label">Effective % (Gross)</div>
                 <div class="value" th:text="${#numbers.formatDecimal(effectivePercent,2,0)} + '%'">0%</div>
-            </div>
-            <div class="summary-card discount">
-                <span class="summary-icon"><i class="fas fa-share-alt"></i></span>
-                <div class="label">Dealer Level Share</div>
-                <div class="value text-mono" th:text="${T(utils.NumberFormatUtil).formatCurrency(totalDealerLevelShare)}">$0</div>
-            </div>
-            <div class="summary-card percent">
-                <span class="summary-icon"><i class="fas fa-chart-line"></i></span>
-                <div class="label">Level Share % (of Manuf Disc)</div>
-                <div class="value" th:text="${#numbers.formatDecimal(aggregatedDealerLevelSharePercent,2,0)} + '%'">0%</div>
             </div>
         </div>
         <!-- Policy Breakdown -->
@@ -125,7 +104,7 @@
                 <table class="table table-sm table-settle mb-0">
                     <thead>
                     <tr>
-                        <th>ID</th><th>Created</th><th>Dealer</th><th>Status</th><th>Gross</th><th>Net</th><th>Manuf Disc</th><th>Dealer Disc (Cum)</th><th>Base Disc (Cum)</th><th>Level Share</th><th>Level Share %</th><th>Saved</th><th>% Gross</th><th>Policies</th><th></th>
+                        <th>ID</th><th>Created</th><th>Dealer</th><th>Status</th><th>Gross</th><th>Net</th><th>Manuf Disc</th><th>% Gross</th><th>Savings</th><th>Savings %</th><th>Policies</th><th></th>
                     </tr>
                     </thead>
                     <tbody>
@@ -136,11 +115,10 @@
                         <td><span class="badge-status" th:classappend="' ' + ${r.order.status}" th:text="${r.order.status}"></span></td>
                         <td class="text-mono" th:text="${T(utils.NumberFormatUtil).formatCurrency(r.gross)}"></td>
                         <td class="text-mono" th:text="${T(utils.NumberFormatUtil).formatCurrency(r.net)}"></td>
-                        <td class="text-mono disc-positive" th:text="${T(utils.NumberFormatUtil).formatCurrency(r.manufDiscount)}"></td>
-                        <td class="text-mono" th:text="${T(utils.NumberFormatUtil).formatCurrency(r.dealerDiscount)}"></td>
-                        <td class="text-mono" th:text="${T(utils.NumberFormatUtil).formatCurrency(r.baseDiscount)}"></td>
-                        <td class="text-mono" th:text="${T(utils.NumberFormatUtil).formatCurrency(r.dealerLevelShare)}" th:title="${r.dealerLevelSharePercent + '% of manufacturer discount'}"></td>
-                        <td class="text-mono" th:text="${#numbers.formatDecimal(r.dealerLevelSharePercent,2,0)} + '%'">0%</td>
+                        <td class="text-mono" th:text="${T(utils.NumberFormatUtil).formatCurrency(r.manufDiscount)}"></td>
+                        <td class="text-mono" th:text="${#numbers.formatDecimal(r.manufPercent,2,0)} + '%'">0%</td>
+                        <td class="text-mono" th:text="${T(utils.NumberFormatUtil).formatCurrency(r.savings)}"></td>
+                        <td th:text="${#numbers.formatDecimal(r.savingsPercent,2,0)} + '%'">0%</td>
                         <td class="policies-list">
                             <span th:each="pn : ${r.policyNames}" class="badge-policy" th:text="${pn}"></span>
                             <span th:if="${r.policyNames == null or r.policyNames.isEmpty()}" class="text-muted">—</span>
