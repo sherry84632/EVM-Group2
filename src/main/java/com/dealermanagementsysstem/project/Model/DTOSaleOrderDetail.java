@@ -1,5 +1,6 @@
 package com.dealermanagementsysstem.project.Model;
 
+import com.dealermanagementsysstem.project.service.DiscountCalculationService;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 
@@ -113,84 +114,46 @@ public class DTOSaleOrderDetail {
     public void setBaseQuotationDiscountPercent(Double baseQuotationDiscountPercent) { this.baseQuotationDiscountPercent = baseQuotationDiscountPercent; }
 
     // ================== DISCOUNT CALCULATION HELPERS ==================
-    private double safePct(Double v) { return (v != null && v > 0) ? v : 0.0; }
+    @Transient
+    private DiscountCalculationService.DiscountBreakdown cachedBreakdown;
+
+    private DiscountCalculationService ensureService(){ return new DiscountCalculationService(); }
+
+    private double safePct(Double v){ return (v!=null && v>0)? v : 0.0; }
 
     @Transient
-    public BigDecimal getDealerDiscountAmountPerUnit() {
-        double pct = safePct(dealerDiscountPercent);
-        if (pct <= 0) return BigDecimal.ZERO;
-        BigDecimal gross = getGrossUnitPrice() != null ? getGrossUnitPrice() : BigDecimal.ZERO;
-        return gross.multiply(BigDecimal.valueOf(pct / 100.0));
-    }
-
-    @Transient
-    public BigDecimal getPriceAfterDealerPerUnit() {
-        BigDecimal gross = getGrossUnitPrice() != null ? getGrossUnitPrice() : BigDecimal.ZERO;
-        return gross.subtract(getDealerDiscountAmountPerUnit());
-    }
-
-    @Transient
-    public BigDecimal getPromoDiscountAmountPerUnit() {
-        BigDecimal afterDealer = getPriceAfterDealerPerUnit();
-        if (afterDealer.compareTo(BigDecimal.ZERO) <= 0) return BigDecimal.ZERO;
-        // Percentage manufacturer discount
-        double promoPct = safePct(promoDiscountPercent);
-        if (promoPct > 0) {
-            return afterDealer.multiply(BigDecimal.valueOf(promoPct / 100.0));
-        }
-        // Fixed amount (treat as per-unit if provided); clamp not to exceed afterDealer
-        if (promoDiscountAmount != null && promoDiscountAmount.compareTo(BigDecimal.ZERO) > 0) {
-            return promoDiscountAmount.min(afterDealer);
-        }
-        return BigDecimal.ZERO;
-    }
-
-    @Transient
-    public BigDecimal getPriceAfterManufacturerPerUnit() {
-        return getPriceAfterDealerPerUnit().subtract(getPromoDiscountAmountPerUnit());
-    }
-
-    @Transient
-    public BigDecimal getBaseQuotationDiscountAmountPerUnit() {
-        BigDecimal afterManufacturer = getPriceAfterManufacturerPerUnit();
+    private DiscountCalculationService.DiscountBreakdown computeBreakdown(){
+        if (cachedBreakdown != null) return cachedBreakdown;
+        BigDecimal grossUnit = getGrossUnitPrice()!=null? getGrossUnitPrice(): BigDecimal.ZERO;
+        double dealerPct = safePct(dealerDiscountPercent);
+        double manufPct = safePct(promoDiscountPercent);
+        BigDecimal manufFixed = promoDiscountAmount; // treated per-unit (already clamped in service)
         double basePct = safePct(baseQuotationDiscountPercent);
-        if (basePct <= 0) return BigDecimal.ZERO;
-        return afterManufacturer.multiply(BigDecimal.valueOf(basePct / 100.0));
+        cachedBreakdown = ensureService().calculate(grossUnit, dealerPct, manufPct, manufFixed, basePct);
+        return cachedBreakdown;
     }
 
-    @Transient
-    public BigDecimal getPriceAfterBaseQuotationPerUnit() {
-        return getPriceAfterManufacturerPerUnit().subtract(getBaseQuotationDiscountAmountPerUnit());
-    }
+    // Per-unit amounts via service
+    @Transient public BigDecimal getDealerDiscountAmountPerUnit(){ return computeBreakdown().dealerAmount(); }
+    @Transient public BigDecimal getPromoDiscountAmountPerUnit(){ return computeBreakdown().manufacturerAmount(); }
+    @Transient public BigDecimal getBaseQuotationDiscountAmountPerUnit(){ return computeBreakdown().baseAmount(); }
+    @Transient public BigDecimal getNetUnitPrice(){ return computeBreakdown().finalNet(); }
 
-    @Transient
-    public BigDecimal getNetUnitPrice() {
-        // If price already stored (persisted net), use it; else compute full stacking.
-        if (price != null) return price;
-        BigDecimal net = getPriceAfterBaseQuotationPerUnit();
-        return net.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : net;
-    }
+    // Convenience formatted helpers (use NumberFormatUtil)
+    @Transient public String getFormattedDealerDiscountPerUnit(){ return utils.NumberFormatUtil.formatCurrency(getDealerDiscountAmountPerUnit()); }
+    @Transient public String getFormattedManufacturerDiscountPerUnit(){ return utils.NumberFormatUtil.formatCurrency(getPromoDiscountAmountPerUnit()); }
+    @Transient public String getFormattedBaseQuotationDiscountPerUnit(){ return utils.NumberFormatUtil.formatCurrency(getBaseQuotationDiscountAmountPerUnit()); }
+    @Transient public String getFormattedDealerDiscountTotal(){ return utils.NumberFormatUtil.formatCurrency(getDealerDiscountTotal()); }
+    @Transient public String getFormattedManufacturerDiscountTotal(){ return utils.NumberFormatUtil.formatCurrency(getPromoDiscountTotal()); }
+    @Transient public String getFormattedBaseQuotationDiscountTotal(){ return utils.NumberFormatUtil.formatCurrency(getBaseQuotationDiscountTotal()); }
+    @Transient public String getFormattedSavedPerUnit(){ return utils.NumberFormatUtil.formatCurrency(getDealerDiscountAmountPerUnit().add(getPromoDiscountAmountPerUnit()).add(getBaseQuotationDiscountAmountPerUnit())); }
+    @Transient public String getFormattedSavedTotal(){ return utils.NumberFormatUtil.formatCurrency(getDealerDiscountTotal().add(getPromoDiscountTotal()).add(getBaseQuotationDiscountTotal())); }
 
-    @Transient
-    public BigDecimal getDealerDiscountTotal() {
-        return getDealerDiscountAmountPerUnit().multiply(BigDecimal.valueOf(getQuantity()));
-    }
-
-    @Transient
-    public BigDecimal getPromoDiscountTotal() {
-        return getPromoDiscountAmountPerUnit().multiply(BigDecimal.valueOf(getQuantity()));
-    }
-
-    @Transient
-    public BigDecimal getBaseQuotationDiscountTotal() {
-        return getBaseQuotationDiscountAmountPerUnit().multiply(BigDecimal.valueOf(getQuantity()));
-    }
-
-    @Transient
-    public BigDecimal getLineTotal() {
-        // Net * quantity
-        return getNetUnitPrice().multiply(BigDecimal.valueOf(getQuantity()));
-    }
+    // Totals (unit * quantity)
+    @Transient public BigDecimal getDealerDiscountTotal(){ return getDealerDiscountAmountPerUnit().multiply(BigDecimal.valueOf(getQuantity())); }
+    @Transient public BigDecimal getPromoDiscountTotal(){ return getPromoDiscountAmountPerUnit().multiply(BigDecimal.valueOf(getQuantity())); }
+    @Transient public BigDecimal getBaseQuotationDiscountTotal(){ return getBaseQuotationDiscountAmountPerUnit().multiply(BigDecimal.valueOf(getQuantity())); }
+    @Transient public BigDecimal getLineTotal(){ return getNetUnitPrice().multiply(BigDecimal.valueOf(getQuantity())); }
 
     public String getFormattedUnitPrice() { return utils.NumberFormatUtil.formatCurrency(getNetUnitPrice()); }
     public String getFormattedLineTotal() { return utils.NumberFormatUtil.formatCurrency(getLineTotal()); }

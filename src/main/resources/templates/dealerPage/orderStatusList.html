@@ -331,7 +331,7 @@
                     <p><i class="fa-solid fa-user me-2"></i> Staff: <span th:text="${order.staff?.fullName ?: 'N/A'}"></span></p>
                     <p><i class="fa-solid fa-id-card me-2"></i> Staff ID: <span th:text="${order.staff?.staffID ?: 'N/A'}"></span></p>
                     <p><i class="fa-solid fa-dollar-sign me-2"></i> Total:
-                        <span th:text="${order.totalAmount != null ? ('$' + #numbers.formatDecimal(order.totalAmount, 1, 0)) : '$0'}"></span>
+                        <span th:text="${order.totalAmount != null ? T(utils.NumberFormatUtil).formatCurrency(order.totalAmount) : '$0'}"></span>
                     </p>
                     <p><i class="fa-solid fa-calendar-day me-2"></i>
                         <span th:text="${#dates.format(order.createdAt, 'dd/MM/yyyy HH:mm')}"></span>

@@ -309,7 +309,7 @@
                                                                                               th:text="${order.totalQuantity}">0</span>
                         </div>
                         <div class="info-item"><span class="info-label">Total Amount</span><span class="info-value"
-                                                                                                 th:text="'$' + ${#numbers.formatDecimal(order.totalAmount, 0, 'COMMA', 0, 'POINT')}">$0</span>
+                                                                                                 th:text="${T(utils.NumberFormatUtil).formatCurrency(order.totalAmount)}">$0</span>
                         </div>
                     </div>
                     <div class="status-actions" th:unless="${isReadOnly}">
@@ -428,12 +428,13 @@
                                 <th>Model</th>
                                 <th>Version</th>
                                 <th>Color</th>
-                                <th>Dealer Disc (%)</th>
-                                <th>Promo Code</th>
-                                <th>Promo %</th>
-                                <th>Promo Amt</th>
-                                <th>Policy</th>
-                                <th>Unit Net</th>
+                                <th>Dealer %</th>
+                                <th>Dealer Disc</th>
+                                <th>Manuf %</th>
+                                <th>Manuf Disc</th>
+                                <th>Base %</th>
+                                <th>Base Disc</th>
+                                <th>Net Unit</th>
                                 <th>Qty</th>
                                 <th>Line Total</th>
                             </tr>
@@ -445,11 +446,12 @@
                                 <td th:text="${d.vehicle?.version?.model?.modelName ?: '-'}"></td>
                                 <td th:text="${d.vehicle?.version?.versionName ?: '-'}"></td>
                                 <td th:text="${d.vehicle?.color?.colorName ?: '-'}"></td>
-                                <td th:text="${d.dealerDiscountPercent != null ? d.dealerDiscountPercent + '%' : '—'}"></td>
-                                <td th:text="${d.promoCode != null ? d.promoCode : '—'}"></td>
-                                <td th:text="${d.promoDiscountPercent != null ? d.promoDiscountPercent + '%' : '—'}"></td>
-                                <td th:text="${d.promoDiscountAmount != null ? '$' + #numbers.formatDecimal(d.promoDiscountAmount,0,'COMMA',0,'POINT') : '—'}"></td>
-                                <td th:text="${d.discountPolicy != null ? d.discountPolicy.policyName : (d.promoPolicyID != null ? 'Policy #' + d.promoPolicyID : '—')}"></td>
+                                <td th:text="${d.dealerDiscountPercent != null ? d.dealerDiscountPercent + '%' : '\u2014'}"></td>
+                                <td th:text="${d.getDealerDiscountAmountPerUnit() != null ? T(utils.NumberFormatUtil).formatCurrency(d.getDealerDiscountAmountPerUnit()) : '\u2014'}"></td>
+                                <td th:text="${d.promoDiscountPercent != null ? d.promoDiscountPercent + '%' : (d.discountPolicy != null ? '0%' : '\u2014')}"></td>
+                                <td th:text="${d.getPromoDiscountAmountPerUnit() != null ? T(utils.NumberFormatUtil).formatCurrency(d.getPromoDiscountAmountPerUnit()) : '\u2014'}"></td>
+                                <td th:text="${d.baseQuotationDiscountPercent != null ? d.baseQuotationDiscountPercent + '%' : (order.quotation != null && order.quotation.discountPercent != null ? order.quotation.discountPercent + '%' : '\u2014')}"></td>
+                                <td th:text="${d.getBaseQuotationDiscountAmountPerUnit() != null ? T(utils.NumberFormatUtil).formatCurrency(d.getBaseQuotationDiscountAmountPerUnit()) : '\u2014'}"></td>
                                 <td th:text="${d.getFormattedUnitPrice()}"></td>
                                 <td th:text="${d.quantity}"></td>
                                 <td th:text="${d.getFormattedLineTotal()}"></td>
@@ -476,23 +478,23 @@
                             </div>
                             <div class="summary-item">
                                 <span>Gross Total</span>
-                                <span th:text="'$' + ${#numbers.formatDecimal(grossTotal != null ? grossTotal : 0,0,'COMMA',0,'POINT')}">$0</span>
+                                <span th:text="${T(utils.NumberFormatUtil).formatCurrency(grossTotal != null ? grossTotal : 0)}">$0</span>
                             </div>
                             <div class="summary-item">
                                 <span>Dealer Disc Total</span>
-                                <span th:text="'$' + ${#numbers.formatDecimal(dealerDiscountTotal != null ? dealerDiscountTotal : 0,0,'COMMA',0,'POINT')}">$0</span>
+                                <span th:text="${T(utils.NumberFormatUtil).formatCurrency(dealerDiscountTotal != null ? dealerDiscountTotal : 0)}">$0</span>
                             </div>
                             <div class="summary-item">
                                 <span>Promo Disc Total</span>
-                                <span th:text="'$' + ${#numbers.formatDecimal(promoDiscountTotal != null ? promoDiscountTotal : 0,0,'COMMA',0,'POINT')}">$0</span>
+                                <span th:text="${T(utils.NumberFormatUtil).formatCurrency(promoDiscountTotal != null ? promoDiscountTotal : 0)}">$0</span>
                             </div>
                             <div class="summary-item">
                                 <span>Base Quotation Disc</span>
-                                <span th:text="'$' + ${#numbers.formatDecimal(baseQuotationDiscountTotal != null ? baseQuotationDiscountTotal : 0,0,'COMMA',0,'POINT')}">$0</span>
+                                <span th:text="${T(utils.NumberFormatUtil).formatCurrency(baseQuotationDiscountTotal != null ? baseQuotationDiscountTotal : 0)}">$0</span>
                             </div>
                             <div class="summary-item">
                                 <span>Net Total</span>
-                                <span th:text="'$' + ${#numbers.formatDecimal(order.totalAmount,0,'COMMA',0,'POINT')}">$0</span>
+                                <span th:text="${T(utils.NumberFormatUtil).formatCurrency(order.totalAmount)}">$0</span>
                             </div>
                         </div>
                     </div>

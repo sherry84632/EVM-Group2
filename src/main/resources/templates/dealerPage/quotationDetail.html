@@ -227,17 +227,26 @@
                                     <th>Color</th>
                                     <th>Unit Price</th>
                                     <th>Dealer %</th>
+                                    <th>Dealer Disc</th>
                                     <th>Manuf %</th>
+                                    <th>Manuf Disc</th>
+                                    <th>Base %</th>
+                                    <th>Base Disc</th>
                                     <th>Qty</th>
                                     <th>Subtotal</th>
                                     <th>Net After Discounts</th>
                                 </tr>
                                 </thead>
                                 <tbody>
-                                <tr th:each="detail,iter : ${details}" th:with="promoClass=${(detail.promoDiscountPercent != null and detail.promoDiscountPercent > 0) or (detail.promoPolicy != null)} ? ' line-manufacturer' : ''" th:classappend="${quotationLocked} ? 'table-secondary' : '' + promoClass">
+                                <tr th:each="detail,iter : ${details}"
+                                    th:with="promoClass=${(detail.promoDiscountPercent != null and detail.promoDiscountPercent > 0) or (detail.promoPolicy != null)} ? ' line-manufacturer' : ''"
+                                    th:class="${quotationLocked} ? 'table-secondary' : ''"
+                                    th:classappend="${promoClass}">
                                     <td>
                                         <span th:text="${detail.modelName ?: 'N/A'}"></span>
-                                        <span th:if="${detail.promoPolicy != null}" class="badge-policy" th:classappend="${detail.promoDiscountPercent != null && detail.promoDiscountPercent > 0}? ' badge-policy-active' : ''" th:title="${detail.promoPolicy.policyName}">
+                                        <span th:if="${detail.promoPolicy != null}" class="badge-policy"
+                                              th:classappend="${detail.promoDiscountPercent != null and detail.promoDiscountPercent > 0}? ' badge-policy-active' : ''"
+                                              th:title="${detail.promoPolicy.policyName}">
                                             <i class="fas fa-industry"></i>
                                             <span th:text="${detail.promoPolicy.promoCode ?: detail.promoPolicy.policyName}"></span>
                                         </span>
@@ -245,25 +254,23 @@
                                     <td th:text="${detail.versionName ?: 'N/A'}"></td>
                                     <td th:text="${detail.colorName ?: 'N/A'}"></td>
                                     <td>
-                                        <strong>$<span th:text="${#numbers.formatDecimal(detail.unitPrice, 0, 'COMMA', 0, 'POINT')}"></span></strong>
-                                        <input type="hidden" name="unitPrices" th:value="${detail.unitPrice}" />
-                                        <div class="small-note" th:if="${detail.promoPolicy != null}">
-                                            <span th:if="${detail.promoDiscountPercent != null && detail.promoDiscountPercent > 0}" th:text="'Manufacturer -' + detail.promoDiscountPercent + '%'" class="text-warning"></span>
-                                            <span th:if="${(detail.promoDiscountPercent == null || detail.promoDiscountPercent == 0) && detail.promoDiscountAmount != null}" th:text="'Manufacturer - $' + #numbers.formatDecimal(detail.promoDiscountAmount,0,'COMMA',0,'POINT')" class="text-warning"></span>
-                                            <span th:if="${detail.promoDiscountPercent == null && detail.promoDiscountAmount == null}" class="text-muted">Policy applied (no discount data)</span>
-                                        </div>
+                                        <strong><span th:text="${T(utils.NumberFormatUtil).formatCurrency(detail.unitPrice)}"></span></strong>
                                     </td>
-                                    <td th:text="${detail.appliedDealerDiscountPercent != null ? detail.appliedDealerDiscountPercent + '%' : '—'}"></td>
-                                    <td th:text="${detail.promoDiscountPercent != null ? detail.promoDiscountPercent + '%' : (detail.promoPolicy != null ? '0%' : '—')}"></td>
+                                    <td th:text="${detail.appliedDealerDiscountPercent != null ? detail.appliedDealerDiscountPercent + '%' : '\u2014'}"></td>
+                                    <td th:text="${T(utils.NumberFormatUtil).formatCurrency(detail.getDealerDiscountAmountPerUnit())}"></td>
+                                    <td th:text="${detail.promoDiscountPercent != null ? detail.promoDiscountPercent + '%' : (detail.promoPolicy != null ? '0%' : '\u2014')}"></td>
+                                    <td th:text="${T(utils.NumberFormatUtil).formatCurrency(detail.getManufacturerDiscountAmountPerUnit())}"></td>
+                                    <td th:text="${detail.baseQuotationDiscountPercent != null ? detail.baseQuotationDiscountPercent + '%' : (quotation.discountPercent != null ? quotation.discountPercent + '%' : '\u2014')}"></td>
+                                    <td th:text="${T(utils.NumberFormatUtil).formatCurrency(detail.getBaseQuotationDiscountAmountPerUnit())}"></td>
                                     <td>
                                         <input type="number" min="1" class="form-control form-control-sm" name="quantities" th:value="${detail.quantity}" th:disabled="${quotationLocked}" />
                                     </td>
                                     <td>
-                                        <strong>$<span th:text="${#numbers.formatDecimal(detail.subtotal, 0, 'COMMA', 0, 'POINT')}"></span></strong>
+                                        <strong><span th:text="${T(utils.NumberFormatUtil).formatCurrency(detail.subtotal)}"></span></strong>
                                     </td>
                                     <td>
-                                        <strong class="text-success">$<span th:text="${#numbers.formatDecimal(detail.finalNetAfterAll,0,'COMMA',0,'POINT')}"></span></strong>
-                                        <div class="small-note" th:if="${detail.finalNetAfterAll != null}" th:text="'Saved: $' + ${#numbers.formatDecimal(detail.subtotal.subtract(detail.finalNetAfterAll),0,'COMMA',0,'POINT')}"></div>
+                                        <strong class="text-success"><span th:text="${T(utils.NumberFormatUtil).formatCurrency(detail.getNetUnitAfterAll())}"></span></strong>
+                                        <div class="small-note" th:text="'Saved: ' + ${T(utils.NumberFormatUtil).formatCurrency(detail.getDealerDiscountAmountPerUnit().add(detail.getManufacturerDiscountAmountPerUnit()).add(detail.getBaseQuotationDiscountAmountPerUnit()))}"></div>
                                     </td>
                                     <input type="hidden" name="detailIds" th:value="${detail.quotationDetailID}" />
                                 </tr>

@@ -240,7 +240,8 @@ public class DAOSaleOrder {
                            vv.VersionID, vv.VersionName,
                            vm.ModelID, vm.ModelName, vm.BasePrice AS ModelBasePrice,
                            dp.PolicyID AS MPolicyID, dp.PolicyName,
-                           di.VIN
+                           di.VIN,
+                           q.DiscountPercent AS BaseQuotationDiscountPercent
                     FROM SaleOrderDetail sod
                     JOIN Vehicle v ON sod.VehicleID = v.VehicleID
                     LEFT JOIN VehicleColor vc ON v.ColorID = vc.ColorID
@@ -248,6 +249,8 @@ public class DAOSaleOrder {
                     LEFT JOIN VehicleModel vm ON vv.ModelID = vm.ModelID
                     LEFT JOIN DiscountPolicy dp ON sod.PolicyID = dp.PolicyID
                     LEFT JOIN DealerInventory di ON di.VehicleID = v.VehicleID
+                    LEFT JOIN SaleOrder so ON so.SaleOrderID = sod.SaleOrderID
+                    LEFT JOIN Quotation q ON so.QuotationID = q.QuotationID
                     WHERE sod.SaleOrderID = ?
                 """;
         try (Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -300,6 +303,9 @@ public class DAOSaleOrder {
                 if (discountPolicy != null) detail.setDiscountPolicy(discountPolicy);
                 detail.setVin(rs.getString("VIN") != null ? rs.getString("VIN") : "N/A");
                 detail.setGrossUnitPrice(rs.getBigDecimal("GrossUnitPrice"));
+                // populate base quotation discount percent (transient)
+                Double basePct = (Double) rs.getObject("BaseQuotationDiscountPercent");
+                if (basePct != null) detail.setBaseQuotationDiscountPercent(basePct);
                 details.add(detail);
             }
         } catch (SQLException e) {
@@ -320,7 +326,8 @@ public class DAOSaleOrder {
                            vv.VersionID, vv.VersionName,
                            vm.ModelID, vm.ModelName, vm.BasePrice AS ModelBasePrice,
                            dp.PolicyID AS MPolicyID, dp.PolicyName,
-                           di.VIN
+                           di.VIN,
+                           q.DiscountPercent AS BaseQuotationDiscountPercent
                     FROM SaleOrderDetail sod
                     JOIN Vehicle v ON sod.VehicleID = v.VehicleID
                     LEFT JOIN VehicleColor vc ON v.ColorID = vc.ColorID
@@ -328,6 +335,8 @@ public class DAOSaleOrder {
                     LEFT JOIN VehicleModel vm ON vv.ModelID = vm.ModelID
                     LEFT JOIN DiscountPolicy dp ON sod.PolicyID = dp.PolicyID
                     LEFT JOIN DealerInventory di ON di.VehicleID = v.VehicleID
+                    LEFT JOIN SaleOrder so ON so.SaleOrderID = sod.SaleOrderID
+                    LEFT JOIN Quotation q ON so.QuotationID = q.QuotationID
                     WHERE sod.SODetailID = ?
                 """;
         try (Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -380,6 +389,8 @@ public class DAOSaleOrder {
                     if (discountPolicy != null) detail.setDiscountPolicy(discountPolicy);
                     detail.setVin(rs.getString("VIN") != null ? rs.getString("VIN") : "N/A");
                     detail.setGrossUnitPrice(rs.getBigDecimal("GrossUnitPrice"));
+                    Double basePct = (Double) rs.getObject("BaseQuotationDiscountPercent");
+                    if (basePct != null) detail.setBaseQuotationDiscountPercent(basePct);
                     return detail;
                 }
             }
@@ -465,6 +476,25 @@ public class DAOSaleOrder {
                 updateDeliveryInfo(order.getSaleOrderID(), order.getPlannedDeliveryDate(), order.getActualDeliveryDate(), order.getEtaDays());
             }
         }
+    }
+    /**
+     * Get total quantity of vehicles sold (COMPLETED sale orders) by a dealer.
+     * Uses header Quantity which we populate as sum of detail units.
+     */
+    public int getTotalCompletedQuantityByDealer(int dealerID) {
+        String sql = "SELECT COALESCE(SUM(Quantity),0) AS SoldQty FROM SaleOrder WHERE DealerID=? AND Status='COMPLETED'";
+        try (java.sql.Connection conn = utils.DBUtils.getConnection();
+             java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, dealerID);
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("SoldQty");
+                }
+            }
+        } catch (java.sql.SQLException e) {
+            org.slf4j.LoggerFactory.getLogger(DAOSaleOrder.class).error("Failed getTotalCompletedQuantityByDealer dealerID={}", dealerID, e);
+        }
+        return 0;
     }
 
 }

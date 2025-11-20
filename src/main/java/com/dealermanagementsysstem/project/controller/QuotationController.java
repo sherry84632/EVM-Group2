@@ -1202,44 +1202,103 @@ public class QuotationController {
     }
 
     @PostMapping("/delete/{id}")
-    public String deleteQuotation(@PathVariable int id, RedirectAttributes ra) {
-        if (dao.isQuotationLocked(id)) { ra.addFlashAttribute("error","Quotation locked by completed sale order; cannot delete."); return "redirect:/quotation/detail/"+id; }
+    public String deleteQuotation(@PathVariable int id,
+                                   @RequestParam(name="force", required=false, defaultValue="false") boolean force,
+                                   RedirectAttributes ra) {
+        if (dao.isQuotationLocked(id)) {
+            if (force) {
+                ra.addFlashAttribute("error","Quotation has COMPLETED sale orders; cannot force delete.");
+            } else {
+                ra.addFlashAttribute("error","Quotation locked by completed sale order; cannot delete.");
+            }
+            return "redirect:/quotation/detail/"+id;
+        }
         try {
-            boolean ok = dao.deleteQuotation(id);
-            ra.addFlashAttribute(ok?"message":"error", ok?"Quotation deleted successfully":"Failed to delete quotation");
+            boolean ok;
+            if (force) {
+                ok = dao.forceDeleteQuotation(id);
+            } else {
+                ok = dao.deleteQuotation(id);
+            }
+            if (ok) {
+                ra.addFlashAttribute("message", force?"✅ Force deleted quotation":"✅ Quotation deleted successfully");
+            } else {
+                // gather refs for diagnostics
+                java.util.List<DTOSaleOrder> refs = dao.getSaleOrderRefs(id);
+                if (!refs.isEmpty()) {
+                    StringBuilder sb = new StringBuilder();
+                    sb.append("❌ Cannot delete. Referenced by sale orders: ");
+                    for (DTOSaleOrder so : refs) {
+                        sb.append('#').append(so.getSaleOrderID()).append('(').append(so.getStatus()).append(") ");
+                    }
+                    if (force) sb.append(" | Completed orders block force delete.");
+                    ra.addFlashAttribute("error", sb.toString());
+                } else {
+                    ra.addFlashAttribute("error", "❌ Failed to delete quotation (unknown reason)");
+                }
+            }
         } catch (Exception e) {
-            ra.addFlashAttribute("error", "Exception deleting quotation: " + e.getMessage());
+            String errorMsg = e.getMessage();
+            if (errorMsg != null && errorMsg.contains("sale order")) {
+                ra.addFlashAttribute("error", "⚠️ Cannot delete quotation: " + errorMsg + (force?" (force ignored)":""));
+            } else {
+                ra.addFlashAttribute("error", "❌ Exception deleting quotation: " + errorMsg);
+            }
         }
         return "redirect:/quotation/list";
     }
 
     @PostMapping("/update")
-    public String batchUpdateQuotation(
-            @RequestParam int quotationID,
-            @RequestParam(name="discountPercent", required=false) Double discountPercent,
-            @RequestParam(name="detailIds", required=false) List<Integer> detailIds,
-            @RequestParam(name="unitPrices", required=false) List<Double> unitPrices,
-            @RequestParam(name="quantities", required=false) List<Integer> quantities,
-            RedirectAttributes ra) {
-        if (dao.isQuotationLocked(quotationID)) { ra.addFlashAttribute("error","Quotation locked by completed sale order. Create a new quotation instead."); return "redirect:/quotation/detail/"+quotationID; }
-        DTOQuotation q = dao.getQuotationById(quotationID);
-        if (q == null) { ra.addFlashAttribute("error","Quotation not found"); return "redirect:/quotation/list"; }
-        // Update detail lines
-        if (detailIds != null && unitPrices != null && quantities != null) {
-            int updated = 0; int len = Math.min(detailIds.size(), Math.min(unitPrices.size(), quantities.size()));
-            for (int i=0;i<len;i++) {
-                Integer id = detailIds.get(i); Double price = unitPrices.get(i); Integer qty = quantities.get(i);
-                if (id == null) continue; java.math.BigDecimal priceBD = price!=null? java.math.BigDecimal.valueOf(Math.max(0, price)) : java.math.BigDecimal.ZERO;
-                if (dao.updateQuotationDetailFields(id, priceBD, qty!=null?qty:1)) updated++;
+    public String bulkUpdateQuotation(@RequestParam int quotationID,
+                                      @RequestParam(value = "detailIds", required = false) List<Integer> detailIds,
+                                      @RequestParam(value = "quantities", required = false) List<Integer> quantities,
+                                      @RequestParam(value = "discountPercent", required = false) Double discountPercent,
+                                      RedirectAttributes ra) {
+        try {
+            // Guard: locked quotation
+            if (dao.isQuotationLocked(quotationID)) {
+                ra.addFlashAttribute("error", "Quotation is locked; cannot update.");
+                return "redirect:/quotation/detail/" + quotationID;
             }
-            ra.addFlashAttribute("message", "Updated " + updated + " line(s)");
+            boolean anyQtyChanged = false;
+            if (detailIds != null && quantities != null) {
+                if (detailIds.size() != quantities.size()) {
+                    ra.addFlashAttribute("error", "Mismatched detailIds and quantities length.");
+                    return "redirect:/quotation/detail/" + quotationID;
+                }
+                for (int i = 0; i < detailIds.size(); i++) {
+                    int dId = detailIds.get(i);
+                    int qty = quantities.get(i) != null ? quantities.get(i) : 1;
+                    if (qty < 1) qty = 1;
+                    boolean ok = dao.updateQuotationDetailQuantity(dId, qty);
+                    if (ok) anyQtyChanged = true; else ra.addFlashAttribute("error", "Failed updating line id=" + dId);
+                }
+            }
+            boolean discountChanged = false;
+            if (discountPercent != null) {
+                // Validate range 0-80 (business rule from form attributes)
+                if (discountPercent < 0 || discountPercent > 80) {
+                    ra.addFlashAttribute("error", "Discount percent out of allowed range (0-80). Not applied.");
+                } else {
+                    // Update discount; method already triggers recalc
+                    discountChanged = dao.updateQuotationDiscount(quotationID, discountPercent);
+                    if (!discountChanged) ra.addFlashAttribute("error", "Failed updating base discount percent.");
+                }
+            }
+            // Recalc totals once if quantity changed but discount not handled (avoid double recalc when discountChanged)
+            if (anyQtyChanged && !discountChanged) {
+                dao.recalcQuotationTotal(quotationID);
+            }
+            if (!anyQtyChanged && !discountChanged) {
+                ra.addFlashAttribute("message", "No changes detected.");
+            } else {
+                String msg = (anyQtyChanged ? "Updated quantities. " : "") + (discountChanged ? "Updated base discount." : "");
+                ra.addFlashAttribute("message", msg.trim());
+            }
+        } catch (Exception ex) {
+            log.error("bulkUpdateQuotation failed quotationID={}", quotationID, ex);
+            ra.addFlashAttribute("error", "Bulk update failed: " + ex.getMessage());
         }
-        // Update base discount only now
-        if (discountPercent != null) {
-            double clamped = Math.max(0.0, Math.min(80.0, discountPercent));
-            dao.updateQuotationDiscount(quotationID, clamped);
-        }
-        dao.recalcQuotationTotal(quotationID);
         return "redirect:/quotation/detail/" + quotationID;
     }
 }

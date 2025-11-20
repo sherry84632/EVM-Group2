@@ -1,5 +1,5 @@
-<div id="sideBar" th:fragment="navBar" class="mainSideBar d-flex flex-column flex-shrink-0 p-3 text-white">
-    <img th:src="@{/images/logo.png}" style="width: 100%;">
+<div id="sideBar" th:fragment="navBar" class="mainSideBar d-flex flex-column flex-shrink-0 p-3 text-white" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+    <img th:src="@{/images/logo.png}" alt="Logo" style="width: 100%;">
     <hr>
     <ul class="nav nav-pills flex-column mb-auto">
         <li>
@@ -38,6 +38,13 @@
             <a href="/dealer/staff/list" class="nav-link text-white">
                 <i class="fa-solid fa-users-gear"></i>
                 Staff Management
+            </a>
+        </li>
+        <!-- Dealer Level Dashboard - for DEALER and DEALERSTAFF -->
+        <li sec:authorize="hasAnyRole('DEALER','DEALERSTAFF')">
+            <a href="/dealer/level" class="nav-link text-white">
+                <i class="fa-solid fa-trophy"></i>
+                Dealer Level
             </a>
         </li>
         <!-- System Settings - ADMIN and EVMSTAFF only -->

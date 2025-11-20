@@ -158,6 +158,11 @@ public class DTODiscountPolicy {
     @Deprecated
     public void setLevelID(Integer levelID) { this.levelID = levelID; }
 
+    @Deprecated
+    public void setDealer(DTODealer dealer) {
+        this.dealerID = dealer != null ? dealer.getDealerID() : null;
+    }
+
     // HELPER METHODS
 
     /**

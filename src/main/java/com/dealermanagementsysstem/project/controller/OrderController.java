@@ -1,6 +1,7 @@
 package com.dealermanagementsysstem.project.controller;
 
 import com.dealermanagementsysstem.project.Model.*;
+import com.dealermanagementsysstem.project.service.DiscountCalculationService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -196,6 +197,10 @@ public class OrderController {
         int computedTotalQty = 0;
         java.math.BigDecimal computedTotalAmount = java.math.BigDecimal.ZERO;
         List<ShortageInfo> shortages = new ArrayList<>();
+        DiscountCalculationService calcService = new DiscountCalculationService();
+        java.math.BigDecimal perOrderDealerDiscountTotal = java.math.BigDecimal.ZERO;
+        java.math.BigDecimal perOrderManufacturerDiscountTotal = java.math.BigDecimal.ZERO;
+        java.math.BigDecimal perOrderBaseDiscountTotal = java.math.BigDecimal.ZERO;
 
         if (quotation.getQuotationDetails() != null && !quotation.getQuotationDetails().isEmpty()) {
             for (DTOQuotationDetail qd : quotation.getQuotationDetails()) {
@@ -216,21 +221,14 @@ public class OrderController {
                 java.math.BigDecimal unitGross = qd.getUnitPrice()!=null? qd.getUnitPrice(): java.math.BigDecimal.ZERO;
                 double dealerPct = qd.getAppliedDealerDiscountPercent() != null ? qd.getAppliedDealerDiscountPercent() : 0.0;
                 double manufPct = qd.getPromoDiscountPercent() != null ? qd.getPromoDiscountPercent() : 0.0;
+                java.math.BigDecimal manufFixedAmt = qd.getPromoDiscountAmount();
                 double basePct = quotation.getDiscountPercent() != null ? quotation.getDiscountPercent() : 0.0;
-                // Apply stacking: dealer -> manufacturer -> base quotation
-                java.math.BigDecimal afterDealer = unitGross.multiply(java.math.BigDecimal.valueOf(1 - dealerPct/100.0));
-                java.math.BigDecimal afterManufacturer;
-                if (qd.getPromoDiscountAmount() != null && qd.getPromoDiscountAmount().compareTo(java.math.BigDecimal.ZERO) > 0 && manufPct == 0.0) {
-                    // fixed amount per unit (clamped)
-                    java.math.BigDecimal fixed = qd.getPromoDiscountAmount().min(afterDealer);
-                    afterManufacturer = afterDealer.subtract(fixed);
-                } else {
-                    afterManufacturer = afterDealer.multiply(java.math.BigDecimal.valueOf(1 - manufPct/100.0));
-                }
-                java.math.BigDecimal unitNet = afterManufacturer.multiply(java.math.BigDecimal.valueOf(1 - basePct/100.0));
+                var breakdown = calcService.calculate(unitGross, dealerPct, manufPct, manufFixedAmt, basePct);
+                java.math.BigDecimal unitNet = breakdown.finalNet();
+                perOrderDealerDiscountTotal = perOrderDealerDiscountTotal.add(breakdown.dealerAmount().multiply(java.math.BigDecimal.valueOf(lineQty)));
+                perOrderManufacturerDiscountTotal = perOrderManufacturerDiscountTotal.add(breakdown.manufacturerAmount().multiply(java.math.BigDecimal.valueOf(lineQty)));
+                perOrderBaseDiscountTotal = perOrderBaseDiscountTotal.add(breakdown.baseAmount().multiply(java.math.BigDecimal.valueOf(lineQty)));
                 if (unitNet.compareTo(java.math.BigDecimal.ZERO) < 0) unitNet = java.math.BigDecimal.ZERO;
-
-                // If DTOQuotationDetail already has finalNetAfterAll (without base discount) update for reference
                 qd.setFinalNetAfterAll(unitNet);
 
                 for (int i=0;i<lineQty;i++) {
@@ -267,7 +265,9 @@ public class OrderController {
             double basePct = quotation.getDiscountPercent() != null ? quotation.getDiscountPercent() : 0.0;
             java.math.BigDecimal gross = java.math.BigDecimal.valueOf(quotation.getTotalPrice())
                     .divide(java.math.BigDecimal.valueOf(Math.max(1, qtyFallback)), java.math.MathContext.DECIMAL64);
-            java.math.BigDecimal net = gross.multiply(java.math.BigDecimal.valueOf(1 - basePct/100.0));
+            var breakdown = calcService.calculate(gross, 0.0, 0.0, null, basePct);
+            java.math.BigDecimal net = breakdown.finalNet();
+            perOrderBaseDiscountTotal = perOrderBaseDiscountTotal.add(breakdown.baseAmount().multiply(java.math.BigDecimal.valueOf(qtyFallback)));
             sod.setGrossUnitPrice(gross);
             sod.setBaseQuotationDiscountPercent(basePct);
             sod.setPrice(net);
@@ -301,6 +301,10 @@ public class OrderController {
         order.setTotalQuantity(computedTotalQty);
         order.setTotalAmount(computedTotalAmount);
         order.setDetail(details);
+        // expose discount totals for later settlement if needed via flash attributes
+        ra.addFlashAttribute("dealerDiscountTotalOrder", perOrderDealerDiscountTotal);
+        ra.addFlashAttribute("manufacturerDiscountTotalOrder", perOrderManufacturerDiscountTotal);
+        ra.addFlashAttribute("baseQuotationDiscountTotalOrder", perOrderBaseDiscountTotal);
         order.setStatus(SaleOrderStatus.valueOf(normalized));
 
         // === Gọi DAO để insert ===
@@ -456,9 +460,40 @@ public class OrderController {
                     if (vehicleId != null) {
                         // CHỈ đánh dấu SOLD, KHÔNG xóa khỏi inventory để giữ VIN cho sale order detail
                         inventoryDAO.markVehicleAsSold(vehicleId);
-                        // NOTE: Không gọi removeVehicleByID() vì sẽ mất VIN trong sale order detail
                     }
                 }
+            }
+            // ===== AUTO UPGRADE DEALER LEVEL =====
+            try {
+                if (order.getDealer() != null) {
+                    int dealerID = order.getDealer().getDealerID();
+                    int soldQty = dao.getTotalCompletedQuantityByDealer(dealerID); // cumulative completed qty
+                    DAODealer dealerDAO = new DAODealer();
+                    DTODealer dealerEntity = dealerDAO.getDealerById(dealerID);
+                    if (dealerEntity != null) {
+                        // Fetch actual levels from DB
+                        java.util.List<DTODealerLevel> levels = dealerDAO.getAllDealerLevels();
+                        // Map wanted tier names
+                        String targetTierName;
+                        if (soldQty >= 100) targetTierName = "Platinum Dealer"; else if (soldQty >= 50) targetTierName = "Gold Dealer"; else if (soldQty >= 20) targetTierName = "Silver Dealer"; else targetTierName = "Bronze Dealer";
+                        int currentLevelId = dealerEntity.getLevelID();
+                        int targetLevelId = currentLevelId;
+                        for (DTODealerLevel lvl : levels) {
+                            if (lvl.getLevelName() != null && lvl.getLevelName().equalsIgnoreCase(targetTierName)) {
+                                targetLevelId = lvl.getLevelID();
+                                break;
+                            }
+                        }
+                        if (targetLevelId != currentLevelId) {
+                            boolean upgraded = dealerDAO.updateDealerLevel(dealerID, targetLevelId);
+                            if (upgraded) {
+                                ra.addFlashAttribute("message", " Dealer auto-upgraded to " + targetTierName + " (" + soldQty + " xe đã bán)");
+                            }
+                        }
+                    }
+                }
+            } catch (Exception ex) {
+                ra.addFlashAttribute("error", "Không thể tự động nâng cấp cấp độ dealer: " + ex.getMessage());
             }
         }
 

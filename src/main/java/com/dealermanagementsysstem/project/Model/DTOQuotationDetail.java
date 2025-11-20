@@ -1,5 +1,6 @@
 package com.dealermanagementsysstem.project.Model;
 
+import com.dealermanagementsysstem.project.service.DiscountCalculationService;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 
@@ -55,6 +56,44 @@ public class DTOQuotationDetail {
     private Double baseQuotationDiscountPercent; // new transient percent from parent quotation
     @Transient
     private java.math.BigDecimal baseQuotationDiscountAmount; // computed per line after manufacturer discount
+
+    @Transient
+    private DiscountCalculationService.DiscountBreakdown cachedBreakdown;
+
+    private DiscountCalculationService ensureService(){ return new DiscountCalculationService(); }
+
+    @Transient
+    private DiscountCalculationService.DiscountBreakdown computeBreakdown(){
+        if (cachedBreakdown != null) return cachedBreakdown;
+        java.math.BigDecimal grossUnit = unitPrice!=null? unitPrice : java.math.BigDecimal.ZERO;
+        // promoDiscountAmount is assumed per-unit (normalize if line-level mistakenly stored)
+        java.math.BigDecimal promoFixedPerUnit = promoDiscountAmount;
+        double dealerPct = appliedDealerDiscountPercent!=null? appliedDealerDiscountPercent : 0.0;
+        double manufPct = promoDiscountPercent!=null? promoDiscountPercent : 0.0;
+        double basePct = baseQuotationDiscountPercent!=null? baseQuotationDiscountPercent : (quotation!=null && quotation.getDiscountPercent()!=null? quotation.getDiscountPercent():0.0);
+        cachedBreakdown = ensureService().calculate(grossUnit, dealerPct, manufPct, promoFixedPerUnit, basePct);
+        return cachedBreakdown;
+    }
+
+    // === Unified per-unit discount amounts using service ===
+    @Transient
+    public java.math.BigDecimal getDealerDiscountAmountPerUnit(){ return computeBreakdown().dealerAmount(); }
+    @Transient
+    public java.math.BigDecimal getManufacturerDiscountAmountPerUnit(){ return computeBreakdown().manufacturerAmount(); }
+    @Transient
+    public java.math.BigDecimal getBaseQuotationDiscountAmountPerUnit(){ return computeBreakdown().baseAmount(); }
+    @Transient
+    public java.math.BigDecimal getNetUnitAfterAll(){ return computeBreakdown().finalNet(); }
+
+    // === Totals (unit * quantity) ===
+    @Transient
+    public java.math.BigDecimal getDealerDiscountTotal(){ return getDealerDiscountAmountPerUnit().multiply(java.math.BigDecimal.valueOf(Math.max(1, quantity))); }
+    @Transient
+    public java.math.BigDecimal getManufacturerDiscountTotal(){ return getManufacturerDiscountAmountPerUnit().multiply(java.math.BigDecimal.valueOf(Math.max(1, quantity))); }
+    @Transient
+    public java.math.BigDecimal getBaseQuotationDiscountTotal(){ return getBaseQuotationDiscountAmountPerUnit().multiply(java.math.BigDecimal.valueOf(Math.max(1, quantity))); }
+    @Transient
+    public java.math.BigDecimal getNetAfterFullStack(){ return getNetUnitAfterAll().multiply(java.math.BigDecimal.valueOf(Math.max(1, quantity))); }
 
     public DTOQuotationDetail() {
     }
@@ -181,49 +220,6 @@ public class DTOQuotationDetail {
     // Helper: safe percent
     private double safePct(Double v){ return (v!=null && v>0)? v : 0.0; }
 
-    @Transient
-    public java.math.BigDecimal getDealerDiscountAmount(){
-        double pct = safePct(appliedDealerDiscountPercent);
-        java.math.BigDecimal sub = getSubtotal();
-        return pct>0? sub.multiply(java.math.BigDecimal.valueOf(pct/100.0)) : java.math.BigDecimal.ZERO;
-    }
-    @Transient
-    public java.math.BigDecimal getAfterDealer(){
-        return getSubtotal().subtract(getDealerDiscountAmount());
-    }
-    @Transient
-    public java.math.BigDecimal getManufacturerDiscountAmount(){
-        java.math.BigDecimal afterDealer = getAfterDealer();
-        if (afterDealer.compareTo(java.math.BigDecimal.ZERO)<=0) return java.math.BigDecimal.ZERO;
-        double promoPct = safePct(promoDiscountPercent);
-        if (promoPct>0){
-            return afterDealer.multiply(java.math.BigDecimal.valueOf(promoPct/100.0));
-        }
-        if (promoDiscountAmount!=null && promoDiscountAmount.compareTo(java.math.BigDecimal.ZERO)>0){
-            // treat promoDiscountAmount as total for the line if originally stored per line; clamp
-            java.math.BigDecimal fixed = promoDiscountAmount.multiply(java.math.BigDecimal.valueOf(Math.max(1, quantity)));
-            return fixed.min(afterDealer);
-        }
-        return java.math.BigDecimal.ZERO;
-    }
-    @Transient
-    public java.math.BigDecimal getAfterManufacturer(){
-        return getAfterDealer().subtract(getManufacturerDiscountAmount());
-    }
-    @Transient
-    public java.math.BigDecimal getBaseQuotationDiscountAmountComputed(){
-        java.math.BigDecimal afterManufacturer = getAfterManufacturer();
-        double basePct = safePct(baseQuotationDiscountPercent);
-        if (afterManufacturer.compareTo(java.math.BigDecimal.ZERO)<=0 || basePct<=0) return java.math.BigDecimal.ZERO;
-        return afterManufacturer.multiply(java.math.BigDecimal.valueOf(basePct/100.0));
-    }
-    @Transient
-    public java.math.BigDecimal getNetAfterFullStack(){
-        java.math.BigDecimal net = getAfterManufacturer().subtract(getBaseQuotationDiscountAmountComputed());
-        if (net.compareTo(java.math.BigDecimal.ZERO)<0) net = java.math.BigDecimal.ZERO;
-        return net;
-    }
-
     /**
      * Tính giá cuối cùng sau khi áp dụng MÃ GIẢM GIÁ CỦA HÃNG
      * Áp dụng theo thứ tự:
@@ -254,4 +250,16 @@ public class DTOQuotationDetail {
     public void setFinalNetAfterAll(java.math.BigDecimal v) {
         this.finalNetAfterAll = v;
     }
+
+    // Legacy helpers kept for compatibility but delegate
+    @Transient
+    public java.math.BigDecimal getDealerDiscountAmount(){ return getDealerDiscountTotal(); }
+    @Transient
+    public java.math.BigDecimal getAfterDealer(){ return computeBreakdown().afterDealer().multiply(java.math.BigDecimal.valueOf(Math.max(1, quantity))); }
+    @Transient
+    public java.math.BigDecimal getManufacturerDiscountAmount(){ return getManufacturerDiscountTotal(); }
+    @Transient
+    public java.math.BigDecimal getAfterManufacturer(){ return computeBreakdown().afterManufacturer().multiply(java.math.BigDecimal.valueOf(Math.max(1, quantity))); }
+    @Transient
+    public java.math.BigDecimal getBaseQuotationDiscountAmountComputed(){ return getBaseQuotationDiscountTotal(); }
 }

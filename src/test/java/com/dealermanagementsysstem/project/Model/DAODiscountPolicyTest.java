@@ -47,7 +47,8 @@ public class DAODiscountPolicyTest {
     public void testCreateDiscountPolicy() {
         System.out.println("\n--- TC_CREATE_01: Create Discount Policy ---");
 
-        DTODealer dealer = daoDealer.getDealerById(testDealerId);
+        DTODealer dealer = null;
+        try { dealer = daoDealer.getDealerById(testDealerId); } catch (java.sql.SQLException e) { fail("Dealer fetch threw SQLException: "+e.getMessage()); }
         assertNotNull(dealer, "Test dealer should exist");
 
         DTODiscountPolicy policy = new DTODiscountPolicy();
@@ -243,7 +244,8 @@ public class DAODiscountPolicyTest {
     public void testDiscountPercentagesValidation() {
         System.out.println("\n--- TC_CREATE_02: Validate Discount Percentages ---");
 
-        DTODealer dealer = daoDealer.getDealerById(testDealerId);
+        DTODealer dealer = null;
+        try { dealer = daoDealer.getDealerById(testDealerId); } catch (java.sql.SQLException e) { fail("Dealer fetch threw SQLException: "+e.getMessage()); }
 
         DTODiscountPolicy policy = new DTODiscountPolicy();
         policy.setDealer(dealer);
@@ -281,8 +283,12 @@ public class DAODiscountPolicyTest {
 
         // Delete test dealer
         if (testDealerId > 0) {
-            boolean deleted = daoDealer.deleteDealer(testDealerId);
-            System.out.println((deleted ? "✅" : "⚠️") + " Test dealer " + testDealerId + " removed");
+            try {
+                boolean deleted = daoDealer.deleteDealer(testDealerId);
+                System.out.println((deleted ? "✅" : "⚠️") + " Test dealer " + testDealerId + " removed");
+            } catch (java.sql.SQLException e) {
+                System.out.println("⚠️ Failed deleting test dealer: "+e.getMessage());
+            }
         }
 
         System.out.println("=".repeat(80));
@@ -290,4 +296,3 @@ public class DAODiscountPolicyTest {
         System.out.println("=".repeat(80));
     }
 }
-

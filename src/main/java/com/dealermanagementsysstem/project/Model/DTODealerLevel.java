@@ -20,6 +20,9 @@ public class DTODealerLevel {
     @Column(name = "MaxOrderValue")
     private java.math.BigDecimal maxOrderValue;
 
+    @Transient
+    private Double discountSharePercent; // computed, not stored
+
     public DTODealerLevel() {
     }
 
@@ -54,5 +57,17 @@ public class DTODealerLevel {
     public void setMaxOrderValue(java.math.BigDecimal maxOrderValue) {
         this.maxOrderValue = maxOrderValue;
     }
-}
 
+    public Double getDiscountSharePercent() {
+        if (discountSharePercent != null) return discountSharePercent;
+        if (levelName == null) return 0.0;
+        String n = levelName.toLowerCase();
+        double pct = 0.0;
+        if (n.contains("platinum")) pct = 12.0;
+        else if (n.contains("gold")) pct = 9.0;
+        else if (n.contains("silver")) pct = 7.0;
+        else if (n.contains("bronze")) pct = 5.0;
+        discountSharePercent = pct;
+        return discountSharePercent;
+    }
+}

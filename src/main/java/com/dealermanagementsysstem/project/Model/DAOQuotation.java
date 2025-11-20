@@ -1,6 +1,7 @@
 package com.dealermanagementsysstem.project.Model;
 
 import utils.DBUtils;
+import com.dealermanagementsysstem.project.service.DiscountCalculationService;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -593,14 +594,28 @@ public class DAOQuotation {
 
     //  Create quotation if not exists, return existing or new QuotationID
     public int createQuotationIfNotExists(int dealerID, int customerID, int staffID, int levelID) {
-        Integer existing = findExistingQuotationId(dealerID, customerID); if (existing != null) return existing;
+        Integer existing = findExistingQuotationId(dealerID, customerID);
+        if (existing != null) {
+            // If existing quotation is NOT locked, reuse it; else create a fresh quotation
+            boolean locked = isQuotationLocked(existing);
+            if (!locked) {
+                return existing; // reuse unlocked quotation
+            } else {
+                log.info("Existing quotation {} for dealer {} & customer {} is locked; creating a new quotation", existing, dealerID, customerID);
+            }
+        }
         DTOQuotation q = new DTOQuotation();
         DTODealer d = new DTODealer(); d.setDealerID(dealerID); q.setDealer(d);
         DTOCustomer c = new DTOCustomer(); c.setCustomerID(customerID); q.setCustomer(c);
         q.setCreatedAt(new java.sql.Timestamp(System.currentTimeMillis()));
-        q.setStatus(QuotationStatus.CREATED); q.setTotalPrice(0); q.setQuantity(0); q.setLevelID(levelID);
+        q.setStatus(QuotationStatus.CREATED);
+        q.setTotalPrice(0);
+        q.setQuantity(0);
+        q.setLevelID(levelID);
         q.setDiscountPercent(0.0);
-        if (staffID > 0) { DTODealerStaff s = new DTODealerStaff(); s.setStaffID(staffID); q.setStaff(s); }
+        if (staffID > 0) {
+            DTODealerStaff s = new DTODealerStaff(); s.setStaffID(staffID); q.setStaff(s);
+        }
         return insertQuotation(q);
     }
 
@@ -751,9 +766,25 @@ public class DAOQuotation {
         int totalQty = details.stream().mapToInt(DTOQuotationDetail::getQuantity).sum();
         java.math.BigDecimal finalNetSum = java.math.BigDecimal.ZERO;
         java.math.BigDecimal grossSum = java.math.BigDecimal.ZERO;
+        DiscountCalculationService calcService = new DiscountCalculationService();
+        Double basePct = null;
+        // fetch base discount percent from quotation record
+        DTOQuotation q = getQuotationById(quotationID);
+        if (q != null && q.getDiscountPercent() != null) basePct = q.getDiscountPercent();
         for (DTOQuotationDetail d : details) {
             grossSum = grossSum.add(d.getSubtotal());
-            java.math.BigDecimal net = d.getFinalNetAfterAll() != null ? d.getFinalNetAfterAll() : d.getNetAfterAllDiscounts();
+            java.math.BigDecimal net;
+            if (d.getFinalNetAfterAll() != null) {
+                net = d.getFinalNetAfterAll();
+            } else {
+                double dealerPct = d.getAppliedDealerDiscountPercent() != null ? d.getAppliedDealerDiscountPercent() : 0.0;
+                double manufPct = d.getPromoDiscountPercent() != null ? d.getPromoDiscountPercent() : 0.0;
+                java.math.BigDecimal manufFixed = d.getPromoDiscountAmount();
+                double base = basePct != null ? basePct : 0.0;
+                var breakdown = calcService.calculate(d.getUnitPrice(), dealerPct, manufPct, manufFixed, base);
+                net = breakdown.finalNet().multiply(java.math.BigDecimal.valueOf(Math.max(1, d.getQuantity())));
+                d.setFinalNetAfterAll(breakdown.finalNet());
+            }
             finalNetSum = finalNetSum.add(net);
         }
         String sql = "UPDATE Quotation SET TotalAmount = ?, Quantity = ? WHERE QuotationID = ?";
@@ -762,7 +793,7 @@ public class DAOQuotation {
             ps.setInt(2, totalQty);
             ps.setInt(3, quotationID);
             ps.executeUpdate();
-            log.info("Recalculated quotation total (with promo): gross={}, finalNet={} qty={}", grossSum, finalNetSum, totalQty);
+            log.info("Recalculated quotation total (stacked): gross={}, finalNet={} qty={}", grossSum, finalNetSum, totalQty);
         } catch (SQLException e) {
             log.error("Failed updating aggregates quotationID={}", quotationID, e);
         }
@@ -914,36 +945,43 @@ public class DAOQuotation {
 
     //  Delete Quotation
     public boolean deleteQuotation(int quotationID) {
+        String sqlCheckSaleOrders = "SELECT COUNT(*) FROM SaleOrder WHERE QuotationID=?";
         String sqlDetails = "DELETE FROM QuotationDetail WHERE QuotationID=?";
         String sqlQuotation = "DELETE FROM Quotation WHERE QuotationID=?";
+
         try (java.sql.Connection conn = utils.DBUtils.getConnection()) {
-            conn.setAutoCommit(false);
-            try (java.sql.PreparedStatement ps1 = conn.prepareStatement(sqlDetails)) {
-                ps1.setInt(1, quotationID); ps1.executeUpdate();
+            // Check if any sale orders reference this quotation
+            try (java.sql.PreparedStatement psCheck = conn.prepareStatement(sqlCheckSaleOrders)) {
+                psCheck.setInt(1, quotationID);
+                try (java.sql.ResultSet rs = psCheck.executeQuery()) {
+                    if (rs.next() && rs.getInt(1) > 0) {
+                        log.warn("Cannot delete quotation id={} - referenced by {} sale order(s)", quotationID, rs.getInt(1));
+                        throw new java.sql.SQLException("Cannot delete quotation: " + rs.getInt(1) + " sale order(s) reference this quotation. Delete or update sale orders first.");
+                    }
+                }
             }
+
+            conn.setAutoCommit(false);
+            // Delete details first
+            try (java.sql.PreparedStatement ps1 = conn.prepareStatement(sqlDetails)) {
+                ps1.setInt(1, quotationID);
+                ps1.executeUpdate();
+            }
+            // Delete quotation
             try (java.sql.PreparedStatement ps2 = conn.prepareStatement(sqlQuotation)) {
-                ps2.setInt(1, quotationID); int rows = ps2.executeUpdate();
-                if (rows > 0) { conn.commit(); org.slf4j.LoggerFactory.getLogger(DAOQuotation.class).info("Deleted quotation id={}", quotationID); return true; }
+                ps2.setInt(1, quotationID);
+                int rows = ps2.executeUpdate();
+                if (rows > 0) {
+                    conn.commit();
+                    log.info("Deleted quotation id={}", quotationID);
+                    return true;
+                }
             }
             conn.rollback();
         } catch (java.sql.SQLException e) {
-            org.slf4j.LoggerFactory.getLogger(DAOQuotation.class).error("Failed deleting quotation id={}", quotationID, e);
+            log.error("Failed deleting quotation id={}", quotationID, e);
         }
         return false;
-    }
-
-    //  Update unit price and quantity together for a quotation detail
-    public boolean updateQuotationDetailFields(int quotationDetailID, java.math.BigDecimal unitPrice, int quantity) {
-        String sql = "UPDATE QuotationDetail SET UnitPrice = ?, Quantity = ? WHERE QuotationDetailID = ?";
-        try (java.sql.Connection conn = utils.DBUtils.getConnection(); java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setBigDecimal(1, unitPrice != null ? unitPrice : java.math.BigDecimal.ZERO);
-            ps.setInt(2, Math.max(1, quantity));
-            ps.setInt(3, quotationDetailID);
-            return ps.executeUpdate() > 0;
-        } catch (java.sql.SQLException e) {
-            org.slf4j.LoggerFactory.getLogger(DAOQuotation.class).error("Failed bulk field update detailID={}", quotationDetailID, e);
-            return false;
-        }
     }
 
     /** Check if quotation has a COMPLETED sale order -> lock editing */
@@ -963,5 +1001,69 @@ public class DAOQuotation {
             try (ResultSet rs = ps.executeQuery()) { if (rs.next()) return rs.getInt("SaleOrderID"); }
         } catch (SQLException e) { log.error("getCompletedSaleOrderId failed quotationID={}", quotationID, e); }
         return null;
+    }
+
+    /** Return all sale orders referencing a quotation (ID & Status only) */
+    public java.util.List<DTOSaleOrder> getSaleOrderRefs(int quotationID) {
+        java.util.List<DTOSaleOrder> list = new java.util.ArrayList<>();
+        String sql = "SELECT SaleOrderID, Status FROM SaleOrder WHERE QuotationID=?";
+        try (java.sql.Connection conn = utils.DBUtils.getConnection();
+             java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, quotationID);
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    DTOSaleOrder so = new DTOSaleOrder();
+                    so.setSaleOrderID(rs.getInt("SaleOrderID"));
+                    try { so.setStatus(SaleOrderStatus.valueOf(rs.getString("Status"))); } catch (Exception ignore) {}
+                    list.add(so);
+                }
+            }
+        } catch (java.sql.SQLException e) {
+            log.error("Failed getSaleOrderRefs quotationID={}", quotationID, e);
+        }
+        return list;
+    }
+    /** Detach (set QuotationID=NULL) all NON-COMPLETED sale orders referencing this quotation. Returns count detached. */
+    public int detachNonCompletedSaleOrders(int quotationID) {
+        String sql = "UPDATE SaleOrder SET QuotationID=NULL WHERE QuotationID=? AND Status <> 'COMPLETED'";
+        try (java.sql.Connection conn = utils.DBUtils.getConnection();
+             java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, quotationID);
+            int rows = ps.executeUpdate();
+            if (rows > 0) log.info("Detached {} non-completed sale orders from quotation {}", rows, quotationID);
+            return rows;
+        } catch (java.sql.SQLException e) {
+            log.error("Failed detachNonCompletedSaleOrders quotationID={}", quotationID, e);
+        }
+        return 0;
+    }
+    /** Force delete: detach non-completed sale orders then attempt deletion. If any completed remain, deletion blocked. */
+    public boolean forceDeleteQuotation(int quotationID) {
+        java.util.List<DTOSaleOrder> refs = getSaleOrderRefs(quotationID);
+        if (refs.isEmpty()) return deleteQuotation(quotationID);
+        boolean hasCompleted = refs.stream().anyMatch(r -> r.getStatus()==SaleOrderStatus.COMPLETED);
+        // detach non-completed
+        detachNonCompletedSaleOrders(quotationID);
+        if (hasCompleted) {
+            log.warn("Cannot force delete quotation {} - completed sale orders remain", quotationID);
+            return false;
+        }
+        // retry normal delete (no refs should remain)
+        return deleteQuotation(quotationID);
+    }
+
+    /** Update unit price and quantity together for a quotation detail (controller batch). */
+    public boolean updateQuotationDetailFields(int quotationDetailID, java.math.BigDecimal unitPrice, int quantity) {
+        String sql = "UPDATE QuotationDetail SET UnitPrice = ?, Quantity = ? WHERE QuotationDetailID = ?";
+        try (java.sql.Connection conn = utils.DBUtils.getConnection();
+             java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setBigDecimal(1, unitPrice != null ? unitPrice : java.math.BigDecimal.ZERO);
+            ps.setInt(2, Math.max(1, quantity));
+            ps.setInt(3, quotationDetailID);
+            return ps.executeUpdate() > 0;
+        } catch (java.sql.SQLException e) {
+            log.error("updateQuotationDetailFields failed detailID={}", quotationDetailID, e);
+            return false;
+        }
     }
 }

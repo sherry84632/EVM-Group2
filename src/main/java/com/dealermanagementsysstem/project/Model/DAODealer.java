@@ -128,13 +128,13 @@ public class DAODealer {
     }
 
     // Xóa Dealer theo ID
-    public void deleteDealer(int id) throws SQLException {
+    public boolean deleteDealer(int id) throws SQLException {
         String sql = "DELETE FROM Dealer WHERE DealerID = ?";
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, id);
-            ps.executeUpdate();
+            return ps.executeUpdate() > 0;
         }
     }
 
@@ -167,5 +167,70 @@ public class DAODealer {
             e.printStackTrace();
             return null;
         }
+    }
+
+    /**
+     * Update only the LevelID for a Dealer.
+     */
+    public boolean updateDealerLevel(int dealerID, int newLevelID) {
+        String sql = "UPDATE Dealer SET LevelID=? WHERE DealerID=?";
+        try (java.sql.Connection conn = utils.DBUtils.getConnection();
+             java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, newLevelID);
+            ps.setInt(2, dealerID);
+            return ps.executeUpdate() > 0;
+        } catch (java.sql.SQLException e) {
+            System.err.println("Failed to update dealer level dealerID=" + dealerID + " levelID=" + newLevelID);
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    /**
+     * Get DealerLevel record by LevelID.
+     */
+    public DTODealerLevel getDealerLevelById(int levelID) {
+        String sql = "SELECT LevelID, LevelName, MinOrderValue, MaxOrderValue FROM DealerLevel WHERE LevelID=?";
+        try (java.sql.Connection conn = utils.DBUtils.getConnection();
+             java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, levelID);
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    DTODealerLevel lvl = new DTODealerLevel();
+                    lvl.setLevelID(rs.getInt("LevelID"));
+                    lvl.setLevelName(rs.getString("LevelName"));
+                    lvl.setMinOrderValue(rs.getBigDecimal("MinOrderValue"));
+                    lvl.setMaxOrderValue(rs.getBigDecimal("MaxOrderValue"));
+                    return lvl;
+                }
+            }
+        } catch (java.sql.SQLException e) {
+            System.err.println("Failed to get dealer level id=" + levelID);
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    /**
+     * Fetch all dealer levels from DB.
+     */
+    public java.util.List<DTODealerLevel> getAllDealerLevels() {
+        java.util.List<DTODealerLevel> list = new java.util.ArrayList<>();
+        String sql = "SELECT LevelID, LevelName, MinOrderValue, MaxOrderValue FROM DealerLevel ORDER BY LevelID";
+        try (java.sql.Connection conn = utils.DBUtils.getConnection();
+             java.sql.PreparedStatement ps = conn.prepareStatement(sql);
+             java.sql.ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                DTODealerLevel lvl = new DTODealerLevel();
+                lvl.setLevelID(rs.getInt("LevelID"));
+                lvl.setLevelName(rs.getString("LevelName"));
+                lvl.setMinOrderValue(rs.getBigDecimal("MinOrderValue"));
+                lvl.setMaxOrderValue(rs.getBigDecimal("MaxOrderValue"));
+                list.add(lvl);
+            }
+        } catch (java.sql.SQLException e) {
+            System.err.println("Failed to fetch dealer levels: " + e.getMessage());
+        }
+        return list;
     }
 }

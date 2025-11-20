@@ -279,7 +279,7 @@
                 <div class="info-row">
                     <div class="info-label">Total Amount:</div>
                     <div class="info-value">
-                        <strong th:text="${order.totalAmount != null ? ('$' + #numbers.formatDecimal(order.totalAmount, 0, 'COMMA', 0, 'POINT')) : '$0'}"></strong>
+                        <strong th:text="${order.totalAmount != null ? T(utils.NumberFormatUtil).formatCurrency(order.totalAmount) : '$0'}"></strong>
                     </div>
                 </div>
             </div>
@@ -418,11 +418,11 @@
                             <td th:text="${detail.quantity}"></td>
                             <!-- Unit Price -->
                             <td style="font-weight: bold; color: #007bff;">
-                                <span th:text="${detail.unitPrice != null ? ('$' + #numbers.formatDecimal(detail.unitPrice,0,0)) : '$0'}"></span>
+                                <span th:text="${detail.unitPrice != null ? T(utils.NumberFormatUtil).formatCurrency(detail.unitPrice) : '$0'}"></span>
                             </td>
                             <!-- Subtotal -->
                             <td style="font-weight: bold;">
-                                <span th:text="${'$' + #numbers.formatDecimal(subVal,0,0)}"></span>
+                                <span th:text="${T(utils.NumberFormatUtil).formatCurrency(subVal)}"></span>
                             </td>
                             <!-- VAT -->
                             <td style="color:#6b7280; font-weight:600;">
