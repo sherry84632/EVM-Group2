@@ -53,14 +53,6 @@
     overflow-x: hidden;
 }
 
-h1 {
-    color: #333;
-    margin-bottom: 40px;
-    text-align: center;
-    font-size: 32px;
-    font-weight: 600;
-}
-
 .form-group {
     margin-bottom: 25px;
 }
