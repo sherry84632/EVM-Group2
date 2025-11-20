@@ -44,11 +44,6 @@
     transition: box-shadow .15s ease, border-color .15s ease;
 }
 
-.form-control {
-    width: 75%;
-    margin-left: 12.5%;
-}
-
 .mainSideBar {
     width: 12%;
     height: 100vh;

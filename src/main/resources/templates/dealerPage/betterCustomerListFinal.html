@@ -161,22 +161,22 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
 
-        <div class="d-flex wrap">
-
-            <span>
-                <h1>Customer List</h1>
-            </span>
-
+        <div class="container-fluid" style="margin-bottom: 12px">
             <form action="/customer/search" method="get">
-                <input name="keyword"
-                       type="text"
-                       class="search-vehicle-list-input-control search-vehicle-list-input mb-1"
-                       placeholder="Search by customer name"
-                       th:value="${keyword}"
-                       style="margin-top: 12px;">
-                <button type="submit" class="btn btn-dark rounded-pill">Search</button>
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="input-group">
+                            <input name="keyword"
+                                   type="text"
+                                   class="form-control"
+                                   placeholder="Search by customer name"
+                                   th:value="${keyword}"
+                            >
+                            <button type="submit" class="btn btn-primary">Search</button>
+                        </div>
+                    </div>
+                </div>
             </form>
-
         </div>
 
         <div class="d-flex">

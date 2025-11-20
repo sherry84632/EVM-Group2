@@ -49,6 +49,9 @@
             font-weight: bold;
             margin: 0 8px;
         }
+        .card {
+            margin-bottom: 12px;
+        }
     </style>
 </head>
 
@@ -96,88 +99,111 @@
                         <div class="card shadow">
 
                             <div class="card-header">
-                                <div class="title">Vehicle Specifications</div>
+                                <h1>Vehicle Specifications</h1>
                             </div>
 
                             <div class="card-body">
-                                <div class="info-group">
 
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <span>Status</span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <span class="value" th:text="${vehicle.status}"></span>
+                                    </div>
                                 </div>
 
-                                <div class="info-group">
-                                    <span class="label">Status</span>
-                                    <span class="value" th:text="${vehicle.status}"></span>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <span>Color Name</span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <span class="value" th:text="${vehicle.color.colorName}"></span>
+                                    </div>
                                 </div>
 
-                                <div class="info-group">
-                                    <span class="label">Color Name</span>
-                                    <span class="value" th:text="${vehicle.color.colorName}"></span>
-                                </div>
-
-                                <div class="info-group">
-                                    <span class="label">Model Name</span>
-                                    <span class="value" th:text="${vehicle.model.modelName}"></span>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <span>Model Name</span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <span class="value" th:text="${vehicle.model.modelName}"></span>
+                                    </div>
                                 </div>
 
                                 <!-- Brand available on DTOVehicle.model.brand for Vehicle. Keep as-is. -->
 
-                                <div class="info-group">
-                                    <span class="label">Body Type</span>
-                                    <span class="value" th:text="${vehicle.model.bodyType}"></span>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <span>Body Type</span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <span class="value" th:text="${vehicle.model.bodyType}"></span>
+                                    </div>
                                 </div>
 
-                                <div class="info-group">
-                                    <span class="label">Year</span>
-                                    <span class="value" th:text="${vehicle.model.year}"></span>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <span>Year</span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <span class="value" th:text="${vehicle.model.year}"></span>
+                                    </div>
                                 </div>
 
-                                <div class="info-group">
-                                    <span class="label">Description</span>
-                                    <span class="value" th:text="${vehicle.model.description}"></span>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <span>Description</span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <span class="value" th:text="${vehicle.model.description}"></span>
+                                    </div>
                                 </div>
 
-                                <div class="info-group">
-                                    <span class="label">Base Price</span>
-                                    <span class="value" th:text="${vehicle.model.basePrice}"></span>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <span>Base Price</span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <span class="value" th:text="${vehicle.model.basePrice}"></span>
+                                    </div>
                                 </div>
 
-                                <div class="info-group">
-                                    <span class="label">Version Name</span>
-                                    <span class="value" th:text="${vehicle.version.versionName}"></span>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <span>Version Name</span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <span class="value" th:text="${vehicle.version.versionName}"></span>
+                                    </div>
                                 </div>
 
-                                <div class="info-group">
-                                    <span class="label">Engine</span>
-                                    <span class="value" th:text="${vehicle.version.engine}"></span>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <span>Engine</span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <span class="value" th:text="${vehicle.version.engine}"></span>
+                                    </div>
                                 </div>
 
-                                <div class="info-group">
-                                    <span class="label">Transmission</span>
-                                    <span class="value" th:text="${vehicle.version.transmission}"></span>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <span>Transmission</span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <span class="value" th:text="${vehicle.version.transmission}"></span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
 
-                    <div class="col-md-6">
-                        <div class="image-container">
-                            <!-- Hiển thị ảnh từ database nếu có -->
-                            <img th:if="${vehicle.version != null and vehicle.version.model != null and vehicle.version.model.modelID != null}"
-                                 th:src="@{/evm/vehicle/modelImage/{modelId}(modelId=${vehicle.version.model.modelID})}"
-                                 alt="Model Image"
-                                 class="vehicle-image"
-                                 style="object-fit: contain; width: 100%; max-height: 400px;"
-                                 onload="this.nextElementSibling.style.display='none';"
-                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                            <!-- Icon placeholder chỉ hiển thị khi không có ảnh -->
-                            <span style="font-size: 64px;">🚗</span>
                         </div>
 
                         <div th:if="${actionRole == 'EVM'}">
 
                             <div class="card shadow">
                                 <div class="card-header">
-                                    <div class="title">Actions</div>
+                                    <h1>Actions</h1>
                                 </div>
 
                                 <div class="card-body">
@@ -205,7 +231,21 @@
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
 
+                    <div class="col-md-6">
+                        <div class="image-container">
+                            <!-- Hiển thị ảnh từ database nếu có -->
+                            <img th:if="${vehicle.version != null and vehicle.version.model != null and vehicle.version.model.modelID != null}"
+                                 th:src="@{/evm/vehicle/modelImage/{modelId}(modelId=${vehicle.version.model.modelID})}"
+                                 alt="Model Image"
+                                 class="vehicle-image"
+                                 style="object-fit: contain; width: 100%; max-height: 400px;"
+                                 onload="this.nextElementSibling.style.display='none';"
+                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                            <!-- Icon placeholder chỉ hiển thị khi không có ảnh -->
+                            <span style="font-size: 64px;">🚗</span>
                         </div>
                     </div>
 

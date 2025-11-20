@@ -349,14 +349,14 @@
                                         </div>
                                         <div class="info-row">
                                             <span class="info-label">
-                                                <i class="fas fa-tag"></i> Customer Discount
+                                                <i class="fas fa-tag"></i>
                                             </span>
                                             <span class="percent-badge percent-badge-discount"
                                                   th:text="${p.discountPercent != null ? p.discountPercent + '%' : 'N/A'}">10%</span>
                                         </div>
                                         <div class="info-row">
                                             <span class="info-label">
-                                                <i class="fas fa-info-circle"></i> Description
+                                                <i class="fas fa-info-circle"></i>
                                             </span>
                                             <span class="date-value"
                                                   th:text="${p.description != null and p.description.length() > 50 ? p.description.substring(0, 50) + '...' : (p.description != null ? p.description : 'N/A')}"
@@ -366,7 +366,7 @@
                                         </div>
                                         <div class="info-row">
                                             <span class="info-label">
-                                                <i class="fas fa-car"></i> Applicable Vehicles
+                                                <i class="fas fa-car"></i>
                                             </span>
                                             <!-- Case 1: All Models -->
                                             <span th:if="${p.applicableToModels == null or p.applicableToModels.isEmpty()}"
