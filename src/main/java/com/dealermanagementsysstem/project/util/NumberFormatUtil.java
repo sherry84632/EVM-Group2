@@ -3,7 +3,6 @@ package com.dealermanagementsysstem.project.util;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
-import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.Locale;
 
@@ -74,5 +73,34 @@ public class NumberFormatUtil {
         }
         return formatNumber(value.doubleValue());
     }
-}
 
+    /**
+     * Compact currency formatting for very large numbers to prevent UI overflow.
+     * Examples: 1,234 -> $1,234 | 45,600,000 -> $45.6M | 9,000,000,000 -> $9B
+     */
+    public String formatCompactCurrency(Number value) {
+        if (value == null) return "$0";
+        double v = value.doubleValue();
+        boolean neg = v < 0;
+        double abs = Math.abs(v);
+        String suffix;
+        double display;
+        if (abs >= 1_000_000_000) { // Billions
+            display = abs / 1_000_000_000d;
+            suffix = "B";
+        } else if (abs >= 1_000_000) { // Millions
+            display = abs / 1_000_000d;
+            suffix = "M";
+        } else if (abs >= 1_000) { // Thousands normal formatting
+            return (neg ? "-" : "") + formatCurrency(abs);
+        } else {
+            return (neg ? "-" : "") + formatCurrency(abs);
+        }
+        // One decimal (if <10B show one decimal, else integer). Use long threshold literal safely.
+        long bigThreshold = 10_000_000_000L; // 10B
+        String pattern = abs >= bigThreshold ? "%.0f" : "%.1f";
+        String formatted = String.format(Locale.US, pattern, display);
+        if (formatted.endsWith(".0")) formatted = formatted.substring(0, formatted.length() - 2);
+        return (neg ? "-$" : "$") + formatted + suffix;
+    }
+}

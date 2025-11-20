@@ -630,7 +630,7 @@
                     <i class="fas fa-dollar-sign status-card-icon" style="color: #ff6b16;"></i>
                     <div class="status-card-label">Total Amount</div>
                     <div class="status-card-value" style="color: #ff6b16;">
-                        $<span th:text="${invoiceTotalWithVat != null ? #numbers.formatDecimal(invoiceTotalWithVat,0,'COMMA',0,'POINT') : '0'}">0</span>
+                        <span th:text="${@numberFormat.formatCurrency(invoiceTotalWithVat)}">$0</span>
                     </div>
                     <div class="status-card-desc">Including VAT</div>
                 </div>
@@ -703,10 +703,18 @@
                             <td style="padding: 12px 15px; color: #6c757d;" th:text="${detail.versionName != null ? detail.versionName : (detail.version != null ? detail.version.versionName : 'N/A')}">-</td>
                             <td style="padding: 12px 15px; color: #6c757d;" th:text="${detail.colorName != null ? detail.colorName : (detail.color != null ? detail.color.colorName : 'N/A')}">-</td>
                             <td style="padding: 12px 15px; text-align: center; font-weight: 600;" th:text="${detail.quantity}">-</td>
-                            <td style="padding: 12px 15px; text-align: right; font-weight: 700; color: #0066cc; font-size: 1.05rem;"><span th:text="${detail.unitPrice != null ? ('$' + #numbers.formatDecimal(detail.unitPrice,0,'COMMA',0,'POINT')) : '$0'}">$0</span></td>
-                            <td style="padding: 12px 15px; text-align: right; font-weight: 600; font-size: 1.05rem;"><span th:text="${'$' + #numbers.formatDecimal(subVal,0,'COMMA',0,'POINT')}">$0</span></td>
-                            <td style="padding: 12px 15px; text-align: right; color: #6c757d; font-size: 0.95rem;"><span th:text="${'$' + #numbers.formatDecimal(vatVal,0,'COMMA',0,'POINT')}">$0</span></td>
-                            <td style="padding: 12px 15px; text-align: right; font-weight: 700; color: #28a745; font-size: 1.1rem;"><span th:text="${'$' + #numbers.formatDecimal(totalWithVat,0,'COMMA',0,'POINT')}">$0</span></td>
+                            <td style="padding: 12px 15px; text-align: right; font-weight: 700; color: #0066cc; font-size: 1.05rem;">
+                                <span th:text="${@numberFormat.formatCurrency(detail.unitPrice)}">$0</span>
+                            </td>
+                            <td style="padding: 12px 15px; text-align: right; font-weight: 600; font-size: 1.05rem;">
+                                <span th:text="${@numberFormat.formatCurrency(subVal)}">$0</span>
+                            </td>
+                            <td style="padding: 12px 15px; text-align: right; color: #6c757d; font-size: 0.95rem;">
+                                <span th:text="${@numberFormat.formatCurrency(vatVal)}">$0</span>
+                            </td>
+                            <td style="padding: 12px 15px; text-align: right; font-weight: 700; color: #28a745; font-size: 1.1rem;">
+                                <span th:text="${@numberFormat.formatCurrency(totalWithVat)}">$0</span>
+                            </td>
                             <td style="padding: 12px 15px; text-align: center;">
                                 <span th:if="${detail.paymentStatus == 'PAID'}" class="badge" style="background-color: #28a745; padding: 8px 14px; border-radius: 20px; font-size: 0.85rem;">
                                     <i class="fas fa-check-circle"></i> PAID
@@ -720,17 +728,23 @@
                         <tfoot th:if="${invoiceNet != null}" style="background: linear-gradient(135deg, #f8f9fa 0%, #f0f0f0 100%); border-top: 3px solid #ff6b16;">
                         <tr style="border-bottom: 1px solid #e0e0e0;">
                             <td colspan="5" style="padding: 14px 16px; text-align: right; font-weight: 700; color: #555; font-size: 14px;">Subtotal (Pre-VAT)</td>
-                            <td colspan="3" style="padding: 14px 16px; text-align: right; font-weight: 700; color: #333; font-size: 17px;">$<span th:text="${#numbers.formatDecimal(invoiceNet,0,'COMMA',0,'POINT')}"></span></td>
+                            <td colspan="3" style="padding: 14px 16px; text-align: right; font-weight: 700; color: #333; font-size: 17px;">
+                                <span th:text="${@numberFormat.formatCurrency(invoiceNet)}">$0</span>
+                            </td>
                             <td></td>
                         </tr>
                         <tr style="border-bottom: 1px solid #e0e0e0;">
                             <td colspan="5" style="padding: 14px 16px; text-align: right; font-weight: 700; color: #555; font-size: 14px;">Total VAT (<span th:text="${vatRate != null ? vatRate : 10}"></span>%)</td>
-                            <td colspan="3" style="padding: 14px 16px; text-align: right; font-weight: 700; color: #666; font-size: 16px;">$<span th:text="${invoiceVatAmount != null ? #numbers.formatDecimal(invoiceVatAmount,0,'COMMA',0,'POINT') : '0'}"></span></td>
+                            <td colspan="3" style="padding: 14px 16px; text-align: right; font-weight: 700; color: #666; font-size: 16px;">
+                                <span th:text="${@numberFormat.formatCurrency(invoiceVatAmount)}">$0</span>
+                            </td>
                             <td></td>
                         </tr>
                         <tr style="background: linear-gradient(135deg, #fff3e6 0%, #ffe8cc 100%);">
                             <td colspan="5" style="padding: 18px 16px; text-align: right; font-weight: 800; color: #333; font-size: 16px;">TOTAL AMOUNT (Incl. VAT)</td>
-                            <td colspan="3" style="padding: 18px 16px; text-align: right; font-weight: 800; color: #ff6b16; font-size: 22px;">$<span th:text="${invoiceTotalWithVat != null ? #numbers.formatDecimal(invoiceTotalWithVat,0,'COMMA',0,'POINT') : '0'}"></span></td>
+                            <td colspan="3" style="padding: 18px 16px; text-align: right; font-weight: 800; color: #ff6b16; font-size: 22px;">
+                                <span th:text="${@numberFormat.formatCurrency(invoiceTotalWithVat)}">$0</span>
+                            </td>
                             <td></td>
                         </tr>
                         </tfoot>
@@ -822,7 +836,7 @@
                     </div>
                     <div class="card-body">
                         <div th:if="${order.orderDetails != null and !order.orderDetails.isEmpty()}">
-                            <div th:each="detail, detailStat : ${order.orderDetails}">
+                            <div th:each="detail, detailStat : ${order.orderDetails}" th:with="computedSubtotal=${detail.subtotal != null ? detail.subtotal : (detail.unitPrice != null ? detail.unitPrice.multiply(T(java.math.BigDecimal).valueOf(detail.quantity)) : T(java.math.BigDecimal).ZERO)}">
                                 <div class="info-row">
                                     <span class="info-label">Model:</span>
                                     <span class="info-value" th:text="${detail.modelName != null ? detail.modelName : (detail.version != null && detail.version.model != null ? detail.version.model.modelName : 'N/A')}">-</span>
@@ -842,11 +856,11 @@
                                 <!-- ✅ Unit Price -->
                                 <div class="info-row">
                                     <span class="info-label">Unit Price:</span>
-                                    <span class="info-value fw-bold text-primary" th:text="${'$' + #numbers.formatDecimal(detail.unitPrice, 1, 0)}">$0</span>
+                                    <span class="info-value fw-bold text-primary" th:text="${@numberFormat.formatCurrency(detail.unitPrice)}">$0</span>
                                 </div>
                                 <div class="info-row">
                                     <span class="info-label">Subtotal:</span>
-                                    <span class="info-value fw-bold" th:text="${'$' + #numbers.formatDecimal(detail.subtotal, 1, 0)}">$0</span>
+                                    <span class="info-value fw-bold" th:text="${@numberFormat.formatCurrency(computedSubtotal)}">$0</span>
                                 </div>
                                 <hr th:if="${!detailStat.last}">
                             </div>
@@ -894,15 +908,15 @@
                             </div>
                             <div class="price-row">
                                 <span class="price-label">Unit Price:</span>
-                                <span class="price-value" th:text="${'$' + #numbers.formatDecimal(order.primaryUnitPrice, 1, 0)}">$0</span>
+                                <span class="price-value" th:text="${@numberFormat.formatCurrency(order.primaryUnitPrice)}">$0</span>
                             </div>
                             <div class="price-row">
                                 <span class="price-label">Subtotal:</span>
-                                <span class="price-value" th:text="${'$' + #numbers.formatDecimal(order.primarySubtotal, 1, 0)}">$0</span>
+                                <span class="price-value" th:text="${@numberFormat.formatCurrency(order.primarySubtotal)}">$0</span>
                             </div>
                             <div class="price-row total-price">
                                 <span class="price-label">Total Amount:</span>
-                                <span class="price-value" th:text="${'$' + #numbers.formatDecimal(order.totalAmount, 1, 0)}">$0</span>
+                                <span class="price-value" th:text="${@numberFormat.formatCurrency(order.totalAmount)}">$0</span>
                             </div>
                             <div class="price-row total-price" th:unless="${order.totalAmount != null}">
                                 <span class="price-label">Order Total Price:</span>

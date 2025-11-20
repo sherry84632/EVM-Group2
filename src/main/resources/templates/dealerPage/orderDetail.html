@@ -288,7 +288,8 @@
                                 <div class="info-row">
                                     <div class="info-label">Total Amount:</div>
                                     <div class="info-value">
-                                        <strong th:text="${order.totalAmount != null ? ('$' + #numbers.formatDecimal(order.totalAmount, 0, 'COMMA', 0, 'POINT')) : '$0'}"></strong>
+                                        <!-- REPLACED formatting -->
+                                        <strong th:text="${@numberFormat.formatCurrency(order.totalAmount)}"></strong>
                                     </div>
                                 </div>
                             </div>
@@ -461,19 +462,23 @@
                                         <td th:text="${detail.quantity}"></td>
                                         <!-- Unit Price -->
                                         <td style="font-weight: bold; color: #007bff;">
-                                            <span th:text="${detail.unitPrice != null ? ('$' + #numbers.formatDecimal(detail.unitPrice,0,0)) : '$0'}"></span>
+                                            <!-- Unit Price formatted -->
+                                            <span th:text="${@numberFormat.formatCurrency(detail.unitPrice)}"></span>
                                         </td>
                                         <!-- Subtotal -->
                                         <td style="font-weight: bold;">
-                                            <span th:text="${'$' + #numbers.formatDecimal(subVal,0,0)}"></span>
+                                            <!-- Subtotal formatted -->
+                                            <span th:text="${@numberFormat.formatCurrency(subVal)}"></span>
                                         </td>
                                         <!-- VAT -->
                                         <td style="color:#6b7280; font-weight:600;">
-                                            <span th:text="${'$' + #numbers.formatDecimal(vatVal,0,0)}"></span>
+                                            <!-- VAT formatted -->
+                                            <span th:text="${@numberFormat.formatCurrency(vatVal)}"></span>
                                         </td>
                                         <!-- Total with VAT -->
                                         <td style="color:#16a34a; font-weight:700;">
-                                            <span th:text="${'$' + #numbers.formatDecimal(totalWithVat,0,0)}"></span>
+                                            <!-- Total with VAT formatted -->
+                                            <span th:text="${@numberFormat.formatCurrency(totalWithVat)}"></span>
                                         </td>
                                         <!-- Payment Status -->
                                         <td>
@@ -484,17 +489,23 @@
                                     <tfoot style="background:#f8fafc;">
                                     <tr style="border-top:2px solid #e2e8f0;">
                                         <td colspan="6" style="text-align:right; font-weight:600;">Subtotal (Pre-VAT)</td>
-                                        <td colspan="2" style="text-align:right; font-weight:700; color:#1d4ed8;">$<span th:text="${invoiceNet != null ? #numbers.formatDecimal(invoiceNet,0,0) : '0'}"></span></td>
+                                        <td colspan="2" style="text-align:right; font-weight:700; color:#1d4ed8;">
+                                            <span th:text="${@numberFormat.formatCurrency(invoiceNet)}">$0</span>
+                                        </td>
                                         <td colspan="2"></td>
                                     </tr>
                                     <tr>
                                         <td colspan="6" style="text-align:right; font-weight:600;">Total VAT (<span th:text="${vatRate != null ? vatRate : 10}"></span>%)</td>
-                                        <td colspan="2" style="text-align:right; font-weight:700; color:#6b7280;">$<span th:text="${invoiceVatAmount != null ? #numbers.formatDecimal(invoiceVatAmount,0,0) : '0'}"></span></td>
+                                        <td colspan="2" style="text-align:right; font-weight:700; color:#6b7280;">
+                                            <span th:text="${@numberFormat.formatCurrency(invoiceVatAmount)}">$0</span>
+                                        </td>
                                         <td colspan="2"></td>
                                     </tr>
                                     <tr>
                                         <td colspan="6" style="text-align:right; font-weight:700;">Total Amount (Incl. VAT)</td>
-                                        <td colspan="2" style="text-align:right; font-weight:800; color:#16a34a;">$<span th:text="${invoiceTotalWithVat != null ? #numbers.formatDecimal(invoiceTotalWithVat,0,0) : '0'}"></span></td>
+                                        <td colspan="2" style="text-align:right; font-weight:800; color:#16a34a;">
+                                            <span th:text="${@numberFormat.formatCurrency(invoiceTotalWithVat)}">$0</span>
+                                        </td>
                                         <td colspan="2"></td>
                                     </tr>
                                     </tfoot>

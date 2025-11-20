@@ -13,6 +13,13 @@
 <div class="d-flex">
     <div th:replace="~{mainPage/navBarFragment :: navBar}"></div>
     <div class="mainContent flex-grow-1" style="overflow-y:auto; overflow-x:hidden; height:97vh; padding:0;">
+        <nav aria-label="breadcrumb" class="mb-3" style="padding:12px 24px;">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/showEVMHomePage"><i class="fas fa-home me-1"></i>Home</a></li>
+                <li class="breadcrumb-item"><a href="/evm/report"><i class="fas fa-chart-line me-1"></i>Reports</a></li>
+                <li class="breadcrumb-item active" aria-current="page"><i class="fas fa-industry me-1"></i>Manufacturer Settlement</li>
+            </ol>
+        </nav>
         <div class="page-header-settle">
             <h3><i class="fas fa-industry"></i>Manufacturer Discount Settlement</h3>
             <form method="get" class="filter-group">
@@ -50,22 +57,22 @@
             <div class="summary-card gross">
                 <span class="summary-icon"><i class="fas fa-layer-group"></i></span>
                 <div class="label">Total Gross</div>
-                <div class="value text-mono" th:text="'$' + ${#numbers.formatDecimal(totalGross,0,'COMMA',0,'POINT')}">$0</div>
+                <div class="value text-mono" th:title="${@numberFormat.formatCurrency(totalGross)}" th:text="${@numberFormat.formatCompactCurrency(totalGross)}">$0</div>
             </div>
             <div class="summary-card net">
                 <span class="summary-icon"><i class="fas fa-hand-holding-usd"></i></span>
                 <div class="label">Total Net</div>
-                <div class="value text-mono" th:text="'$' + ${#numbers.formatDecimal(totalNet,0,'COMMA',0,'POINT')}">$0</div>
+                <div class="value text-mono" th:title="${@numberFormat.formatCurrency(totalNet)}" th:text="${@numberFormat.formatCompactCurrency(totalNet)}">$0</div>
             </div>
             <div class="summary-card discount">
                 <span class="summary-icon"><i class="fas fa-handshake"></i></span>
                 <div class="label">Reimbursement Due</div>
-                <div class="value text-mono" th:text="'$' + ${#numbers.formatDecimal(reimbursementDue,0,'COMMA',0,'POINT')}">$0</div>
+                <div class="value text-mono" th:title="${@numberFormat.formatCurrency(reimbursementDue)}" th:text="${@numberFormat.formatCompactCurrency(reimbursementDue)}">$0</div>
             </div>
             <div class="summary-card discount">
                 <span class="summary-icon"><i class="fas fa-scissors"></i></span>
                 <div class="label">Discount Savings</div>
-                <div class="value text-mono" th:text="'$' + ${#numbers.formatDecimal(totalDiscountSavings,0,'COMMA',0,'POINT')}">$0</div>
+                <div class="value text-mono" th:title="${@numberFormat.formatCurrency(totalDiscountSavings)}" th:text="${@numberFormat.formatCompactCurrency(totalDiscountSavings)}">$0</div>
                 <div class="subnote" th:text="${#numbers.formatDecimal(discountSavingsPercent,2,0)} + '%'">0%</div>
             </div>
             <div class="summary-card percent">
@@ -88,7 +95,7 @@
                         <td><span class="badge-policy" th:text="${p.policyName}"></span></td>
                         <td th:text="${p.orders}"></td>
                         <td th:text="${p.vehicles}"></td>
-                        <td class="text-mono" th:text="'$' + ${#numbers.formatDecimal(p.totalDiscount,0,'COMMA',0,'POINT')}"></td>
+                        <td class="text-mono" th:title="${@numberFormat.formatCurrency(p.totalDiscount)}" th:text="${@numberFormat.formatCompactCurrency(p.totalDiscount)}"></td>
                     </tr>
                     <tr th:if="${policyBreakdown == null or policyBreakdown.isEmpty()}">
                         <td colspan="5" class="empty-block">No manufacturer discounts applied.</td>
@@ -113,11 +120,11 @@
                         <td th:text="${#dates.format(r.order.createdAt,'dd/MM/yyyy')}"></td>
                         <td th:text="${r.order.dealer?.dealerName}"></td>
                         <td><span class="badge-status" th:classappend="' ' + ${r.order.status}" th:text="${r.order.status}"></span></td>
-                        <td class="text-mono" th:text="${T(utils.NumberFormatUtil).formatCurrency(r.gross)}"></td>
-                        <td class="text-mono" th:text="${T(utils.NumberFormatUtil).formatCurrency(r.net)}"></td>
-                        <td class="text-mono" th:text="${T(utils.NumberFormatUtil).formatCurrency(r.manufDiscount)}"></td>
+                        <td class="text-mono" th:title="${@numberFormat.formatCurrency(r.gross)}" th:text="${@numberFormat.formatCompactCurrency(r.gross)}"></td>
+                        <td class="text-mono" th:title="${@numberFormat.formatCurrency(r.net)}" th:text="${@numberFormat.formatCompactCurrency(r.net)}"></td>
+                        <td class="text-mono" th:title="${@numberFormat.formatCurrency(r.manufDiscount)}" th:text="${@numberFormat.formatCompactCurrency(r.manufDiscount)}"></td>
                         <td class="text-mono" th:text="${#numbers.formatDecimal(r.manufPercent,2,0)} + '%'">0%</td>
-                        <td class="text-mono" th:text="${T(utils.NumberFormatUtil).formatCurrency(r.savings)}"></td>
+                        <td class="text-mono" th:title="${@numberFormat.formatCurrency(r.savings)}" th:text="${@numberFormat.formatCompactCurrency(r.savings)}"></td>
                         <td th:text="${#numbers.formatDecimal(r.savingsPercent,2,0)} + '%'">0%</td>
                         <td class="policies-list">
                             <span th:each="pn : ${r.policyNames}" class="badge-policy" th:text="${pn}"></span>

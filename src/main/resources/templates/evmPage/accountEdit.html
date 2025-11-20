@@ -24,6 +24,13 @@
     <div th:replace="~{mainPage/navBarFragment :: navBar}"></div>
 
     <div class="mainContent flex-grow-1 p-4" style="height: 97vh; overflow-y: auto; overflow-x: hidden;">
+        <nav aria-label="breadcrumb" class="mb-3">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/showEVMHomePage"><i class="fa-solid fa-home me-1"></i>Home</a></li>
+                <li class="breadcrumb-item"><a href="/account/list"><i class="fa-solid fa-user-shield me-1"></i>Accounts</a></li>
+                <li class="breadcrumb-item active" aria-current="page"><i class="fa-solid fa-user-edit me-1"></i>Edit</li>
+            </ol>
+        </nav>
 
         <div class="mb-4">
             <a href="/account/list" class="btn btn-outline-secondary">
@@ -141,18 +148,18 @@
                     <!-- Timestamps (Read-only) -->
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label class="form-label">
+                            <label for="createdAtDisplay" class="form-label">
                                 <i class="fa-solid fa-calendar-plus"></i> Created At
                             </label>
-                            <input type="text" class="form-control"
+                            <input id="createdAtDisplay" type="text" class="form-control"
                                    th:value="${#dates.format(account.createdAt, 'dd/MM/yyyy HH:mm:ss')}"
                                    readonly>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">
+                            <label for="updatedAtDisplay" class="form-label">
                                 <i class="fa-solid fa-calendar-check"></i> Updated At
                             </label>
-                            <input type="text" class="form-control"
+                            <input id="updatedAtDisplay" type="text" class="form-control"
                                    th:value="${#dates.format(account.updatedAt, 'dd/MM/yyyy HH:mm:ss')}"
                                    readonly>
                         </div>
@@ -172,7 +179,7 @@
                             <label for="staffFullName" class="form-label">
                                 <i class="fa-solid fa-user"></i> Full Name <span class="text-danger">*</span>
                             </label>
-                            <input type="text" class="form-control" id="staffFullName" name="staffFullName"
+                            <input id="staffFullName" type="text" class="form-control" name="staffFullName"
                                    th:value="${account.dealerStaff != null} ? ${account.dealerStaff.fullName} : ''"
                                    placeholder="Enter staff full name">
                         </div>
@@ -182,7 +189,7 @@
                             <label for="staffPosition" class="form-label">
                                 <i class="fa-solid fa-briefcase"></i> Position
                             </label>
-                            <input type="text" class="form-control" id="staffPosition" name="staffPosition"
+                            <input id="staffPosition" type="text" class="form-control" name="staffPosition"
                                    th:value="${account.dealerStaff != null} ? ${account.dealerStaff.position} : 'Sales'"
                                    placeholder="Auto-filled" readonly>
                             <small class="form-text text-muted">Auto-filled based on role (DealerStaff → Sales, Dealer → Manager)</small>
@@ -193,7 +200,7 @@
                             <label for="staffPhone" class="form-label">
                                 <i class="fa-solid fa-phone"></i> Phone Number <span class="text-danger">*</span>
                             </label>
-                            <input type="tel" class="form-control" id="staffPhone" name="staffPhone"
+                            <input id="staffPhone" type="tel" class="form-control" name="staffPhone"
                                    th:value="${account.dealerStaff != null} ? ${account.dealerStaff.phone} : ''"
                                    placeholder="Enter phone number" required>
                             <small class="form-text text-muted">Required field</small>
@@ -204,7 +211,7 @@
                             <label for="staffEmail" class="form-label">
                                 <i class="fa-solid fa-envelope"></i> Staff Email
                             </label>
-                            <input type="email" class="form-control" id="staffEmail" name="staffEmail"
+                            <input id="staffEmail" type="email" class="form-control" name="staffEmail"
                                    th:value="${account.dealerStaff != null} ? ${account.dealerStaff.email} : ''"
                                    placeholder="Staff email address">
                             <small class="form-text text-muted">Leave blank to use the same email as account</small>
@@ -215,7 +222,7 @@
                             <label for="dealerId" class="form-label">
                                 <i class="fa-solid fa-building"></i> Dealer <span class="text-danger">*</span>
                             </label>
-                            <select class="form-select" id="dealerId" name="dealerId">
+                            <select id="dealerId" class="form-select" name="dealerId">
                                 <option value="">-- Select Dealer --</option>
                                 <option th:each="dealer : ${dealers}"
                                         th:value="${dealer.dealerID}"
@@ -227,14 +234,13 @@
 
                         <!-- Show Staff ID if exists -->
                         <div class="mb-3" th:if="${account.dealerStaff != null}">
-                            <label class="form-label">
+                            <label for="staffIdDisplay" class="form-label">
                                 <i class="fa-solid fa-id-card"></i> Staff ID
                             </label>
-                            <input type="text" class="form-control"
+                            <input id="staffIdDisplay" type="text" class="form-control"
                                    th:value="${account.dealerStaff.staffID}"
                                    readonly>
-                            <small class="form-text text-muted">Auto-generated, cannot be changed</small>
-                        </div>
+                            </div>
                     </div>
 
                     <!-- Buttons -->

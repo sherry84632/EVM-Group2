@@ -138,7 +138,8 @@
 
                                 <div class="info-group">
                                     <span class="label">Base Price</span>
-                                    <span class="value" th:text="${vehicle.model.basePrice}"></span>
+                                    <!-- formatted currency -->
+                                    <span class="value" th:text="${vehicle.model.basePrice != null ? @numberFormat.formatCurrency(vehicle.model.basePrice) : '$0'}"></span>
                                 </div>
 
                                 <div class="info-group">
