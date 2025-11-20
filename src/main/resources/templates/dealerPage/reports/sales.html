@@ -37,9 +37,14 @@
         async function loadData() {
             const p = buildParams();
             const kpis = await fetchJson(`/dealer/reports/sales/kpis?${p}`);
-            qs('kpiRevenue').innerText = formatCurrency(kpis.totalRevenue ?? 0);
+            qs('kpiGross').innerText = formatCurrency(kpis.grossRevenue ?? 0);
+            qs('kpiNet').innerText = formatCurrency(kpis.netRevenue ?? 0);
+            qs('kpiSavings').innerText = formatCurrency(kpis.discountSavings ?? 0) + (kpis.discountSavingsPercent != null ? ' (' + Math.round(kpis.discountSavingsPercent) + '%)' : '');
             qs('kpiOrders').innerText = (kpis.totalOrders ?? 0);
             qs('kpiVehicles').innerText = (kpis.totalVehicles ?? 0);
+            qs('kpiLevelSharePct').innerText = (kpis.levelSharePercent ?? 0) + '%';
+            qs('kpiLevelShareTotal').innerText = formatCurrency(kpis.dealerLevelShareTotal ?? 0);
+            qs('kpiAfterShare').innerText = formatCurrency(kpis.dealerIncomeAfterShare ?? 0);
 
             const byMonth = await fetchJson(`/dealer/reports/sales/by-month?${p}`);
             const labels = byMonth.map(r => r.yearMonth);
@@ -138,16 +143,27 @@
 
         <div class="row g-3 mb-3">
             <div class="col-12 col-sm-6 col-xl-3">
-                <div class="card shadow-sm stat-card"><div class="card-body"><div class="text-muted small">💰 Total Revenue</div><div class="fs-3 fw-semibold text-success" id="kpiRevenue">0</div></div></div>
+                <div class="card shadow-sm stat-card"><div class="card-body"><div class="text-muted small">💰 Gross Revenue (Pre-disc.)</div><div class="fs-5 fw-semibold" id="kpiGross">$0</div><div class="small text-muted" id="kpiGrossHint">Before any discounts</div></div></div>
             </div>
             <div class="col-12 col-sm-6 col-xl-3">
-                <div class="card shadow-sm stat-card"><div class="card-body"><div class="text-muted small">🧾 Total Orders</div><div class="fs-3 fw-semibold" id="kpiOrders">0</div></div></div>
+                <div class="card shadow-sm stat-card"><div class="card-body"><div class="text-muted small">🧾 Net Revenue (After disc.)</div><div class="fs-5 fw-semibold text-success" id="kpiNet">$0</div><div class="small text-muted">SaleOrder total</div></div></div>
             </div>
             <div class="col-12 col-sm-6 col-xl-3">
-                <div class="card shadow-sm stat-card"><div class="card-body"><div class="text-muted small">🚗 Vehicles Sold</div><div class="fs-3 fw-semibold" id="kpiVehicles">0</div></div></div>
+                <div class="card shadow-sm stat-card"><div class="card-body"><div class="text-muted small">🎯 Discount Savings</div><div class="fs-5 fw-semibold text-danger" id="kpiSavings">$0</div><div class="small text-muted">Gross - Net</div></div></div>
             </div>
             <div class="col-12 col-sm-6 col-xl-3">
-                <div class="card shadow-sm stat-card"><div class="card-body"><div class="text-muted small">Order Status</div><div class="small text-muted">See chart</div></div></div>
+                <div class="card shadow-sm stat-card"><div class="card-body"><div class="text-muted small">Tier Share %</div><div class="fs-4 fw-semibold" id="kpiLevelSharePct">0%</div><div class="small text-muted">Dealer level</div></div></div>
+            </div>
+        </div>
+        <div class="row g-3 mb-3">
+            <div class="col-12 col-sm-6 col-xl-4">
+                <div class="card shadow-sm stat-card"><div class="card-body"><div class="text-muted small">Tier Share $</div><div class="fs-4 fw-semibold text-primary" id="kpiLevelShareTotal">$0</div><div class="small text-muted">Net * %</div></div></div>
+            </div>
+            <div class="col-12 col-sm-6 col-xl-4">
+                <div class="card shadow-sm stat-card"><div class="card-body"><div class="text-muted small">Dealer Income + Share</div><div class="fs-4 fw-semibold" id="kpiAfterShare">$0</div><div class="small text-muted">Net + Tier Share</div></div></div>
+            </div>
+            <div class="col-12 col-sm-6 col-xl-4">
+                <div class="card shadow-sm stat-card"><div class="card-body"><div class="text-muted small">Totals</div><div class="small text-muted">Orders / Vehicles</div><div class="fw-semibold" id="kpiOrders">0</div><div class="fw-semibold" id="kpiVehicles">0</div></div></div>
             </div>
         </div>
 
@@ -190,6 +206,5 @@
     </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
 </html>
-
-

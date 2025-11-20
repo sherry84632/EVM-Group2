@@ -94,30 +94,21 @@ public class OrderController {
     // ⃣ FORM TẠO SALE ORDER MỚI
     // ======================================================
     @GetMapping("/new")
-    public String showCreateForm(Model model, HttpSession session) { // session kept for future enhancements
-
-        //  Lấy thông tin người dùng đăng nhập
+    public String showCreateForm(Model model) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String email = auth.getName();
-
         DAOAccount daoAccount = new DAOAccount();
         DTOAccount account = daoAccount.findAccountByEmail(email);
-
         if (account == null || account.getDealerStaff() == null) {
             model.addAttribute("error", "Bạn cần đăng nhập bằng tài khoản dealer!");
             return "redirect:/login";
         }
-
-        //  Lấy danh sách quotation đã duyệt cho dealer này
         DAOQuotation quotationDAO = new DAOQuotation();
         List<DTOQuotation> approvedQuotations = quotationDAO.getQuotationsByDealer(account.getDealerStaff().getDealer().getDealerID())
-                .stream()
-                .filter(q -> q.getStatus() == QuotationStatus.APPROVED)
-                .toList();
-
+                .stream().filter(q -> q.getStatus() == QuotationStatus.APPROVED).toList();
         if (approvedQuotations.isEmpty()) {
             model.addAttribute("error", "Không có quotation nào được duyệt!");
-            return "dealerPage/noQuotations";
+            return "redirect:/quotation/list";
         }
 
         model.addAttribute("order", new DTOSaleOrder());
@@ -377,6 +368,20 @@ public class OrderController {
         java.math.BigDecimal dealerDiscountTotal = java.math.BigDecimal.ZERO;
         java.math.BigDecimal promoDiscountTotal = java.math.BigDecimal.ZERO;
         java.math.BigDecimal baseQuotationDiscountTotal = java.math.BigDecimal.ZERO; // NEW
+        // Dealer level share now based on NET TOTAL not manufacturer discount
+        java.math.BigDecimal dealerLevelShareTotal = java.math.BigDecimal.ZERO;
+        double dealerLevelPercent = 0.0;
+        if (order.getDealer() != null && order.getDealer().getLevelID() > 0) {
+            try {
+                DAODealer dealerDAOHelper = new DAODealer();
+                DTODealerLevel lvl = dealerDAOHelper.getDealerLevelById(order.getDealer().getLevelID());
+                if (lvl != null && lvl.getDiscountSharePercent() != null) {
+                    dealerLevelPercent = lvl.getDiscountSharePercent();
+                }
+            } catch (Exception ex) {
+                System.out.println("[DealerLevelShare] Error fetching level: " + ex.getMessage());
+            }
+        }
         if (order.getDetail() != null) {
             for (DTOSaleOrderDetail d : order.getDetail()) {
                 int qty = d.getQuantity() != null ? d.getQuantity() : 1;
@@ -384,13 +389,23 @@ public class OrderController {
                 grossTotal = grossTotal.add(grossUnit.multiply(java.math.BigDecimal.valueOf(qty)));
                 dealerDiscountTotal = dealerDiscountTotal.add(d.getDealerDiscountAmountPerUnit().multiply(java.math.BigDecimal.valueOf(qty)));
                 promoDiscountTotal = promoDiscountTotal.add(d.getPromoDiscountAmountPerUnit().multiply(java.math.BigDecimal.valueOf(qty)));
-                baseQuotationDiscountTotal = baseQuotationDiscountTotal.add(d.getBaseQuotationDiscountAmountPerUnit().multiply(java.math.BigDecimal.valueOf(qty))); // stacking last
+                baseQuotationDiscountTotal = baseQuotationDiscountTotal.add(d.getBaseQuotationDiscountAmountPerUnit().multiply(java.math.BigDecimal.valueOf(qty)));
             }
+        }
+        // Net total already stored in order.getTotalAmount(); compute level share from net
+        if (dealerLevelPercent > 0 && order.getTotalAmount() != null && order.getTotalAmount().compareTo(java.math.BigDecimal.ZERO) > 0) {
+            dealerLevelShareTotal = order.getTotalAmount().multiply(java.math.BigDecimal.valueOf(dealerLevelPercent / 100.0));
         }
         model.addAttribute("grossTotal", grossTotal);
         model.addAttribute("dealerDiscountTotal", dealerDiscountTotal);
         model.addAttribute("promoDiscountTotal", promoDiscountTotal);
-        model.addAttribute("baseQuotationDiscountTotal", baseQuotationDiscountTotal); // expose to view
+        model.addAttribute("baseQuotationDiscountTotal", baseQuotationDiscountTotal);
+        model.addAttribute("dealerLevelShareTotal", dealerLevelShareTotal);
+        // Percent of net (not manufacturer)
+        double dealerLevelSharePercentOfNet = (order.getTotalAmount() != null && order.getTotalAmount().compareTo(java.math.BigDecimal.ZERO) > 0 && dealerLevelShareTotal.compareTo(java.math.BigDecimal.ZERO) > 0)
+                ? dealerLevelShareTotal.divide(order.getTotalAmount(), 6, java.math.RoundingMode.HALF_UP).multiply(java.math.BigDecimal.valueOf(100)).doubleValue() : 0.0;
+        model.addAttribute("dealerLevelSharePercent", dealerLevelPercent);
+        model.addAttribute("dealerLevelSharePercentOfNet", dealerLevelSharePercentOfNet);
         model.addAttribute("order", order);
         model.addAttribute("isReadOnly", isReadOnly);
         return "dealerPage/dealerCustomerOrderDetail";
