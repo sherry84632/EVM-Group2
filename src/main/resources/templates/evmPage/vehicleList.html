@@ -51,26 +51,36 @@
             </ol>
         </nav>
 
-        <div class="d-flex wrap">
+        <div class="container-fluid" style="margin-bottom: 12px">
 
-            <form action="/searchVehicleListController" method="get">
-                <input name="keyword"
-                       type="text"
-                       class="search-vehicle-list-input-control search-vehicle-list-input mb-1"
-                       placeholder="Search by model name"
-                       th:value="${keyword}"
-                        style="margin-top: 12px;">
-                <button type="submit" class="btn btn-dark rounded-pill">Search</button>
-            </form>
+            <div class="row">
 
-            <div th:if="${actionRole == 'EVM'}">
-                <a href="/evmCreateANewVehicleToList" style="text-decoration: none">
-                    <button class="createNewVehicleButton">
-                    <span>
-                        Create new vehicle
-                    </span>
-                    </button>
-                </a>
+                <div class="col-md-10">
+                    <form action="/searchVehicleListController" method="get">
+                        <div class="input-group">
+                            <input name="keyword"
+                                   type="text"
+                                   class="form-control"
+                                   placeholder="Search by model name"
+                                   th:value="${keyword}"
+                            >
+                            <button type="submit" class="btn btn-primary">Search</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="col-md-2">
+                    <div th:if="${actionRole == 'EVM'}">
+                        <a href="/evmCreateANewVehicleToList" style="text-decoration: none">
+                            <button class="btn btn-warning">
+                                <span>
+                                    Create new vehicle
+                                </span>
+                            </button>
+                        </a>
+                    </div>
+                </div>
+
             </div>
 
         </div>
