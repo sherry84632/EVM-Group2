@@ -75,7 +75,6 @@ h1 {
     display: flex;
     gap: 20px; /* ADJUST THIS: Increase/decrease gap between image and text */
     align-items: center;
-    position: relative;
     width: 800px;
     height: 200px;
 }

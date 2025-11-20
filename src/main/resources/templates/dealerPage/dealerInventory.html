@@ -87,12 +87,6 @@
             <div class="dv-grid" id="vehicleGrid" th:if="${vehicles != null and !vehicles.isEmpty()}">
 
                 <div th:each="inv : ${vehicles}" class="dv-card">
-                    <!-- Status Badge -->
-                    <div class="position-absolute top-0 end-0 m-2">
-                        <span th:text="${inv.status=='AVAILABLE' ? 'IN_STOCK' : inv.status}"
-                              th:class="${inv.status=='AVAILABLE' ? 'badge bg-success' : (inv.status=='RESERVED' ? 'badge bg-warning text-dark' : (inv.status=='SOLD' ? 'badge bg-secondary' : 'badge bg-info'))}"></span>
-                    </div>
-
                     <!-- VIN -->
                     <div class="dv-model-name">
                         <i class="fas fa-barcode text-primary"></i>
@@ -100,6 +94,13 @@
                     </div>
 
                     <div class="dv-meta">
+                        <!-- Status -->
+                        <div class="dv-meta-row">
+                            <span class="dv-label">Status</span>
+                            <span th:text="${inv.status=='AVAILABLE' ? 'IN_STOCK' : inv.status}"
+                                  th:class="${inv.status=='AVAILABLE' ? 'badge bg-success' : (inv.status=='RESERVED' ? 'badge bg-warning text-dark' : (inv.status=='SOLD' ? 'badge bg-secondary' : 'badge bg-info'))}"></span>
+                        </div>
+
                         <!-- Model -->
                         <div class="dv-meta-row">
                             <span class="dv-label">Model</span>

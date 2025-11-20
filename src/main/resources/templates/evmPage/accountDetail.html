@@ -25,184 +25,196 @@
             </a>
         </div>
 
-        <div class="card shadow" style="max-width: 700px; margin: 0 auto;">
-            <div class="card-header bg-secondary text-white">
-                <h3 class="mb-0"><i class="fa-solid fa-user-circle"></i> Account Details</h3>
-            </div>
-            <div class="card-body">
+        <div class="container-fluid">
 
-                <table class="table table-bordered">
-                    <tbody>
-                        <tr>
-                            <th style="width: 35%;">
-                                <i class="fa-solid fa-hashtag"></i> Account ID
-                            </th>
-                            <td th:text="${account.accountId}"></td>
-                        </tr>
-                        <tr>
-                            <th>
-                                <i class="fa-solid fa-user"></i> Username
-                            </th>
-                            <td th:text="${account.username}"></td>
-                        </tr>
-                        <tr>
-                            <th>
-                                <i class="fa-solid fa-envelope"></i> Email
-                            </th>
-                            <td th:text="${account.email}"></td>
-                        </tr>
-                        <tr>
-                            <th>
-                                <i class="fa-solid fa-user-tag"></i> Role
-                            </th>
-                            <td>
+            <div class="row">
+
+                <div class="col-md-9">
+                    <div class="card shadow">
+                        <div class="card-header">
+                            <h3 class="mb-0"><i class="fa-solid fa-user-circle"></i> Account Details</h3>
+                        </div>
+                        <div class="card-body">
+
+                            <table class="table table-bordered">
+                                <tbody>
+                                <tr>
+                                    <th style="width: 35%;">
+                                        <i class="fa-solid fa-hashtag"></i> Account ID
+                                    </th>
+                                    <td th:text="${account.accountId}"></td>
+                                </tr>
+                                <tr>
+                                    <th>
+                                        <i class="fa-solid fa-user"></i> Username
+                                    </th>
+                                    <td th:text="${account.username}"></td>
+                                </tr>
+                                <tr>
+                                    <th>
+                                        <i class="fa-solid fa-envelope"></i> Email
+                                    </th>
+                                    <td th:text="${account.email}"></td>
+                                </tr>
+                                <tr>
+                                    <th>
+                                        <i class="fa-solid fa-user-tag"></i> Role
+                                    </th>
+                                    <td>
                                 <span class="badge"
                                       th:classappend="${account.role.name() == 'ADMIN' ? 'bg-danger' : account.role.name() == 'EVMSTAFF' ? 'bg-primary' : account.role.name() == 'DEALER' ? 'bg-success' : 'bg-info'}"
                                       th:text="${account.role.name()}">
                                 </span>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th>
-                                <i class="fa-solid fa-toggle-on"></i> Status
-                            </th>
-                            <td>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>
+                                        <i class="fa-solid fa-toggle-on"></i> Status
+                                    </th>
+                                    <td>
                                 <span th:if="${account.active}" class="badge bg-success">
                                     <i class="fa-solid fa-check-circle"></i> Active
                                 </span>
-                                <span th:unless="${account.active}" class="badge bg-secondary">
+                                        <span th:unless="${account.active}" class="badge bg-secondary">
                                     <i class="fa-solid fa-ban"></i> Inactive
                                 </span>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th>
-                                <i class="fa-solid fa-lock"></i> Password
-                            </th>
-                            <td>
-                                <span class="text-muted">••••••••••</span>
-                                <small class="text-muted">(Encrypted)</small>
-                            </td>
-                        </tr>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>
+                                        <i class="fa-solid fa-lock"></i> Password
+                                    </th>
+                                    <td>
+                                        <span class="text-muted">••••••••••</span>
+                                        <small class="text-muted">(Encrypted)</small>
+                                    </td>
+                                </tr>
 
-                        <!-- DealerStaff Information (only if role is DEALERSTAFF and data exists) -->
-                        <tr th:if="${account.role.name() == 'DEALERSTAFF' and account.dealerStaff != null}">
-                            <th colspan="2" class="bg-light">
-                                <h6 class="mb-0 text-primary">
-                                    <i class="fa-solid fa-user-tie"></i> Dealer Staff Information
-                                </h6>
-                            </th>
-                        </tr>
-                        <tr th:if="${account.role.name() == 'DEALERSTAFF' and account.dealerStaff != null}">
-                            <th>
-                                <i class="fa-solid fa-id-card"></i> Staff ID
-                            </th>
-                            <td th:text="${account.dealerStaff.staffID}"></td>
-                        </tr>
-                        <tr th:if="${account.role.name() == 'DEALERSTAFF' and account.dealerStaff != null}">
-                            <th>
-                                <i class="fa-solid fa-user"></i> Full Name
-                            </th>
-                            <td th:text="${account.dealerStaff.fullName}"></td>
-                        </tr>
-                        <tr th:if="${account.role.name() == 'DEALERSTAFF' and account.dealerStaff != null}">
-                            <th>
-                                <i class="fa-solid fa-briefcase"></i> Position
-                            </th>
-                            <td th:text="${account.dealerStaff.position ?: 'N/A'}"></td>
-                        </tr>
-                        <tr th:if="${account.role.name() == 'DEALERSTAFF' and account.dealerStaff != null}">
-                            <th>
-                                <i class="fa-solid fa-phone"></i> Phone
-                            </th>
-                            <td th:text="${account.dealerStaff.phone ?: 'N/A'}"></td>
-                        </tr>
-                        <tr th:if="${account.role.name() == 'DEALERSTAFF' and account.dealerStaff != null}">
-                            <th>
-                                <i class="fa-solid fa-envelope"></i> Staff Email
-                            </th>
-                            <td th:text="${account.dealerStaff.email ?: 'N/A'}"></td>
-                        </tr>
-                        <tr th:if="${account.role.name() == 'DEALERSTAFF' and account.dealerStaff != null and account.dealerStaff.dealer != null}">
-                            <th>
-                                <i class="fa-solid fa-building"></i> Dealer
-                            </th>
-                            <td>
-                                <strong th:text="${account.dealerStaff.dealer.dealerName}"></strong><br>
-                                <small class="text-muted" th:text="${account.dealerStaff.dealer.address}"></small>
-                            </td>
-                        </tr>
+                                <!-- DealerStaff Information (only if role is DEALERSTAFF and data exists) -->
+                                <tr th:if="${account.role.name() == 'DEALERSTAFF' and account.dealerStaff != null}">
+                                    <th colspan="2" class="bg-light">
+                                        <h6 class="mb-0 text-primary">
+                                            <i class="fa-solid fa-user-tie"></i> Dealer Staff Information
+                                        </h6>
+                                    </th>
+                                </tr>
+                                <tr th:if="${account.role.name() == 'DEALERSTAFF' and account.dealerStaff != null}">
+                                    <th>
+                                        <i class="fa-solid fa-id-card"></i> Staff ID
+                                    </th>
+                                    <td th:text="${account.dealerStaff.staffID}"></td>
+                                </tr>
+                                <tr th:if="${account.role.name() == 'DEALERSTAFF' and account.dealerStaff != null}">
+                                    <th>
+                                        <i class="fa-solid fa-user"></i> Full Name
+                                    </th>
+                                    <td th:text="${account.dealerStaff.fullName}"></td>
+                                </tr>
+                                <tr th:if="${account.role.name() == 'DEALERSTAFF' and account.dealerStaff != null}">
+                                    <th>
+                                        <i class="fa-solid fa-briefcase"></i> Position
+                                    </th>
+                                    <td th:text="${account.dealerStaff.position ?: 'N/A'}"></td>
+                                </tr>
+                                <tr th:if="${account.role.name() == 'DEALERSTAFF' and account.dealerStaff != null}">
+                                    <th>
+                                        <i class="fa-solid fa-phone"></i> Phone
+                                    </th>
+                                    <td th:text="${account.dealerStaff.phone ?: 'N/A'}"></td>
+                                </tr>
+                                <tr th:if="${account.role.name() == 'DEALERSTAFF' and account.dealerStaff != null}">
+                                    <th>
+                                        <i class="fa-solid fa-envelope"></i> Staff Email
+                                    </th>
+                                    <td th:text="${account.dealerStaff.email ?: 'N/A'}"></td>
+                                </tr>
+                                <tr th:if="${account.role.name() == 'DEALERSTAFF' and account.dealerStaff != null and account.dealerStaff.dealer != null}">
+                                    <th>
+                                        <i class="fa-solid fa-building"></i> Dealer
+                                    </th>
+                                    <td>
+                                        <strong th:text="${account.dealerStaff.dealer.dealerName}"></strong><br>
+                                        <small class="text-muted" th:text="${account.dealerStaff.dealer.address}"></small>
+                                    </td>
+                                </tr>
 
-                        <tr>
-                            <th>
-                                <i class="fa-solid fa-calendar-plus"></i> Created At
-                            </th>
-                            <td th:text="${#dates.format(account.createdAt, 'dd/MM/yyyy HH:mm:ss')}"></td>
-                        </tr>
-                        <tr>
-                            <th>
-                                <i class="fa-solid fa-calendar-check"></i> Updated At
-                            </th>
-                            <td th:text="${#dates.format(account.updatedAt, 'dd/MM/yyyy HH:mm:ss')}"></td>
-                        </tr>
-                    </tbody>
-                </table>
+                                <tr>
+                                    <th>
+                                        <i class="fa-solid fa-calendar-plus"></i> Created At
+                                    </th>
+                                    <td th:text="${#dates.format(account.createdAt, 'dd/MM/yyyy HH:mm:ss')}"></td>
+                                </tr>
+                                <tr>
+                                    <th>
+                                        <i class="fa-solid fa-calendar-check"></i> Updated At
+                                    </th>
+                                    <td th:text="${#dates.format(account.updatedAt, 'dd/MM/yyyy HH:mm:ss')}"></td>
+                                </tr>
+                                </tbody>
+                            </table>
 
-                <!-- Action Buttons -->
-                <div class="d-flex gap-2 justify-content-end mt-4">
-                    <a th:href="@{/account/edit/{id}(id=${account.accountId})}" class="btn btn-warning">
-                        <i class="fa-solid fa-edit"></i> Edit Account
-                    </a>
-                    <button type="button" class="btn btn-danger"
-                            th:onclick="'confirmDelete(' + ${account.accountId} + ')'">
-                        <i class="fa-solid fa-trash"></i> Delete Account
-                    </button>
+                            <!-- Action Buttons -->
+                            <div class="d-flex gap-2 justify-content-end mt-4">
+                                <a th:href="@{/account/edit/{id}(id=${account.accountId})}" class="btn btn-warning">
+                                    <i class="fa-solid fa-edit"></i> Edit Account
+                                </a>
+                                <button type="button" class="btn btn-danger"
+                                        th:onclick="'confirmDelete(' + ${account.accountId} + ')'">
+                                    <i class="fa-solid fa-trash"></i> Delete Account
+                                </button>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <!-- Role Information -->
+                    <div class="card shadow">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fa-solid fa-info-circle"></i> Role Information</h5>
+                        </div>
+                        <div class="card-body">
+                            <div th:switch="${account.role.name()}">
+                                <div th:case="'ADMIN'">
+                                    <h6 class="text-danger"><i class="fa-solid fa-crown"></i> ADMIN</h6>
+                                    <ul>
+                                        <li>Full system access</li>
+                                        <li>Can manage all accounts, dealers, vehicles, and orders</li>
+                                        <li>Highest privilege level</li>
+                                    </ul>
+                                </div>
+                                <div th:case="'EVMSTAFF'">
+                                    <h6 class="text-primary"><i class="fa-solid fa-user-tie"></i> EVM STAFF</h6>
+                                    <ul>
+                                        <li>EVM operations access</li>
+                                        <li>Can manage vehicles, dealers, discounts, and reports</li>
+                                        <li>Can manage accounts (except ADMIN)</li>
+                                    </ul>
+                                </div>
+                                <div th:case="'DEALER'">
+                                    <h6 class="text-success"><i class="fa-solid fa-store"></i> DEALER</h6>
+                                    <ul>
+                                        <li>Dealer owner access</li>
+                                        <li>Can manage customers, quotations, and orders for their dealership</li>
+                                        <li>Can view vehicle catalog</li>
+                                    </ul>
+                                </div>
+                                <div th:case="'DEALERSTAFF'">
+                                    <h6 class="text-info"><i class="fa-solid fa-user"></i> DEALER STAFF</h6>
+                                    <ul>
+                                        <li>Dealer employee access</li>
+                                        <li>Can manage customers and quotations</li>
+                                        <li>Limited dealer operations</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
             </div>
-        </div>
 
-        <!-- Role Information -->
-        <div class="card shadow mt-4" style="max-width: 700px; margin: 0 auto;">
-            <div class="card-header bg-secondary text-white">
-                <h5 class="mb-0"><i class="fa-solid fa-info-circle"></i> Role Information</h5>
-            </div>
-            <div class="card-body">
-                <div th:switch="${account.role.name()}">
-                    <div th:case="'ADMIN'">
-                        <h6 class="text-danger"><i class="fa-solid fa-crown"></i> ADMIN</h6>
-                        <ul>
-                            <li>Full system access</li>
-                            <li>Can manage all accounts, dealers, vehicles, and orders</li>
-                            <li>Highest privilege level</li>
-                        </ul>
-                    </div>
-                    <div th:case="'EVMSTAFF'">
-                        <h6 class="text-primary"><i class="fa-solid fa-user-tie"></i> EVM STAFF</h6>
-                        <ul>
-                            <li>EVM operations access</li>
-                            <li>Can manage vehicles, dealers, discounts, and reports</li>
-                            <li>Can manage accounts (except ADMIN)</li>
-                        </ul>
-                    </div>
-                    <div th:case="'DEALER'">
-                        <h6 class="text-success"><i class="fa-solid fa-store"></i> DEALER</h6>
-                        <ul>
-                            <li>Dealer owner access</li>
-                            <li>Can manage customers, quotations, and orders for their dealership</li>
-                            <li>Can view vehicle catalog</li>
-                        </ul>
-                    </div>
-                    <div th:case="'DEALERSTAFF'">
-                        <h6 class="text-info"><i class="fa-solid fa-user"></i> DEALER STAFF</h6>
-                        <ul>
-                            <li>Dealer employee access</li>
-                            <li>Can manage customers and quotations</li>
-                            <li>Limited dealer operations</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
         </div>
 
     </div>

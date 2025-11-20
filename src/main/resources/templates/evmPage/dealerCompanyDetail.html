@@ -45,13 +45,6 @@
 
     <div class="mainContent flex-grow-1 p-4">
 
-        <!-- Back Button -->
-        <div class="mb-3">
-            <a href="/dealer/company/list" class="btn btn-outline-secondary">
-                <i class="fas fa-arrow-left"></i> Back to Dealer Companies
-            </a>
-        </div>
-
         <!-- Success/Error Messages -->
         <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
             <i class="fas fa-check-circle"></i>
@@ -73,34 +66,41 @@
         <div class="row">
             <!-- Dealer Information -->
             <div class="col-md-4">
-                <div class="info-card">
-                    <h5 class="mb-3"><i class="fas fa-info-circle"></i> Dealer Information</h5>
-                    <p><strong>Company ID:</strong> <span th:text="${dealer.dealerID}">1</span></p>
-                    <p><strong>Phone:</strong> <span th:text="${dealer.phone}">Phone</span></p>
-                    <p><strong>Email:</strong> <span th:text="${dealer.email}">Email</span></p>
-                    <p>
-                        <strong>Level:</strong>
-                        <span class="badge bg-info" th:text="${levelName != null ? levelName : 'Level ' + dealer.levelID}">Level 1</span>
-                    </p>
+                <div class="card shadow">
+                    <div class="card-header">
+                        <h5 class="mb-3"><i class="fas fa-info-circle"></i> Dealer Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Company ID:</strong> <span th:text="${dealer.dealerID}">1</span></p>
+                        <p><strong>Phone:</strong> <span th:text="${dealer.phone}">Phone</span></p>
+                        <p><strong>Email:</strong> <span th:text="${dealer.email}">Email</span></p>
+                        <p>
+                            <strong>Level:</strong>
+                            <span class="badge bg-info" th:text="${levelName != null ? levelName : 'Level ' + dealer.levelID}">Level 1</span>
+                        </p>
+                    </div>
                 </div>
             </div>
 
             <!-- Accounts Management -->
             <div class="col-md-8">
-                <div class="info-card">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5><i class="fas fa-users"></i> Accounts for this Dealer</h5>
-                        <button class="btn btn-create-account btn-sm"
-                                data-bs-toggle="modal"
-                                data-bs-target="#createAccountModal">
-                            <i class="fas fa-user-plus"></i> Create Account
-                        </button>
+                <div class="card shadow">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5><i class="fas fa-users"></i> Accounts for this Dealer</h5>
+                            <button class="btn btn-create-account btn-sm"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#createAccountModal">
+                                <i class="fas fa-user-plus"></i> Create Account
+                            </button>
+                        </div>
                     </div>
 
-                    <!-- Accounts Table -->
-                    <div class="account-card">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light">
+                    <div class="card-body">
+                        <!-- Accounts Table -->
+                        <div class="account-card">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
                                 <tr>
                                     <th>Staff ID</th>
                                     <th>Full Name</th>
@@ -108,8 +108,8 @@
                                     <th>Email</th>
                                     <th>Status</th>
                                 </tr>
-                            </thead>
-                            <tbody>
+                                </thead>
+                                <tbody>
                                 <tr th:if="${accountList == null or accountList.isEmpty()}">
                                     <td colspan="5" class="text-center text-muted">
                                         <i class="fas fa-info-circle"></i> No accounts yet. Create one to get started.
@@ -134,13 +134,14 @@
                                         </span>
                                     </td>
                                 </tr>
-                            </tbody>
-                        </table>
-                    </div>
+                                </tbody>
+                            </table>
+                        </div>
 
-                    <div class="text-muted mt-3">
-                        <i class="fas fa-info-circle"></i>
-                        Total: <strong th:text="${accountList != null ? accountList.size() : 0}">0</strong> accounts
+                        <div class="text-muted mt-3">
+                            <i class="fas fa-info-circle"></i>
+                            Total: <strong th:text="${accountList != null ? accountList.size() : 0}">0</strong> accounts
+                        </div>
                     </div>
                 </div>
             </div>

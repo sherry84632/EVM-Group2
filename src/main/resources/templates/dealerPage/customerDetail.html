@@ -45,6 +45,9 @@
             display: inline-block; }
         .btn-back:hover { background: linear-gradient(135deg, #5a6268, #495057); transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(108, 117, 125, 0.4); color: white; }
+        .card {
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 
@@ -75,105 +78,125 @@
 
         <div class="row">
             <div class="col-lg-6">
-                <div class="detail-card">
-                    <h6><i class="fas fa-user me-2"></i>Customer Information</h6>
-                    <div class="info-row">
-                        <span class="info-label">Customer ID:</span>
-                        <span class="info-value" th:text="${customer.customerID}">-</span>
+                <div class="card shadow">
+                    <div class="card-header">
+                        <h6><i class="fas fa-user me-2"></i>Customer Information</h6>
                     </div>
-                    <div class="info-row">
-                        <span class="info-label">Email:</span>
-                        <span class="info-value" th:text="${customer.email}">-</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Phone:</span>
-                        <span class="info-value" th:text="${customer.phone}">-</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Birth:</span>
-                        <span class="info-value" th:text="${customer.birthDate != null ? #temporals.format(customer.birthDate, 'dd/MM/yyyy') : 'N/A'}">-</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Created:</span>
-                        <span class="info-value" th:text="${customer.createdAt != null ? #temporals.format(customer.createdAt, 'dd/MM/yyyy HH:mm') : 'N/A'}">-</span>
+                    <div class="card-body">
+                        <div class="info-row">
+                            <span class="info-label">Customer ID:</span>
+                            <span class="info-value" th:text="${customer.customerID}">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Email:</span>
+                            <span class="info-value" th:text="${customer.email}">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Phone:</span>
+                            <span class="info-value" th:text="${customer.phone}">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Birth:</span>
+                            <span class="info-value" th:text="${customer.birthDate != null ? #temporals.format(customer.birthDate, 'dd/MM/yyyy') : 'N/A'}">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Created:</span>
+                            <span class="info-value" th:text="${customer.createdAt != null ? #temporals.format(customer.createdAt, 'dd/MM/yyyy HH:mm') : 'N/A'}">-</span>
+                        </div>
                     </div>
                 </div>
 
-                <div class="detail-card">
-                    <h6><i class="fas fa-sticky-note me-2"></i>Note</h6>
-                    <div class="info-row">
-                        <span class="info-label">Notes:</span>
-                        <span class="info-value" th:text="${customer.note}">-</span>
+                <div class="card shadow">
+                    <div class="card-header">
+                        <h6><i class="fas fa-sticky-note me-2"></i>Note</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="info-row">
+                            <span class="info-label">Notes:</span>
+                            <span class="info-value" th:text="${customer.note}">-</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <div class="col-lg-6">
-                <div class="detail-card">
-                    <h6><i class="fas fa-calendar me-2"></i>Test Drive Schedule</h6>
-                    <div class="info-row" th:if="${testDrive != null}">
-                        <span class="info-label">Schedule:</span>
-                        <span class="info-value" th:text="${#dates.format(testDrive.testDate, 'dd/MM/yyyy HH:mm')}">-</span>
-                    </div>
-                    <div class="info-row" th:if="${testDrive == null}">
-                        <span class="info-label">Schedule:</span>
-                        <span class="info-value empty-field">No test drive scheduled</span>
-                    </div>
-                </div>
 
-                <div class="detail-card">
-                    <h6><i class="fas fa-car me-2"></i>Vehicle of Interest</h6>
-
-                    <!-- Nếu có test drive và có vehicle -->
-                    <div th:if="${testDrive != null && testDrive.vehicle != null}">
-                        <div class="info-row">
-                            <span class="info-label">Model:</span>
-                            <span class="info-value" th:text="${testDrive.vehicle.version?.model?.modelName ?: '-'}">-</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Brand:</span>
-                            <span class="info-value" th:text="${testDrive.vehicle.version?.model?.brand ?: '-'}">-</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Color:</span>
-                            <span class="info-value" th:text="${testDrive.vehicle.color?.colorName ?: '-'}">-</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Production Year:</span>
-                            <span class="info-value" th:text="${testDrive.vehicle.manufactureYear}">-</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Price:</span>
-                            <span class="info-value" th:text="${testDrive.vehicle.version?.model?.basePrice != null ? ('$' + #numbers.formatDecimal(testDrive.vehicle.version.model.basePrice, 1, 0)) : '-'}">-</span>
-                        </div>
+                <div class="card shadow">
+                    <div class="card-header">
+                        <h6><i class="fas fa-calendar me-2"></i>Test Drive Schedule</h6>
                     </div>
-
-                    <!-- Nếu chỉ có vehicle interest text (không có vehicle cụ thể) -->
-                    <div th:if="${(testDrive == null || testDrive.vehicle == null) && customer.vehicleInterest != null && !#strings.isEmpty(customer.vehicleInterest)}">
-                        <div class="info-row">
-                            <span class="info-label">Interest:</span>
-                            <span class="info-value" th:text="${customer.vehicleInterest}">-</span>
+                    <div class="card-body">
+                        <div class="info-row" th:if="${testDrive != null}">
+                            <span class="info-label">Schedule:</span>
+                            <span class="info-value" th:text="${#dates.format(testDrive.testDate, 'dd/MM/yyyy HH:mm')}">-</span>
                         </div>
-                        <div class="info-row">
-                            <span class="info-label">Status:</span>
-                            <span class="info-value empty-field">Vehicle not yet assigned</span>
-                        </div>
-                    </div>
-
-                    <!-- Nếu không có thông tin gì -->
-                    <div th:if="${(testDrive == null || testDrive.vehicle == null) && (customer.vehicleInterest == null || #strings.isEmpty(customer.vehicleInterest))}">
-                        <div class="info-row">
-                            <span class="info-label">Status:</span>
-                            <span class="info-value empty-field">No vehicle interest specified</span>
+                        <div class="info-row" th:if="${testDrive == null}">
+                            <span class="info-label">Schedule:</span>
+                            <span class="info-value empty-field">No test drive scheduled</span>
                         </div>
                     </div>
                 </div>
 
-                <div class="detail-card">
-                    <h6><i class="fas fa-map-marker-alt me-2"></i>Address Information</h6>
-                    <div class="info-row">
-                        <span class="info-label">Address:</span>
-                        <span class="info-value" th:text="${customer.address}">-</span>
+                <div class="card shadow">
+                    <div class="card-header">
+                        <h6><i class="fas fa-car me-2"></i>Vehicle of Interest</h6>
+                    </div>
+                    <div class="card-body">
+                        <!-- Nếu có test drive và có vehicle -->
+                        <div th:if="${testDrive != null && testDrive.vehicle != null}">
+                            <div class="info-row">
+                                <span class="info-label">Model:</span>
+                                <span class="info-value" th:text="${testDrive.vehicle.version?.model?.modelName ?: '-'}">-</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Brand:</span>
+                                <span class="info-value" th:text="${testDrive.vehicle.version?.model?.brand ?: '-'}">-</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Color:</span>
+                                <span class="info-value" th:text="${testDrive.vehicle.color?.colorName ?: '-'}">-</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Production Year:</span>
+                                <span class="info-value" th:text="${testDrive.vehicle.manufactureYear}">-</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Price:</span>
+                                <span class="info-value" th:text="${testDrive.vehicle.version?.model?.basePrice != null ? ('$' + #numbers.formatDecimal(testDrive.vehicle.version.model.basePrice, 1, 0)) : '-'}">-</span>
+                            </div>
+                        </div>
+
+                        <!-- Nếu chỉ có vehicle interest text (không có vehicle cụ thể) -->
+                        <div th:if="${(testDrive == null || testDrive.vehicle == null) && customer.vehicleInterest != null && !#strings.isEmpty(customer.vehicleInterest)}">
+                            <div class="info-row">
+                                <span class="info-label">Interest:</span>
+                                <span class="info-value" th:text="${customer.vehicleInterest}">-</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Status:</span>
+                                <span class="info-value empty-field">Vehicle not yet assigned</span>
+                            </div>
+                        </div>
+
+                        <!-- Nếu không có thông tin gì -->
+                        <div th:if="${(testDrive == null || testDrive.vehicle == null) && (customer.vehicleInterest == null || #strings.isEmpty(customer.vehicleInterest))}">
+                            <div class="info-row">
+                                <span class="info-label">Status:</span>
+                                <span class="info-value empty-field">No vehicle interest specified</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card shadow">
+                    <div class="card-header">
+                        <h6><i class="fas fa-map-marker-alt me-2"></i>Address Information</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="info-row">
+                            <span class="info-label">Address:</span>
+                            <span class="info-value" th:text="${customer.address}">-</span>
+                        </div>
                     </div>
                 </div>
             </div>
