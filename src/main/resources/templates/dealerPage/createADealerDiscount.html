@@ -272,7 +272,7 @@
                 <div class="col-md-6">
                     <div class="card shadow">
                         <div class="card-header">
-                            <h1 th:text="${editDiscount != null ? 'Edit Discount' : 'Create Discount'}">Create Discount</h1>
+                            <h3 th:text="${editDiscount != null ? 'Edit Discount' : 'Create Discount'}">Create Discount</h3>
                         </div>
 
                         <div class="card-body">
@@ -344,7 +344,7 @@
 
                     <div class="card shadow">
                         <div class="card-header">
-                            <h1>Discount Management</h1>
+                            <h3>Discount Management</h3>
                         </div>
 
                         <div class="card-body">
@@ -357,7 +357,7 @@
                                 <button type="submit" class="submit-btn">Search</button>
                             </form>
 
-                            <h1>Discount List</h1>
+                            <h3>Discount List</h3>
                             <div class="scroll-box-discount">
                                 <div class="discount-grid">
                                     <div th:each="discount : ${discounts}">
