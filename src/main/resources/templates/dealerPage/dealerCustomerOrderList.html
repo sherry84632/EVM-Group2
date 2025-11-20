@@ -48,6 +48,9 @@
             font-weight: bold;
             margin: 0 8px;
         }
+        .card {
+            margin-bottom: 12px;
+        }
     </style>
 
 </head>
@@ -94,49 +97,51 @@
 
                 <div class="row">
                     <div class="col-md-12">
-                        <form action="/saleorder" method="get" class="card shadow-sm mb-3">
+                        <div class="card shadow">
                             <div class="card-body">
-                                <div class="row g-3 align-items-end">
+                                <form action="/saleorder" method="get">
+                                    <div class="row g-3 align-items-end">
 
-                                    <div class="row">
-                                        <!-- Column 1 -->
-                                        <div class="col-md-3">
-                                            <label>Customer Name</label>
-                                            <input name="keyword" type="text" class="form-control" placeholder="Type customer name" th:value="${keyword}">
+                                        <div class="row">
+                                            <!-- Column 1 -->
+                                            <div class="col-md-3">
+                                                <label>Customer Name</label>
+                                                <input name="keyword" type="text" class="form-control" placeholder="Type customer name" th:value="${keyword}">
+                                            </div>
+
+                                            <!-- Column 2 -->
+                                            <div class="col-md-3">
+                                                <label class="form-label">From</label>
+                                                <input name="from" type="date" class="form-control" th:value="${from}">
+                                            </div>
+
+                                            <!-- Column 3 -->
+                                            <div class="col-md-3">
+                                                <label class="form-label">To</label>
+                                                <input name="to" type="date" class="form-control" th:value="${to}">
+                                            </div>
+
+                                            <!-- Column 4 (Status + Apply button) -->
+                                            <div class="col-md-3">
+                                                <label class="form-label">Status</label>
+                                                <select name="status" class="form-select mb-2" th:value="${status}">
+                                                    <option value="">All</option>
+                                                    <option value="CREATED">CREATED</option>
+                                                    <option value="CONTRACT_SIGNED">CONTRACT_SIGNED</option>
+                                                    <option value="PROCESSING">PROCESSING</option>
+                                                    <option value="SHIPPED">SHIPPED</option>
+                                                    <option value="COMPLETED">COMPLETED</option>
+                                                    <option value="CANCELLED">CANCELLED</option>
+                                                </select>
+
+                                                <button type="submit" class="btn btn-primary w-100">Apply</button>
+                                            </div>
                                         </div>
 
-                                        <!-- Column 2 -->
-                                        <div class="col-md-3">
-                                            <label class="form-label">From</label>
-                                            <input name="from" type="date" class="form-control" th:value="${from}">
-                                        </div>
-
-                                        <!-- Column 3 -->
-                                        <div class="col-md-3">
-                                            <label class="form-label">To</label>
-                                            <input name="to" type="date" class="form-control" th:value="${to}">
-                                        </div>
-
-                                        <!-- Column 4 (Status + Apply button) -->
-                                        <div class="col-md-3">
-                                            <label class="form-label">Status</label>
-                                            <select name="status" class="form-select mb-2" th:value="${status}">
-                                                <option value="">All</option>
-                                                <option value="CREATED">CREATED</option>
-                                                <option value="CONTRACT_SIGNED">CONTRACT_SIGNED</option>
-                                                <option value="PROCESSING">PROCESSING</option>
-                                                <option value="SHIPPED">SHIPPED</option>
-                                                <option value="COMPLETED">COMPLETED</option>
-                                                <option value="CANCELLED">CANCELLED</option>
-                                            </select>
-
-                                            <button type="submit" class="btn btn-primary w-100">Apply</button>
-                                        </div>
                                     </div>
-
-                                </div>
+                                </form>
                             </div>
-                        </form>
+                        </div>
                     </div>
                 </div>
 
