@@ -13,6 +13,11 @@
           crossorigin="anonymous" referrerpolicy="no-referrer"/>
     <link rel="stylesheet" href="/css/inentoryScrollBox.css">
     <link rel="stylesheet" href="/css/breadScrumbNav.css">
+    <style>
+        .card {
+            margin-bottom: 12px;
+        }
+    </style>
 </head>
 
 <body class="bg-gradient2-custom" style="overflow: hidden;">
@@ -72,56 +77,75 @@
 
         <div class="d-flex">
 
-            <div class="scroll-box">
-                <div class="items-container">
+            <div class="container-fluid" style="overflow-y: auto; overflow-x: hidden; height: 83vh;">
+
+                <div class="row">
 
                     <!-- Item -->
-                    <div th:each="vehicle : ${vehicles}">
+                    <div th:each="vehicle : ${vehicles}" class="col-md-6">
                         <a th:href="@{/evm/vehicle/detail/{id}(id=${vehicle.vehicleID})}" style="text-decoration: none;">
-                            <div class="item-button">
-                                <div class="image-placeholder">
-                                    <!-- Hiển thị ảnh từ database nếu có -->
-                                    <img th:if="${vehicle.version != null and vehicle.version.model != null and vehicle.version.model.modelID != null}"
-                                         th:src="@{/evm/vehicle/modelImage/{modelId}(modelId=${vehicle.version.model.modelID})}"
-                                         alt="Model Image"
-                                         class="vehicle-image"
-                                         style="object-fit: cover; width: 100%; height: 100%;"
-                                         onload="this.nextElementSibling.style.display='none';"
-                                         onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"/>
-                                    <!-- Icon placeholder chỉ hiển thị khi không có ảnh -->
-                                    <span style="font-size: 48px;">🚗</span>
-                                </div>
-                                <div class="item-info">
+                            <div class="card shadow">
+                                <div class="card-header">
                                     <div class="model-name">
                                         <span th:text="${vehicle.model != null ? vehicle.model.modelName : 'N/A'}">Model Name</span>
                                     </div>
-                                    <div class="info-row">
-                                        <div class="info-item">
-                                            <span class="info-label">Brand:</span>
-                                            <span class="info-value" th:text="${vehicle.model != null ? vehicle.model.brand : 'N/A'}">Brand</span>
-                                        </div>
-                                        <div class="info-item">
-                                            <span class="info-label">Year:</span>
-                                            <span class="info-value" th:text="${vehicle.model != null ? vehicle.model.year : 'N/A'}">Year</span>
-                                        </div>
-                                    </div>
-                                    <div class="info-row">
-                                        <div class="info-item">
-                                            <span class="info-label">Version:</span>
-                                            <span class="info-value" th:text="${vehicle.version != null ? vehicle.version.versionName : 'N/A'}">Version</span>
-                                        </div>
-                                        <div class="info-item">
-                                            <span class="info-label">Status:</span>
-                                            <span class="info-value" th:text="${vehicle.status != null ? vehicle.status : 'N/A'}">Status</span>
-                                        </div>
-                                    </div>
                                 </div>
+
+                                <div class="card-body">
+
+                                    <div class="row">
+
+                                        <div class="col-md-3">
+                                            <div class="image-placeholder">
+                                                <!-- Hiển thị ảnh từ database nếu có -->
+                                                <img th:if="${vehicle.version != null and vehicle.version.model != null and vehicle.version.model.modelID != null}"
+                                                     th:src="@{/evm/vehicle/modelImage/{modelId}(modelId=${vehicle.version.model.modelID})}"
+                                                     alt="Model Image"
+                                                     class="vehicle-image"
+                                                     style="object-fit: cover; width: 100%; height: 100%;"
+                                                     onload="this.nextElementSibling.style.display='none';"
+                                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"/>
+                                                <!-- Icon placeholder chỉ hiển thị khi không có ảnh -->
+                                                <span style="font-size: 48px;">🚗</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <div class="item-info">
+                                                <div class="info-row">
+                                                    <div class="info-item">
+                                                        <span class="info-label">Brand:</span>
+                                                        <span class="info-value" th:text="${vehicle.model != null ? vehicle.model.brand : 'N/A'}">Brand</span>
+                                                    </div>
+                                                    <div class="info-item">
+                                                        <span class="info-label">Year:</span>
+                                                        <span class="info-value" th:text="${vehicle.model != null ? vehicle.model.year : 'N/A'}">Year</span>
+                                                    </div>
+                                                </div>
+                                                <div class="info-row">
+                                                    <div class="info-item">
+                                                        <span class="info-label">Version:</span>
+                                                        <span class="info-value" th:text="${vehicle.version != null ? vehicle.version.versionName : 'N/A'}">Version</span>
+                                                    </div>
+                                                    <div class="info-item">
+                                                        <span class="info-label">Status:</span>
+                                                        <span class="info-value" th:text="${vehicle.status != null ? vehicle.status : 'N/A'}">Status</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
                             </div>
                         </a>
 
                     </div>
 
                 </div>
+
             </div>
 
         </div>

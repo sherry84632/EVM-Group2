@@ -1,4 +1,4 @@
-r<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
@@ -92,6 +92,9 @@ r<!DOCTYPE html>
             box-shadow: 0 4px 12px rgba(108,117,125,0.4);
             color: white;
         }
+        .form-control {
+
+        }
     </style>
 </head>
 
@@ -102,87 +105,93 @@ r<!DOCTYPE html>
 
     <!-- Main Content -->
     <div class="mainContent flex-grow-1">
-
-        <!-- Breadcrumb -->
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item">
-                    <a href="/showDealerHomePage" class="d-flex align-items-center">
-                        <i class="fas fa-home me-1"></i> Home
-                    </a>
-                </li>
-                <li class="breadcrumb-item">
-                    <a href="/customer">Customer Management</a>
-                </li>
-                <li class="breadcrumb-item active" aria-current="page">
-                    Edit Customer
-                </li>
-            </ol>
-        </nav>
-
-        <!-- Header -->
-        <h1 class="page-title">Edit Customer Information</h1>
-        <p class="page-subtitle">Modify and save customer details below</p>
-
         <!-- Form -->
-        <div class="form-card">
-            <form th:action="@{/customer/update}" th:object="${customer}" method="post">
-                <input type="hidden" th:field="*{customerID}"/>
+        <div class="card shadow">
+            <div class="card-header">
+                <!-- Header -->
+                <h1 class="page-title">Edit Customer Information</h1>
+                <p class="page-subtitle">Modify and save customer details below</p>
+            </div>
 
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label">Full Name</label>
-                        <input type="text" th:field="*{fullName}" class="form-control" required>
+            <div class="card-body">
+                <form th:action="@{/customer/update}" th:object="${customer}" method="post">
+                    <input type="hidden" th:field="*{customerID}"/>
+
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="form-label">Full Name</label>
+                        </div>
+                        <div class="col-md-9">
+                            <input type="text" th:field="*{fullName}" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="form-label">Phone</label>
+                        </div>
+                        <div class="col-md-9">
+                            <input type="text" th:field="*{phone}" class="form-control">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="form-label">Email</label>
+                        </div>
+                        <div class="col-md-9">
+                            <input type="email" th:field="*{email}" class="form-control">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="form-label">Address</label>
+                        </div>
+                        <div class="col-md-9">
+                            <input type="text" th:field="*{address}" class="form-control">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="form-label">Birth Date</label>
+                        </div>
+                        <div class="col-md-9">
+                            <input type="date" th:field="*{birthDate}" class="form-control">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="form-label">Vehicle Interest</label>
+                        </div>
+                        <div class="col-md-9">
+                            <input type="text" th:field="*{vehicleInterest}" class="form-control">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="form-label">Note</label>
+                        </div>
+                        <div class="col-md-9">
+                            <textarea th:field="*{note}" class="form-control" rows="3"></textarea>
+                        </div>
                     </div>
 
-                    <div class="col-md-6">
-                        <label class="form-label">Phone</label>
-                        <input type="text" th:field="*{phone}" class="form-control">
+                    <!-- Buttons -->
+                    <div class="d-flex justify-content-center mt-4 gap-3">
+                        <button type="submit" class="btn btn-save">
+                            <i class="fas fa-save me-2"></i> Save Changes
+                        </button>
+
+                        <!-- Nút quay lại chi tiết khách hàng -->
+                        <a th:href="@{/customer/detail/{id}(id=${customer.customerID})}" class="btn btn-back">
+                            <i class="fas fa-arrow-left me-2"></i> Back to Customer Detail
+                        </a>
+
+                        <!-- Nút hủy (về danh sách) -->
+                        <a href="/customer" class="btn btn-cancel">
+                            <i class="fas fa-times me-2"></i> Cancel
+                        </a>
                     </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label">Email</label>
-                        <input type="email" th:field="*{email}" class="form-control">
-                    </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label">Address</label>
-                        <input type="text" th:field="*{address}" class="form-control">
-                    </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label">Birth Date</label>
-                        <input type="date" th:field="*{birthDate}" class="form-control">
-                    </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label">Vehicle Interest</label>
-                        <input type="text" th:field="*{vehicleInterest}" class="form-control">
-                    </div>
-
-                    <div class="col-12">
-                        <label class="form-label">Note</label>
-                        <textarea th:field="*{note}" class="form-control" rows="3"></textarea>
-                    </div>
-                </div>
-
-                <!-- Buttons -->
-                <div class="d-flex justify-content-center mt-4 gap-3">
-                    <button type="submit" class="btn btn-save">
-                        <i class="fas fa-save me-2"></i> Save Changes
-                    </button>
-
-                    <!-- Nút quay lại chi tiết khách hàng -->
-                    <a th:href="@{/customer/detail/{id}(id=${customer.customerID})}" class="btn btn-back">
-                        <i class="fas fa-arrow-left me-2"></i> Back to Customer Detail
-                    </a>
-
-                    <!-- Nút hủy (về danh sách) -->
-                    <a href="/customer" class="btn btn-cancel">
-                        <i class="fas fa-times me-2"></i> Cancel
-                    </a>
-                </div>
-            </form>
+                </form>
+            </div>
         </div>
     </div>
 </div>

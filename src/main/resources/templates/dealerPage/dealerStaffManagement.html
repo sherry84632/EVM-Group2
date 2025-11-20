@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"/>
     <style>
         .dealer-info-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #ff6b00 0%, #8f3900 100%);
             color: white;
             padding: 25px;
             border-radius: 15px;
@@ -72,22 +72,25 @@
         </div>
 
         <!-- Staff Management Card -->
-        <div class="staff-card">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h4><i class="fas fa-users"></i> Your Team Accounts</h4>
-                <!-- Only DEALER role can create accounts -->
-                <button sec:authorize="hasRole('DEALER')"
-                        class="btn btn-create-staff"
-                        data-bs-toggle="modal"
-                        data-bs-target="#createStaffModal">
-                    <i class="fas fa-user-plus"></i> Create Account
-                </button>
+        <div class="card shadow">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h4><i class="fas fa-users"></i> Your Team Accounts</h4>
+                    <!-- Only DEALER role can create accounts -->
+                    <button sec:authorize="hasRole('DEALER')"
+                            class="btn btn-create-staff"
+                            data-bs-toggle="modal"
+                            data-bs-target="#createStaffModal">
+                        <i class="fas fa-user-plus"></i> Create Account
+                    </button>
+                </div>
             </div>
 
-            <!-- Staff Table -->
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead class="table-light">
+            <div class="card-body">
+                <!-- Staff Table -->
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
                         <tr>
                             <th>Staff ID</th>
                             <th>Full Name</th>
@@ -97,8 +100,8 @@
                             <th>Account Status</th>
                             <th sec:authorize="hasRole('DEALER')">Actions</th>
                         </tr>
-                    </thead>
-                    <tbody>
+                        </thead>
+                        <tbody>
                         <tr th:if="${staffList == null or staffList.isEmpty()}">
                             <td colspan="8" class="text-center text-muted">
                             <td colspan="7" class="text-center text-muted">
@@ -142,13 +145,14 @@
                                 </form>
                             </td>
                         </tr>
-                    </tbody>
-                </table>
-            </div>
+                        </tbody>
+                    </table>
+                </div>
 
-            <div class="text-muted mt-3">
-                <i class="fas fa-info-circle"></i>
-                Total: <strong th:text="${staffList != null ? staffList.size() : 0}">0</strong> staff members
+                <div class="text-muted mt-3">
+                    <i class="fas fa-info-circle"></i>
+                    Total: <strong th:text="${staffList != null ? staffList.size() : 0}">0</strong> staff members
+                </div>
             </div>
         </div>
 
