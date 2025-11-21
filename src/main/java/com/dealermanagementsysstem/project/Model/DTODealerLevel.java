@@ -23,6 +23,11 @@ public class DTODealerLevel {
     @Transient
     private Double discountSharePercent; // computed, not stored
 
+    @Column(name = "VehiclesRequired")
+    private int vehiclesRequired; // number of vehicles sold needed to reach level
+    @Column(name = "SharePercent")
+    private java.math.BigDecimal sharePercent; // configurable percent share
+
     public DTODealerLevel() {
     }
 
@@ -58,7 +63,25 @@ public class DTODealerLevel {
         this.maxOrderValue = maxOrderValue;
     }
 
+    public int getVehiclesRequired() {
+        return vehiclesRequired;
+    }
+
+    public void setVehiclesRequired(int vehiclesRequired) {
+        this.vehiclesRequired = vehiclesRequired;
+    }
+
+    public java.math.BigDecimal getSharePercent() {
+        return sharePercent;
+    }
+
+    public void setSharePercent(java.math.BigDecimal sharePercent) {
+        this.sharePercent = sharePercent;
+    }
+
     public Double getDiscountSharePercent() {
+        // Prefer explicit sharePercent if provided
+        if (sharePercent != null) return sharePercent.doubleValue();
         if (discountSharePercent != null) return discountSharePercent;
         if (levelName == null) return 0.0;
         String n = levelName.toLowerCase();

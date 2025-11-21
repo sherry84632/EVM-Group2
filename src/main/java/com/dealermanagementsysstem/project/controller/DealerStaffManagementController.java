@@ -311,5 +311,70 @@ public class DealerStaffManagementController {
 
         return "redirect:/dealer/staff/list";
     }
-}
 
+    /**
+     * Update staff account details (staff and linked account)
+     */
+    @PostMapping("/update/{staffId}")
+    public String updateStaff(@PathVariable int staffId,
+                              @RequestParam("staffFullName") String staffFullName,
+                              @RequestParam(value="staffPhone", required=false) String staffPhone,
+                              @RequestParam(value="staffEmail", required=false) String staffEmail,
+                              @RequestParam(value="username", required=false) String username,
+                              @RequestParam(value="accountEmail", required=false) String accountEmail,
+                              @RequestParam(value="active", required=false) Boolean active,
+                              HttpSession session,
+                              RedirectAttributes redirectAttributes) {
+        DTOAccount loggedInAccount = (DTOAccount) session.getAttribute("loggedInAccount");
+        if (loggedInAccount == null) { redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Please login first!"); return "redirect:/login"; }
+        if (loggedInAccount.getRole() != Role.DEALER) { redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Only dealer owners can update staff!"); return "redirect:/dealer/staff/list"; }
+        Integer dealerId = null;
+        if (loggedInAccount.getDealerStaff()!=null && loggedInAccount.getDealerStaff().getDealer()!=null) dealerId = loggedInAccount.getDealerStaff().getDealer().getDealerID();
+        if (dealerId == null) { redirectAttributes.addFlashAttribute("errorMessage", "⚠️ No dealer associated with your account!"); return "redirect:/dealer/staff/list"; }
+        try {
+            // Locate staff
+            List<DTODealerStaff> staffList = daoDealerStaff.getStaffsByDealerId(dealerId);
+            DTODealerStaff target = null;
+            for (DTODealerStaff s: staffList) if (s.getStaffID()==staffId) { target=s; break; }
+            if (target == null) { redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Staff not found or not in your dealer!"); return "redirect:/dealer/staff/list"; }
+            // Validate required fields
+            if (staffFullName==null || staffFullName.trim().isEmpty()) { redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Full Name is required!"); return "redirect:/dealer/staff/list"; }
+            // Update staff object
+            target.setFullName(staffFullName.trim());
+            target.setPhone(staffPhone!=null? staffPhone.trim(): target.getPhone());
+            target.setEmail((staffEmail!=null && !staffEmail.trim().isEmpty())? staffEmail.trim(): target.getEmail());
+            // Preserve position unless explicitly changed (optional future enhancement)
+            // Update account if linked
+            if (target.getAccount()!=null && target.getAccount().getAccountId()>0) {
+                DTOAccount account = daoAccount.getAccountById(target.getAccount().getAccountId());
+                if (account != null) {
+                    if (username!=null && !username.trim().isEmpty()) account.setUsername(username.trim());
+                    if (accountEmail!=null && !accountEmail.trim().isEmpty()) {
+                        // Check email uniqueness
+                        if (daoAccount.emailExists(accountEmail.trim(), account.getAccountId())) {
+                            redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Account email already exists!");
+                            return "redirect:/dealer/staff/list";
+                        }
+                        account.setEmail(accountEmail.trim());
+                    }
+                    if (active != null) account.setActive(active);
+                    boolean accOk = daoAccount.updateAccount(account);
+                    if (!accOk) { redirectAttributes.addFlashAttribute("errorMessage", "❌ Failed to update account info!"); return "redirect:/dealer/staff/list"; }
+                }
+            }
+            // Ensure dealer association is preserved (staff objects from list lack dealer reference)
+            if (target.getDealer() == null) {
+                DTODealer dealerRef = new DTODealer();
+                dealerRef.setDealerID(dealerId);
+                target.setDealer(dealerRef);
+            }
+            boolean staffOk = daoDealerStaff.updateDealerStaff(target);
+            if (staffOk) redirectAttributes.addFlashAttribute("successMessage", "✅ Updated staff '"+target.getFullName()+"' successfully!");
+            else redirectAttributes.addFlashAttribute("errorMessage", "❌ Failed to update staff record!");
+        } catch (Exception e) {
+            e.printStackTrace();
+            redirectAttributes.addFlashAttribute("errorMessage", "❌ Error updating staff: "+ e.getMessage());
+        }
+        return "redirect:/dealer/staff/list";
+    }
+}

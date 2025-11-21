@@ -1,6 +1,8 @@
 package com.dealermanagementsysstem.project.controller;
 
 import com.dealermanagementsysstem.project.configuration.BusinessConfig;
+import com.dealermanagementsysstem.project.Model.DAODealerLevel;
+import com.dealermanagementsysstem.project.Model.DTODealerLevel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -18,12 +20,16 @@ public class SettingsController {
     @Autowired
     private BusinessConfig businessConfig;
 
+    @Autowired
+    private DAODealerLevel daoDealerLevel;
+
     /**
      * Show settings page
      */
     @GetMapping
     public String showSettings(Model model) {
         model.addAttribute("currentVatRate", businessConfig.getVat().getRate());
+        model.addAttribute("dealerLevels", daoDealerLevel.getAllDealerLevels());
         return "evmPage/settings";
     }
 
@@ -76,5 +82,85 @@ public class SettingsController {
         }
         return "redirect:/settings";
     }
-}
 
+    /**
+     * Update dealer level
+     */
+    @PostMapping("/dealer-level/update")
+    public String updateDealerLevel(@RequestParam("levelID") int levelID,
+                                    @RequestParam("levelName") String levelName,
+                                    @RequestParam("vehiclesRequired") Integer vehiclesRequired,
+                                    @RequestParam("sharePercent") Double sharePercent,
+                                    RedirectAttributes redirectAttributes) {
+        try {
+            if (levelName == null || levelName.trim().isEmpty()) {
+                redirectAttributes.addFlashAttribute("errorMessage", "❌ Level name cannot be empty");
+                return "redirect:/settings";
+            }
+            if (vehiclesRequired == null || vehiclesRequired < 0) {
+                redirectAttributes.addFlashAttribute("errorMessage", "❌ Vehicles required must be >= 0");
+                return "redirect:/settings";
+            }
+            if (sharePercent == null || sharePercent < 0 || sharePercent > 100) {
+                redirectAttributes.addFlashAttribute("errorMessage", "❌ Share percent must be between 0 and 100");
+                return "redirect:/settings";
+            }
+            DTODealerLevel lvl = daoDealerLevel.getDealerLevelById(levelID);
+            if (lvl == null) {
+                redirectAttributes.addFlashAttribute("errorMessage", "❌ Dealer level not found");
+                return "redirect:/settings";
+            }
+            lvl.setLevelName(levelName.trim());
+            lvl.setVehiclesRequired(vehiclesRequired);
+            lvl.setSharePercent(java.math.BigDecimal.valueOf(sharePercent));
+            boolean ok = daoDealerLevel.updateDealerLevel(lvl);
+            if (ok) {
+                redirectAttributes.addFlashAttribute("successMessage", "✅ Updated level " + levelName + " successfully");
+            } else {
+                redirectAttributes.addFlashAttribute("errorMessage", "❌ Failed to update level");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            redirectAttributes.addFlashAttribute("errorMessage", "❌ Error updating level: " + e.getMessage());
+        }
+        return "redirect:/settings";
+    }
+
+    /**
+     * Create new dealer level
+     */
+    @PostMapping("/dealer-level/create")
+    public String createDealerLevel(@RequestParam("newLevelName") String levelName,
+                                    @RequestParam("newVehiclesRequired") Integer vehiclesRequired,
+                                    @RequestParam("newSharePercent") Double sharePercent,
+                                    RedirectAttributes redirectAttributes) {
+        try {
+            if (levelName == null || levelName.trim().isEmpty()) {
+                redirectAttributes.addFlashAttribute("errorMessage", "❌ Level name cannot be empty");
+                return "redirect:/settings";
+            }
+            if (vehiclesRequired == null || vehiclesRequired < 0) {
+                redirectAttributes.addFlashAttribute("errorMessage", "❌ Vehicles required must be >= 0");
+                return "redirect:/settings";
+            }
+            if (sharePercent == null || sharePercent < 0 || sharePercent > 100) {
+                redirectAttributes.addFlashAttribute("errorMessage", "❌ Share percent must be between 0 and 100");
+                return "redirect:/settings";
+            }
+            DTODealerLevel lvl = new DTODealerLevel();
+            lvl.setLevelName(levelName.trim());
+            lvl.setVehiclesRequired(vehiclesRequired);
+            lvl.setSharePercent(java.math.BigDecimal.valueOf(sharePercent));
+            int id = daoDealerLevel.createDealerLevel(lvl);
+            if (id > 0) {
+                redirectAttributes.addFlashAttribute("successMessage", "✅ Created level '" + levelName + "' (ID=" + id + ")");
+            } else {
+                redirectAttributes.addFlashAttribute("errorMessage", "❌ Failed to create level");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            redirectAttributes.addFlashAttribute("errorMessage", "❌ Error creating level: " + e.getMessage());
+        }
+        return "redirect:/settings";
+    }
+}

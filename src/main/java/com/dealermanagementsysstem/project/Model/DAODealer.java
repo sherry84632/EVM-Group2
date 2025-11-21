@@ -190,7 +190,7 @@ public class DAODealer {
      * Get DealerLevel record by LevelID.
      */
     public DTODealerLevel getDealerLevelById(int levelID) {
-        String sql = "SELECT LevelID, LevelName, MinOrderValue, MaxOrderValue FROM DealerLevel WHERE LevelID=?";
+        String sql = "SELECT LevelID, LevelName, MinOrderValue, MaxOrderValue, VehiclesRequired, SharePercent FROM DealerLevel WHERE LevelID=?";
         try (java.sql.Connection conn = utils.DBUtils.getConnection();
              java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, levelID);
@@ -201,6 +201,8 @@ public class DAODealer {
                     lvl.setLevelName(rs.getString("LevelName"));
                     lvl.setMinOrderValue(rs.getBigDecimal("MinOrderValue"));
                     lvl.setMaxOrderValue(rs.getBigDecimal("MaxOrderValue"));
+                    lvl.setVehiclesRequired(rs.getInt("VehiclesRequired"));
+                    try { lvl.setSharePercent(rs.getBigDecimal("SharePercent")); } catch (Exception ignore) {}
                     return lvl;
                 }
             }
@@ -216,9 +218,9 @@ public class DAODealer {
      */
     public java.util.List<DTODealerLevel> getAllDealerLevels() {
         java.util.List<DTODealerLevel> list = new java.util.ArrayList<>();
-        String sql = "SELECT LevelID, LevelName, MinOrderValue, MaxOrderValue FROM DealerLevel ORDER BY LevelID";
+        String sqlGetAll = "SELECT LevelID, LevelName, MinOrderValue, MaxOrderValue, VehiclesRequired, SharePercent FROM DealerLevel ORDER BY LevelID";
         try (java.sql.Connection conn = utils.DBUtils.getConnection();
-             java.sql.PreparedStatement ps = conn.prepareStatement(sql);
+             java.sql.PreparedStatement ps = conn.prepareStatement(sqlGetAll);
              java.sql.ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 DTODealerLevel lvl = new DTODealerLevel();
@@ -226,6 +228,8 @@ public class DAODealer {
                 lvl.setLevelName(rs.getString("LevelName"));
                 lvl.setMinOrderValue(rs.getBigDecimal("MinOrderValue"));
                 lvl.setMaxOrderValue(rs.getBigDecimal("MaxOrderValue"));
+                lvl.setVehiclesRequired(rs.getInt("VehiclesRequired"));
+                try { lvl.setSharePercent(rs.getBigDecimal("SharePercent")); } catch (Exception ignore) {}
                 list.add(lvl);
             }
         } catch (java.sql.SQLException e) {

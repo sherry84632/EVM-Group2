@@ -39,6 +39,22 @@
             }
         });
     </script>
+    <style>
+        /* Level badge styles (neutral, no color differentiation) */
+        .badge-level-bronze,
+        .badge-level-silver,
+        .badge-level-gold,
+        .badge-level-platinum {
+            background:#f1f5f9; /* light neutral */
+            color:#334155;      /* dark slate text */
+            border:1px solid #cbd5e1;
+            font-weight:500;
+        }
+        .badge-level-bronze::before { content:''; }
+        .badge-level-silver::before { content:''; }
+        .badge-level-gold::before { content:''; }
+        .badge-level-platinum::before { content:''; }
+    </style>
 </head>
 <body class="bg-light">
 
@@ -143,11 +159,14 @@
                     <td th:text="${dealer.phone}"></td>
                     <td th:text="${dealer.email}"></td>
                     <td class="text-center">
-                        <span class="badge bg-info" th:text="'Level ' + ${dealer.levelID}"></span>
+                        <span class="badge badge-level-bronze" th:if="${dealer.levelID == 1}">Bronze</span>
+                        <span class="badge badge-level-silver" th:if="${dealer.levelID == 2}">Silver</span>
+                        <span class="badge badge-level-gold" th:if="${dealer.levelID == 3}">Gold</span>
+                        <span class="badge badge-level-platinum" th:if="${dealer.levelID == 4}">Platinum</span>
+                        <span class="badge bg-secondary" th:if="${dealer.levelID != 1 and dealer.levelID != 2 and dealer.levelID != 3 and dealer.levelID != 4}" th:text="'Level ' + dealer.levelID"></span>
                     </td>
                     <td class="text-center">
-                        <a th:href="@{'/dealer/company/' + ${dealer.dealerID} + '/detail'}"
-                           class="btn btn-info btn-sm">
+                        <a th:href="@{'/dealer/company/' + ${dealer.dealerID} + '/detail'}" class="btn btn-info btn-sm">
                             <i class="fas fa-eye"></i> View Detail
                         </a>
 
@@ -162,15 +181,10 @@
                             <i class="fas fa-edit"></i> Edit
                         </button>
 
-                        <form th:action="@{'/dealer/company/' + ${dealer.dealerID} + '/delete'}"
-                              method="post"
-                              style="display:inline"
-                              onsubmit="return confirm('⚠️ Delete dealer company: ' + this.getAttribute('data-name') + '?\n\nNote: This will fail if dealer has staff or customers.');">
+                        <form th:action="@{'/dealer/company/' + ${dealer.dealerID} + '/delete'}" method="post" style="display:inline" onsubmit="return confirm('⚠️ Delete dealer company: ' + this.getAttribute('data-name') + '?\n\nNote: This will fail if dealer has staff or customers.');">
                             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
                             <input type="hidden" th:value="${dealer.dealerName}" th:attr="data-name=${dealer.dealerName}"/>
-                            <button class="btn btn-danger btn-sm" type="submit">
-                                <i class="fas fa-trash"></i> Delete
-                            </button>
+                            <button class="btn btn-danger btn-sm" type="submit"><i class="fas fa-trash"></i> Delete</button>
                         </form>
                     </td>
                 </tr>

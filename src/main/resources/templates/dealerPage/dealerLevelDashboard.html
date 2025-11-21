@@ -31,11 +31,8 @@
         .tier-table th, .tier-table td { padding:10px 12px; border:1px solid #e5e5e5; }
         .tier-table th { background:#f0f0f0; font-weight:600; text-transform:uppercase; font-size:11px; color:#444; }
         .current-tier-row { background:#e8f1ff; font-weight:600; }
-        .badge { display:inline-block; padding:4px 8px; border-radius:12px; font-size:10px; font-weight:600; margin-left:4px; color:#fff; }
-        .badge-bronze { background:#b8860b; }
-        .badge-silver { background:#7d8692; }
-        .badge-gold { background:#d4af37; color:#222; }
-        .badge-platinum { background:#2196f3; }
+        .badge { /* removed usage */ display:none; }
+        .badge-bronze,.badge-silver,.badge-gold,.badge-platinum { display:none; }
         .alert { padding:12px 14px; border-radius:4px; margin-bottom:16px; font-size:14px; }
         .alert-danger { background:#f8d7da; border:1px solid #f5c2c7; color:#842029; }
         @media (max-width:768px){ .level-header { flex-direction:column; align-items:flex-start; gap:12px; } }
@@ -110,24 +107,13 @@
                     <th>Tier</th>
                     <th>Level ID</th>
                     <th>Discount Share (%)</th>
-                    <th>Status</th>
                 </tr>
                 </thead>
                 <tbody>
                 <tr th:each="lvl : ${levels}" th:class="${lvl.levelName == currentTierName} ? 'current-tier-row' : ''">
-                    <td>
-                        <span th:text="${lvl.levelName}"></span>
-                        <span class="badge" th:if="${lvl.levelName != null}" th:classappend="${lvl.levelName.contains('Bronze')}? ' badge-bronze' : ''" th:text="${lvl.levelName.contains('Bronze') ? 'Bronze' : ''}"></span>
-                        <span class="badge" th:if="${lvl.levelName != null and lvl.levelName.contains('Silver')}" th:classappend="badge-silver" th:text="Silver"></span>
-                        <span class="badge" th:if="${lvl.levelName != null and lvl.levelName.contains('Gold')}" th:classappend="badge-gold" th:text="Gold"></span>
-                        <span class="badge" th:if="${lvl.levelName != null and lvl.levelName.contains('Platinum')}" th:classappend="badge-platinum" th:text="Platinum"></span>
-                    </td>
+                    <td><span th:text="${lvl.levelName}"></span></td>
                     <td th:text="${lvl.levelID}"></td>
                     <td th:text="${lvl.discountSharePercent != null ? lvl.discountSharePercent : 0}"></td>
-                    <td>
-                        <span th:if="${lvl.levelName == currentTierName}" style="color:#047857; font-weight:600;">✓ Current</span>
-                        <span th:if="${lvl.levelName != currentTierName}" style="color:#64748b;">—</span>
-                    </td>
                 </tr>
                 </tbody>
             </table>

@@ -160,6 +160,7 @@ public class SecurityConfig {
 
                 // Dealer staff management - DEALER manages their own staff
                 .requestMatchers("/dealer/staff/list", "/dealer/staff/create").hasAnyRole("DEALER", "DEALERSTAFF")
+                .requestMatchers("/dealer/staff/update/**").hasRole("DEALER")
 
                 // Dealer role endpoints
                 .requestMatchers("/showDealerHomePage", "/dealerCustomerManagement", "/betterCustomerListFinal",

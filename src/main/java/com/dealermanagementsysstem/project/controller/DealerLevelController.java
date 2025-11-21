@@ -21,7 +21,7 @@ public class DealerLevelController {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || auth.getName() == null) {
             model.addAttribute("error", "Bạn chưa đăng nhập.");
-            return "dealerPage/errorPage"; // assume exists
+            return "dealerPage/errorPage";
         }
         DTOAccount account = daoAccount.findAccountByEmail(auth.getName());
         if (account == null || account.getDealerStaff() == null || account.getDealerStaff().getDealer() == null) {
@@ -37,90 +37,75 @@ public class DealerLevelController {
         }
         int soldQty = daoSaleOrder.getTotalCompletedQuantityByDealer(dealerId);
 
-        // Tier thresholds (based on business rules)
-        int nextThreshold;
-        String currentTierName;
-        String nextTierName;
-        if (soldQty >= 100) { // Platinum
-            currentTierName = "Platinum Dealer";
-            nextThreshold = -1; // no next
-            nextTierName = null;
-        } else if (soldQty >= 50) {
-            currentTierName = "Gold Dealer";
-            nextThreshold = 100;
-            nextTierName = "Platinum Dealer";
-        } else if (soldQty >= 20) {
-            currentTierName = "Silver Dealer";
-            nextThreshold = 50;
-            nextTierName = "Gold Dealer";
-        } else { // <20
-            currentTierName = "Bronze Dealer";
-            nextThreshold = 20;
-            nextTierName = "Silver Dealer";
+        // ===== Load dynamic dealer levels =====
+        java.util.List<DTODealerLevel> levels = daoDealer.getAllDealerLevels();
+        // Sort ascending by vehiclesRequired (fallback 0 if missing)
+        levels.sort((a,b) -> Integer.compare(a.getVehiclesRequired(), b.getVehiclesRequired()));
+        // Filter out any negative values just in case
+        java.util.List<DTODealerLevel> validLevels = new java.util.ArrayList<>();
+        for (DTODealerLevel lvl : levels) {
+            if (lvl.getVehiclesRequired() >= 0) validLevels.add(lvl);
         }
-        int remaining = nextThreshold > 0 ? Math.max(0, nextThreshold - soldQty) : 0;
-        double progressPercent = nextThreshold > 0 ? (soldQty * 100.0 / nextThreshold) : 100.0;
+
+        DTODealerLevel achieved = null;
+        DTODealerLevel next = null;
+        for (DTODealerLevel lvl : validLevels) {
+            if (soldQty >= lvl.getVehiclesRequired()) {
+                achieved = lvl; // highest achieved as we go ascending
+            } else {
+                // first level whose requirement we haven't met yet is next
+                if (next == null) next = lvl;
+            }
+        }
+        // If nothing achieved but there are levels, current is first level (not yet reached)
+        String currentTierName;
+        if (achieved != null) {
+            currentTierName = achieved.getLevelName() != null ? achieved.getLevelName() + " Dealer" : "Dealer Level";
+        } else if (!validLevels.isEmpty()) {
+            currentTierName = "Chưa đạt cấp đầu tiên";
+        } else {
+            currentTierName = "Không có cấu hình cấp";
+        }
+
+        Integer nextThreshold = next != null ? next.getVehiclesRequired() : null;
+        String nextTierName = next != null && next.getLevelName()!=null ? next.getLevelName() + " Dealer" : null;
+        int remaining = nextThreshold != null ? Math.max(0, nextThreshold - soldQty) : 0;
+        double progressPercent = nextThreshold != null && nextThreshold > 0 ? (soldQty * 100.0 / nextThreshold) : 100.0;
         if (progressPercent > 100.0) progressPercent = 100.0;
 
-        // Current DB level name (in case different naming) attempt match
-        String dbLevelName = currentTierName;
-        java.util.List<DTODealerLevel> levels = daoDealer.getAllDealerLevels();
-        for (DTODealerLevel lvl : levels) {
-            if (lvl.getLevelID() == dealer.getLevelID() && lvl.getLevelName() != null) {
+        // Auto upgrade dealer's stored LevelID if achieved level differs
+        boolean upgraded = false;
+        if (achieved != null && dealer.getLevelID() != achieved.getLevelID()) {
+            if (daoDealer.updateDealerLevel(dealerId, achieved.getLevelID())) {
+                upgraded = true;
+                try { dealer = daoDealer.getDealerById(dealerId); } catch (Exception ignored) {}
+            }
+        }
+
+        // Use DB stored level name after potential upgrade
+        String dbLevelName = null;
+        for (DTODealerLevel lvl : validLevels) {
+            if (lvl.getLevelID() == dealer.getLevelID()) {
                 dbLevelName = lvl.getLevelName();
                 break;
             }
         }
+        if (dbLevelName == null) dbLevelName = achieved != null ? achieved.getLevelName() : currentTierName;
 
-        // ===== NORMALIZE & RANK HELPERS =====
-        java.util.function.Function<String,String> normalize = name -> name == null ? "" : name.toLowerCase().replace(" dealer"," ").trim();
-        java.util.function.Function<String,Integer> rankOf = name -> {
-            String n = normalize.apply(name);
-            if (n.startsWith("platinum")) return 4;
-            if (n.startsWith("gold")) return 3;
-            if (n.startsWith("silver")) return 2;
-            if (n.startsWith("bronze")) return 1;
-            return 0;
-        };
-        int earnedRank = rankOf.apply(currentTierName);      // rank from soldQty thresholds
-        int dbRank     = rankOf.apply(dbLevelName);          // current DB stored rank
+        // Share percent for current tier (prefer explicit sharePercent)
+        Double sharePercent = achieved != null ? achieved.getSharePercent()!=null? achieved.getSharePercent().doubleValue() : achieved.getDiscountSharePercent() : null;
 
-        // ===== DETERMINE TARGET LEVEL ID BY NORMALIZED NAME =====
-        Integer targetLevelID = null;
-        for (DTODealerLevel lvl : levels) {
-            if (rankOf.apply(lvl.getLevelName()) == earnedRank) {
-                targetLevelID = lvl.getLevelID();
-                break;
-            }
-        }
-
-        boolean upgraded = false;
-        // Only upgrade if earned rank strictly higher than DB rank
-        if (targetLevelID != null && earnedRank > dbRank) {
-            if (daoDealer.updateDealerLevel(dealerId, targetLevelID)) {
-                upgraded = true;
-                DTODealer refreshed = null;
-                try { refreshed = daoDealer.getDealerById(dealerId); } catch (Exception ignored) {}
-                if (refreshed != null) {
-                    dealer = refreshed;
-                    dbLevelName = currentTierName; // reflect upgrade using tier display name
-                    dbRank = earnedRank;
-                }
-            }
-        }
         model.addAttribute("upgraded", upgraded);
-        model.addAttribute("earnedRank", earnedRank);
-        model.addAttribute("dbRank", dbRank);
-        // ===== END AUTO UPGRADE LOGIC (rank-based) =====
-
         model.addAttribute("soldQty", soldQty);
         model.addAttribute("currentTierName", currentTierName);
         model.addAttribute("dbLevelName", dbLevelName);
         model.addAttribute("nextTierName", nextTierName);
-        model.addAttribute("nextThreshold", nextThreshold > 0 ? nextThreshold : null);
+        model.addAttribute("nextThreshold", nextThreshold);
         model.addAttribute("remainingToNext", remaining);
         model.addAttribute("progressPercent", progressPercent);
-        model.addAttribute("levels", levels);
+        model.addAttribute("levels", validLevels);
+        model.addAttribute("currentSharePercent", sharePercent);
+        model.addAttribute("achievedVehiclesRequired", achieved != null ? achieved.getVehiclesRequired() : null);
         return "dealerPage/dealerLevelDashboard";
     }
 }
