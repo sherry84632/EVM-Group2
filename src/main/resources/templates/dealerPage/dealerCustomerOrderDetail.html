@@ -270,17 +270,6 @@
     <div th:replace="~{mainPage/navBarFragment :: navBar}"></div>
 
     <div class="page-wrapper flex-grow-1" style="overflow-y: auto; overflow-x: hidden; height: 97vh;">
-        <!-- Breadcrumb -->
-        <nav aria-label="breadcrumb" class="mb-3">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="/showDealerHomePage"><i class="fa-solid fa-home me-1"></i>Home</a>
-                </li>
-                <li class="breadcrumb-item"><a href="/orderdealer/history"><i class="fa-solid fa-file-contract me-1"></i>Sale Orders</a>
-                </li>
-                <li class="breadcrumb-item active" aria-current="page"><i class="fa-solid fa-eye me-1"></i>Sale Order Detail
-                </li>
-            </ol>
-        </nav>
         <!-- Flash messages -->
         <div class="flash" th:if="${message}">
             <div class="alert alert-success py-2 px-3" th:text="${message}"></div>

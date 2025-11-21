@@ -18,12 +18,6 @@
     <div th:replace="~{mainPage/navBarFragment :: navBar}"></div>
 
     <div class="mainContent flex-grow-1 p-4" style="height: 97vh; overflow-y: auto; overflow-x: hidden;">
-        <nav aria-label="breadcrumb" class="mb-3">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="/showEVMHomePage"><i class="fa-solid fa-home me-1"></i>Home</a></li>
-                <li class="breadcrumb-item active" aria-current="page"><i class="fa-solid fa-user-shield me-1"></i>Accounts</li>
-            </ol>
-        </nav>
 
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1><i class="fa-solid fa-user-shield"></i> Account Management</h1>
@@ -94,10 +88,6 @@
                                 <td>
                                     <i class="fa-solid fa-phone"></i>
                                     <span th:text="${account.phone != null && !account.phone.isEmpty() ? account.phone : 'N/A'}"></span>
-                                </td>
-                                <td>
-                                    <i class="fa-solid fa-envelope"></i>
-                                    <span th:text="${account.email}"></span>
                                 </td>
                                 <td>
                                     <span class="badge"
