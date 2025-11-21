@@ -41,11 +41,8 @@ public class DAODealerPriceAdjustment {
     //  Lấy discount theo DealerID
     public List<DTODealerPriceAdjustment> getDiscountsByDealer(int dealerID) {
         List<DTODealerPriceAdjustment> list = new ArrayList<>();
-        String sql = "SELECT dpa.*, vm.ModelName FROM DealerPriceAdjustment dpa " +
-                     "LEFT JOIN VehicleModel vm ON dpa.ModelID = vm.ModelID " +
-                     "WHERE dpa.DealerID = ? ORDER BY dpa.StartDate DESC";
-        try (Connection conn = DBUtils.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        String sql = "SELECT dpa.*, vm.ModelName FROM DealerPriceAdjustment dpa LEFT JOIN VehicleModel vm ON dpa.ModelID = vm.ModelID WHERE dpa.DealerID = ? ORDER BY dpa.StartDate DESC";
+        try (Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, dealerID);
             ResultSet rs = ps.executeQuery();
 
@@ -54,10 +51,13 @@ public class DAODealerPriceAdjustment {
                 DTODealer dealer = new DTODealer();
                 dealer.setDealerID(rs.getInt("DealerID"));
 
-                // Create VehicleModel object
-                DTOVehicleModel vehicleModel = new DTOVehicleModel();
-                vehicleModel.setModelID(rs.getInt("ModelID"));
-                vehicleModel.setModelName(rs.getString("ModelName")); // Load model name
+                Integer modelIdObj = (Integer) rs.getObject("ModelID");
+                DTOVehicleModel vehicleModel = null;
+                if (modelIdObj != null) {
+                    vehicleModel = new DTOVehicleModel();
+                    vehicleModel.setModelID(modelIdObj);
+                    vehicleModel.setModelName(rs.getString("ModelName")); // Load model name
+                }
 
                 DTODealerPriceAdjustment dto = new DTODealerPriceAdjustment(
                         rs.getInt("AdjustmentID"),
@@ -82,13 +82,9 @@ public class DAODealerPriceAdjustment {
     //  Tìm discount theo tên và DealerID
     public List<DTODealerPriceAdjustment> searchByPromotionNameAndDealer(String name, int dealerID) {
         List<DTODealerPriceAdjustment> list = new ArrayList<>();
-        String sql = "SELECT dpa.*, vm.ModelName FROM DealerPriceAdjustment dpa " +
-                     "LEFT JOIN VehicleModel vm ON dpa.ModelID = vm.ModelID " +
-                     "WHERE dpa.DealerID = ? AND dpa.PromotionName LIKE ?";
-        try (Connection conn = DBUtils.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, dealerID);
-            ps.setString(2, "%" + name + "%");
+        String sql = "SELECT dpa.*, vm.ModelName FROM DealerPriceAdjustment dpa LEFT JOIN VehicleModel vm ON dpa.ModelID = vm.ModelID WHERE dpa.DealerID = ? AND dpa.PromotionName LIKE ?";
+        try (Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, dealerID); ps.setString(2, "%" + name + "%");
             ResultSet rs = ps.executeQuery();
 
             while (rs.next()) {
@@ -96,10 +92,13 @@ public class DAODealerPriceAdjustment {
                 DTODealer dealer = new DTODealer();
                 dealer.setDealerID(rs.getInt("DealerID"));
 
-                // Create VehicleModel object
-                DTOVehicleModel vehicleModel = new DTOVehicleModel();
-                vehicleModel.setModelID(rs.getInt("ModelID"));
-                vehicleModel.setModelName(rs.getString("ModelName")); // Load model name
+                Integer modelIdObj = (Integer) rs.getObject("ModelID");
+                DTOVehicleModel vehicleModel = null;
+                if (modelIdObj != null) {
+                    vehicleModel = new DTOVehicleModel();
+                    vehicleModel.setModelID(modelIdObj);
+                    vehicleModel.setModelName(rs.getString("ModelName")); // Load model name
+                }
 
                 DTODealerPriceAdjustment dto = new DTODealerPriceAdjustment(
                         rs.getInt("AdjustmentID"),
@@ -122,9 +121,7 @@ public class DAODealerPriceAdjustment {
     }
 
     public DTODealerPriceAdjustment getDiscountById(int adjustmentID) {
-        String sql = "SELECT dpa.*, vm.ModelName FROM DealerPriceAdjustment dpa " +
-                     "LEFT JOIN VehicleModel vm ON dpa.ModelID = vm.ModelID " +
-                     "WHERE dpa.AdjustmentID = ?";
+        String sql = "SELECT dpa.*, vm.ModelName FROM DealerPriceAdjustment dpa LEFT JOIN VehicleModel vm ON dpa.ModelID = vm.ModelID WHERE dpa.AdjustmentID = ?";
         try (Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, adjustmentID);
             try (ResultSet rs = ps.executeQuery()) {
@@ -132,9 +129,13 @@ public class DAODealerPriceAdjustment {
                     DTODealer dealer = new DTODealer();
                     dealer.setDealerID(rs.getInt("DealerID"));
 
-                    DTOVehicleModel model = new DTOVehicleModel();
-                    model.setModelID(rs.getInt("ModelID"));
-                    model.setModelName(rs.getString("ModelName")); // Load model name
+                    Integer modelIdObj = (Integer) rs.getObject("ModelID");
+                    DTOVehicleModel model = null;
+                    if (modelIdObj != null) {
+                        model = new DTOVehicleModel();
+                        model.setModelID(modelIdObj);
+                        model.setModelName(rs.getString("ModelName")); // Load model name
+                    }
 
                     DTODealerPriceAdjustment dto = new DTODealerPriceAdjustment(
                             rs.getInt("AdjustmentID"),
@@ -159,9 +160,7 @@ public class DAODealerPriceAdjustment {
 
     public List<DTODealerPriceAdjustment> getActiveDiscountsByDealer(int dealerID) {
         List<DTODealerPriceAdjustment> list = new ArrayList<>();
-        String sql = "SELECT dpa.*, vm.ModelName FROM DealerPriceAdjustment dpa " +
-                     "LEFT JOIN VehicleModel vm ON dpa.ModelID = vm.ModelID " +
-                     "WHERE dpa.DealerID=?";
+        String sql = "SELECT dpa.*, vm.ModelName FROM DealerPriceAdjustment dpa LEFT JOIN VehicleModel vm ON dpa.ModelID = vm.ModelID WHERE dpa.DealerID=?";
         java.time.LocalDate today = java.time.LocalDate.now();
         try (Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, dealerID);
@@ -178,9 +177,13 @@ public class DAODealerPriceAdjustment {
                     DTODealer dealer = new DTODealer();
                     dealer.setDealerID(rs.getInt("DealerID"));
 
-                    DTOVehicleModel model = new DTOVehicleModel();
-                    model.setModelID(rs.getInt("ModelID"));
-                    model.setModelName(rs.getString("ModelName")); // Load model name
+                    Integer modelIdObj = (Integer) rs.getObject("ModelID");
+                    DTOVehicleModel model = null;
+                    if (modelIdObj != null) {
+                        model = new DTOVehicleModel();
+                        model.setModelID(modelIdObj);
+                        model.setModelName(rs.getString("ModelName")); // Load model name
+                    }
 
                     DTODealerPriceAdjustment dto = new DTODealerPriceAdjustment(
                             rs.getInt("AdjustmentID"), dealer, model,

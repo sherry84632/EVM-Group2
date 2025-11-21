@@ -66,12 +66,37 @@ public class DTOQuotationDetail {
     private DiscountCalculationService.DiscountBreakdown computeBreakdown(){
         if (cachedBreakdown != null) return cachedBreakdown;
         java.math.BigDecimal grossUnit = unitPrice!=null? unitPrice : java.math.BigDecimal.ZERO;
-        // promoDiscountAmount is assumed per-unit (normalize if line-level mistakenly stored)
-        java.math.BigDecimal promoFixedPerUnit = promoDiscountAmount;
+        // Dealer: prefer percent; else fixed amount (clamped)
         double dealerPct = appliedDealerDiscountPercent!=null? appliedDealerDiscountPercent : 0.0;
+        java.math.BigDecimal dealerFixed = (dealerPct>0? null : appliedDealerDiscountAmount); // only use fixed if no percent
+        // Manufacturer promo: prefer percent else fixed
+        java.math.BigDecimal promoFixedPerUnit = (promoDiscountPercent!=null && promoDiscountPercent>0)? null : promoDiscountAmount;
         double manufPct = promoDiscountPercent!=null? promoDiscountPercent : 0.0;
         double basePct = baseQuotationDiscountPercent!=null? baseQuotationDiscountPercent : (quotation!=null && quotation.getDiscountPercent()!=null? quotation.getDiscountPercent():0.0);
-        cachedBreakdown = ensureService().calculate(grossUnit, dealerPct, manufPct, promoFixedPerUnit, basePct);
+        // If dealerFixed present apply before other stacking by reducing gross, emulate percent precedence
+        java.math.BigDecimal effectiveGross = grossUnit;
+        java.math.BigDecimal dealerAmountApplied = java.math.BigDecimal.ZERO;
+        if (dealerPct>0){
+            dealerAmountApplied = grossUnit.multiply(java.math.BigDecimal.valueOf(dealerPct/100.0));
+            effectiveGross = grossUnit.subtract(dealerAmountApplied);
+        } else if (dealerFixed!=null && dealerFixed.compareTo(java.math.BigDecimal.ZERO)>0){
+            dealerAmountApplied = dealerFixed.min(grossUnit);
+            effectiveGross = grossUnit.subtract(dealerAmountApplied);
+        }
+        // Manufacturer stage on effectiveGross
+        java.math.BigDecimal manufAmountApplied = java.math.BigDecimal.ZERO;
+        if (manufPct>0){
+            manufAmountApplied = effectiveGross.multiply(java.math.BigDecimal.valueOf(manufPct/100.0));
+        } else if (promoFixedPerUnit!=null && promoFixedPerUnit.compareTo(java.math.BigDecimal.ZERO)>0){
+            manufAmountApplied = promoFixedPerUnit.min(effectiveGross);
+        }
+        java.math.BigDecimal afterManufacturer = effectiveGross.subtract(manufAmountApplied);
+        if (afterManufacturer.compareTo(java.math.BigDecimal.ZERO)<0) afterManufacturer = java.math.BigDecimal.ZERO;
+        java.math.BigDecimal baseAmountApplied = basePct>0? afterManufacturer.multiply(java.math.BigDecimal.valueOf(basePct/100.0)) : java.math.BigDecimal.ZERO;
+        java.math.BigDecimal finalNet = afterManufacturer.subtract(baseAmountApplied);
+        if (finalNet.compareTo(java.math.BigDecimal.ZERO)<0) finalNet = java.math.BigDecimal.ZERO;
+        // Build synthetic breakdown record
+        cachedBreakdown = new DiscountCalculationService.DiscountBreakdown(grossUnit, dealerAmountApplied, grossUnit.subtract(dealerAmountApplied), manufAmountApplied, afterManufacturer, baseAmountApplied, finalNet);
         return cachedBreakdown;
     }
 
@@ -262,4 +287,10 @@ public class DTOQuotationDetail {
     public java.math.BigDecimal getAfterManufacturer(){ return computeBreakdown().afterManufacturer().multiply(java.math.BigDecimal.valueOf(Math.max(1, quantity))); }
     @Transient
     public java.math.BigDecimal getBaseQuotationDiscountAmountComputed(){ return getBaseQuotationDiscountTotal(); }
+
+    @Column(name = "AppliedDealerDiscountAmount")
+    private java.math.BigDecimal appliedDealerDiscountAmount; // optional fixed amount per unit if percent not used
+
+    public java.math.BigDecimal getAppliedDealerDiscountAmount(){ return appliedDealerDiscountAmount; }
+    public void setAppliedDealerDiscountAmount(java.math.BigDecimal v){ this.appliedDealerDiscountAmount = v; }
 }

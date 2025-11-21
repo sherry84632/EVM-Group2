@@ -723,22 +723,22 @@ public class DAOQuotation {
 
     //  Update QuotationDetail
     public boolean updateQuotationDetail(DTOQuotationDetail detail) {
-        String sql = "UPDATE QuotationDetail SET VersionID = ?, ColorID = ?, UnitPrice = ?, Quantity = ?, AppliedDealerDiscountPercent = ?, PromoCode = ?, PromoDiscountPercent = ?, PromoDiscountAmount = ?, PromoPolicyID = ? WHERE QuotationDetailID = ?";
+        String sql = "UPDATE QuotationDetail SET UnitPrice=?, Quantity=?, AppliedDealerDiscountPercent=?, AppliedDealerDiscountAmount=?, PromoCode=?, PromoDiscountPercent=?, PromoDiscountAmount=?, PromoPolicyID=? WHERE QuotationDetailID=?";
         try (Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, detail.getVersion().getVersionID());
-            ps.setInt(2, detail.getColor().getColorID());
-            ps.setBigDecimal(3, detail.getUnitPrice());
-            ps.setInt(4, detail.getQuantity());
-            if (detail.getAppliedDealerDiscountPercent() != null) ps.setDouble(5, detail.getAppliedDealerDiscountPercent()); else ps.setNull(5, java.sql.Types.DECIMAL);
-            ps.setString(6, detail.getPromoCode());
-            if (detail.getPromoDiscountPercent() != null) ps.setDouble(7, detail.getPromoDiscountPercent()); else ps.setNull(7, java.sql.Types.DECIMAL);
-            ps.setBigDecimal(8, detail.getPromoDiscountAmount());
-            if (detail.getPromoPolicy() != null) ps.setInt(9, detail.getPromoPolicy().getPolicyID()); else ps.setNull(9, java.sql.Types.INTEGER);
-            ps.setInt(10, detail.getQuotationDetailID());
+            ps.setBigDecimal(1, detail.getUnitPrice());
+            ps.setInt(2, detail.getQuantity());
+            if (detail.getAppliedDealerDiscountPercent() != null) ps.setDouble(3, detail.getAppliedDealerDiscountPercent()); else ps.setNull(3, java.sql.Types.DOUBLE);
+            ps.setBigDecimal(4, detail.getAppliedDealerDiscountAmount());
+            ps.setString(5, detail.getPromoCode());
+            if (detail.getPromoDiscountPercent() != null) ps.setDouble(6, detail.getPromoDiscountPercent()); else ps.setNull(6, java.sql.Types.DOUBLE);
+            ps.setBigDecimal(7, detail.getPromoDiscountAmount());
+            if (detail.getPromoPolicy() != null) ps.setInt(8, detail.getPromoPolicy().getPolicyID()); else ps.setNull(8, java.sql.Types.INTEGER);
+            ps.setInt(9, detail.getQuotationDetailID());
             int rows = ps.executeUpdate();
-            if (rows > 0) { log.info("QuotationDetail updated id={} dealerPct={} promoPct={} promoAmt={}", detail.getQuotationDetailID(), detail.getAppliedDealerDiscountPercent(), detail.getPromoDiscountPercent(), detail.getPromoDiscountAmount()); return true; }
-            log.warn("No QuotationDetail updated id={}", detail.getQuotationDetailID());
-        } catch (SQLException e) { log.error("Failed to update QuotationDetail id={}", detail.getQuotationDetailID(), e); }
+            return rows > 0;
+        } catch (SQLException e) {
+            log.error("Failed updating QuotationDetail id={}", detail.getQuotationDetailID(), e);
+        }
         return false;
     }
 

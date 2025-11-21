@@ -409,6 +409,16 @@ function showVehicleDetail(modelId){
   const vehicleModal = new bootstrap.Modal(document.getElementById('vehicleDetailModal'));
   vehicleModal.show();
   const imageContainer = document.getElementById('vehicleImageContainer');
+  if(modelId == null || modelId === '' || modelId === 'undefined') {
+     document.getElementById('modalModelName').textContent='All Models';
+     document.getElementById('modalBrand').textContent='—';
+     document.getElementById('modalYear').textContent='—';
+     document.getElementById('modalBodyType').textContent='—';
+     document.getElementById('modalBasePrice').textContent='N/A';
+     document.getElementById('modalDescription').textContent='Global discount applies to all models; no single model details.';
+     imageContainer.innerHTML = '<div class="no-image" style="color:#6c757d"><i class="fas fa-globe" style="font-size:3rem;"></i><span>All Models</span></div>';
+     return;
+  }
   imageContainer.innerHTML = '<div class="no-image" style="color:#6c757d;font-style:italic;"><i class="fas fa-spinner fa-spin" style="font-size:3rem;"></i><span>Loading...</span></div>';
 
   fetch('/api/vehicle-model/' + modelId)
@@ -433,56 +443,39 @@ function showVehicleDetail(modelId){
 function showAllVehicleModels(){
   const appliedModelsModal = new bootstrap.Modal(document.getElementById('appliedModelsModal'));
   appliedModelsModal.show();
-
   const contentDiv = document.getElementById('appliedModelsContent');
   contentDiv.innerHTML = '<div class="text-center py-5"><i class="fas fa-spinner fa-spin fa-3x text-info"></i><p class="mt-3">Loading all vehicle models...</p></div>';
-
-  // Fetch all vehicle models
-  fetch('/api/vehicle-models/all')
+  fetch('/api/vehicle-model/s/all') // FIXED endpoint
     .then(r => r.ok ? r.json() : Promise.reject('Failed to load'))
     .then(models => {
       if(!models || models.length === 0){
         contentDiv.innerHTML = '<div class="alert alert-warning"><i class="fas fa-exclamation-triangle"></i> No vehicle models found in the system.</div>';
         return;
       }
-
-      // Build grid display
       let html = '<div class="row g-3">';
       models.forEach(model => {
+        const mid = model.modelId || model.modelID;
         html += `
           <div class="col-md-4">
             <div class="card h-100 shadow-sm" style="transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
               <div style="height:180px;overflow:hidden;background:#f8f9fa;display:flex;align-items:center;justify-content:center;">
                 ${model.imageBase64
                   ? '<img src="data:image/jpeg;base64,' + model.imageBase64 + '" style="max-height:100%;max-width:100%;object-fit:cover;" alt="' + model.modelName + '">'
-                  : '<div style="color:#ccc;text-align:center;"><i class="fas fa-car fa-4x"></i><p class="mt-2">No Image</p></div>'
-                }
+                  : '<div style="color:#ccc;text-align:center;"><i class="fas fa-car fa-4x"></i><p class="mt-2">No Image</p></div>'}
               </div>
               <div class="card-body">
-                <h6 class="card-title text-primary fw-bold mb-2">
-                  <i class="fas fa-car-side"></i> ${model.modelName || 'N/A'}
-                </h6>
+                <h6 class="card-title text-primary fw-bold mb-2"><i class="fas fa-car-side"></i> ${model.modelName || 'N/A'}</h6>
                 <p class="card-text small mb-1"><strong>Brand:</strong> ${model.brand || 'N/A'}</p>
                 <p class="card-text small mb-1"><strong>Year:</strong> ${model.year || 'N/A'}</p>
                 <p class="card-text small mb-1"><strong>Body Type:</strong> ${model.bodyType || 'N/A'}</p>
                 <p class="card-text small mb-1"><strong>Base Price:</strong> ${formatPriceUSD(model.basePrice)}</p>
-                <button class="btn btn-sm btn-outline-info w-100 mt-2" onclick="showVehicleDetail(${model.modelId || model.modelID})">
-                  <i class="fas fa-info-circle"></i> View Full Details
-                </button>
+                <button class="btn btn-sm btn-outline-info w-100 mt-2" onclick="showVehicleDetail(${mid})"><i class="fas fa-info-circle"></i> View Full Details</button>
               </div>
             </div>
-          </div>
-        `;
+          </div>`;
       });
       html += '</div>';
-
-      contentDiv.innerHTML = `
-        <div class="alert alert-success mb-3">
-          <i class="fas fa-globe"></i>
-          <strong>All Vehicle Models:</strong> ${models.length} models available
-        </div>
-        ${html}
-      `;
+      contentDiv.innerHTML = `<div class="alert alert-success mb-3"><i class="fas fa-globe"></i><strong>All Vehicle Models:</strong> ${models.length} models available</div>${html}`;
     })
     .catch(err => {
       console.error('Error loading all models:', err);
