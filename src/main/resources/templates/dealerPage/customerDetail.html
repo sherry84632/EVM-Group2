@@ -50,17 +50,6 @@
     <div th:replace="~{mainPage/navBarFragment :: navBar}"></div>
 
     <div class="mainContent flex-grow-1">
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item">
-                    <a href="/showDealerHomePage" class="d-flex align-items-center">
-                        <i class="fas fa-home me-1"></i> Home
-                    </a>
-                </li>
-                <li class="breadcrumb-item"><a href="/customer/list">Customer List</a></li>
-                <li class="breadcrumb-item active" aria-current="page">Customer Detail</li>
-            </ol>
-        </nav>
 
         <h1 class="page-title" th:text="${customer.fullName}">Customer Name</h1>
         <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">

@@ -106,13 +106,6 @@
 <div class="d-flex">
     <div th:replace="~{mainPage/navBarFragment :: navBar}"></div>
     <div class="mainContent flex-grow-1 p-3" style="overflow-y: auto; overflow-x: hidden; height: 97vh;">
-        <nav aria-label="breadcrumb" class="mb-3">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="/showDealerHomePage"><i class="fa-solid fa-home me-1"></i>Home</a></li>
-                <li class="breadcrumb-item"><a href="/dealer/reports"><i class="fa-solid fa-chart-line me-1"></i>Reports</a></li>
-                <li class="breadcrumb-item active" aria-current="page"><i class="fa-solid fa-receipt me-1"></i>Sales Report</li>
-            </ol>
-        </nav>
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h3 class="mb-0">Sales Report</h3>
             <button id="export" class="btn btn-outline-secondary btn-sm">Export CSV</button>
