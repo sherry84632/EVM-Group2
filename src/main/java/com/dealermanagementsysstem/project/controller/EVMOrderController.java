@@ -283,7 +283,8 @@ public class EVMOrderController {
                 return "redirect:/evm/orders/detail/"+orderId;
             }
             try {
-                vinAssignments = collectVinAssignments(orderSnapshot, formParams);
+                DAODealerInventory inventoryDAO = new DAODealerInventory();
+                vinAssignments = collectVinAssignments(orderSnapshot, formParams, inventoryDAO);
             } catch (IllegalArgumentException ex) {
                 redirectAttributes.addFlashAttribute("message", ex.getMessage());
                 redirectAttributes.addFlashAttribute("statusType","error");
@@ -446,9 +447,11 @@ public class EVMOrderController {
         return "redirect:/evm/orders/detail/"+orderId;
     }
 
-    private Map<Integer, List<String>> collectVinAssignments(DTOPurchaseOrder order, Map<String, String> params) {
+    private Map<Integer, List<String>> collectVinAssignments(DTOPurchaseOrder order, Map<String, String> params, DAODealerInventory inventoryDAO) {
         Map<Integer, List<String>> result = new HashMap<>();
         Set<String> globalVins = new HashSet<>();
+        List<String> allVins = new ArrayList<>();
+        
         for (DTOPurchaseOrderDetail detail : order.getOrderDetails()) {
             String paramKey = "vinEntries[" + detail.getPoDetailId() + "]";
             String raw = params.get(paramKey);
@@ -468,9 +471,16 @@ public class EVMOrderController {
                 if (!globalVins.add(normalized)) {
                     throw new IllegalArgumentException(" Duplicate VIN detected: " + vin);
                 }
+                allVins.add(normalized);
             }
             result.put(detail.getPoDetailId(), parsed);
         }
+        
+        List<String> existingVins = inventoryDAO.findExistingVins(allVins);
+        if (!existingVins.isEmpty()) {
+            throw new IllegalArgumentException(" The following VIN(s) already exist in the system: " + String.join(", ", existingVins));
+        }
+        
         return result;
     }
 
