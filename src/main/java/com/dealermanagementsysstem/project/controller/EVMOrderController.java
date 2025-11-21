@@ -11,7 +11,14 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.sql.Date;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/evm/orders")
@@ -241,6 +248,7 @@ public class EVMOrderController {
     @PostMapping("/delivery/{orderId}/status")
     public String updateDeliveryStatus(@PathVariable int orderId,
                                        @RequestParam("newStatus") String newStatus,
+                                       @RequestParam Map<String, String> formParams,
                                        RedirectAttributes redirectAttributes){
 
         //  Check payment status before allowing delivery status update
@@ -263,6 +271,25 @@ public class EVMOrderController {
             redirectAttributes.addFlashAttribute("statusType","error");
             return "redirect:/evm/orders/detail/"+orderId;
         }
+
+        DTOPurchaseOrder orderSnapshot = null;
+        Map<Integer, List<String>> vinAssignments = Collections.emptyMap();
+        if (target == DeliveryStatus.DELIVERED) {
+            orderSnapshot = purchaseOrderDAO.getPurchaseOrderById(orderId);
+            if (orderSnapshot == null || orderSnapshot.getOrderDetails() == null || orderSnapshot.getOrderDetails().isEmpty()) {
+                redirectAttributes.addFlashAttribute("message"," Purchase order not ready for VIN assignment");
+                redirectAttributes.addFlashAttribute("statusType","error");
+                return "redirect:/evm/orders/detail/"+orderId;
+            }
+            try {
+                vinAssignments = collectVinAssignments(orderSnapshot, formParams);
+            } catch (IllegalArgumentException ex) {
+                redirectAttributes.addFlashAttribute("message", ex.getMessage());
+                redirectAttributes.addFlashAttribute("statusType","error");
+                return "redirect:/evm/orders/detail/"+orderId;
+            }
+        }
+
         java.util.Date now = new java.util.Date();
         boolean ok = daoDelivery.updateDeliveryStatusByPurchaseOrderId(orderId,target, (target==DeliveryStatus.IN_TRANSIT||target==DeliveryStatus.CREATED)? daoDelivery.getLatestByPurchaseOrderId(orderId)!=null? daoDelivery.getLatestByPurchaseOrderId(orderId).getDeliveryDate(): now : now);
         if(ok){
@@ -272,7 +299,7 @@ public class EVMOrderController {
                 purchaseOrderDAO.updatePurchaseOrderStatus(orderId, PurchaseOrderStatus.DELIVERED);
                 // Add vehicles to dealer inventory when delivery is completed
                 try {
-                    DTOPurchaseOrder po = purchaseOrderDAO.getPurchaseOrderById(orderId);
+                    DTOPurchaseOrder po = orderSnapshot != null ? orderSnapshot : purchaseOrderDAO.getPurchaseOrderById(orderId);
                     if (po != null && po.getOrderDetails() != null && po.getDealer() != null) {
                         DAODealerInventory inventoryDAO = new DAODealerInventory();
                         int totalDetails = po.getOrderDetails().size();
@@ -284,12 +311,13 @@ public class EVMOrderController {
                             int dealerId = po.getDealer().getDealerID();
                             int colorId = d.getColor() != null ? d.getColor().getColorID() : 0;
                             int versionId = d.getVersion() != null ? d.getVersion().getVersionID() : 0;
-                            int qty = d.getQuantity();
+                            List<String> detailVins = vinAssignments.getOrDefault(d.getPoDetailId(), Collections.emptyList());
+                            int qty = detailVins.size();
 
                             System.out.println("  → Detail: ColorID=" + colorId + " VersionID=" + versionId + " Qty=" + qty);
 
-                            if (colorId > 0 && versionId > 0 && qty > 0) {
-                                boolean added = inventoryDAO.addWhenDeliveryCompleted(orderId, dealerId, colorId, versionId, qty);
+                            if (colorId > 0 && versionId > 0 && qty == d.getQuantity()) {
+                                boolean added = inventoryDAO.addWhenDeliveryCompleted(orderId, dealerId, d.getPoDetailId(), colorId, versionId, detailVins);
                                 if (added) {
                                     successCount++;
                                     System.out.println("Added " + qty + " vehicle(s) to inventory");
@@ -408,5 +436,48 @@ public class EVMOrderController {
         redirectAttributes.addFlashAttribute("message"," Contract created for order #"+orderId+" (placeholder) ");
         redirectAttributes.addFlashAttribute("statusType","CONTRACT_CREATED");
         return "redirect:/evm/orders/detail/"+orderId;
+    }
+
+    private Map<Integer, List<String>> collectVinAssignments(DTOPurchaseOrder order, Map<String, String> params) {
+        Map<Integer, List<String>> result = new HashMap<>();
+        Set<String> globalVins = new HashSet<>();
+        for (DTOPurchaseOrderDetail detail : order.getOrderDetails()) {
+            String paramKey = "vinEntries[" + detail.getPoDetailId() + "]";
+            String raw = params.get(paramKey);
+            if (raw == null || raw.isBlank()) {
+                throw new IllegalArgumentException(" Please enter VINs for detail #" + detail.getPoDetailId());
+            }
+            List<String> parsed = parseVinBlock(raw);
+            if (parsed.size() != detail.getQuantity()) {
+                throw new IllegalArgumentException(" Detail #" + detail.getPoDetailId() + " requires " + detail.getQuantity() + " VIN(s)");
+            }
+            Set<String> detailVins = new HashSet<>();
+            for (String vin : parsed) {
+                String normalized = vin.toUpperCase();
+                if (!detailVins.add(normalized)) {
+                    throw new IllegalArgumentException(" Detail #" + detail.getPoDetailId() + " contains duplicate VIN " + vin);
+                }
+                if (!globalVins.add(normalized)) {
+                    throw new IllegalArgumentException(" Duplicate VIN detected: " + vin);
+                }
+            }
+            result.put(detail.getPoDetailId(), parsed);
+        }
+        return result;
+    }
+
+    private List<String> parseVinBlock(String raw) {
+        List<String> vins = Arrays.stream(raw.split("[\\r\\n,;]+"))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toList());
+
+        for (String vin : vins) {
+            if (vin.length() > 50) {
+                throw new IllegalArgumentException(" VIN \"" + vin + "\" exceeds 50 characters");
+            }
+        }
+
+        return vins;
     }
 }
