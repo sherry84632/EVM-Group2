@@ -11,9 +11,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Repository
 public class DAOReport {
+
+    private static final Logger log = LoggerFactory.getLogger(DAOReport.class);
 
     public List<Map<String, Object>> getDealers() {
         List<Map<String, Object>> list = new ArrayList<>();
@@ -28,7 +32,7 @@ public class DAOReport {
                 list.add(row);
             }
         } catch (SQLException e) {
-            // ignore for summary
+            log.error("[DAOReport] getDealers SQL error", e);
         }
         return list;
     }
@@ -36,7 +40,6 @@ public class DAOReport {
     // KPI: vehicles sold, inventory available, total revenue
     public Map<String, Object> getKpis(java.sql.Date fromDate, java.sql.Date toDate, Integer dealerId) {
         Map<String, Object> k = new HashMap<>();
-
         String sqlVehiclesSold = """
             SELECT COALESCE(SUM(CAST(Quantity AS INT)),0) AS VehiclesSold
             FROM SaleOrder
@@ -44,7 +47,6 @@ public class DAOReport {
               AND (? IS NULL OR DealerID = ?)
               AND (? IS NULL OR ? IS NULL OR CreatedAt BETWEEN ? AND ?)
         """;
-
         String sqlTotalInventory = """
             SELECT COUNT(*) AS TotalInventory
             FROM DealerInventory di
@@ -52,7 +54,6 @@ public class DAOReport {
               AND (? IS NULL OR di.DealerID = ?)
               AND (? IS NULL OR ? IS NULL OR di.ReceivedDate BETWEEN ? AND ?)
         """;
-
         String sqlRevenue = """
             SELECT COALESCE(SUM(CAST(TotalAmount AS DECIMAL(18,2))),0) AS TotalRevenue
             FROM SaleOrder
@@ -84,7 +85,6 @@ public class DAOReport {
               AND (? IS NULL OR so.DealerID = ?)
               AND (? IS NULL OR ? IS NULL OR so.CreatedAt BETWEEN ? AND ?)
         """;
-
         try (Connection conn = DBUtils.getConnection()) {
             try (PreparedStatement ps = conn.prepareStatement(sqlVehiclesSold)) {
                 if (dealerId == null) { ps.setNull(1, java.sql.Types.INTEGER); ps.setNull(2, java.sql.Types.INTEGER); } else { ps.setInt(1, dealerId); ps.setInt(2, dealerId); }
@@ -104,14 +104,12 @@ public class DAOReport {
                 else { ps.setDate(3, fromDate); ps.setDate(4, toDate); ps.setDate(5, fromDate); ps.setDate(6, toDate); }
                 try (ResultSet rs = ps.executeQuery()) { if (rs.next()) k.put("totalRevenue", rs.getBigDecimal("TotalRevenue")); }
             }
-            // Gross (pre-discount) revenue
             try (PreparedStatement ps = conn.prepareStatement(sqlGrossRevenue)) {
                 if (dealerId == null) { ps.setNull(1, java.sql.Types.INTEGER); ps.setNull(2, java.sql.Types.INTEGER); } else { ps.setInt(1, dealerId); ps.setInt(2, dealerId); }
                 if (fromDate == null || toDate == null) { ps.setNull(3, java.sql.Types.DATE); ps.setNull(4, java.sql.Types.DATE); ps.setNull(5, java.sql.Types.DATE); ps.setNull(6, java.sql.Types.DATE); }
                 else { ps.setDate(3, fromDate); ps.setDate(4, toDate); ps.setDate(5, fromDate); ps.setDate(6, toDate); }
                 try (ResultSet rs = ps.executeQuery()) { if (rs.next()) k.put("grossRevenue", rs.getBigDecimal("GrossRevenue")); }
             }
-            // Manufacturer discount (optional, may be zero)
             try (PreparedStatement ps = conn.prepareStatement(sqlManufacturerDiscount)) {
                 if (dealerId == null) { ps.setNull(1, java.sql.Types.INTEGER); ps.setNull(2, java.sql.Types.INTEGER); } else { ps.setInt(1, dealerId); ps.setInt(2, dealerId); }
                 if (fromDate == null || toDate == null) { ps.setNull(3, java.sql.Types.DATE); ps.setNull(4, java.sql.Types.DATE); ps.setNull(5, java.sql.Types.DATE); ps.setNull(6, java.sql.Types.DATE); }
@@ -121,7 +119,6 @@ public class DAOReport {
                         java.math.BigDecimal manufDiscount = rs.getBigDecimal("ManufDiscount");
                         if (manufDiscount == null) manufDiscount = java.math.BigDecimal.ZERO;
                         k.put("manufacturerDiscountTotal", manufDiscount);
-                        // Net revenue after discounts for dealer (already totalRevenue, but expose explicit value)
                         java.math.BigDecimal totalRev = (java.math.BigDecimal) k.getOrDefault("totalRevenue", java.math.BigDecimal.ZERO);
                         java.math.BigDecimal grossRev = (java.math.BigDecimal) k.getOrDefault("grossRevenue", java.math.BigDecimal.ZERO);
                         k.put("netRevenueAfterDiscount", totalRev); // net already after discount
@@ -130,7 +127,7 @@ public class DAOReport {
                 }
             }
         } catch (SQLException e) {
-            // ignore for summary
+            log.error("[DAOReport] getKpis SQL error", e);
         }
         return k;
     }
@@ -200,18 +197,20 @@ public class DAOReport {
             ORDER BY d.DealerName
         """;
         try (Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-            // bind existing + new manuf block params
             int idx = 1;
-            // po
+            // po block (6 params)
             if (dealerId == null) { ps.setNull(idx++, java.sql.Types.INTEGER); ps.setNull(idx++, java.sql.Types.INTEGER); } else { ps.setInt(idx++, dealerId); ps.setInt(idx++, dealerId); }
             if (fromDate == null || toDate == null) { ps.setNull(idx++, java.sql.Types.DATE); ps.setNull(idx++, java.sql.Types.DATE); ps.setNull(idx++, java.sql.Types.DATE); ps.setNull(idx++, java.sql.Types.DATE); } else { ps.setDate(idx++, fromDate); ps.setDate(idx++, toDate); ps.setDate(idx++, fromDate); ps.setDate(idx++, toDate); }
-            // so
+            // so block
             if (dealerId == null) { ps.setNull(idx++, java.sql.Types.INTEGER); ps.setNull(idx++, java.sql.Types.INTEGER); } else { ps.setInt(idx++, dealerId); ps.setInt(idx++, dealerId); }
             if (fromDate == null || toDate == null) { ps.setNull(idx++, java.sql.Types.DATE); ps.setNull(idx++, java.sql.Types.DATE); ps.setNull(idx++, java.sql.Types.DATE); ps.setNull(idx++, java.sql.Types.DATE); } else { ps.setDate(idx++, fromDate); ps.setDate(idx++, toDate); ps.setDate(idx++, fromDate); ps.setDate(idx++, toDate); }
-            // inv
+            // inv block
             if (dealerId == null) { ps.setNull(idx++, java.sql.Types.INTEGER); ps.setNull(idx++, java.sql.Types.INTEGER); } else { ps.setInt(idx++, dealerId); ps.setInt(idx++, dealerId); }
             if (fromDate == null || toDate == null) { ps.setNull(idx++, java.sql.Types.DATE); ps.setNull(idx++, java.sql.Types.DATE); ps.setNull(idx++, java.sql.Types.DATE); ps.setNull(idx++, java.sql.Types.DATE); } else { ps.setDate(idx++, fromDate); ps.setDate(idx++, toDate); ps.setDate(idx++, fromDate); ps.setDate(idx++, toDate); }
-            // manuf
+            // gross block (MISSING BEFORE - now added)
+            if (dealerId == null) { ps.setNull(idx++, java.sql.Types.INTEGER); ps.setNull(idx++, java.sql.Types.INTEGER); } else { ps.setInt(idx++, dealerId); ps.setInt(idx++, dealerId); }
+            if (fromDate == null || toDate == null) { ps.setNull(idx++, java.sql.Types.DATE); ps.setNull(idx++, java.sql.Types.DATE); ps.setNull(idx++, java.sql.Types.DATE); ps.setNull(idx++, java.sql.Types.DATE); } else { ps.setDate(idx++, fromDate); ps.setDate(idx++, toDate); ps.setDate(idx++, fromDate); ps.setDate(idx++, toDate); }
+            // manuf block
             if (dealerId == null) { ps.setNull(idx++, java.sql.Types.INTEGER); ps.setNull(idx++, java.sql.Types.INTEGER); } else { ps.setInt(idx++, dealerId); ps.setInt(idx++, dealerId); }
             if (fromDate == null || toDate == null) { ps.setNull(idx++, java.sql.Types.DATE); ps.setNull(idx++, java.sql.Types.DATE); ps.setNull(idx++, java.sql.Types.DATE); ps.setNull(idx++, java.sql.Types.DATE); } else { ps.setDate(idx++, fromDate); ps.setDate(idx++, toDate); ps.setDate(idx++, fromDate); ps.setDate(idx++, toDate); }
             // final filter
@@ -233,11 +232,13 @@ public class DAOReport {
                     list.add(row);
                 }
             }
+            log.debug("[DAOReport] dealerAggregates rows={} dealerId={} from={} to={}", list.size(), dealerId, fromDate, toDate);
         } catch (SQLException e) {
-            // ignore for summary
+            log.error("[DAOReport] getDealerAggregates SQL error dealerId={} from={} to={}", dealerId, fromDate, toDate, e);
         }
         return list;
     }
+
     public int getDealerCount() {
         String sql = "SELECT COUNT(*) AS Cnt FROM Dealer";
         try (Connection conn = DBUtils.getConnection();
@@ -245,7 +246,7 @@ public class DAOReport {
              ResultSet rs = ps.executeQuery()) {
             if (rs.next()) return rs.getInt("Cnt");
         } catch (SQLException e) {
-            // ignore for summary
+            log.error("[DAOReport] getDealerCount SQL error", e);
         }
         return 0;
     }
@@ -270,7 +271,7 @@ public class DAOReport {
                 m.put("transferred", rs.getInt("TransferredCnt"));
             }
         } catch (SQLException e) {
-            // ignore for summary
+            log.error("[DAOReport] getInventoryTotals SQL error", e);
         }
         return m;
     }
@@ -281,11 +282,9 @@ public class DAOReport {
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
-                m.put(rs.getString("Status"), rs.getInt("Cnt"));
-            }
+            while (rs.next()) { m.put(rs.getString("Status"), rs.getInt("Cnt")); }
         } catch (SQLException e) {
-            // ignore for summary
+            log.error("[DAOReport] getPurchaseOrderStats SQL error", e);
         }
         return m;
     }
@@ -296,11 +295,9 @@ public class DAOReport {
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
-                m.put(rs.getString("Status"), rs.getInt("Cnt"));
-            }
+            while (rs.next()) { m.put(rs.getString("Status"), rs.getInt("Cnt")); }
         } catch (SQLException e) {
-            // ignore for summary
+            log.error("[DAOReport] getSaleOrderStats SQL error", e);
         }
         return m;
     }
@@ -325,7 +322,7 @@ public class DAOReport {
                 list.add(row);
             }
         } catch (SQLException e) {
-            // ignore for summary
+            log.error("[DAOReport] getTopModelsByPOQuantity SQL error", e);
         }
         return list;
     }
@@ -355,7 +352,7 @@ public class DAOReport {
                 }
             }
         } catch (SQLException e) {
-            // ignore for summary
+            log.error("[DAOReport] getTopDealersByRevenue SQL error dealerId={} from={} to={}", dealerId, fromDate, toDate, e);
         }
         return list;
     }
@@ -387,7 +384,7 @@ public class DAOReport {
                 }
             }
         } catch (SQLException e) {
-            // ignore for summary
+            log.error("[DAOReport] getRevenueShareByModel SQL error dealerId={} from={} to={}", dealerId, fromDate, toDate, e);
         }
         return list;
     }
