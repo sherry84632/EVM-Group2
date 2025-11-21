@@ -1075,4 +1075,45 @@ public class DAODealerInventory {
 
         return null;
     }
+
+    /**
+     * Check if any of the provided VINs already exist in the database
+     * @param vins List of VINs to check (should already be normalized to uppercase)
+     * @return List of VINs that already exist (empty if all are unique)
+     */
+    public List<String> findExistingVins(List<String> vins) {
+        if (vins == null || vins.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        List<String> existing = new ArrayList<>();
+        String sql = """
+            SELECT DISTINCT UPPER(VIN) AS VIN FROM (
+                SELECT VIN FROM Vehicle WHERE VIN IS NOT NULL
+                UNION
+                SELECT VIN FROM DealerInventory WHERE VIN IS NOT NULL
+            ) AS AllVins
+            WHERE UPPER(VIN) IN (%s)
+            """;
+
+        String placeholders = vins.stream().map(v -> "?").collect(java.util.stream.Collectors.joining(","));
+        sql = String.format(sql, placeholders);
+
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            for (int i = 0; i < vins.size(); i++) {
+                ps.setString(i + 1, vins.get(i).toUpperCase());
+            }
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    existing.add(rs.getString("VIN"));
+                }
+            }
+        } catch (SQLException e) {
+            log.error("Error checking VIN uniqueness", e);
+        }
+
+        return existing;
+    }
 }
