@@ -69,4 +69,10 @@ public class DTODealerRewardSettlement {
         return rewardAmount.multiply(java.math.BigDecimal.valueOf(100))
                 .divide(rewardPercent, 2, java.math.RoundingMode.HALF_UP);
     }
+
+    @Transient
+    public boolean isLocked(){ return status != null && status.equalsIgnoreCase("PAID"); }
+
+    @Transient
+    public int getBatchNumber(){ return 1; }
 }

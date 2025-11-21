@@ -55,6 +55,23 @@ public class DAODealerRewardSettlement {
         } catch(Exception e){ e.printStackTrace(); }
         return null;
     }
+    public DTODealerRewardSettlement getLatestForPeriod(int dealerId,int year,int month){
+        String sql="SELECT TOP 1 * FROM DealerRewardSettlement WHERE DealerID=? AND PeriodYear=? AND PeriodMonth=? ORDER BY RewardSettlementID DESC";
+        try(Connection c=DBUtils.getConnection(); PreparedStatement ps=c.prepareStatement(sql)){ ps.setInt(1,dealerId); ps.setInt(2,year); ps.setInt(3,month); try(ResultSet rs=ps.executeQuery()){ if(rs.next()) return map(rs);} } catch(Exception e){ e.printStackTrace(); }
+        return null;
+    }
+    public DTODealerRewardSettlement createNewEvenIfPeriodExists(int dealerId,int year,int month,int importedQty,BigDecimal rewardPercent,BigDecimal rewardAmount){
+        return create(dealerId,year,month,importedQty,rewardPercent,rewardAmount);
+    }
+    public DTODealerRewardSettlement safeUpdateStatusAndAmount(int id,String status,BigDecimal rewardAmount,String notes){
+        DTODealerRewardSettlement current=getById(id);
+        if(current==null) return null;
+        if("PAID".equalsIgnoreCase(current.getStatus())){
+            // If already paid, do not modify amount or status
+            return current;
+        }
+        return updateStatus(id,status,rewardAmount,notes);
+    }
     private DTODealerRewardSettlement map(ResultSet rs) throws SQLException {
         DTODealerRewardSettlement d=new DTODealerRewardSettlement();
         d.setRewardSettlementID(rs.getInt("RewardSettlementID"));

@@ -49,6 +49,13 @@
             font-weight: bold;
             margin: 0 8px;
         }
+
+        .compare-panel { border:2px solid #0d6efd; border-radius:12px; padding:16px; background:#fff; margin-top:24px; }
+        .compare-col { background:#f8f9fa; border:1px solid #e1e5ea; border-radius:8px; padding:12px; }
+        .compare-col h5 { font-weight:600; }
+        .model-img-box { min-height:160px; background:#fff; border:1px solid #ddd; border-radius:8px; display:flex; align-items:center; justify-content:center; overflow:hidden; margin-bottom:12px; }
+        .model-thumb {width:100%;height:80px;display:flex;align-items:center;justify-content:center;background:#f8f9fa;border:1px solid #e1e5ea;border-radius:6px;overflow:hidden;margin-bottom:6px;}
+        .model-thumb img {max-width:100%;max-height:100%;object-fit:cover;}
     </style>
 </head>
 
@@ -73,8 +80,11 @@
                     <div class="col-md-6">
                         <div class="card shadow">
 
-                            <div class="card-header">
+                            <div class="card-header d-flex align-items-center justify-content-between">
                                 <div class="title">Vehicle Specifications</div>
+                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="openCompareChooser()">
+                                    <i class="fa-solid fa-columns me-1"></i>Compare Model
+                                </button>
                             </div>
 
                             <div class="card-body">
@@ -134,6 +144,8 @@
                                     <span class="label">Transmission</span>
                                     <span class="value" th:text="${vehicle.version.transmission}"></span>
                                 </div>
+
+                                <input type="hidden" id="baseModelId" th:value="${vehicle.version != null && vehicle.version.model != null ? vehicle.version.model.modelID : (vehicle.model != null ? vehicle.model.modelID : 0)}" />
                             </div>
                         </div>
                     </div>
@@ -190,6 +202,24 @@
 
                 </div>
 
+                <!-- Comparison chooser -->
+                <div id="compareChooser" class="card shadow-sm mt-3" style="display:none;">
+                    <div class="card-header d-flex align-items-center">
+                        <strong><i class="fa-solid fa-search me-2"></i>Select model to compare</strong>
+                        <button class="btn btn-sm btn-outline-secondary ms-auto" onclick="closeChooser()"><i class="fa-solid fa-times"></i></button>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-2">
+                            <input type="text" class="form-control" placeholder="Filter by name..." id="compareFilter" oninput="renderModelList()" />
+                        </div>
+                        <div id="modelListBox" style="max-height:300px; overflow-y:auto;" class="row g-2">
+                            <div class="text-center text-muted py-3" id="loadingModels"><i class="fa-solid fa-spinner fa-spin me-2"></i>Loading models...</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Comparison result panel -->
+                <div id="comparisonPanel" class="compare-panel" style="display:none;"></div>
+
             </div>
 
         </div>
@@ -217,6 +247,46 @@
         }
 
         createParticles();
+
+        let baseModelId = 0; let allModels = []; let baseModelData = null; let secondModel = null;
+        document.addEventListener('DOMContentLoaded', function(){
+            const hidden = document.getElementById('baseModelId');
+            if(hidden){ baseModelId = parseInt(hidden.value)||0; }
+            const compareBtn = document.querySelector('button[onclick="openCompareChooser()"]');
+            if(!baseModelId){ if(compareBtn){ compareBtn.disabled = true; compareBtn.title='Không có Model ID cho xe này (vehicle chưa gắn model/version).'; } }
+        });
+        function openCompareChooser(){
+            if(!baseModelId){ alert('Model ID missing: xe này chưa gắn Vehicle Model hoặc Version nên không thể so sánh.'); return; }
+            document.getElementById('compareChooser').style.display='block';
+            loadBaseModel();
+            loadModelsIfNeeded();
+            setTimeout(()=>window.scrollTo({top:document.getElementById('compareChooser').offsetTop-20,behavior:'smooth'}),50);
+        }
+        function closeChooser(){ document.getElementById('compareChooser').style.display='none'; }
+        function loadBaseModel(){ fetch('/api/vehicle-model/'+baseModelId).then(r=>r.json()).then(d=>{ baseModelData=d; }).catch(e=>console.error(e)); }
+        function loadModelsIfNeeded(){ if(allModels.length>0){ renderModelList(); return; } fetch('/api/vehicle-model/s/all').then(r=>r.json()).then(data=>{ allModels=data.filter(m=>String(m.modelID)!==String(baseModelId)); renderModelList(); }).catch(e=>{ console.error(e); document.getElementById('modelListBox').innerHTML='<div class="text-danger">Failed to load models</div>'; }); }
+        function renderModelList(){
+            const box=document.getElementById('modelListBox');
+            const filter=(document.getElementById('compareFilter').value||'').toLowerCase();
+            const list=allModels.filter(m=>!filter || (m.modelName||'').toLowerCase().includes(filter));
+            if(list.length===0){ box.innerHTML='<div class="text-center text-muted py-3">No models match filter</div>'; return; }
+            box.innerHTML=list.map(m=>{
+               const name=escapeHtml(m.modelName||'N/A');
+               const brand=escapeHtml(m.brand||'');
+               const img=m.imageBase64?`<img src="data:image/jpeg;base64,${m.imageBase64}" alt="${name}">`:`<span class='text-muted'><i class="fa-solid fa-car-side"></i></span>`;
+               return `<div class='col-md-4'><div class='border rounded p-2 h-100 d-flex flex-column'>
+                    <div class='model-thumb'>${img}</div>
+                    <div class='flex-grow-1'><strong>${name}</strong><br><small class='text-muted'>${brand}</small></div>
+                    <button class='btn btn-sm btn-primary mt-2' onclick='selectSecondModel(${m.modelID})'><i class="fa-solid fa-check me-1"></i>Select</button>
+               </div></div>`;
+            }).join('');
+        }
+        function selectSecondModel(id){ fetch('/api/vehicle-model/'+id).then(r=>r.json()).then(d=>{ secondModel=d; closeChooser(); showComparison(); }).catch(e=>alert('Failed to load selected model')); }
+        function showComparison(){ if(!baseModelData || !secondModel){ alert('Missing model data'); return; } const panel=document.getElementById('comparisonPanel'); panel.style.display='block'; panel.innerHTML=`<div class='d-flex justify-content-between align-items-center mb-2'><h4 class='m-0'><i class='fa-solid fa-columns me-1'></i>Model Comparison</h4><button class='btn btn-sm btn-outline-danger' onclick='resetComparison()'><i class='fa-solid fa-times'></i> Clear</button></div><div class='row'>${buildColumn(baseModelData,'Base Model')} ${buildColumn(secondModel,'Compared Model')}</div>`; panel.scrollIntoView({behavior:'smooth'}); }
+        function buildColumn(m,label){ return `<div class='col-md-6'><div class='compare-col h-100'><h5>${escapeHtml(label)}: ${escapeHtml(m.modelName||'N/A')}</h5><div class='model-img-box'>${m.imageBase64?`<img src='data:image/jpeg;base64,${m.imageBase64}' alt='${escapeHtml(m.modelName||'')}' style='max-width:100%;max-height:100%;object-fit:cover;'/>`:`<span class='text-muted'><i class='fa-solid fa-image me-1'></i>No Image</span>`}</div><table class='table table-sm'><tbody><tr><th>Brand</th><td>${escapeHtml(m.brand||'N/A')}</td></tr><tr><th>Year</th><td>${escapeHtml(m.year||'N/A')}</td></tr><tr><th>Body Type</th><td>${escapeHtml(m.bodyType||'N/A')}</td></tr><tr><th>Base Price</th><td>${formatCurrency(m.basePrice)}</td></tr><tr><th>Description</th><td>${escapeHtml(m.description||'N/A')}</td></tr></tbody></table></div></div>`; }
+        function resetComparison(){ secondModel=null; document.getElementById('comparisonPanel').style.display='none'; document.getElementById('comparisonPanel').innerHTML=''; }
+        function escapeHtml(str){ return String(str).replace(/[&<>"']/g,s=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;' }[s])); }
+        function formatCurrency(val){ if(val==null) return 'N/A'; try{ const num=parseFloat(val); if(isNaN(num)) return val; return '$'+Intl.NumberFormat('en-US',{minimumFractionDigits:0,maximumFractionDigits:0}).format(num);}catch(e){ return val; }}
     </script>
 
 </body>

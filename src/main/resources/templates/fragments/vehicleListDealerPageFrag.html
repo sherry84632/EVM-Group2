@@ -2,11 +2,17 @@
 
     <div class="scroll-box">
         <div class="items-container dv-grid">
-
+            <!-- Toolbar -->
+            <div class="w-100 mb-2">
+                <button class="dv-btn-outline dv-btn-outline-primary" id="compareBtn" disabled onclick="startCompare()">
+                    <i class="fas fa-columns"></i> Compare Selected (max 2)
+                </button>
+                <small class="text-muted ms-2">Select up to two vehicles using the checkboxes.</small>
+            </div>
             <!-- Item  -->
             <div class="dv-card" th:each="vehicle : ${vehicleList}">
                 <div class="dv-checkbox-wrapper">
-                    <input type="checkbox" class="form-check-input vehicle-select-checkbox" th:value="${vehicle.vehicleID}" />
+                    <input type="checkbox" class="form-check-input vehicle-select-checkbox" th:value="${vehicle.version != null && vehicle.version.model != null ? vehicle.version.model.modelID : 0}" onchange="handleSelectionChange()" />
                 </div>
                 <div class="dv-model-name">
                     <i class="fas fa-car-side text-primary"></i>
@@ -43,6 +49,17 @@
             </div>
 
         </div>
+        <!-- Comparison Result Panel -->
+        <div id="comparePanel" class="mt-4" style="display:none;">
+            <div class="dv-card" style="border:2px solid #0d6efd;">
+                <div class="dv-model-name">
+                    <i class="fas fa-columns text-primary"></i>
+                    <span>Comparison</span>
+                    <button type="button" class="dv-btn-outline dv-btn-outline-danger ms-auto" onclick="closeCompare()"><i class="fas fa-times"></i> Close</button>
+                </div>
+                <div id="compareContent" class="row mt-3"></div>
+            </div>
+        </div>
     </div>
 
 </div>
@@ -53,5 +70,67 @@ function attachSingleCustomer(btn){
   const hidden = btn.closest('form').querySelector('.single-add-customer');
   hidden.value = select.value;
   return true;
+}
+function handleSelectionChange(){
+  const checks=[...document.querySelectorAll('.vehicle-select-checkbox')].filter(c=>c.checked);
+  const btn=document.getElementById('compareBtn');
+  if(checks.length===0){ btn.disabled=true; btn.textContent='Compare Selected (max 2)'; }
+  else if(checks.length===1){ btn.disabled=false; btn.textContent='Compare 1 selected – pick another'; }
+  else if(checks.length===2){ btn.disabled=false; btn.textContent='Compare 2 selected'; }
+  else { // >2
+    // Uncheck the extra ones
+    checks.slice(2).forEach(c=>c.checked=false);
+    handleSelectionChange();
+    return;
+  }
+}
+function startCompare(){
+  const checks=[...document.querySelectorAll('.vehicle-select-checkbox')].filter(c=>c.checked);
+  if(checks.length<2){ alert('Select exactly 2 vehicles to compare.'); return; }
+  const ids=checks.map(c=>c.value);
+  Promise.all(ids.map(id=>fetch('/api/vehicle-model/'+id).then(r=>r.ok?r.json():Promise.reject('Load failed '+id))))
+    .then(models=>{
+       renderComparison(models);
+    })
+    .catch(err=>{ console.error(err); alert('Failed to load model data'); });
+}
+function renderComparison(models){
+   const panel=document.getElementById('comparePanel');
+   const content=document.getElementById('compareContent');
+   panel.style.display='block';
+   content.innerHTML=models.map(m=>buildModelColumn(m)).join('');
+   panel.scrollIntoView({behavior:'smooth'});
+}
+function buildModelColumn(m){
+   return `<div class="col-md-6 mb-3">
+     <div class="p-3 border rounded h-100 bg-white">
+       <h5 class="fw-bold mb-2 text-primary"><i class="fas fa-car me-1"></i>${escapeHtml(m.modelName||'N/A')}</h5>
+       <div class="text-center mb-3" style="min-height:160px;background:#f8f9fa;border:1px solid #eee;border-radius:6px;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+         ${m.imageBase64?`<img src="data:image/jpeg;base64,${m.imageBase64}" alt="${escapeHtml(m.modelName||'') }" style="max-width:100%;max-height:100%;object-fit:cover;"/>`:`<span class="text-muted"><i class="fas fa-image me-1"></i>No Image</span>`}
+       </div>
+       <table class="table table-sm">
+         <tbody>
+           <tr><th style="width:40%">Brand</th><td>${escapeHtml(m.brand||'N/A')}</td></tr>
+           <tr><th>Year</th><td>${escapeHtml(m.year||'N/A')}</td></tr>
+           <tr><th>Body Type</th><td>${escapeHtml(m.bodyType||'N/A')}</td></tr>
+           <tr><th>Base Price</th><td>${formatCurrency(m.basePrice)}</td></tr>
+           <tr><th>Description</th><td>${escapeHtml(m.description||'N/A')}</td></tr>
+         </tbody>
+       </table>
+     </div>
+   </div>`;
+}
+function closeCompare(){
+  document.getElementById('comparePanel').style.display='none';
+  document.getElementById('compareContent').innerHTML='';
+  document.querySelectorAll('.vehicle-select-checkbox').forEach(c=>c.checked=false);
+  handleSelectionChange();
+}
+function escapeHtml(str){
+  return String(str).replace(/[&<>'"]/g,s=>({ '&':'&amp;','<':'&lt;','>':'&gt;','\'':'&#39;','\"':'&quot;' }[s]));
+}
+function formatCurrency(val){
+  if(val==null) return 'N/A';
+  try{ const num=parseFloat(val); if(isNaN(num)) return val; return '$'+Intl.NumberFormat('en-US',{minimumFractionDigits:0,maximumFractionDigits:0}).format(num); }catch(e){ return val; }
 }
 </script>

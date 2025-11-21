@@ -53,14 +53,24 @@ public class DealerRewardSettlementController {
         // Attach purchase orders summary to model for each settlement (map by settlement ID)
         java.util.Map<Integer, java.util.List<DTOPurchaseOrder>> poMap = new java.util.HashMap<>();
         java.util.Map<Integer, java.math.BigDecimal> aggregatedImportValueMap = new java.util.HashMap<>();
+        // For each settlement determine cutoff: previous paid (or previous) settlement's PaidDate/CreatedAt
+        java.util.Map<Integer, DTODealerRewardSettlement> previousById = new java.util.HashMap<>();
+        // Build ordered list per dealer+period
+        java.util.Map<String, java.util.List<DTODealerRewardSettlement>> grouped = new java.util.HashMap<>();
+        for(DTODealerRewardSettlement s: list){
+            String key=s.getDealerID()+"-"+s.getPeriodYear()+"-"+s.getPeriodMonth();
+            grouped.computeIfAbsent(key,k->new java.util.ArrayList<>()).add(s);
+        }
+        for(var entry: grouped.entrySet()){
+            var settlements=entry.getValue(); settlements.sort(java.util.Comparator.comparingInt(DTODealerRewardSettlement::getRewardSettlementID));
+            DTODealerRewardSettlement prev=null; for(DTODealerRewardSettlement s: settlements){ previousById.put(s.getRewardSettlementID(), prev); prev=s; }
+        }
         for(DTODealerRewardSettlement s : list){
-            java.util.List<DTOPurchaseOrder> pos = getMonthlyDeliveredPurchaseOrders(s.getDealerID(), s.getPeriodYear(), s.getPeriodMonth());
+            DTODealerRewardSettlement prev = previousById.get(s.getRewardSettlementID());
+            java.sql.Timestamp cutoff=null; if(prev!=null){ cutoff = prev.getPaidDate()!=null? prev.getPaidDate(): prev.getCreatedAt(); }
+            java.util.List<DTOPurchaseOrder> pos = getMonthlyDeliveredPurchaseOrdersAfter(s.getDealerID(), s.getPeriodYear(), s.getPeriodMonth(), cutoff);
             poMap.put(s.getRewardSettlementID(), pos);
-            java.math.BigDecimal sum = java.math.BigDecimal.ZERO;
-            for(DTOPurchaseOrder po : pos){
-                if(po.getTotalAmount()!=null) sum = sum.add(po.getTotalAmount());
-            }
-            aggregatedImportValueMap.put(s.getRewardSettlementID(), sum);
+            aggregatedImportValueMap.put(s.getRewardSettlementID(), sumValue(pos));
         }
         model.addAttribute("purchaseOrdersBySettlement", poMap);
         model.addAttribute("aggregatedImportValueMap", aggregatedImportValueMap);
@@ -83,13 +93,25 @@ public class DealerRewardSettlementController {
         DTODealerLevel lvl = daoDealer.getDealerLevelById(dealer.getLevelID());
         double pct = (lvl!=null? lvl.getRewardPercent():0.0);
         BigDecimal rewardPercent = BigDecimal.valueOf(pct);
-        BigDecimal rewardAmount = importedValueMonth.multiply(rewardPercent).divide(BigDecimal.valueOf(100));
-        DTODealerRewardSettlement existing = rewardDAO.getByDealerAndPeriod(dealerId, year, month);
-        if(existing==null){
-            rewardDAO.create(dealerId, year, month, importedQtyMonth, rewardPercent, rewardAmount);
+        DTODealerRewardSettlement latest = rewardDAO.getLatestForPeriod(dealerId, year, month);
+        if(latest == null){
+            // First settlement covers all month to date
+            int qtyImported = importedQtyMonth; java.math.BigDecimal valImported = importedValueMonth;
+            BigDecimal rewardAmount = valImported.multiply(rewardPercent).divide(BigDecimal.valueOf(100));
+            rewardDAO.create(dealerId, year, month, qtyImported, rewardPercent, rewardAmount);
+        } else if(latest.isLocked()) {
+            // delta after paid
+            java.sql.Timestamp cutoff = latest.getPaidDate()!=null? latest.getPaidDate(): latest.getCreatedAt();
+            var deltaPos = getMonthlyDeliveredPurchaseOrdersAfter(dealerId, year, month, cutoff);
+            int deltaQty = sumQty(deltaPos); java.math.BigDecimal deltaVal = sumValue(deltaPos);
+            if(deltaQty>0 && deltaVal.compareTo(java.math.BigDecimal.ZERO)>0){
+                BigDecimal rewardAmount = deltaVal.multiply(rewardPercent).divide(BigDecimal.valueOf(100));
+                rewardDAO.createNewEvenIfPeriodExists(dealerId, year, month, deltaQty, rewardPercent, rewardAmount);
+            }
         } else {
-            // update amounts but keep status
-            rewardDAO.updateStatus(existing.getRewardSettlementID(), existing.getStatus(), rewardAmount, existing.getNotes());
+            // Update existing (recompute full set from start of month)
+            BigDecimal rewardAmount = importedValueMonth.multiply(rewardPercent).divide(BigDecimal.valueOf(100));
+            rewardDAO.safeUpdateStatusAndAmount(latest.getRewardSettlementID(), latest.getStatus(), rewardAmount, latest.getNotes());
         }
         return "redirect:/evm/reward-settlement?dealerId="+dealerId+"&year="+year+"&month="+month;
     }
@@ -107,12 +129,22 @@ public class DealerRewardSettlementController {
             DTODealerLevel lvl = daoDealer.getDealerLevelById(d.getLevelID());
             double pct = (lvl!=null? lvl.getRewardPercent():0.0);
             BigDecimal rewardPercent = BigDecimal.valueOf(pct);
-            BigDecimal rewardAmount = val.multiply(rewardPercent).divide(BigDecimal.valueOf(100));
-            DTODealerRewardSettlement existing = rewardDAO.getByDealerAndPeriod(dealerId, year, month);
-            if(existing==null){
-                rewardDAO.create(dealerId, year, month, qty, rewardPercent, rewardAmount);
+            DTODealerRewardSettlement latest = rewardDAO.getLatestForPeriod(dealerId, year, month);
+            if(latest == null){
+                int qtyImported = qty; java.math.BigDecimal valImported = val;
+                BigDecimal rewardAmount = valImported.multiply(rewardPercent).divide(BigDecimal.valueOf(100));
+                rewardDAO.create(dealerId, year, month, qtyImported, rewardPercent, rewardAmount);
+            } else if(latest.isLocked()) {
+                java.sql.Timestamp cutoff = latest.getPaidDate()!=null? latest.getPaidDate(): latest.getCreatedAt();
+                var deltaPos = getMonthlyDeliveredPurchaseOrdersAfter(dealerId, year, month, cutoff);
+                int deltaQty = sumQty(deltaPos); java.math.BigDecimal deltaVal = sumValue(deltaPos);
+                if(deltaQty>0 && deltaVal.compareTo(java.math.BigDecimal.ZERO)>0){
+                    BigDecimal rewardAmount = deltaVal.multiply(rewardPercent).divide(BigDecimal.valueOf(100));
+                    rewardDAO.createNewEvenIfPeriodExists(dealerId, year, month, deltaQty, rewardPercent, rewardAmount);
+                }
             } else {
-                rewardDAO.updateStatus(existing.getRewardSettlementID(), existing.getStatus(), rewardAmount, existing.getNotes());
+                BigDecimal rewardAmount = val.multiply(rewardPercent).divide(BigDecimal.valueOf(100));
+                rewardDAO.safeUpdateStatusAndAmount(latest.getRewardSettlementID(), latest.getStatus(), rewardAmount, latest.getNotes());
             }
         }
         return "redirect:/evm/reward-settlement?year="+year+"&month="+month;
@@ -124,7 +156,13 @@ public class DealerRewardSettlementController {
                                @RequestParam(required=false) String notes){
         DTODealerRewardSettlement dto = rewardDAO.getById(id);
         if(dto!=null){
-            rewardDAO.updateStatus(id, status, dto.getRewardAmount(), notes);
+            // prevent changing status from PAID back or altering amount
+            if("PAID".equalsIgnoreCase(dto.getStatus())) {
+                // Already locked; ignore changes except maybe notes
+                rewardDAO.safeUpdateStatusAndAmount(dto.getRewardSettlementID(), dto.getStatus(), dto.getRewardAmount(), notes);
+            } else {
+                rewardDAO.safeUpdateStatusAndAmount(id, status, dto.getRewardAmount(), notes);
+            }
         }
         return "redirect:/evm/reward-settlement";
     }
@@ -154,5 +192,34 @@ public class DealerRewardSettlementController {
                 while(rs.next()){ DTOPurchaseOrder po = new DTOPurchaseOrder(); po.setPurchaseOrderId(rs.getInt("PurchaseOrderID")); po.setCreatedAt(rs.getTimestamp("CreatedAt")); po.setStatus(PurchaseOrderStatus.valueOf(rs.getString("Status"))); po.setTotalAmount(rs.getBigDecimal("TotalAmount")); list.add(po);} }
         } catch(Exception e){ e.printStackTrace(); }
         return list;
+    }
+    private java.util.List<DTOPurchaseOrder> getMonthlyDeliveredPurchaseOrdersAfter(int dealerId, int year, int month, java.sql.Timestamp afterTs){
+        StringBuilder sb=new StringBuilder("SELECT po.PurchaseOrderID, po.CreatedAt, po.Status, po.TotalAmount FROM PurchaseOrder po WHERE po.DealerID=? AND po.Status IN ('DELIVERED','COMPLETED') AND YEAR(po.CreatedAt)=? AND MONTH(po.CreatedAt)=?");
+        if(afterTs!=null){ sb.append(" AND po.CreatedAt > ?"); }
+        sb.append(" ORDER BY po.PurchaseOrderID");
+        java.util.List<DTOPurchaseOrder> list=new java.util.ArrayList<>();
+        try(java.sql.Connection c=utils.DBUtils.getConnection(); java.sql.PreparedStatement ps=c.prepareStatement(sb.toString())){
+            ps.setInt(1,dealerId); ps.setInt(2,year); ps.setInt(3,month); if(afterTs!=null) ps.setTimestamp(4,afterTs);
+            try(java.sql.ResultSet rs=ps.executeQuery()){ while(rs.next()){ DTOPurchaseOrder po=new DTOPurchaseOrder(); po.setPurchaseOrderId(rs.getInt(1)); po.setCreatedAt(rs.getTimestamp(2)); po.setStatus(PurchaseOrderStatus.valueOf(rs.getString(3))); po.setTotalAmount(rs.getBigDecimal(4)); list.add(po);} }
+        } catch(Exception e){ e.printStackTrace(); }
+        return list;
+    }
+    private int sumQty(java.util.List<DTOPurchaseOrder> pos){
+        if(pos==null||pos.isEmpty()) return 0;
+        // Need quantity per PO detail; fallback approximate using sum of quantities from details
+        int total=0;
+        String sql="SELECT ISNULL(SUM(pod.Quantity),0) AS Qty FROM PurchaseOrderDetail pod WHERE pod.PurchaseOrderID=?";
+        try(java.sql.Connection c=utils.DBUtils.getConnection()){
+            for(DTOPurchaseOrder po: pos){ try(java.sql.PreparedStatement ps=c.prepareStatement(sql)){ ps.setInt(1,po.getPurchaseOrderId()); try(java.sql.ResultSet rs=ps.executeQuery()){ if(rs.next()) total+=rs.getInt(1); } } }
+        } catch(Exception e){ e.printStackTrace(); }
+        return total;
+    }
+    private java.math.BigDecimal sumValue(java.util.List<DTOPurchaseOrder> pos){
+        java.math.BigDecimal sum=java.math.BigDecimal.ZERO; if(pos==null) return sum;
+        String sql="SELECT ISNULL(SUM(pod.Subtotal),0) AS Val FROM PurchaseOrderDetail pod WHERE pod.PurchaseOrderID=?";
+        try(java.sql.Connection c=utils.DBUtils.getConnection()){
+            for(DTOPurchaseOrder po: pos){ try(java.sql.PreparedStatement ps=c.prepareStatement(sql)){ ps.setInt(1,po.getPurchaseOrderId()); try(java.sql.ResultSet rs=ps.executeQuery()){ if(rs.next()) sum=sum.add(rs.getBigDecimal(1)); } } }
+        } catch(Exception e){ e.printStackTrace(); }
+        return sum;
     }
 }

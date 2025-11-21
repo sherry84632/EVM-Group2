@@ -109,19 +109,19 @@
                     <td class="num" th:text="${#numbers.formatDecimal(s.rewardPercent,2,'COMMA',2,'POINT')} + '%'" ></td>
                     <td class="num reward-amt" th:text="${#numbers.formatDecimal(s.rewardAmount,2,'COMMA',2,'POINT')}"></td>
                     <td class="num" th:text="${#numbers.formatDecimal(s.importedValue,2,'COMMA',2,'POINT')}"></td>
-                    <td><span class="status-badge" th:classappend="' status-' + ${s.status}" th:text="${s.status}"></span></td>
+                    <td><span class="status-badge" th:classappend="' status-' + ${s.status}" th:text="${s.status}"></span><span th:if="${s.status=='PAID'}" class="ms-1 text-muted small"><i class="fa-solid fa-lock"></i></span></td>
                     <td th:text="${s.notes}"></td>
                     <td>
-                        <form method="post" action="/evm/reward-settlement/update-status" class="d-flex flex-column gap-1">
+                        <form method="post" action="/evm/reward-settlement/update-status" class="d-flex flex-column gap-1" th:classappend="${s.status=='PAID'}? ' opacity-75':''">
                             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
                             <input type="hidden" name="id" th:value="${s.rewardSettlementID}" />
-                            <select name="status" class="form-select form-select-sm">
+                            <select name="status" class="form-select form-select-sm" th:disabled="${s.status=='PAID'}">
                                 <option value="PENDING" th:selected="${s.status=='PENDING'}">PENDING</option>
                                 <option value="APPROVED" th:selected="${s.status=='APPROVED'}">APPROVED</option>
                                 <option value="PAID" th:selected="${s.status=='PAID'}">PAID</option>
                             </select>
-                            <input name="notes" class="form-control form-control-sm" th:value="${s.notes}" placeholder="Notes" />
-                            <button class="btn btn-primary btn-sm" type="submit"><i class="fa-solid fa-save me-1"></i>Save</button>
+                            <input name="notes" class="form-control form-control-sm" th:value="${s.notes}" placeholder="Notes" th:disabled="${s.status=='PAID'}" />
+                            <button class="btn btn-primary btn-sm" type="submit" th:disabled="${s.status=='PAID'}"><i class="fa-solid fa-save me-1"></i><span th:text="${s.status=='PAID'}? 'Locked':'Save'"></span></button>
                         </form>
                         <button class="btn btn-outline-secondary btn-sm mt-2" type="button" data-bs-toggle="collapse" th:attr="data-bs-target='#poList-' + ${s.rewardSettlementID}">
                             <i class="fa-solid fa-list"></i> Purchase Orders

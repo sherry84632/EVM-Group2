@@ -4,27 +4,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create Account</title>
+    <title>Vehicle Detail</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="/css/mainPageStyle.css">
     <link rel="stylesheet" href="/css/iconStyle.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"
-          integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw=="
-          crossorigin="anonymous" referrerpolicy="no-referrer"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"/>
+    <style>
+      .compare-panel { border:2px solid #0d6efd; border-radius:12px; padding:16px; background:#ffffff; margin-top:20px; }
+      .compare-col { background:#f8f9fa; border:1px solid #e1e5ea; border-radius:8px; padding:12px; }
+      .compare-col h5 { font-weight:600; }
+      .model-img-box { min-height:160px; background:#fff; border:1px solid #ddd; border-radius:8px; display:flex; align-items:center; justify-content:center; overflow:hidden; margin-bottom:12px; }
+    </style>
 </head>
 
 <body class="bg-gradient2-custom">
-
-<button class="mobile-menu-toggle" id="menuToggleBtn">
-    <i class="fa-solid fa-bars"></i>
-</button>
 
 <div class="d-flex">
 
     <div th:replace="~{mainPage/navBarFragment :: navBar}"></div>
 
-    <div class="mainContent flex-grow-1 p-3" style="overflow: hidden">
-
+    <div class="mainContent flex-grow-1 p-3" style="overflow:hidden">
+        <!-- Breadcrumb -->
         <nav aria-label="breadcrumb" class="mb-3">
             <ol class="breadcrumb">
                 <li class="breadcrumb-item"><a href="/showEVMHomePage"><i class="fa-solid fa-home me-1"></i>Home</a>
@@ -35,42 +35,101 @@
             </ol>
         </nav>
 
-        <div class="d-flex">
-            <h2>This is a navigation link.</h2>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2><i class="fa-solid fa-car me-2"></i>Vehicle Detail</h2>
+            <button type="button" class="btn btn-outline-primary" id="compareTriggerBtn" onclick="openCompareChooser()">
+                <i class="fa-solid fa-columns me-1"></i>Compare Model
+            </button>
         </div>
-
-        <div class="d-flex wrap">
-
-            <span>
-                <h1>Vehicle list</h1>
-            </span>
-
-
-
-        </div>
-
+        <!-- Selected vehicle card(s) -->
         <div class="scroll-box">
-
-            <div th:each="vehicle : ${vehicleList}" class="d-flex"
-                 style="justify-content: center; align-items: center; padding: 35px;">
-                <button class="button_vehicle_list" type="button">
-                    <img src="/images/logo.png" th:alt="${vehicle.modelName} + ' image'" alt="Vehicle image"/>
-                    <span>
-                        <strong th:text="${vehicle.modelName}"></strong><br/>
-                        <span th:text="${T(utils.NumberFormatUtil).formatCurrency(vehicle.basePrice)}"></span><br/>
-                        <span th:text="${vehicle.ManufactureYear}"></span>
-                    </span>
-                </button>
+            <div th:each="vehicle : ${vehicleList}" class="d-flex justify-content-center align-items-center p-3">
+                <div class="text-center">
+                    <button class="button_vehicle_list mb-2" type="button" th:attr="data-model-id=${vehicle.version != null && vehicle.version.model != null ? vehicle.version.model.modelID : 0}">
+                        <img src="/images/logo.png" th:alt="${vehicle.modelName} + ' image'" alt="Vehicle image"/>
+                        <span>
+                            <strong th:text="${vehicle.modelName}"></strong><br/>
+                            <span th:text="${vehicle.basePrice}"></span><br/>
+                            <span th:text="${vehicle.ManufactureYear}"></span>
+                        </span>
+                    </button>
+                    <div>
+                        <button type="button" class="btn btn-sm btn-outline-primary" th:attr="data-model-id=${vehicle.version != null && vehicle.version.model != null ? vehicle.version.model.modelID : 0}" onclick="openCompareChooserFor(this)">
+                            <i class="fa-solid fa-columns me-1"></i>Compare This Model
+                        </button>
+                    </div>
+                </div>
             </div>
-
         </div>
-
+        <!-- Comparison chooser (modal-like inline) -->
+        <div id="compareChooser" class="card shadow-sm mt-3" style="display:none;">
+            <div class="card-header d-flex align-items-center">
+                <strong><i class="fa-solid fa-search me-2"></i>Select model to compare</strong>
+                <button class="btn btn-sm btn-outline-secondary ms-auto" onclick="closeChooser()"><i class="fa-solid fa-times"></i></button>
+            </div>
+            <div class="card-body">
+                <div class="mb-2">
+                    <input type="text" class="form-control" placeholder="Filter by name..." id="compareFilter" oninput="filterModelList()" />
+                </div>
+                <div id="modelListBox" style="max-height:300px; overflow-y:auto;" class="row g-2">
+                    <div class="text-center text-muted py-3" id="loadingModels"><i class="fa-solid fa-spinner fa-spin me-2"></i>Loading models...</div>
+                </div>
+            </div>
+        </div>
+        <!-- Comparison result panel -->
+        <div id="comparisonPanel" class="compare-panel" style="display:none;"></div>
     </div>
-
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="/scripts/navBarMenuProject.js"></script>
+<script>
+ let baseModelId=null; let allModels=[]; let secondModel=null; let baseModelData=null;
+ function openCompareChooser(){
+   // fallback to first card
+   const btn=document.querySelector('.button_vehicle_list');
+   if(btn){ openCompareChooserFor(btn); } else { alert('No vehicle loaded'); }
+ }
+ function openCompareChooserFor(el){
+   baseModelId=el.getAttribute('data-model-id');
+   if(!baseModelId || baseModelId==='0'){ alert('Model ID missing for this vehicle'); return; }
+   document.getElementById('compareChooser').style.display='block';
+   loadModelsIfNeeded();
+   loadBaseModel();
+   window.scrollTo({top:document.getElementById('compareChooser').offsetTop-20,behavior:'smooth'});
+ }
+ function closeChooser(){ document.getElementById('compareChooser').style.display='none'; }
+ function loadModelsIfNeeded(){
+   if(allModels.length>0){ renderModelList(); return; }
+   fetch('/api/vehicle-model/s/all').then(r=>r.json()).then(data=>{ allModels=data.filter(m=>String(m.modelID)!==String(baseModelId)); renderModelList(); }).catch(e=>{ console.error(e); document.getElementById('modelListBox').innerHTML='<div class="text-danger">Failed to load models</div>'; });
+ }
+ function loadBaseModel(){
+   fetch('/api/vehicle-model/'+baseModelId).then(r=>r.json()).then(d=>{ baseModelData=d; }).catch(e=>console.error(e));
+ }
+ function renderModelList(){
+   const box=document.getElementById('modelListBox');
+   const filter=document.getElementById('compareFilter').value.toLowerCase();
+   const list=allModels.filter(m=>!filter || (m.modelName||'').toLowerCase().includes(filter));
+   if(list.length===0){ box.innerHTML='<div class="text-center text-muted py-3">No models match filter</div>'; return; }
+   box.innerHTML=list.map(m=>`<div class="col-md-4"><div class="border rounded p-2 h-100 d-flex flex-column"><div class="flex-grow-1"><strong>${escapeHtml(m.modelName||'N/A')}</strong><br><small class="text-muted">${escapeHtml(m.brand||'')}</small></div><button class="btn btn-sm btn-primary mt-2" onclick="selectSecondModel(${m.modelID})"><i class='fa-solid fa-check me-1'></i>Select</button></div></div>`).join('');
+ }
+ function filterModelList(){ renderModelList(); }
+ function selectSecondModel(id){
+   fetch('/api/vehicle-model/'+id).then(r=>r.json()).then(d=>{ secondModel=d; closeChooser(); showComparison(); }).catch(e=>alert('Failed to load selected model')); }
+ function showComparison(){
+   if(!baseModelData || !secondModel){ alert('Missing model data'); return; }
+   const panel=document.getElementById('comparisonPanel');
+   panel.style.display='block';
+   panel.innerHTML=`<div class='d-flex justify-content-between align-items-center mb-2'><h4 class='m-0'><i class='fa-solid fa-columns me-1'></i>Model Comparison</h4><button class='btn btn-sm btn-outline-danger' onclick='resetComparison()'><i class='fa-solid fa-times'></i> Clear</button></div><div class='row'>${buildColumn(baseModelData,'Base Model')} ${buildColumn(secondModel,'Compared Model')}</div>`;
+   panel.scrollIntoView({behavior:'smooth'});
+ }
+ function buildColumn(m,label){
+   return `<div class='col-md-6'><div class='compare-col h-100'><h5>${escapeHtml(label)}: ${escapeHtml(m.modelName||'N/A')}</h5><div class='model-img-box'>${m.imageBase64?`<img src='data:image/jpeg;base64,${m.imageBase64}' alt='${escapeHtml(m.modelName||'')}' style='max-width:100%;max-height:100%;object-fit:cover;'/>`:`<span class='text-muted'><i class='fa-solid fa-image me-1'></i>No Image</span>`}</div><table class='table table-sm'><tbody><tr><th>Brand</th><td>${escapeHtml(m.brand||'N/A')}</td></tr><tr><th>Year</th><td>${escapeHtml(m.year||'N/A')}</td></tr><tr><th>Body Type</th><td>${escapeHtml(m.bodyType||'N/A')}</td></tr><tr><th>Base Price</th><td>${formatCurrency(m.basePrice)}</td></tr><tr><th>Description</th><td>${escapeHtml(m.description||'N/A')}</td></tr></tbody></table></div></div>`;
+ }
+ function resetComparison(){ secondModel=null; document.getElementById('comparisonPanel').style.display='none'; document.getElementById('comparisonPanel').innerHTML=''; }
+ function escapeHtml(str){ return String(str).replace(/[&<>"']/g,s=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;' }[s])); }
+ function formatCurrency(val){ if(val==null) return 'N/A'; try{ const num=parseFloat(val); if(isNaN(num)) return val; return '$'+Intl.NumberFormat('en-US',{minimumFractionDigits:0,maximumFractionDigits:0}).format(num);}catch(e){ return val; }}
+</script>
 
 </body>
 
