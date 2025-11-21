@@ -11,6 +11,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.sql.Date;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -307,29 +308,36 @@ public class EVMOrderController {
 
                         System.out.println(" Processing delivery for PO #" + orderId + " with " + totalDetails + " detail(s)");
 
+                        List<String> failedDetails = new ArrayList<>();
                         for (DTOPurchaseOrderDetail d : po.getOrderDetails()) {
                             int dealerId = po.getDealer().getDealerID();
-                            int colorId = d.getColor() != null ? d.getColor().getColorID() : 0;
-                            int versionId = d.getVersion() != null ? d.getVersion().getVersionID() : 0;
+                            Integer colorId = d.getResolvedColorId();
+                            Integer versionId = d.getResolvedVersionId();
                             List<String> detailVins = vinAssignments.getOrDefault(d.getPoDetailId(), Collections.emptyList());
                             int qty = detailVins.size();
 
                             System.out.println("  → Detail: ColorID=" + colorId + " VersionID=" + versionId + " Qty=" + qty);
 
-                            if (colorId > 0 && versionId > 0 && qty == d.getQuantity()) {
+                            if (colorId != null && versionId != null && qty == d.getQuantity()) {
                                 boolean added = inventoryDAO.addWhenDeliveryCompleted(orderId, dealerId, d.getPoDetailId(), colorId, versionId, detailVins);
                                 if (added) {
                                     successCount++;
                                     System.out.println("Added " + qty + " vehicle(s) to inventory");
                                 } else {
                                     System.out.println("Failed to add vehicles to inventory");
+                                    failedDetails.add("Detail #" + d.getPoDetailId());
                                 }
                             } else {
                                 System.out.println(" ️ Skipped: Invalid ColorID/VersionID/Qty");
+                                failedDetails.add("Detail #" + d.getPoDetailId());
                             }
                         }
 
                         System.out.println(" Inventory update complete: " + successCount + "/" + totalDetails + " details processed");
+                        if (!failedDetails.isEmpty()) {
+                            redirectAttributes.addFlashAttribute("message"," Failed to add vehicles for " + String.join(", ", failedDetails));
+                            redirectAttributes.addFlashAttribute("statusType","error");
+                        }
                     }
                 } catch (Exception ex) {
                     // log and continue
