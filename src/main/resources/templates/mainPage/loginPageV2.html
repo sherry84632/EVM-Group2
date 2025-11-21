@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <title>Title</title>
     <link rel="stylesheet" href="/css/loginPage.css">
+    <style>
+        .flash-message { width:100%; margin:10px 0; padding:10px 14px; border-radius:10px; font-size:.9rem; animation:fadeIn .35s ease; }
+        @keyframes fadeIn { from {opacity:0; transform:translateY(-6px);} to {opacity:1; transform:translateY(0);} }
+        .logout-msg { background:#ffe3e3; border:1px solid #dc3545; color:#a40000; font-weight:600; }
+    </style>
 </head>
 <body>
 
@@ -11,12 +16,12 @@
         <h1>Login</h1>
 
         <!-- Error Message Display -->
-        <div th:if="${errorMessage}" class="alert alert-danger" role="alert">
+        <div th:if="${errorMessage}" class="alert alert-danger flash-message" role="alert">
             <span th:text="${errorMessage}"></span>
         </div>
 
         <!-- Success Message Display -->
-        <div th:if="${successMessage}" class="alert alert-success" role="alert">
+        <div th:if="${successMessage}" th:class="${successMessage}=='Đăng xuất thành công!' ? 'alert flash-message logout-msg' : 'alert alert-success flash-message'" role="alert">
             <span th:text="${successMessage}"></span>
         </div>
 

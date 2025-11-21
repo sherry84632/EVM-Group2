@@ -264,7 +264,15 @@
 
     <div th:replace="~{mainPage/navBarFragment :: navBar}"></div>
 
-    <div class="mainContent" style="width: 100%; height: 95vh; overflow-y: auto; overflow-x: hidden;">
+    <div class="mainContent flex-grow-1 p-3" style="overflow-y:auto; overflow-x:hidden;">
+
+        <nav aria-label="breadcrumb" class="mb-3">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/showDealerHomePage"><i class="fa-solid fa-home me-1"></i>Home</a></li>
+                <li class="breadcrumb-item"><a href="/discount"><i class="fa-solid fa-tags me-1"></i>Dealer Discounts</a></li>
+                <li class="breadcrumb-item active" aria-current="page"><i class="fa-solid fa-plus me-1"></i>Create Discount</li>
+            </ol>
+        </nav>
 
         <div class="container-fluid">
             <div class="row">

@@ -7,6 +7,13 @@
     <title>Create Account</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="/css/mainPageStyle.css">
+    <style>
+        /* Flash message styling */
+        .flash-message { width:100%; margin-bottom:12px; animation:fadeIn .4s ease; border-radius:10px; }
+        @keyframes fadeIn { from {opacity:0; transform:translateY(-6px);} to {opacity:1; transform:translateY(0);} }
+        .logout-msg { background:#ffe3e3; border:1px solid #dc3545; color:#a40000; font-weight:600; }
+        .logout-msg .close-btn { cursor:pointer; }
+    </style>
 </head>
 
 <body class="bg-gradient1-custom">
@@ -22,12 +29,12 @@
                 <h3>LOGIN</h3>
 
                 <!-- Error Message Display -->
-                <div th:if="${errorMessage}" class="alert alert-danger" role="alert">
+                <div th:if="${errorMessage}" class="alert alert-danger flash-message" role="alert">
                     <span th:text="${errorMessage}"></span>
                 </div>
                 
-                <!-- Success Message Display -->
-                <div th:if="${successMessage}" class="alert alert-success" role="alert">
+                <!-- Success / Logout Message Display -->
+                <div th:if="${successMessage}" th:class="${successMessage}=='Đăng xuất thành công!' ? 'alert flash-message logout-msg' : 'alert alert-success flash-message'" role="alert">
                     <span th:text="${successMessage}"></span>
                 </div>
 
