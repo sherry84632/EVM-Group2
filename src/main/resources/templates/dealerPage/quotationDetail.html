@@ -40,11 +40,10 @@
             padding: 20px;
             margin: 20px 0;
         }
-        .price-highlight {
-            font-size: 1.5em;
-            font-weight: bold;
-            color: #28a745;
-        }
+        .currency { text-align:right; font-family:"Courier New", monospace; font-variant-numeric:tabular-nums; white-space:nowrap; }
+        .price-highlight { font-family:"Courier New", monospace; font-variant-numeric:tabular-nums; white-space:nowrap; }
+        /* Ensure table headers align */
+        table.table thead th.currency { text-align:right; }
         .info-row {
             display: flex;
             justify-content: space-between;
@@ -115,12 +114,12 @@
                                             <th>Model</th>
                                             <th>Version</th>
                                             <th>Color</th>
-                                            <th>Unit Price</th>
-                                            <th>Dealer %</th>
-                                            <th>Manuf %</th>
-                                            <th>Qty</th>
-                                            <th>Subtotal</th>
-                                            <th>Net After Discounts</th>
+                                            <th class="currency">Unit Price</th>
+                                            <th class="currency">Dealer %</th>
+                                            <th class="currency">Manuf %</th>
+                                            <th class="currency">Qty</th>
+                                            <th class="currency">Subtotal</th>
+                                            <th class="currency">Net After Discounts</th>
                                         </tr>
                                         </thead>
                                         <tbody>
@@ -134,7 +133,7 @@
                                             </td>
                                             <td th:text="${detail.versionName ?: 'N/A'}"></td>
                                             <td th:text="${detail.colorName ?: 'N/A'}"></td>
-                                            <td>
+                                            <td class="currency">
                                                 <strong th:text="${@numberFormat.formatCurrency2(detail.unitPrice)}"></strong>
                                                 <input type="hidden" name="unitPrices" th:value="${detail.unitPrice}" />
                                                 <div class="small-note" th:if="${detail.promoPolicy != null}">
@@ -143,15 +142,15 @@
                                                     <span th:if="${detail.promoDiscountPercent == null && detail.promoDiscountAmount == null}" class="text-muted">Policy applied (no discount data)</span>
                                                 </div>
                                             </td>
-                                            <td th:text="${detail.appliedDealerDiscountPercent != null ? detail.appliedDealerDiscountPercent + '%' : '—'}"></td>
-                                            <td th:text="${detail.promoDiscountPercent != null ? detail.promoDiscountPercent + '%' : (detail.promoPolicy != null ? '0%' : '—')}"></td>
-                                            <td>
-                                                <input type="number" min="1" class="form-control form-control-sm" name="quantities" th:value="${detail.quantity}" th:disabled="${quotationLocked}" />
+                                            <td class="currency" th:text="${detail.appliedDealerDiscountPercent != null ? detail.appliedDealerDiscountPercent + '%' : '—'}"></td>
+                                            <td class="currency" th:text="${detail.promoDiscountPercent != null ? detail.promoDiscountPercent + '%' : (detail.promoPolicy != null ? '0%' : '—')}"></td>
+                                            <td class="currency">
+                                                <input type="number" min="1" class="form-control form-control-sm" name="quantities" th:value="${detail.quantity}" th:disabled="${quotationLocked}" style="text-align:right; font-family:'Courier New', monospace;" />
                                             </td>
-                                            <td>
+                                            <td class="currency">
                                                 <strong th:text="${@numberFormat.formatCurrency2(detail.subtotal)}"></strong>
                                             </td>
-                                            <td>
+                                            <td class="currency">
                                                 <strong class="text-success" th:text="${@numberFormat.formatCurrency2(detail.finalNetAfterAll)}"></strong>
                                                 <div class="small-note" th:if="${detail.finalNetAfterAll != null}" th:text="${'Saved: ' + @numberFormat.formatCurrency2(detail.subtotal.subtract(detail.finalNetAfterAll))}"></div>
                                             </td>
@@ -487,15 +486,15 @@
                                 <div class="final-total-box">
                                     <div class="d-flex justify-content-between mb-2">
                                         <span class="fw-bold">Gross Total:</span>
-                                        <span th:text="${lineLevelGross != null ? @numberFormat.formatCurrency2(lineLevelGross) : 'N/A'}"></span>
+                                        <span class="currency" th:text="${lineLevelGross != null ? @numberFormat.formatCurrency2(lineLevelGross) : 'N/A'}"></span>
                                     </div>
                                     <div th:if="${promotionApplied}" class="d-flex justify-content-between mb-2 text-success">
                                         <span>After Dealer Line Discount (<span th:text="${lineLevelDiscountPercent}"></span>%):</span>
-                                        <span th:text="'$' + ${#numbers.formatDecimal(lineLevelNet, 0, 'COMMA', 0, 'POINT')}"></span>
+                                        <span class="currency" th:text="${@numberFormat.formatCurrency2(lineLevelNet)}"></span>
                                     </div>
                                     <div th:if="${manufacturerPromoApplied}" class="d-flex justify-content-between mb-2 text-warning">
                                         <span>After Manufacturer Discount (<span th:text="${appliedManufacturerPolicy != null ? appliedManufacturerPolicy.discountPercent : '0'}"></span>%):</span>
-                                        <span th:text="'$' + ${#numbers.formatDecimal(lineLevelNet, 0, 'COMMA', 0, 'POINT')}"></span>
+                                        <span class="currency" th:text="${@numberFormat.formatCurrency2(lineLevelNet)}"></span>
                                     </div>
                                     <div th:if="${baseDiscountPercent != null and baseDiscountPercent > 0}" class="d-flex justify-content-between mb-2 text-info">
                                         <span>Base Discount (<span th:text="${baseDiscountPercent}"></span>%):</span>
@@ -504,7 +503,7 @@
                                     <hr/>
                                     <div class="d-flex justify-content-between">
                                         <span class="price-highlight">Final Net Total:</span>
-                                        <span class="price-highlight" th:text="'$' + ${@numberFormat.formatCurrency2(finalNetTotal)}"></span>
+                                        <span class="price-highlight currency" th:text="${@numberFormat.formatCurrency2(finalNetTotal)}"></span>
                                     </div>
                                     <div th:if="${finalCombinedDiscountPercent != null and finalCombinedDiscountPercent > 0}" class="text-end mt-1">
                                         <small class="text-muted">Effective Total Discount: <span th:text="${#numbers.formatDecimal(finalCombinedDiscountPercent, 1, 0)}"></span>%</small>

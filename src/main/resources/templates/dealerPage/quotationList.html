@@ -270,6 +270,9 @@
             border-color: #ffffff;
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
         }
+
+        .currency { text-align:right; font-family:"Courier New", monospace; font-variant-numeric:tabular-nums; white-space:nowrap; }
+        .price-highlight.currency { font-size:1.05em; }
     </style>
 </head>
 <body class="bg-light" style="overflow: hidden">
@@ -338,18 +341,17 @@
                                             <span th:text="${#dates.format(quotation.createdAt, 'dd/MM/yyyy HH:mm')}"></span>
                                         </div>
                                         <div class="col-6">
-                                            <strong>Total:</strong><br>
-                                            <span class="price-highlight" th:text="${@numberFormat.formatCurrency2(quotation.totalPrice)}"></span>
+                                            <strong>Gross Total:</strong><br>
+                                            <span class="price-highlight currency" th:text="${@numberFormat.formatCurrency2(quotation.grossTotal)}"></span>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="mb-2">
-                                    <small class="text-muted">Discount: <span
-                                            th:text="${quotation.effectiveDiscountPercent} + '%'">0%</span></small>
+                                    <small class="text-muted">Effective Discount: <span th:text="${#numbers.formatDecimal(quotation.effectiveDiscountPercent,1,0)} + '%'">0%</span></small>
                                 </div>
                                 <div class="mb-3">
                                     <strong>Net Total:</strong>
-                                    <span class="price-highlight" th:text="${@numberFormat.formatCurrency2(quotation.netTotal)}">$0.00</span>
+                                    <span class="price-highlight currency" th:text="${@numberFormat.formatCurrency2(quotation.netTotal)}">$0.00</span>
                                 </div>
                                 <div class="action-buttons">
                                     <a th:href="@{/quotation/detail/{id}(id=${quotation.quotationID})}"

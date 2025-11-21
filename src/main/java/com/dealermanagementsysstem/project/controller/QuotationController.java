@@ -347,45 +347,45 @@ public class QuotationController {
 
     //  CORE FLOW STEP 3: List all quotations (for dealer to review) - FILTERED BY DEALER
     @GetMapping("/list")
-    public String listQuotations(Model model, HttpSession session) {
+    public String listQuotations(Model model) {
         log.info("========== QUOTATION LIST REQUEST ==========");
-
         try {
-            //  Get dealer ID from logged-in user's email
             Integer dealerId = getDealerIdFromSession();
-
-            log.info(" Resolved dealerId from session: {}", dealerId);
-
             List<DTOQuotation> quotations;
-
-            // Filter by dealer if user is DEALER or DEALERSTAFF
             if (dealerId != null) {
-                log.info(" Calling dao.getQuotationsByDealerId({})", dealerId);
                 quotations = dao.getQuotationsByDealerId(dealerId);
-
-                // Log each quotation's dealer ID for verification
-                log.info(" Retrieved {} quotations:", quotations.size());
-                for (DTOQuotation q : quotations) {
-                    log.info("   - QuotationID={}, DealerID={}, Customer={}",
-                        q.getQuotationID(),
-                        q.getDealer() != null ? q.getDealer().getDealerID() : "NULL",
-                        q.getCustomer() != null ? q.getCustomer().getFullName() : "NULL");
-                }
-
                 model.addAttribute("dealerFiltered", true);
                 model.addAttribute("dealerID", dealerId);
-                log.info(" Filtered quotations by dealerID={}, size={}", dealerId, quotations.size());
             } else {
-                // Admin/EVM - show all quotations
-                log.info(" No dealer found - showing all quotations (EVM/Admin)");
                 quotations = dao.getAllQuotations();
                 model.addAttribute("dealerFiltered", false);
-                log.info("Loaded all quotations size={}", quotations.size());
             }
-
+            // Tính toán gross/net cho từng quotation để hiển thị đồng nhất với trang chi tiết
+            for (DTOQuotation q : quotations) {
+                List<DTOQuotationDetail> details = dao.getQuotationDetails(q.getQuotationID());
+                q.setQuotationDetails(details);
+                double baseDiscountPct = q.getDiscountPercent() != null ? q.getDiscountPercent() : 0.0;
+                double gross = 0.0; double net = 0.0;
+                if (details != null) {
+                    for (DTOQuotationDetail d : details) {
+                        // Set base discount percent lên line để các hàm tính nằm trong DTOQuotationDetail dùng đúng
+                        d.setBaseQuotationDiscountPercent(baseDiscountPct);
+                        // Gross = subtotal (đã nhân quantity)
+                        if (d.getSubtotal() != null) gross += d.getSubtotal().doubleValue();
+                        // Net full stack (dealer + manufacturer + base)
+                        java.math.BigDecimal lineNet = d.getNetAfterFullStack();
+                        net += lineNet.doubleValue();
+                    }
+                }
+                q.setGrossTotal(gross);
+                q.setNetTotal(net);
+                double effPct = gross > 0 ? (1 - net / gross) * 100.0 : 0.0;
+                q.setEffectiveDiscountPercent(effPct);
+                // Giữ totalPrice cũ để tránh ảnh hưởng phần khác nhưng nếu chưa đúng thì đồng bộ với gross
+                if (gross > 0) { q.setTotalPrice(gross); }
+            }
             model.addAttribute("quotations", quotations);
             model.addAttribute("message", "Found " + quotations.size() + " quotations");
-            
             return "dealerPage/quotationList";
         } catch (Exception e) {
             log.error("Error loading quotations", e);

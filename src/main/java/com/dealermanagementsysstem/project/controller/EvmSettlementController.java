@@ -32,6 +32,7 @@ public class EvmSettlementController {
     public String settlementPage(@RequestParam(value = "status", required = false) String statusFilter,
                                  @RequestParam(value = "dealerID", required = false) Integer dealerFilter,
                                  @RequestParam(value = "policyID", required = false) Integer policyFilter,
+                                 @RequestParam(value = "settlementStatus", required = false) String settlementStatusFilter,
                                  Model model) {
         List<DTOSaleOrder> all = saleOrderDAO.getAllSaleOrders();
 
@@ -75,7 +76,8 @@ public class EvmSettlementController {
 
         // Per-order rows for display
         List<Map<String,Object>> orderRows = new ArrayList<>();
-
+        // Reset aggregates; will only count rows passing all filters including settlementStatus
+        totalGross = BigDecimal.ZERO; totalNet = BigDecimal.ZERO; totalManufacturerDiscount = BigDecimal.ZERO; totalDiscountSavings = BigDecimal.ZERO;
         for (DTOSaleOrder order : withManufacturer) {
             BigDecimal orderManufacturerDiscount = BigDecimal.ZERO;
             BigDecimal orderGross = BigDecimal.ZERO; // ensure defined top
@@ -146,8 +148,14 @@ public class EvmSettlementController {
                     } catch (Exception ignore) {}
                 }
             }
+            // Settlement status filter logic: if user selected a settlement status, require a settlement and match
+            if (settlementStatusFilter != null && !settlementStatusFilter.isBlank()) {
+                if (settlement == null || settlement.getStatus()==null || !settlement.getStatus().equalsIgnoreCase(settlementStatusFilter)) {
+                    // skip this order entirely from rows and aggregates
+                    continue;
+                }
+            }
             row.put("settlement", settlement);
-
             orderRows.add(row);
 
             totalGross = totalGross.add(orderGross);
@@ -187,6 +195,7 @@ public class EvmSettlementController {
         model.addAttribute("statusFilter", statusFilter);
         model.addAttribute("dealerFilter", dealerFilter);
         model.addAttribute("policyFilter", policyFilter);
+        model.addAttribute("settlementStatusFilter", settlementStatusFilter);
         model.addAttribute("statuses", SaleOrderStatus.values());
         model.addAttribute("dealers", dealerDAO.getAllDealers());
         model.addAttribute("settlementsPresent", true);

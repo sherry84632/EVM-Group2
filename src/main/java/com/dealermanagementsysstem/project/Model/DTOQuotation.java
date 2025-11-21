@@ -57,6 +57,13 @@ public class DTOQuotation {
     @JoinColumn(name = "PromoPolicyID", referencedColumnName = "PolicyID")
     private DTODiscountPolicy promoPolicy; // Reference đến DiscountPolicy
 
+    @Transient
+    private double grossTotal; // tổng chưa giảm (subtotal cộng dồn)
+    @Transient
+    private double netTotal;   // tổng sau toàn bộ giảm giá (full stack)
+    @Transient
+    private Double effectiveDiscountPercent; // % giảm thực tế = (1 - net/gross)*100
+
     public DTOQuotation() {
     }
 
@@ -245,19 +252,34 @@ public class DTOQuotation {
         java.math.BigDecimal unit = getFirstUnitPrice();
         return unit.doubleValue() * Math.max(1, quantity);
     }
-    @Transient
-    public double getEffectiveDiscountPercent() {
-        return discountPercent != null ? discountPercent : 0.0;
-    }
-    @Transient
     public double getGrossTotal() {
+        // nếu đã set (từ controller) dùng luôn, nếu chưa thì tính từ details
+        if (grossTotal > 0) return grossTotal;
         if (quotationDetails == null) return 0.0;
         return quotationDetails.stream().mapToDouble(d -> d.getSubtotal().doubleValue()).sum();
     }
-    @Transient
+    public void setGrossTotal(double grossTotal) { this.grossTotal = grossTotal; }
     public double getNetTotal() {
+        if (netTotal > 0) return netTotal;
         double gross = getGrossTotal();
-        double dp = getEffectiveDiscountPercent();
-        return gross * (1 - dp / 100.0);
+        // fallback đơn giản: áp dụng base discountPercent nếu không có giá trị net đã set
+        double basePct = discountPercent != null ? discountPercent : 0.0;
+        return gross * (1 - basePct/100.0);
+    }
+    public void setNetTotal(double netTotal) { this.netTotal = netTotal; }
+    public Double getEffectiveDiscountPercent() {
+        if (effectiveDiscountPercent != null) return effectiveDiscountPercent;
+        double gross = getGrossTotal();
+        double net = getNetTotal();
+        if (gross <= 0) return 0.0;
+        return (1 - net / gross) * 100.0;
+    }
+    public void setEffectiveDiscountPercent(Double effectiveDiscountPercent) { this.effectiveDiscountPercent = effectiveDiscountPercent; }
+
+    @Transient
+    public String getSummary() {
+        String custName = customer != null ? customer.getFullName() : "N/A";
+        String dealerName = dealer != null ? dealer.getDealerName() : "N/A";
+        return String.format("Quotation #%d: %s - %s, Net: %.2f", quotationID, custName, dealerName, getNetTotal());
     }
 }
