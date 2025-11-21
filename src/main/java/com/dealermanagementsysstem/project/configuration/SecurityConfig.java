@@ -185,6 +185,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/dealer/model-prices", "/dealer/model-prices/").hasAnyRole("DEALER","DEALERSTAFF")
                 .requestMatchers(HttpMethod.POST, "/dealer/model-prices/update").hasRole("DEALER")
 
+                // Complaint management - DEALER, DEALERSTAFF, and ADMIN roles
+                .requestMatchers("/complaint/**").hasAnyRole("DEALER","DEALERSTAFF","ADMIN")
+
                 // All other requests require authentication
                 .anyRequest().authenticated()
             )

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title th:text="${complaint != null && complaint.complaintID != null}? 'Edit Complaint' : 'New Complaint'"></title>
+    <link rel="stylesheet" th:href="@{/css/mainPageStyle.css}" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" />
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .layout { display:flex; }
+        .content { flex:1; padding:20px; }
+        form { max-width:460px; }
+        label { display:block; margin-top:12px; font-weight:600; }
+        select, input[type=date], textarea { width:100%; padding:6px 8px; border:1px solid #ccc; border-radius:4px; font-size:14px; }
+        textarea { min-height:100px; resize:vertical; }
+        .actions { margin-top:16px; display:flex; gap:8px; }
+        .btn { background:#0d6efd; color:#fff; border:none; padding:8px 14px; border-radius:4px; cursor:pointer; font-size:13px; text-decoration:none; }
+        .btn.secondary { background:#6c757d; }
+        .btn:hover { opacity:.9; }
+        .msg.error { background:#fde5e5; border:1px solid #dc3545; padding:6px 10px; border-radius:4px; }
+        h3 { margin-top:0; }
+    </style>
+</head>
+<body class="bg-gradient2-custom">
+<div class="d-flex">
+    <div th:replace="~{mainPage/navBarFragment :: navBar}"></div>
+    <div class="mainContent flex-grow-1 p-3" style="background:#fff; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.08);">
+        <h3 th:text="${complaint != null && complaint.complaintID != null}? 'Edit Complaint' : 'New Complaint'"></h3>
+        <div th:if="${error}" class="msg error" th:text="${error}"></div>
+        <form th:action="${complaint != null && complaint.complaintID != null}? @{/complaint/update} : @{/complaint/save}" method="post">
+            <input type="hidden" name="complaintID" th:if="${complaint.complaintID}" th:value="${complaint.complaintID}" />
+            <label>Customer</label>
+            <select name="customerID" required>
+                <option th:each="c : ${customers}" th:value="${c.customerID}" th:text="${c.fullName}" th:selected="${complaint.customer != null && complaint.customer.customerID == c.customerID}"></option>
+            </select>
+            <label>Date</label>
+            <input type="date" name="complaintDate" th:value="${complaint.complaintDate}" required />
+            <label>Status</label>
+            <select name="status" required>
+                <option th:each="s : ${statuses}" th:value="${s}" th:text="${s}" th:selected="${complaint.status == s}"></option>
+            </select>
+            <label>Note</label>
+            <textarea name="note" th:text="${complaint.note}"></textarea>
+            <div class="actions">
+                <button type="submit" class="btn" th:text="${complaint != null && complaint.complaintID != null}? 'Update' : 'Create'"></button>
+                <a th:href="@{/complaint/list}" class="btn secondary">Back</a>
+            </div>
+        </form>
+    </div>
+</div>
+</body>
+</html>
