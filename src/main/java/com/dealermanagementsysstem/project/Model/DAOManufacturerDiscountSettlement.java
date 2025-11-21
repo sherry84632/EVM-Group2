@@ -57,17 +57,27 @@ public class DAOManufacturerDiscountSettlement {
         if (total == null) total = BigDecimal.ZERO;
         if (reimbursedAmount == null) reimbursedAmount = BigDecimal.ZERO;
         if (reimbursedAmount.compareTo(BigDecimal.ZERO) < 0) reimbursedAmount = BigDecimal.ZERO;
-        if (reimbursedAmount.compareTo(total) > 0) reimbursedAmount = total;
-        String derived;
-        if (reimbursedAmount.compareTo(BigDecimal.ZERO) == 0) derived = "PENDING"; else if (reimbursedAmount.compareTo(total) < 0) derived = "PARTIAL"; else derived = "PAID";
-        if (status == null || status.isBlank()) status = derived; else {
-            if (status.equalsIgnoreCase("PAID") && reimbursedAmount.compareTo(total) < 0) status = "PARTIAL";
-            if (status.equalsIgnoreCase("PENDING") && reimbursedAmount.compareTo(BigDecimal.ZERO) > 0) status = "PARTIAL";
-            status = status.toUpperCase(Locale.ROOT);
+        if (reimbursedAmount.compareTo(total) > 0) reimbursedAmount = total; // clamp
+        // Canonical status determination (override manual inconsistencies)
+        String canonical;
+        if (reimbursedAmount.compareTo(BigDecimal.ZERO) == 0) {
+            canonical = "PENDING";
+        } else if (reimbursedAmount.compareTo(total) == 0) {
+            canonical = "PAID";
+        } else {
+            canonical = "PARTIAL";
+        }
+        // If user manually chose a status, allow PAID only when fully reimbursed; ignore invalid combos
+        if (status != null && !status.isBlank()) {
+            String upper = status.toUpperCase(java.util.Locale.ROOT);
+            if (upper.equals("PAID") && reimbursedAmount.compareTo(total) == 0) canonical = "PAID"; // valid
+            else if (upper.equals("PENDING") && reimbursedAmount.compareTo(BigDecimal.ZERO)==0) canonical = "PENDING"; // valid zero
+            else if (upper.equals("PARTIAL") && reimbursedAmount.compareTo(BigDecimal.ZERO)>0 && reimbursedAmount.compareTo(total)<0) canonical = "PARTIAL"; // valid partial
+            // else canonical already selected
         }
         String sql = "UPDATE ManufacturerDiscountSettlement SET Status=?, ReimbursedAmount=?, UpdatedAt=GETDATE(), PaidDate=CASE WHEN ? >= TotalManufacturerDiscount THEN GETDATE() ELSE NULL END, Notes=? WHERE SettlementID=?";
         try (Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, status);
+            ps.setString(1, canonical);
             ps.setBigDecimal(2, reimbursedAmount);
             ps.setBigDecimal(3, reimbursedAmount);
             ps.setString(4, notes);
