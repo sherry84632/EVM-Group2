@@ -37,6 +37,9 @@
         <li sec:authorize="hasAnyRole('DEALER','DEALERSTAFF')">
             <a href="/complaint/list" class="nav-link text-white" th:classappend="${activeMenu=='complaint'? ' active' : ''}"><i class="fa-solid fa-comment-dots"></i> Complaints</a>
         </li>
+        <li sec:authorize="hasAnyRole('DEALER','DEALERSTAFF')">
+            <a href="/testdrive/list" class="nav-link text-white" th:classappend="${activeMenu=='testdrive'? ' active' : ''}"><i class="fa-solid fa-car-side"></i> Test Drives</a>
+        </li>
         <li>
             <a href="/logout" class="nav-link text-white"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
         </li>

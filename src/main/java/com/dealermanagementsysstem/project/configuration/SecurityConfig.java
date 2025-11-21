@@ -188,6 +188,9 @@ public class SecurityConfig {
                 // Complaint management - DEALER, DEALERSTAFF, and ADMIN roles
                 .requestMatchers("/complaint/**").hasAnyRole("DEALER","DEALERSTAFF","ADMIN")
 
+                // Test drive management - DEALER, DEALERSTAFF, and ADMIN roles
+                .requestMatchers("/testdrive/**").hasAnyRole("DEALER","DEALERSTAFF","ADMIN")
+
                 // All other requests require authentication
                 .anyRequest().authenticated()
             )
