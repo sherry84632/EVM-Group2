@@ -140,7 +140,10 @@
                         <div class="dv-meta-row">
                             <span class="dv-label"><i class="fas fa-dollar-sign"></i> Base Price</span>
                             <span class="dv-value">
-                                <span class="dv-price-tag" th:text="${'$' + #numbers.formatDecimal(vehicle.basePrice != null ? vehicle.basePrice : 0,0,0)}"></span>
+                                <!-- Changed: use NumberFormatUtil for formatting -->
+                                <span class="dv-price-tag"
+                                      th:text="${T(utils.NumberFormatUtil).formatCurrency(vehicle.basePrice != null ? vehicle.basePrice : T(java.math.BigDecimal).ZERO)}"
+                                      th:data-raw-price="${vehicle.basePrice != null ? vehicle.basePrice : 0}"></span>
                             </span>
                         </div>
 
