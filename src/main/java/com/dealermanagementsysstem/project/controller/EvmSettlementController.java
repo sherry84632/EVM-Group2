@@ -1,5 +1,6 @@
 package com.dealermanagementsysstem.project.controller;
 
+import com.dealermanagementsysstem.project.Model.DAOManufacturerDiscountSettlement;
 import com.dealermanagementsysstem.project.Model.DAOSaleOrder;
 import com.dealermanagementsysstem.project.Model.DTOSaleOrder;
 import com.dealermanagementsysstem.project.Model.DTOSaleOrderDetail;
@@ -7,8 +8,13 @@ import com.dealermanagementsysstem.project.Model.SaleOrderStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -20,6 +26,7 @@ public class EvmSettlementController {
 
     private final DAOSaleOrder saleOrderDAO = new DAOSaleOrder();
     private final com.dealermanagementsysstem.project.Model.DAODealer dealerDAO = new com.dealermanagementsysstem.project.Model.DAODealer();
+    private final com.dealermanagementsysstem.project.Model.DAOManufacturerDiscountSettlement settlementDAO = new com.dealermanagementsysstem.project.Model.DAOManufacturerDiscountSettlement();
 
     @GetMapping
     public String settlementPage(@RequestParam(value = "status", required = false) String statusFilter,
@@ -80,7 +87,9 @@ public class EvmSettlementController {
                     int qty = d.getQuantity() != null ? d.getQuantity() : 1;
                     BigDecimal grossUnit = d.getGrossUnitPrice() != null ? d.getGrossUnitPrice() : (d.getPrice() != null ? d.getPrice() : BigDecimal.ZERO);
                     orderGross = orderGross.add(grossUnit.multiply(BigDecimal.valueOf(qty)));
-                    BigDecimal manufLine = d.getPromoDiscountAmountPerUnit().multiply(BigDecimal.valueOf(qty));
+                    BigDecimal perUnitManuf = d.getPromoDiscountAmountPerUnit();
+                    if (perUnitManuf == null) perUnitManuf = BigDecimal.ZERO;
+                    BigDecimal manufLine = perUnitManuf.multiply(BigDecimal.valueOf(qty));
                     orderManufacturerDiscount = orderManufacturerDiscount.add(manufLine);
 
                     Integer pid = d.getDiscountPolicy() != null ? d.getDiscountPolicy().getPolicyID() : d.getPromoPolicyID();
@@ -122,6 +131,23 @@ public class EvmSettlementController {
             row.put("savings", orderSavings);
             double savingsPct = orderGross.compareTo(BigDecimal.ZERO)>0 ? orderSavings.divide(orderGross,6,java.math.RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)).doubleValue() : 0.0;
             row.put("savingsPercent", savingsPct);
+
+            com.dealermanagementsysstem.project.Model.DTOManufacturerDiscountSettlement settlement = null;
+            if (orderManufacturerDiscount.compareTo(BigDecimal.ZERO) > 0 && order.getDealer()!=null) {
+                settlement = settlementDAO.getBySaleOrderId(order.getSaleOrderID());
+                if (settlement == null) {
+                    settlement = settlementDAO.create(order.getSaleOrderID(), order.getDealer().getDealerID(), orderManufacturerDiscount);
+                } else if (settlement.getTotalManufacturerDiscount()!=null && settlement.getTotalManufacturerDiscount().compareTo(orderManufacturerDiscount)!=0) {
+                    try (java.sql.Connection c = utils.DBUtils.getConnection(); java.sql.PreparedStatement ps = c.prepareStatement("UPDATE ManufacturerDiscountSettlement SET TotalManufacturerDiscount=?, UpdatedAt=GETDATE() WHERE SettlementID=?")) {
+                        ps.setBigDecimal(1, orderManufacturerDiscount);
+                        ps.setInt(2, settlement.getSettlementID());
+                        ps.executeUpdate();
+                        settlement.setTotalManufacturerDiscount(orderManufacturerDiscount);
+                    } catch (Exception ignore) {}
+                }
+            }
+            row.put("settlement", settlement);
+
             orderRows.add(row);
 
             totalGross = totalGross.add(orderGross);
@@ -163,7 +189,57 @@ public class EvmSettlementController {
         model.addAttribute("policyFilter", policyFilter);
         model.addAttribute("statuses", SaleOrderStatus.values());
         model.addAttribute("dealers", dealerDAO.getAllDealers());
+        model.addAttribute("settlementsPresent", true);
+
+        // Determine if current user can update sale order status (dealer roles only)
+        boolean canUpdateOrderStatus = false;
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.getName() != null) {
+                com.dealermanagementsysstem.project.Model.DAOAccount daoAccount = new com.dealermanagementsysstem.project.Model.DAOAccount();
+                com.dealermanagementsysstem.project.Model.DTOAccount acc = daoAccount.findAccountByEmail(auth.getName());
+                if (acc != null && (acc.getRole() == com.dealermanagementsysstem.project.Model.Role.DEALER || acc.getRole() == com.dealermanagementsysstem.project.Model.Role.DEALERSTAFF)) {
+                    canUpdateOrderStatus = true;
+                }
+            }
+        } catch (Exception ignore) {}
+
+        model.addAttribute("canUpdateOrderStatus", canUpdateOrderStatus);
 
         return "evmPage/evmManufacturerSettlement";
+    }
+
+    @PostMapping("/update-status")
+    public String updateSettlement(@RequestParam("settlementID") int settlementID,
+                                   @RequestParam(value="saleOrderID", required=false) Integer saleOrderID,
+                                   @RequestParam("status") String status,
+                                   @RequestParam(value="reimbursedAmount", required=false) BigDecimal reimbursedAmount,
+                                   @RequestParam(value="manufDiscount", required=false) BigDecimal manufDiscount,
+                                   @RequestParam(value="notes", required=false) String notes,
+                                   RedirectAttributes ra) {
+        try {
+            if (reimbursedAmount == null) reimbursedAmount = BigDecimal.ZERO;
+            com.dealermanagementsysstem.project.Model.DTOManufacturerDiscountSettlement updated;
+            if (settlementID <= 0) {
+                if (saleOrderID == null) { ra.addFlashAttribute("error","Missing saleOrderID for new settlement"); return "redirect:/evm/settlement"; }
+                DTOSaleOrder so = saleOrderDAO.getSaleOrderById(saleOrderID);
+                if (so == null || so.getDealer()==null) { ra.addFlashAttribute("error","Sale order not found for settlement creation"); return "redirect:/evm/settlement"; }
+                BigDecimal baseDiscount = manufDiscount != null ? manufDiscount : BigDecimal.ZERO;
+                com.dealermanagementsysstem.project.Model.DTOManufacturerDiscountSettlement created = settlementDAO.create(saleOrderID, so.getDealer().getDealerID(), baseDiscount);
+                if (created == null) { ra.addFlashAttribute("error","Failed creating settlement record"); return "redirect:/evm/settlement"; }
+                settlementID = created.getSettlementID();
+                updated = settlementDAO.updateStatus(settlementID, status, reimbursedAmount, notes);
+            } else {
+                updated = settlementDAO.updateStatus(settlementID, status, reimbursedAmount, notes);
+            }
+            if (updated != null) {
+                ra.addFlashAttribute("message", String.format("Settlement #%d status=%s reimbursed %s / total %s outstanding %s", updated.getSettlementID(), updated.getStatus(), updated.getReimbursedAmount(), updated.getTotalManufacturerDiscount(), updated.getOutstanding()));
+            } else {
+                ra.addFlashAttribute("error","Settlement update failed");
+            }
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", "Update error: " + e.getMessage());
+        }
+        return "redirect:/evm/settlement";
     }
 }

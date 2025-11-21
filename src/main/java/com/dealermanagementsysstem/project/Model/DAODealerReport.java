@@ -76,15 +76,25 @@ public class DAODealerReport {
         return kpi;
     }
 
-    // Helper to derive level share percent for a dealer (Bronze 5 / Silver 7 / Gold 9 / Platinum 12)
+    // Helper to derive level share percent for a dealer (dynamic: use SharePercent column; fallback Bronze 5 / Silver 7 / Gold 9 / Platinum 12)
     private Double fetchDealerLevelSharePercent(Connection externalConn, Integer dealerId) {
         if (dealerId == null) return 0.0;
-        String sql = "SELECT dl.LevelName FROM Dealer d JOIN DealerLevel dl ON d.LevelID = dl.LevelID WHERE d.DealerID=?";
+        String sql = "SELECT dl.LevelName, dl.SharePercent FROM Dealer d JOIN DealerLevel dl ON d.LevelID = dl.LevelID WHERE d.DealerID=?";
         try (PreparedStatement ps = externalConn.prepareStatement(sql)) {
             ps.setInt(1, dealerId);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     String levelName = rs.getString("LevelName");
+                    Double share = null;
+                    try {
+                        share = rs.getDouble("SharePercent");
+                        if (rs.wasNull()) share = null;
+                    } catch (Exception ignore) {}
+                    // Use stored SharePercent if valid (0..100)
+                    if (share != null && share >= 0.0 && share <= 100.0) {
+                        return share;
+                    }
+                    // Fallback legacy mapping by name
                     if (levelName != null) {
                         String n = levelName.toLowerCase();
                         if (n.contains("platinum")) return 12.0;

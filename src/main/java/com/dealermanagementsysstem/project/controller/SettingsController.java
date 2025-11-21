@@ -2,6 +2,7 @@ package com.dealermanagementsysstem.project.controller;
 
 import com.dealermanagementsysstem.project.configuration.BusinessConfig;
 import com.dealermanagementsysstem.project.Model.DAODealerLevel;
+import com.dealermanagementsysstem.project.Model.DAOBusinessSetting;
 import com.dealermanagementsysstem.project.Model.DTODealerLevel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -22,6 +23,9 @@ public class SettingsController {
 
     @Autowired
     private DAODealerLevel daoDealerLevel;
+
+    @Autowired
+    private DAOBusinessSetting daoBusinessSetting;
 
     /**
      * Show settings page
@@ -52,6 +56,9 @@ public class SettingsController {
             // Update VAT rate in runtime
             businessConfig.getVat().setRate(vatRate);
 
+            // Persist to DB so it survives restarts
+            try { daoBusinessSetting.upsertDecimalSetting("VAT_RATE", vatRate); } catch (Exception ignore) {}
+
             redirectAttributes.addFlashAttribute("successMessage",
                 "✅ VAT rate updated successfully to " + vatRate + "%");
 
@@ -74,6 +81,7 @@ public class SettingsController {
     public String resetVatRate(RedirectAttributes redirectAttributes) {
         try {
             businessConfig.getVat().setRate(10.0);
+            try { daoBusinessSetting.upsertDecimalSetting("VAT_RATE", 10.0); } catch (Exception ignore) {}
             redirectAttributes.addFlashAttribute("successMessage",
                 "✅ VAT rate reset to default (10%)");
         } catch (Exception e) {
