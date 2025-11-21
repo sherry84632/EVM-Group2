@@ -1,71 +1,47 @@
 <div id="sideBar" th:fragment="navBar" class="mainSideBar d-flex flex-column flex-shrink-0 p-3 text-white" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
     <img th:src="@{/images/logo.png}" alt="Logo" style="width: 100%;">
     <hr>
-    <ul class="nav nav-pills flex-column mb-auto">
+    <ul class="nav nav-pills flex-column mb-auto" style="list-style:none; padding-left:0;">
         <li>
-            <!-- Home link selects correct start page depending on role -->
-            <a sec:authorize="hasAnyRole('ADMIN','EVMSTAFF')" href="/showEVMHomePage" class="nav-link" aria-current="page">
-                <i class="fa-solid fa-house"></i>
-                Home
+            <a sec:authorize="hasAnyRole('ADMIN','EVMSTAFF')" href="/showEVMHomePage" class="nav-link" th:classappend="${activeMenu=='home'? ' active' : ''}">
+                <i class="fa-solid fa-house"></i> Home
             </a>
-            <a sec:authorize="hasAnyRole('DEALER','DEALERSTAFF')" href="/showDealerHomePage" class="nav-link" aria-current="page">
-                <i class="fa-solid fa-house"></i>
-                Home
+            <a sec:authorize="hasAnyRole('DEALER','DEALERSTAFF')" href="/showDealerHomePage" class="nav-link" th:classappend="${activeMenu=='home'? ' active' : ''}">
+                <i class="fa-solid fa-house"></i> Home
             </a>
         </li>
         <li>
-            <a href="/profile" class="nav-link text-white">
-                <i class="fa-solid fa-user"></i>
-                Profile
-            </a>
+            <a href="/profile" class="nav-link text-white" th:classappend="${activeMenu=='profile'? ' active' : ''}"><i class="fa-solid fa-user"></i> Profile</a>
         </li>
-        <!-- Account Management - ADMIN only (manages all accounts and dealers) -->
         <li sec:authorize="hasRole('ADMIN')">
-            <a href="/account/list" class="nav-link text-white">
-                <i class="fa-solid fa-user-shield"></i>
-                Account Management
-            </a>
+            <a href="/account/list" class="nav-link text-white" th:classappend="${activeMenu=='account'? ' active' : ''}"><i class="fa-solid fa-user-shield"></i> Account Management</a>
         </li>
-        <!-- Dealer Company Management - ADMIN only -->
         <li sec:authorize="hasRole('ADMIN')">
-            <a href="/dealer/company/list" class="nav-link text-white">
-                <i class="fa-solid fa-building"></i>
-                Dealer Management
-            </a>
+            <a href="/dealer/company/list" class="nav-link text-white" th:classappend="${activeMenu=='dealer-company'? ' active' : ''}"><i class="fa-solid fa-building"></i> Dealer Management</a>
         </li>
-        <!-- Staff Management - for DEALER and DEALERSTAFF -->
         <li sec:authorize="hasAnyRole('DEALER','DEALERSTAFF')">
-            <a href="/dealer/staff/list" class="nav-link text-white">
-                <i class="fa-solid fa-users-gear"></i>
-                Staff Management
-            </a>
+            <a href="/dealer/staff/list" class="nav-link text-white" th:classappend="${activeMenu=='staff'? ' active' : ''}"><i class="fa-solid fa-users-gear"></i> Staff Management</a>
         </li>
-        <!-- Dealer Level Dashboard - for DEALER and DEALERSTAFF -->
         <li sec:authorize="hasAnyRole('DEALER','DEALERSTAFF')">
-            <a href="/dealer/level" class="nav-link text-white">
-                <i class="fa-solid fa-trophy"></i>
-                Dealer Level
-            </a>
+            <a href="/dealer/level" class="nav-link text-white" th:classappend="${activeMenu=='level'? ' active' : ''}"><i class="fa-solid fa-trophy"></i> Dealer Level</a>
         </li>
-        <!-- System Settings - ADMIN and EVMSTAFF only -->
         <li sec:authorize="hasAnyRole('ADMIN','EVMSTAFF')">
-            <a href="/settings" class="nav-link text-white">
-                <i class="fa-solid fa-cog"></i>
-                Settings
-            </a>
+            <a href="/settings" class="nav-link text-white" th:classappend="${activeMenu=='settings'? ' active' : ''}"><i class="fa-solid fa-cog"></i> Settings</a>
         </li>
-        <!-- Manufacturer Discount Settlement - ADMIN & EVMSTAFF -->
         <li sec:authorize="hasAnyRole('ADMIN','EVMSTAFF')">
-            <a href="/evm/settlement" class="nav-link text-white">
-                <i class="fa-solid fa-coins"></i>
-                Discount Settlement
-            </a>
+            <a href="/evm/settlement" class="nav-link text-white" th:classappend="${activeMenu=='settlement'? ' active' : ''}"><i class="fa-solid fa-coins"></i> Discount Settlement</a>
+        </li>
+        <li sec:authorize="hasAnyRole('ADMIN','EVMSTAFF')">
+            <a href="/evm/reward-settlement" class="nav-link text-white" th:classappend="${activeMenu=='reward'? ' active' : ''}"><i class="fa-solid fa-gift"></i> Reward Settlement</a>
+        </li>
+        <li sec:authorize="hasAnyRole('DEALER','DEALERSTAFF')">
+            <a href="/complaint/list" class="nav-link text-white" th:classappend="${activeMenu=='complaint'? ' active' : ''}"><i class="fa-solid fa-comment-dots"></i> Complaints</a>
+        </li>
+        <li sec:authorize="hasAnyRole('DEALER','DEALERSTAFF')">
+            <a href="/testdrive/list" class="nav-link text-white" th:classappend="${activeMenu=='testdrive'? ' active' : ''}"><i class="fa-solid fa-car-side"></i> Test Drives</a>
         </li>
         <li>
-            <a href="/logout" class="nav-link text-white">
-                <i class="fa-solid fa-right-from-bracket"></i>
-                Logout
-            </a>
+            <a href="/logout" class="nav-link text-white"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
         </li>
     </ul>
 </div>

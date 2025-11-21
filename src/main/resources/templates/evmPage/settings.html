@@ -204,16 +204,16 @@
 
             <!-- Dealer Levels Configuration Card -->
             <div class="settings-card">
-                <h5><i class="fas fa-layer-group me-2"></i>Dealer Levels Configuration</h5>
-                <p class="text-muted">Thiết lập số xe cần bán để lên cấp & phần trăm share cho mỗi cấp.</p>
+                <h5><i class="fas fa-layer-group me-2"></i>Dealer Level Configuration</h5>
+                <p class="text-muted">Configure required imported vehicles and reward percentage for each level.</p>
                 <div class="table-responsive">
                     <table class="table table-sm align-middle">
                         <thead class="table-light">
                         <tr>
                             <th>ID</th>
-                            <th>Tên Level</th>
-                            <th>Số Xe Cần Bán</th>
-                            <th>Share %</th>
+                            <th>Level Name</th>
+                            <th>Vehicles Required</th>
+                            <th>Reward %</th>
                             <th>Action</th>
                         </tr>
                         </thead>
@@ -241,24 +241,24 @@
                             </form>
                         </tr>
                         <tr th:if="${dealerLevels == null || dealerLevels.isEmpty()}">
-                            <td colspan="5" class="text-center text-muted">Chưa có level nào.</td>
+                            <td colspan="5" class="text-center text-muted">No levels defined yet.</td>
                         </tr>
                         </tbody>
                     </table>
                 </div>
                 <hr />
-                <h6 class="fw-bold"><i class="fas fa-plus-circle me-2"></i>Thêm Level Mới</h6>
+                <h6 class="fw-bold"><i class="fas fa-plus-circle me-2"></i>Add New Level</h6>
                 <form class="row g-2" th:action="@{/settings/dealer-level/create}" method="post">
                     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
                     <div class="col-md-3">
-                        <input name="newLevelName" class="form-control" placeholder="Tên (Bronze...)" required />
+                        <input name="newLevelName" class="form-control" placeholder="Name (Bronze...)" required />
                     </div>
                     <div class="col-md-3">
-                        <input name="newVehiclesRequired" type="number" min="0" class="form-control" placeholder="Số xe" required />
+                        <input name="newVehiclesRequired" type="number" min="0" class="form-control" placeholder="Vehicles" required />
                     </div>
                     <div class="col-md-3">
                         <div class="input-group">
-                            <input name="newSharePercent" type="number" min="0" max="100" step="0.01" class="form-control" placeholder="Share %" required />
+                            <input name="newSharePercent" type="number" min="0" max="100" step="0.01" class="form-control" placeholder="Reward %" required />
                             <span class="input-group-text">%</span>
                         </div>
                     </div>
@@ -266,7 +266,7 @@
                         <button class="btn btn-success" type="submit"><i class="fas fa-plus"></i> Add Level</button>
                     </div>
                 </form>
-                <small class="text-muted d-block mt-2">Share % nằm trong 0 - 100. Số xe phải ≥ 0.</small>
+                <small class="text-muted d-block mt-2">Reward % must be between 0 and 100. Vehicles required must be ≥ 0.</small>
             </div>
 
             <!-- Additional Settings (Future) -->

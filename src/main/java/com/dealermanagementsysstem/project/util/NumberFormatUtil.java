@@ -103,4 +103,27 @@ public class NumberFormatUtil {
         if (formatted.endsWith(".0")) formatted = formatted.substring(0, formatted.length() - 2);
         return (neg ? "-$" : "$") + formatted + suffix;
     }
+
+    /**
+     * Format currency with two decimal places
+     * Example: 1234.5 -> $1,234.50
+     */
+    public String formatCurrency2(Number value) {
+        return formatCurrencyWithFraction(value, 2);
+    }
+
+    /**
+     * Format currency with configurable number of fraction digits
+     * Example: 1234.5 with fractionDigits=3 -> $1,234.500
+     */
+    public String formatCurrencyWithFraction(Number value, int fractionDigits) {
+        if (value == null) {
+            return "$" + (fractionDigits == 0 ? "0" : fractionDigits == 2 ? "0.00" : "0");
+        }
+        NumberFormat formatter = NumberFormat.getNumberInstance(Locale.US);
+        formatter.setGroupingUsed(true);
+        formatter.setMaximumFractionDigits(fractionDigits);
+        formatter.setMinimumFractionDigits(fractionDigits);
+        return "$" + formatter.format(value.doubleValue());
+    }
 }

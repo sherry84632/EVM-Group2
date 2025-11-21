@@ -9,7 +9,7 @@
 <h2 class="mb-3">Sale Contracts</h2>
 <table class="table table-sm table-hover bg-white">
     <thead class="table-light">
-    <tr><th>ID</th><th>SaleOrder</th><th>Date</th><th>Status</th><th>Total</th><th></th></tr>
+    <tr><th>ID</th><th>SaleOrder</th><th>Date</th><th>Status</th><th>Sign</th><th></th></tr>
     </thead>
     <tbody>
     <tr th:each="c : ${contracts}" th:with="so=${c.saleOrder}">
@@ -17,7 +17,7 @@
         <td th:text="${c.saleOrder?.saleOrderID}"></td>
         <td th:text="${#dates.format(c.contractDate,'dd/MM/yyyy')}"></td>
         <td th:text="${c.status}"></td>
-        <td th:text="'$' + ${#numbers.formatDecimal(c.totalAmount,0,'COMMA',0,'POINT')}"></td>
+        <td th:text="${c.signStatus}"></td>
         <td><a th:href="@{/contract/detail/{id}(id=${c.contractID})}" class="btn btn-sm btn-outline-primary">View</a></td>
     </tr>
     </tbody>

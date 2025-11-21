@@ -140,24 +140,18 @@ public class DAOTestDrive {
 
     //  Tạo TestDrive mới
     public boolean createTestDrive(DTOTestDrive testDrive) {
-        String sql = "INSERT INTO TestDrive (CustomerID, VehicleID, DealerID, StaffID, TestDate, Feedback) VALUES (?, ?, ?, ?, ?, ?)";
-
-        try (Connection conn = DBUtils.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
+        String sql = "INSERT INTO TestDrive (CustomerID, VehicleID, DealerID, StaffID, TestDate, Feedback, Status) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        try (Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, testDrive.getCustomer().getCustomerID());
-            ps.setInt(2, testDrive.getVehicle().getVehicleID());
-            ps.setInt(3, testDrive.getDealer().getDealerID());
-            ps.setInt(4, testDrive.getStaff().getStaffID());
-            ps.setDate(5, new java.sql.Date(testDrive.getTestDate().getTime()));
+            if (testDrive.getVehicle()!=null && testDrive.getVehicle().getVehicleID()>0) ps.setInt(2, testDrive.getVehicle().getVehicleID()); else ps.setNull(2, java.sql.Types.INTEGER);
+            if (testDrive.getDealer()!=null && testDrive.getDealer().getDealerID()>0) ps.setInt(3, testDrive.getDealer().getDealerID()); else ps.setNull(3, java.sql.Types.INTEGER);
+            if (testDrive.getStaff()!=null && testDrive.getStaff().getStaffID()>0) ps.setInt(4, testDrive.getStaff().getStaffID()); else ps.setNull(4, java.sql.Types.INTEGER);
+            ps.setTimestamp(5, new java.sql.Timestamp(testDrive.getTestDate().getTime()));
             ps.setString(6, testDrive.getFeedback());
-
+            ps.setString(7, testDrive.getStatus()!=null? testDrive.getStatus():"NOT_YET");
             int rows = ps.executeUpdate();
             return rows > 0;
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        } catch (SQLException e) { e.printStackTrace(); }
         return false;
     }
 
@@ -324,5 +318,51 @@ public class DAOTestDrive {
         }
         return false;
     }
-}
 
+    public List<DTOTestDrive> getTestDrivesByDealerFiltered(int dealerId, String statusFilter, String sortDir) {
+        List<DTOTestDrive> list = new ArrayList<>();
+        StringBuilder sb = new StringBuilder();
+        sb.append("SELECT td.TestDriveID, td.CustomerID, td.VehicleID, td.DealerID, td.StaffID, td.TestDate, td.Feedback, td.Status, c.FullName AS CustomerName, ds.FullName AS StaffName FROM TestDrive td ");
+        sb.append("JOIN Customer c ON td.CustomerID = c.CustomerID ");
+        sb.append("LEFT JOIN DealerStaff ds ON td.StaffID = ds.StaffID ");
+        sb.append("WHERE td.DealerID = ? ");
+        if(statusFilter!=null && !statusFilter.isBlank()) sb.append("AND td.Status = ? ");
+        sb.append("ORDER BY td.TestDate ").append("asc".equalsIgnoreCase(sortDir)?"ASC":"DESC");
+        try(Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sb.toString())){
+            ps.setInt(1,dealerId);
+            if(statusFilter!=null && !statusFilter.isBlank()) ps.setString(2,statusFilter);
+            try(ResultSet rs = ps.executeQuery()){
+                while(rs.next()){
+                    DTOTestDrive td = new DTOTestDrive();
+                    td.setTestDriveID(rs.getInt("TestDriveID"));
+                    java.sql.Timestamp ts = rs.getTimestamp("TestDate");
+                    td.setTestDate(ts!=null? new java.util.Date(ts.getTime()): null);
+                    td.setFeedback(rs.getString("Feedback"));
+                    td.setStatus(resolveDynamicStatus(rs.getString("Status"), td.getTestDate()));
+                    DTOCustomer cust = new DTOCustomer(); cust.setCustomerID(rs.getInt("CustomerID")); cust.setFullName(rs.getString("CustomerName")); td.setCustomer(cust);
+                    if(rs.getObject("StaffID")!=null){ DTODealerStaff st = new DTODealerStaff(); st.setStaffID(rs.getInt("StaffID")); st.setFullName(rs.getString("StaffName")); td.setStaff(st);}
+                    DTODealer dealer = new DTODealer(); dealer.setDealerID(dealerId); td.setDealer(dealer);
+                    list.add(td);
+                }
+            }
+        } catch(SQLException e){ e.printStackTrace(); }
+        return list;
+    }
+
+    private String resolveDynamicStatus(String stored, java.util.Date testDate){
+        if(stored==null || stored.isBlank()) stored="NOT_YET";
+        if("NOT_YET".equals(stored) && testDate!=null){
+            java.time.LocalDate d = testDate.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate();
+            if(d.equals(java.time.LocalDate.now())) return "TODAY";
+        }
+        return stored;
+    }
+
+    public boolean updateStatus(int testDriveID, String newStatus){
+        String sql = "UPDATE TestDrive SET Status=? WHERE TestDriveID=?";
+        try(Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)){
+            ps.setString(1,newStatus); ps.setInt(2,testDriveID); return ps.executeUpdate()>0;
+        } catch(SQLException e){ e.printStackTrace(); }
+        return false;
+    }
+}

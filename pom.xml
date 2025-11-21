@@ -24,11 +24,7 @@
     </properties>
 
     <repositories>
-        <repository>
-            <id>microsoft</id>
-            <name>Microsoft Maven Repository</name>
-            <url>https://maven.microsoft.com/maven2/</url>
-        </repository>
+        <!-- Removed custom microsoft repo to allow central resolution -->
     </repositories>
 
     <dependencies>
@@ -62,7 +58,7 @@
             <artifactId>spring-boot-starter-jdbc</artifactId>
         </dependency>
 
-        <!-- Microsoft SQL Server JDBC Driver -->
+        <!-- Microsoft SQL Server JDBC Driver (keep earlier version for availability) -->
         <dependency>
             <groupId>com.microsoft.sqlserver</groupId>
             <artifactId>mssql-jdbc</artifactId>
@@ -88,10 +84,11 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Flyway for database migrations -->
+        <!-- Flyway for database migrations (upgrade for SQL Server 16 support) -->
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
+            <version>10.17.0</version>
         </dependency>
     </dependencies>
 

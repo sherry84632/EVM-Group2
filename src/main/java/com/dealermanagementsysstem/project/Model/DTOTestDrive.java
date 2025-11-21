@@ -33,12 +33,15 @@ public class DTOTestDrive {
     
     @Column(name = "Feedback")
     private String feedback;
-    
+
+    @Column(name = "Status")
+    private String status; // NOT_YET, TODAY, ATTENDED, NOT_ATTENDED
+
     public DTOTestDrive() {
     }
     
     public DTOTestDrive(int testDriveID, DTOCustomer customer, DTOVehicle vehicle, 
-                         DTODealer dealer, DTODealerStaff staff, Date testDate, String feedback) {
+                         DTODealer dealer, DTODealerStaff staff, Date testDate, String feedback, String status) {
         this.testDriveID = testDriveID;
         this.customer = customer;
         this.vehicle = vehicle;
@@ -46,6 +49,7 @@ public class DTOTestDrive {
         this.staff = staff;
         this.testDate = testDate;
         this.feedback = feedback;
+        this.status = status;
     }
     
     public int getTestDriveID() {
@@ -103,5 +107,12 @@ public class DTOTestDrive {
     public void setFeedback(String feedback) {
         this.feedback = feedback;
     }
-}
 
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+}

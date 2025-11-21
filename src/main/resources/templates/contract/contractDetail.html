@@ -87,6 +87,36 @@
             <i class="fa fa-info-circle me-2"></i>View-only mode: Contract status changes are managed by the dealer.
         </div>
     </div>
+    <div class="card p-3 mb-3">
+        <h5 class="mb-3">Terms & Conditions</h5>
+        <form th:action="@{/contract/updateFeesTerms}" method="post" th:if="${contract.signStatus != 'FULLY_SIGNED'}">
+            <input type="hidden" name="contractID" th:value="${contract.contractID}" />
+            <textarea class="form-control form-control-sm" name="terms" rows="5" th:text="${contract.terms}" placeholder="Enter contract terms here..."></textarea>
+            <div class="text-end mt-2"><button class="btn btn-sm btn-primary" type="submit">Update Terms</button></div>
+        </form>
+        <div class="small" th:if="${contract.signStatus == 'FULLY_SIGNED'}">
+            <pre class="m-0" style="white-space:pre-wrap" th:text="${contract.terms}"></pre>
+        </div>
+    </div>
+    <div class="card p-3 mb-3">
+        <h5 class="mb-3">Customer Snapshot</h5>
+        <div class="row small g-2">
+            <div class="col-md-4"><strong>Name:</strong> <span th:text="${contract.saleOrder.customer.fullName}"></span></div>
+            <div class="col-md-4"><strong>Address:</strong> <span th:text="${contract.customerAddressSnapshot}"></span></div>
+            <div class="col-md-4"><strong>Phone:</strong> <span th:text="${contract.saleOrder.customer.phone}"></span></div>
+        </div>
+    </div>
+    <div class="card p-3 mb-3">
+        <h5 class="mb-3">Signatures</h5>
+        <form th:action="@{/contract/sign}" method="post" class="row g-2 align-items-end">
+            <input type="hidden" name="contractID" th:value="${contract.contractID}" />
+            <div class="col-md-3"><label class="form-label small">Dealer Signature</label><input class="form-control form-control-sm" type="text" name="dealerSignatureName" th:value="${contract.dealerSignatureName}" th:disabled="${contract.signStatus=='FULLY_SIGNED'}"/></div>
+            <div class="col-md-3"><label class="form-label small">Customer Signature</label><input class="form-control form-control-sm" type="text" name="customerSignatureName" th:value="${contract.customerSignatureName}" th:disabled="${contract.signStatus=='FULLY_SIGNED'}"/></div>
+            <div class="col-md-2"><label class="form-label small">Sign Status</label><input class="form-control form-control-sm" type="text" th:value="${contract.signStatus}" disabled/></div>
+            <div class="col-md-2"><label class="form-label small">Signed Date</label><input class="form-control form-control-sm" type="text" th:value="${contract.signedDate}" disabled/></div>
+            <div class="col-md-2 text-end" th:if="${contract.signStatus!='FULLY_SIGNED'}"><button class="btn btn-sm btn-success" type="submit">Update Signatures</button></div>
+        </form>
+    </div>
     <a th:href="@{/saleorder/detail/{id}(id=${so.saleOrderID})}" class="btn btn-link btn-sm">Back to Sale Order</a>
 </body>
 </html>
