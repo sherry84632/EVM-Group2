@@ -38,6 +38,13 @@ public class SaleContractController {
         c.setContractDate(new java.util.Date());
         c.setStatus(SaleContractStatus.ACTIVE);
         c.setTotalAmount(so.getTotalAmount()!=null? so.getTotalAmount() : java.math.BigDecimal.ZERO);
+        c.setRegistrationFee(java.math.BigDecimal.ZERO);
+        c.setDeliveryFee(java.math.BigDecimal.ZERO);
+        c.setInsuranceFee(java.math.BigDecimal.ZERO);
+        c.setServiceFee(java.math.BigDecimal.ZERO);
+        c.setTerms("Standard terms will be updated.");
+        if(so.getCustomer()!=null){ c.setCustomerAddressSnapshot(so.getCustomer().getAddress()); c.setCustomerIdNumber(so.getCustomer().getIdNumber()); }
+        c.setSignStatus(ContractSignStatus.DRAFT);
         boolean ok = daoContract.createSaleContract(c);
         ra.addFlashAttribute(ok?"message":"error", ok?"Contract created successfully":"Failed to create contract");
         DTOSaleContract created = daoContract.getSaleContractBySaleOrderId(saleOrderID);
@@ -67,6 +74,7 @@ public class SaleContractController {
 
         model.addAttribute("contract", c);
         model.addAttribute("isReadOnly", isReadOnly);
+        model.addAttribute("grandTotal", c.getGrandTotal());
         System.out.println("✓ Model attributes - contract ID: " + c.getContractID() + ", isReadOnly: " + isReadOnly);
         return "contract/contractDetail";
     }
@@ -96,5 +104,28 @@ public class SaleContractController {
             ra.addFlashAttribute(ok?"message":"error", ok?"Status updated to "+st.name():"Cannot update contract status");
         } catch (IllegalArgumentException e) { ra.addFlashAttribute("error", "Invalid status value"); }
         return "redirect:/contract/detail/" + contractID;
+    }
+
+    @PostMapping("/updateFeesTerms")
+    public String updateFees(@RequestParam int contractID,
+                             @RequestParam(required=false) String terms,
+                             RedirectAttributes ra){
+        DTOSaleContract c = daoContract.getSaleContractById(contractID);
+        if(c==null){ ra.addFlashAttribute("error","Contract not found"); return "redirect:/saleorder"; }
+        boolean ok = daoContract.updateFeesAndTerms(contractID, c.getRegistrationFee(), c.getDeliveryFee(), c.getInsuranceFee(), c.getServiceFee(), terms);
+        if(ok) ra.addFlashAttribute("message","Terms updated"); else ra.addFlashAttribute("error","Update failed");
+        return "redirect:/contract/detail/"+contractID;
+    }
+
+    @PostMapping("/sign")
+    public String sign(@RequestParam int contractID,
+                       @RequestParam(required=false) String dealerSignatureName,
+                       @RequestParam(required=false) String customerSignatureName,
+                       RedirectAttributes ra){
+        DTOSaleContract c = daoContract.getSaleContractById(contractID);
+        if(c==null){ ra.addFlashAttribute("error","Contract not found"); return "redirect:/saleorder"; }
+        boolean ok = daoContract.updateSignatures(contractID, dealerSignatureName, customerSignatureName);
+        if(ok) ra.addFlashAttribute("message","Signatures updated"); else ra.addFlashAttribute("error","Sign failed");
+        return "redirect:/contract/detail/"+contractID;
     }
 }

@@ -47,6 +47,9 @@ public class DTOCustomer {
     @Column(name = "VehicleInterest")
     private String vehicleInterest;
 
+    @Column(name = "IdNumber")
+    private String idNumber;
+
     // === GETTER / SETTER ===
 
     public int getCustomerID() {
@@ -135,5 +138,13 @@ public class DTOCustomer {
 
     public void setDealer(DTODealer dealer) {
         this.dealer = dealer;
+    }
+
+    public String getIdNumber() {
+        return idNumber;
+    }
+
+    public void setIdNumber(String idNumber) {
+        this.idNumber = idNumber;
     }
 }
