@@ -90,10 +90,6 @@
                                     <span th:text="${account.phone != null && !account.phone.isEmpty() ? account.phone : 'N/A'}"></span>
                                 </td>
                                 <td>
-                                    <i class="fa-solid fa-envelope"></i>
-                                    <span th:text="${account.email}"></span>
-                                </td>
-                                <td>
                                     <span class="badge"
                                           th:classappend="${account.role.name() == 'ADMIN'} ? 'bg-danger' : (${account.role.name() == 'EVMSTAFF'} ? 'bg-primary' : (${account.role.name() == 'DEALER'} ? 'bg-success' : 'bg-info'))"
                                           th:text="${account.role.name()}">
