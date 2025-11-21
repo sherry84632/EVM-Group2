@@ -33,6 +33,8 @@ public class DTODealerRewardSettlement {
     private Timestamp updatedAt;
     @Column(name="PaidDate")
     private Timestamp paidDate;
+    @Column(name="ReimbursedAmount")
+    private java.math.BigDecimal reimbursedAmount; // mới thêm để lưu số tiền đã quyết toán
 
     public Integer getRewardSettlementID() { return rewardSettlementID; }
     public void setRewardSettlementID(Integer rewardSettlementID) { this.rewardSettlementID = rewardSettlementID; }
@@ -58,6 +60,8 @@ public class DTODealerRewardSettlement {
     public void setUpdatedAt(Timestamp updatedAt) { this.updatedAt = updatedAt; }
     public Timestamp getPaidDate() { return paidDate; }
     public void setPaidDate(Timestamp paidDate) { this.paidDate = paidDate; }
+    public java.math.BigDecimal getReimbursedAmount(){ return reimbursedAmount; }
+    public void setReimbursedAmount(java.math.BigDecimal reimbursedAmount){ this.reimbursedAmount = reimbursedAmount; }
 
     @Transient
     public String getPeriodLabel(){ return String.format("%02d/%d", periodMonth, periodYear); }
@@ -71,7 +75,27 @@ public class DTODealerRewardSettlement {
     }
 
     @Transient
-    public boolean isLocked(){ return status != null && status.equalsIgnoreCase("PAID"); }
+    public java.math.BigDecimal getOutstanding(){
+        java.math.BigDecimal total = rewardAmount!=null? rewardAmount: java.math.BigDecimal.ZERO;
+        java.math.BigDecimal paid = reimbursedAmount!=null? reimbursedAmount: java.math.BigDecimal.ZERO;
+        if(paid.compareTo(total)>=0) return java.math.BigDecimal.ZERO; // fully settled
+        java.math.BigDecimal out = total.subtract(paid);
+        return out.compareTo(java.math.BigDecimal.ZERO) < 0 ? java.math.BigDecimal.ZERO : out;
+    }
+    @Transient
+    public double getPercentPaid(){
+        java.math.BigDecimal total = rewardAmount!=null? rewardAmount: java.math.BigDecimal.ZERO;
+        if(total.compareTo(java.math.BigDecimal.ZERO)<=0) return 0.0;
+        java.math.BigDecimal paid = reimbursedAmount!=null? reimbursedAmount: java.math.BigDecimal.ZERO;
+        return paid.divide(total,4, java.math.RoundingMode.HALF_UP).multiply(java.math.BigDecimal.valueOf(100)).doubleValue();
+    }
+    @Transient
+    public boolean isLocked(){
+        java.math.BigDecimal total = rewardAmount!=null? rewardAmount: java.math.BigDecimal.ZERO;
+        java.math.BigDecimal paid = reimbursedAmount!=null? reimbursedAmount: java.math.BigDecimal.ZERO;
+        boolean fullyPaid = paid.compareTo(total)>=0 && total.compareTo(java.math.BigDecimal.ZERO)>0;
+        return fullyPaid || (status!=null && status.equalsIgnoreCase("PAID"));
+    }
 
     @Transient
     public int getBatchNumber(){ return 1; }

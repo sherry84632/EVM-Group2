@@ -75,6 +75,21 @@ public class DealerRewardSettlementController {
         model.addAttribute("purchaseOrdersBySettlement", poMap);
         model.addAttribute("aggregatedImportValueMap", aggregatedImportValueMap);
 
+        // Add aggregates for UI (total reward, paid, remain)
+        java.math.BigDecimal totalReward = java.math.BigDecimal.ZERO;
+        java.math.BigDecimal totalPaid = java.math.BigDecimal.ZERO;
+        for(DTODealerRewardSettlement s : list){
+            if(s.getRewardAmount()!=null) totalReward = totalReward.add(s.getRewardAmount());
+            if(s.getReimbursedAmount()!=null) totalPaid = totalPaid.add(s.getReimbursedAmount());
+        }
+        java.math.BigDecimal totalRemain = totalReward.subtract(totalPaid);
+        if(totalRemain.compareTo(java.math.BigDecimal.ZERO)<0) totalRemain = java.math.BigDecimal.ZERO;
+        double percentPaid = totalReward.compareTo(java.math.BigDecimal.ZERO)>0 ? totalPaid.divide(totalReward,4, java.math.RoundingMode.HALF_UP).multiply(java.math.BigDecimal.valueOf(100)).doubleValue() : 0.0;
+        model.addAttribute("totalReward", totalReward);
+        model.addAttribute("totalPaid", totalPaid);
+        model.addAttribute("totalRemain", totalRemain);
+        model.addAttribute("percentPaid", percentPaid);
+
         return "evmPage/dealerRewardSettlement";
     }
 
@@ -150,17 +165,38 @@ public class DealerRewardSettlementController {
         return "redirect:/evm/reward-settlement?year="+year+"&month="+month;
     }
 
+    @PostMapping("/partial-pay")
+    public String partialPay(@RequestParam Integer id,
+                             @RequestParam(required=false) java.math.BigDecimal payAmount,
+                             @RequestParam(required=false) String notes){
+        DTODealerRewardSettlement dto = rewardDAO.getById(id);
+        if(dto!=null && !dto.isLocked()){
+            if(payAmount==null) payAmount = java.math.BigDecimal.ZERO;
+            rewardDAO.partialPay(id, payAmount, notes);
+        }
+        return "redirect:/evm/reward-settlement";
+    }
+    @PostMapping("/pay-all")
+    public String payAll(@RequestParam Integer id,
+                         @RequestParam(required=false) String notes){
+        DTODealerRewardSettlement dto = rewardDAO.getById(id);
+        if(dto!=null && !dto.isLocked()){
+            rewardDAO.payAll(id, notes);
+        }
+        return "redirect:/evm/reward-settlement";
+    }
+
     @PostMapping("/update-status")
     public String updateStatus(@RequestParam Integer id,
                                @RequestParam String status,
                                @RequestParam(required=false) String notes){
         DTODealerRewardSettlement dto = rewardDAO.getById(id);
         if(dto!=null){
-            // prevent changing status from PAID back or altering amount
-            if("PAID".equalsIgnoreCase(dto.getStatus())) {
-                // Already locked; ignore changes except maybe notes
-                rewardDAO.safeUpdateStatusAndAmount(dto.getRewardSettlementID(), dto.getStatus(), dto.getRewardAmount(), notes);
+            if(dto.isLocked()){
+                // allow note update only
+                rewardDAO.partialPay(id, java.math.BigDecimal.ZERO, notes); // zero pay -> just note
             } else {
+                // change status without altering amounts
                 rewardDAO.safeUpdateStatusAndAmount(id, status, dto.getRewardAmount(), notes);
             }
         }

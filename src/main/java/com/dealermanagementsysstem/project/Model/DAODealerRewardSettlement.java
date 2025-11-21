@@ -72,6 +72,35 @@ public class DAODealerRewardSettlement {
         }
         return updateStatus(id,status,rewardAmount,notes);
     }
+    public DTODealerRewardSettlement partialPay(int id, java.math.BigDecimal payAmount, String notes){
+        if(payAmount==null || payAmount.compareTo(java.math.BigDecimal.ZERO)<=0) return getById(id);
+        DTODealerRewardSettlement before = getById(id);
+        if(before==null) return null;
+        if(before.isLocked()) return before; // already fully paid
+        String sql = "UPDATE DealerRewardSettlement SET " +
+                "ReimbursedAmount = CASE WHEN ISNULL(ReimbursedAmount,0) + ? >= RewardAmount THEN RewardAmount ELSE ISNULL(ReimbursedAmount,0) + ? END, " +
+                "Status = CASE WHEN ISNULL(ReimbursedAmount,0) + ? >= RewardAmount THEN 'PAID' ELSE 'PARTIAL' END, " +
+                "UpdatedAt=GETDATE(), " +
+                "PaidDate=CASE WHEN ISNULL(ReimbursedAmount,0) + ? >= RewardAmount THEN GETDATE() ELSE PaidDate END, " +
+                "Notes=ISNULL(?,Notes) " +
+                "WHERE RewardSettlementID=?";
+        try(java.sql.Connection c=utils.DBUtils.getConnection(); java.sql.PreparedStatement ps=c.prepareStatement(sql)){
+            ps.setBigDecimal(1,payAmount); ps.setBigDecimal(2,payAmount); ps.setBigDecimal(3,payAmount); ps.setBigDecimal(4,payAmount); ps.setString(5, notes); ps.setInt(6,id);
+            int ok = ps.executeUpdate();
+            if(ok>0) {
+                DTODealerRewardSettlement after = getById(id);
+                System.out.println("[RewardPartialPay] id="+id+" beforePaid="+before.getReimbursedAmount()+" +pay="+payAmount+" => afterPaid="+after.getReimbursedAmount()+" status="+after.getStatus());
+                return after;
+            }
+        } catch(Exception e){ e.printStackTrace(); }
+        return null;
+    }
+    public DTODealerRewardSettlement payAll(int id, String notes){
+        DTODealerRewardSettlement cur = getById(id);
+        if(cur==null) return null; if(cur.isLocked()) return cur;
+        java.math.BigDecimal remain = cur.getOutstanding();
+        return partialPay(id, remain, notes);
+    }
     private DTODealerRewardSettlement map(ResultSet rs) throws SQLException {
         DTODealerRewardSettlement d=new DTODealerRewardSettlement();
         d.setRewardSettlementID(rs.getInt("RewardSettlementID"));
@@ -86,6 +115,7 @@ public class DAODealerRewardSettlement {
         d.setCreatedAt(rs.getTimestamp("CreatedAt"));
         d.setUpdatedAt(rs.getTimestamp("UpdatedAt"));
         d.setPaidDate(rs.getTimestamp("PaidDate"));
+        d.setReimbursedAmount(rs.getBigDecimal("ReimbursedAmount"));
         return d;
     }
 }
