@@ -93,4 +93,9 @@ public class DTODealerLevel {
         discountSharePercent = pct;
         return discountSharePercent;
     }
+
+    @Transient
+    public Double getRewardPercent() { // alias for share percent renamed in UI
+        return getDiscountSharePercent();
+    }
 }

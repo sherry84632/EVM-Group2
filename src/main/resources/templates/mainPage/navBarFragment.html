@@ -61,6 +61,13 @@
                 Discount Settlement
             </a>
         </li>
+        <!-- Dealer Reward Settlement - ADMIN & EVMSTAFF -->
+        <li sec:authorize="hasAnyRole('ADMIN','EVMSTAFF')">
+            <a href="/evm/reward-settlement" class="nav-link text-white">
+                <i class="fa-solid fa-gift"></i>
+                Reward Settlement
+            </a>
+        </li>
         <li>
             <a href="/logout" class="nav-link text-white">
                 <i class="fa-solid fa-right-from-bracket"></i>
