@@ -515,118 +515,118 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="/scripts/navBarMenuProject.js?v=20251115"></script>
 <script>
-// Version: 20251115215724 - Price format USD
-// Helper function to format price as USD
-function formatPriceUSD(price) {
-  if (typeof price === 'string') {
-    price = price.replace(/[^0-9.-]/g, '');
-    price = parseFloat(price);
-  }
-  if (price == null || price === '' || isNaN(price)) return 'N/A';
-  return '$' + new Intl.NumberFormat('en-US', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  }).format(price);
-}
-
-console.log('Dealer Discount Page - Price format:', formatPriceUSD(60000));
-
-function showVehicleDetail(modelId){
-  const vehicleModal = new bootstrap.Modal(document.getElementById('vehicleDetailModal'));
-  vehicleModal.show();
-  const imageContainer = document.getElementById('vehicleImageContainer');
-  if(modelId == null || modelId === '' || modelId === 'undefined') {
-     document.getElementById('modalModelName').textContent='All Models';
-     document.getElementById('modalBrand').textContent='—';
-     document.getElementById('modalYear').textContent='—';
-     document.getElementById('modalBodyType').textContent='—';
-     document.getElementById('modalBasePrice').textContent='N/A';
-     document.getElementById('modalDescription').textContent='Global discount applies to all models; no single model details.';
-     imageContainer.innerHTML = '<div class="no-image"><i class="fas fa-globe"></i><span>All Models</span></div>';
-     return;
-  }
-  imageContainer.innerHTML = '<div class="no-image"><i class="fas fa-spinner fa-spin"></i><span>Loading...</span></div>';
-  fetch('/api/vehicle-model/' + modelId)
-    .then(r=>r.ok?r.json():Promise.reject())
-    .then(data=>{
-       document.getElementById('modalModelName').textContent = data.modelName || 'N/A';
-       document.getElementById('modalBrand').textContent = data.brand || 'N/A';
-       document.getElementById('modalYear').textContent = data.year || 'N/A';
-       document.getElementById('modalBodyType').textContent = data.bodyType || 'N/A';
-       document.getElementById('modalBasePrice').textContent = formatPriceUSD(data.basePrice);
-       document.getElementById('modalDescription').textContent = data.description || 'No description';
-       if(data.imageBase64){
-          imageContainer.innerHTML = '<img style="max-height:220px;object-fit:cover;border-radius:10px;width:100%;" src="data:image/jpeg;base64,'+data.imageBase64+'" alt="'+(data.modelName||'Vehicle')+'" />';
-       } else {
-          imageContainer.innerHTML = '<div class="no-image"><i class="fas fa-image"></i><span>No image</span></div>';
-       }
-    })
-    .catch(()=>{ document.getElementById('modalDescription').textContent='Error loading vehicle.'; });
-}
-function showAllVehicleModels(){
-  const appliedModelsModal = new bootstrap.Modal(document.getElementById('appliedModelsModal'));
-  appliedModelsModal.show();
-  const contentDiv = document.getElementById('appliedModelsContent');
-  contentDiv.innerHTML = '<div class="text-center py-5"><i class="fas fa-spinner fa-spin fa-3x text-info"></i><p class="mt-3">Loading all vehicle models...</p></div>';
-  fetch('/api/vehicle-model/s/all')
-    .then(r=>r.ok?r.json():Promise.reject('Failed load'))
-    .then(models=>{
-      if(!models || models.length===0){
-        contentDiv.innerHTML = '<div class="alert alert-warning"><i class="fas fa-exclamation-triangle"></i> No vehicle models found.</div>';
-        return;
-      }
-      let html='<div class="row g-3">';
-      models.forEach(m=>{
-        const mid = m.modelId || m.modelID;
-        html+=`<div class=\"col-md-4\"><div class=\"card h-100 shadow-sm\"><div style=\"height:180px;overflow:hidden;background:#f8f9fa;display:flex;align-items:center;justify-content:center;\">${m.imageBase64?'<img src=\"data:image/jpeg;base64,'+m.imageBase64+'\" style=\"max-height:100%;max-width:100%;object-fit:cover;\" alt=\"'+(m.modelName||'')+'\"/>':'<div style=\"color:#ccc;text-align:center;\"><i class=\"fas fa-car fa-4x\"></i><p class=\"mt-2\">No Image</p></div>'}</div><div class=\"card-body\"><h6 class=\"card-title text-primary fw-bold mb-2\"><i class=\"fas fa-car-side\"></i> ${(m.modelName||'N/A')}</h6><p class=\"card-text small mb-1\"><strong>Brand:</strong> ${(m.brand||'N/A')}</p><p class=\"card-text small mb-1\"><strong>Year:</strong> ${(m.year||'N/A')}</p><p class=\"card-text small mb-1\"><strong>Body Type:</strong> ${(m.bodyType||'N/A')}</p><p class=\"card-text small mb-1\"><strong>Base Price:</strong> ${formatPriceUSD(m.basePrice)}</p><button class=\"btn btn-sm btn-outline-info w-100 mt-2\" onclick=\"showVehicleDetail(${mid})\"><i class=\"fas fa-info-circle\"></i> View Full Details</button></div></div></div>`;
-      });
-      html+='</div>';
-      contentDiv.innerHTML = `<div class=\"alert alert-success mb-3\"><i class=\"fas fa-globe\"></i><strong>All Vehicle Models:</strong> ${models.length} models available</div>${html}`;
-    })
-    .catch(err=>{
-      console.error('Error loading all models:',err);
-      contentDiv.innerHTML='<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> Error loading vehicle models.</div>';
-    });
-}
-
-function toggleModelScope(val){
-  const box = document.getElementById('specificModelSelect');
-  box.style.display = (val==='SPECIFIC')?'block':'none';
-}
-window.addEventListener('DOMContentLoaded',()=>{
-  const today = new Date().toISOString().split('T')[0];
-  const startDate = document.getElementById('startDate');
-  const endDate = document.getElementById('endDate');
-  if(startDate && !startDate.value){ startDate.min = today; }
-  if(endDate && !endDate.value){ endDate.min = today; }
-  const scopeSel = document.getElementById('applyScope');
-  if(scopeSel) {
-    toggleModelScope(scopeSel.value);
-    // Scroll to form if editing
-    const isEditing = scopeSel.closest('form').querySelector('button[type="submit"]').textContent.includes('Update');
-    if(isEditing) {
-      scopeSel.closest('.discount-list-box').scrollIntoView({behavior:'smooth',block:'start'});
-    }
-  }
-  document.getElementById('promotionForm').addEventListener('submit', function(e){
-     const scope = scopeSel.value;
-     if(scope==='SPECIFIC') {
-        const checked = Array.from(document.querySelectorAll('#specificModelSelect input[name="selectedModels"]:checked'));
-        if(checked.length===0){
-           e.preventDefault();
-           alert('⚠️ Vui lòng chọn ít nhất một mẫu xe khi ở chế độ SPECIFIC');
-           return false;
+    // Version: 20251115215724 - Price format USD
+    // Helper function to format price as USD
+    function formatPriceUSD(price) {
+        if (typeof price === 'string') {
+            price = price.replace(/[^0-9.-]/g, '');
+            price = parseFloat(price);
         }
-     }
-     // basic date validation
-     if(startDate && endDate && startDate.value && endDate.value && endDate.value < startDate.value){
-        e.preventDefault();
-        alert('⚠️ End Date phải sau hoặc bằng Start Date');
-        return false;
-     }
-     return true;
-  });
-});
+        if (price == null || price === '' || isNaN(price)) return 'N/A';
+        return '$' + new Intl.NumberFormat('en-US', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).format(price);
+    }
+
+    console.log('Dealer Discount Page - Price format:', formatPriceUSD(60000));
+
+    function showVehicleDetail(modelId){
+        const vehicleModal = new bootstrap.Modal(document.getElementById('vehicleDetailModal'));
+        vehicleModal.show();
+        const imageContainer = document.getElementById('vehicleImageContainer');
+        if(modelId == null || modelId === '' || modelId === 'undefined') {
+            document.getElementById('modalModelName').textContent='All Models';
+            document.getElementById('modalBrand').textContent='—';
+            document.getElementById('modalYear').textContent='—';
+            document.getElementById('modalBodyType').textContent='—';
+            document.getElementById('modalBasePrice').textContent='N/A';
+            document.getElementById('modalDescription').textContent='Global discount applies to all models; no single model details.';
+            imageContainer.innerHTML = '<div class="no-image"><i class="fas fa-globe"></i><span>All Models</span></div>';
+            return;
+        }
+        imageContainer.innerHTML = '<div class="no-image"><i class="fas fa-spinner fa-spin"></i><span>Loading...</span></div>';
+        fetch('/api/vehicle-model/' + modelId)
+            .then(r=>r.ok?r.json():Promise.reject())
+            .then(data=>{
+                document.getElementById('modalModelName').textContent = data.modelName || 'N/A';
+                document.getElementById('modalBrand').textContent = data.brand || 'N/A';
+                document.getElementById('modalYear').textContent = data.year || 'N/A';
+                document.getElementById('modalBodyType').textContent = data.bodyType || 'N/A';
+                document.getElementById('modalBasePrice').textContent = formatPriceUSD(data.basePrice);
+                document.getElementById('modalDescription').textContent = data.description || 'No description';
+                if(data.imageBase64){
+                    imageContainer.innerHTML = '<img style="max-height:220px;object-fit:cover;border-radius:10px;width:100%;" src="data:image/jpeg;base64,'+data.imageBase64+'" alt="'+(data.modelName||'Vehicle')+'" />';
+                } else {
+                    imageContainer.innerHTML = '<div class="no-image"><i class="fas fa-image"></i><span>No image</span></div>';
+                }
+            })
+            .catch(()=>{ document.getElementById('modalDescription').textContent='Error loading vehicle.'; });
+    }
+    function showAllVehicleModels(){
+        const appliedModelsModal = new bootstrap.Modal(document.getElementById('appliedModelsModal'));
+        appliedModelsModal.show();
+        const contentDiv = document.getElementById('appliedModelsContent');
+        contentDiv.innerHTML = '<div class="text-center py-5"><i class="fas fa-spinner fa-spin fa-3x text-info"></i><p class="mt-3">Loading all vehicle models...</p></div>';
+        fetch('/api/vehicle-model/s/all')
+            .then(r=>r.ok?r.json():Promise.reject('Failed load'))
+            .then(models=>{
+                if(!models || models.length===0){
+                    contentDiv.innerHTML = '<div class="alert alert-warning"><i class="fas fa-exclamation-triangle"></i> No vehicle models found.</div>';
+                    return;
+                }
+                let html='<div class="row g-3">';
+                models.forEach(m=>{
+                    const mid = m.modelId || m.modelID;
+                    html+=`<div class=\"col-md-4\"><div class=\"card h-100 shadow-sm\"><div style=\"height:180px;overflow:hidden;background:#f8f9fa;display:flex;align-items:center;justify-content:center;\">${m.imageBase64?'<img src=\"data:image/jpeg;base64,'+m.imageBase64+'\" style=\"max-height:100%;max-width:100%;object-fit:cover;\" alt=\"'+(m.modelName||'')+'\"/>':'<div style=\"color:#ccc;text-align:center;\"><i class=\"fas fa-car fa-4x\"></i><p class=\"mt-2\">No Image</p></div>'}</div><div class=\"card-body\"><h6 class=\"card-title text-primary fw-bold mb-2\"><i class=\"fas fa-car-side\"></i> ${(m.modelName||'N/A')}</h6><p class=\"card-text small mb-1\"><strong>Brand:</strong> ${(m.brand||'N/A')}</p><p class=\"card-text small mb-1\"><strong>Year:</strong> ${(m.year||'N/A')}</p><p class=\"card-text small mb-1\"><strong>Body Type:</strong> ${(m.bodyType||'N/A')}</p><p class=\"card-text small mb-1\"><strong>Base Price:</strong> ${formatPriceUSD(m.basePrice)}</p><button class=\"btn btn-sm btn-outline-info w-100 mt-2\" onclick=\"showVehicleDetail(${mid})\"><i class=\"fas fa-info-circle\"></i> View Full Details</button></div></div></div>`;
+                });
+                html+='</div>';
+                contentDiv.innerHTML = `<div class=\"alert alert-success mb-3\"><i class=\"fas fa-globe\"></i><strong>All Vehicle Models:</strong> ${models.length} models available</div>${html}`;
+            })
+            .catch(err=>{
+                console.error('Error loading all models:',err);
+                contentDiv.innerHTML='<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> Error loading vehicle models.</div>';
+            });
+    }
+
+    function toggleModelScope(val){
+        const box = document.getElementById('specificModelSelect');
+        box.style.display = (val==='SPECIFIC')?'block':'none';
+    }
+    window.addEventListener('DOMContentLoaded',()=>{
+        const today = new Date().toISOString().split('T')[0];
+        const startDate = document.getElementById('startDate');
+        const endDate = document.getElementById('endDate');
+        if(startDate && !startDate.value){ startDate.min = today; }
+        if(endDate && !endDate.value){ endDate.min = today; }
+        const scopeSel = document.getElementById('applyScope');
+        if(scopeSel) {
+            toggleModelScope(scopeSel.value);
+            // Scroll to form if editing
+            const isEditing = scopeSel.closest('form').querySelector('button[type="submit"]').textContent.includes('Update');
+            if(isEditing) {
+                scopeSel.closest('.discount-list-box').scrollIntoView({behavior:'smooth',block:'start'});
+            }
+        }
+        document.getElementById('promotionForm').addEventListener('submit', function(e){
+            const scope = scopeSel.value;
+            if(scope==='SPECIFIC') {
+                const checked = Array.from(document.querySelectorAll('#specificModelSelect input[name="selectedModels"]:checked'));
+                if(checked.length===0){
+                    e.preventDefault();
+                    alert('⚠️ Vui lòng chọn ít nhất một mẫu xe khi ở chế độ SPECIFIC');
+                    return false;
+                }
+            }
+            // basic date validation
+            if(startDate && endDate && startDate.value && endDate.value && endDate.value < startDate.value){
+                e.preventDefault();
+                alert('⚠️ End Date phải sau hoặc bằng Start Date');
+                return false;
+            }
+            return true;
+        });
+    });
 </script>
 
 </body>

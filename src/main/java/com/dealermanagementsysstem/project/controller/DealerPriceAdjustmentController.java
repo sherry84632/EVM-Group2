@@ -318,30 +318,9 @@ public class DealerPriceAdjustmentController {
 
     //  Show discount detail page
     @GetMapping("/detail/{id}")
-    public String showDiscountDetail(@PathVariable int id, Model model) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String email = auth.getName();
-        Integer dealerID = daoAccount.getDealerIdByEmail(email);
-
-        if (dealerID == null) {
-            model.addAttribute("error", "Không tìm thấy Dealer");
-            return "redirect:/discount";
-        }
-
-        DTODealerPriceAdjustment discount = daoDiscount.getDiscountById(id);
-
-        if (discount == null) {
-            model.addAttribute("error", "Discount không tồn tại");
-            return "redirect:/discount";
-        }
-
-        // Verify discount belongs to this dealer
-        if (discount.getDealer().getDealerID() != dealerID) {
-            model.addAttribute("error", "Bạn không có quyền xem discount này");
-            return "redirect:/discount";
-        }
-
-        model.addAttribute("discount", discount);
-        return "dealerPage/discountDetail";
+    @Deprecated // Detail view removed: badges open modals directly
+    public String showDiscountDetail(@PathVariable int id) {
+        // Always redirect to main discount management page; detail page deprecated.
+        return "redirect:/discount";
     }
 }

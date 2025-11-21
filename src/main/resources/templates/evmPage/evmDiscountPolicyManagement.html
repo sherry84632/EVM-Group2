@@ -354,7 +354,8 @@
                                             </span>
                                             <!-- Case 1: All Models -->
                                             <span th:if="${p.applicableToModels == null or p.applicableToModels.isEmpty()}"
-                                                  class="badge bg-success" style="font-size:12px;padding:6px 12px;">
+                                                  class="badge bg-success" style="font-size:12px;padding:6px 12px;cursor:pointer;"
+                                                  onclick="showAllVehicleModels()" title="Click to view all models">
                                                 <i class="fas fa-globe"></i> All Vehicle Models
                                             </span>
                                             <!-- Case 2: Specific Models (clickable) -->
@@ -452,6 +453,26 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal for ALL models (EVM policy list) -->
+<div class="modal fade" id="allModelsModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-xl">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title"><i class="fas fa-globe me-2"></i>All Vehicle Models</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="allModelsContent" style="min-height:200px;">
+          <div class="text-center py-5"><i class="fas fa-spinner fa-spin fa-3x text-success"></i><p class="mt-3">Loading models...</p></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times"></i> Close</button>
       </div>
     </div>
   </div>
@@ -678,6 +699,27 @@
            contentEl.innerHTML = '<div class="alert alert-danger">Failed to load model details</div>';
            console.error(err);
         });
+    }
+
+    // Show all vehicle models in modal
+    function showAllVehicleModels(){
+      const modal = new bootstrap.Modal(document.getElementById('allModelsModal'));
+      modal.show();
+      const contentDiv = document.getElementById('allModelsContent');
+      contentDiv.innerHTML = '<div class="text-center py-5"><i class="fas fa-spinner fa-spin fa-3x text-success"></i><p class="mt-3">Loading models...</p></div>';
+      fetch('/api/vehicle-model/s/all')
+        .then(r=>r.ok?r.json():Promise.reject('Failed to load'))
+        .then(models=>{
+           if(!models || models.length===0){ contentDiv.innerHTML='<div class="alert alert-warning"><i class="fas fa-exclamation-triangle"></i> No vehicle models found.</div>'; return; }
+           let html='<div class="row g-3">';
+           models.forEach(m=>{
+              const mid = m.modelId || m.modelID;
+              html+=`<div class=\"col-md-4\"><div class=\"card h-100 shadow-sm\"><div style=\"height:160px;background:#f8f9fa;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:6px;\">${m.imageBase64?'<img src=\"data:image/jpeg;base64,'+m.imageBase64+'\" style=\"max-height:100%;max-width:100%;object-fit:cover;\" alt=\"'+(m.modelName||'')+'\"/>':'<div style=\"color:#ccc;text-align:center;\"><i class=\"fas fa-car fa-3x\"></i><p class=\"m-0\">No Image</p></div>'}</div><div class=\"card-body p-2\"><h6 class=\"fw-bold mb-1 text-primary\">${(m.modelName||'N/A')}</h6><small class=\"d-block\"><strong>Brand:</strong> ${(m.brand||'N/A')}</small><small class=\"d-block\"><strong>Year:</strong> ${(m.year||'N/A')}</small><small class=\"d-block\"><strong>Body:</strong> ${(m.bodyType||'N/A')}</small><small class=\"d-block\"><strong>Base:</strong> ${m.basePrice?('$'+Intl.NumberFormat('en-US').format(m.basePrice)):'N/A'}</small><button class=\"btn btn-sm btn-outline-info w-100 mt-2\" onclick=\"openModelDetailsById(${mid})\"><i class=\"fas fa-info-circle\"></i> Details</button></div></div></div>`;
+           });
+           html+='</div>';
+           contentDiv.innerHTML = `<div class=\"alert alert-success mb-3\"><i class=\"fas fa-globe\"></i> Total Models: ${models.length}</div>${html}`;
+        })
+        .catch(err=>{ console.error(err); contentDiv.innerHTML='<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> Error loading models.</div>'; });
     }
 </script>
 
