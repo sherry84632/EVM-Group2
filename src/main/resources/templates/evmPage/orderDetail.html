@@ -17,6 +17,7 @@
 
     <!-- Custom CSS -->
     <link rel="stylesheet" href="/css/mainPageStyle.css">
+    <link rel="stylesheet" href="/css/breadScrumbNav.css">
 
     <style>
         @keyframes fadeInUp {
@@ -61,41 +62,6 @@
             animation: fadeInUp 0.6s ease-out;
         }
 
-        .breadcrumb {
-            background: transparent;
-            padding: 0;
-            margin-bottom: 16px;
-        }
-
-        .breadcrumb-item {
-            font-size: 13px;
-            font-weight: 500;
-        }
-
-        .breadcrumb-item a {
-            color: #888;
-            text-decoration: none;
-            transition: color 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .breadcrumb-item a:hover {
-            color: #ff6b16;
-        }
-
-        .breadcrumb-item.active {
-            color: #333;
-            font-weight: 600;
-        }
-
-        .breadcrumb-item + .breadcrumb-item::before {
-            content: "›";
-            color: #adb5bd;
-            font-weight: bold;
-            padding: 0 8px;
-        }
 
         .page-title {
             color: #333;
