@@ -948,6 +948,31 @@
                                         <option value="CANCELLED" th:selected="${order.shippingStatus=='CANCELLED'}">CANCELLED</option>
                                     </select>
                                 </div>
+                                <div class="col-12 mt-3"
+                                     th:if="${order.orderDetails != null and !order.orderDetails.isEmpty()}">
+                                    <div id="vinAssignmentWrapper" class="p-3 border rounded bg-light" style="display: none;">
+                                        <div class="alert alert-info py-2">
+                                            <small>
+                                                Provide VINs for each line item. Use one VIN per line; the total must match the ordered quantity.
+                                            </small>
+                                        </div>
+                                        <div class="vin-input-block mb-3" th:each="detail : ${order.orderDetails}">
+                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                <div>
+                                                    <strong th:text="${detail.modelName} ?: 'Model'"></strong>
+                                                    <span class="text-muted" th:text="${' / ' + detail.versionName + ' / ' + detail.colorName}">/ Version / Color</span>
+                                                </div>
+                                                <span class="badge bg-secondary"
+                                                      th:text="${detail.quantity + ' VIN(s)'}">0 VIN(s)</span>
+                                            </div>
+                                            <textarea class="form-control form-control-sm vin-input"
+                                                      th:attr="data-expected=${detail.quantity},data-label=${detail.modelName + ' / ' + detail.versionName + ' / ' + detail.colorName},rows=${detail.quantity > 3 ? detail.quantity : 3}"
+                                                      th:name="${'vinEntries[' + detail.poDetailId + ']'}"
+                                                      th:placeholder="${'Enter ' + detail.quantity + ' VIN(s), one per line'}"></textarea>
+                                            <small class="text-muted">VINs are uppercased automatically and must be unique.</small>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div class="col-auto">
                                     <button type="submit" class="btn btn-outline-primary btn-sm"
                                             th:disabled="${paymentTotalItems != null and !paymentAllPaid}">
@@ -1017,6 +1042,21 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Prevent double-submit on all POST forms
     const forms = document.querySelectorAll('form[method="post"]');
+    const statusSelect = document.getElementById('newStatus');
+    const vinWrapper = document.getElementById('vinAssignmentWrapper');
+
+    const toggleVinWrapper = () => {
+        if (!vinWrapper) {
+            return;
+        }
+        const shouldShow = statusSelect && statusSelect.value === 'DELIVERED';
+        vinWrapper.style.display = shouldShow ? 'block' : 'none';
+    };
+
+    if (statusSelect) {
+        toggleVinWrapper();
+        statusSelect.addEventListener('change', toggleVinWrapper);
+    }
 
     forms.forEach(form => {
         form.addEventListener('submit', function(e) {
@@ -1108,6 +1148,28 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     }
                     return false;
+                }
+                const vinInputs = this.querySelectorAll('.vin-input');
+                for (const input of vinInputs) {
+                    const expected = parseInt(input.dataset.expected || '0', 10);
+                    const values = input.value
+                        .split(/[\r\n,;]+/)
+                        .map(val => val.trim())
+                        .filter(val => val.length > 0);
+                    if (values.length !== expected) {
+                        e.preventDefault();
+                        alert(`Please enter exactly ${expected} VIN(s) for ${input.dataset.label || 'the selected detail'}.`);
+                        this.classList.remove('submitting');
+                        const submitBtn = this.querySelector('button[type="submit"]');
+                        if (submitBtn) {
+                            submitBtn.disabled = false;
+                            if (submitBtn.dataset.originalHtml) {
+                                submitBtn.innerHTML = submitBtn.dataset.originalHtml;
+                            }
+                        }
+                        input.focus();
+                        return false;
+                    }
                 }
             }
         });
