@@ -842,7 +842,8 @@ public class DAOQuotation {
             DTOQuotation qRef = new DTOQuotation(); qRef.setQuotationID(quotationID); d.setQuotation(qRef);
             DTOVehicleVersion vRef = new DTOVehicleVersion(); vRef.setVersionID(vID); d.setVersion(vRef);
             DTOVehicleColor cRef = new DTOVehicleColor(); cRef.setColorID(cID); d.setColor(cRef);
-            d.setUnitPrice(veh.getVersion().getModel()!=null?veh.getVersion().getModel().getBasePrice():java.math.BigDecimal.ZERO);
+            java.math.BigDecimal dealerUnit = veh.getDealerSellingPriceResolved()!=null? veh.getDealerSellingPriceResolved(): java.math.BigDecimal.ZERO;
+            d.setUnitPrice(dealerUnit);
             d.setQuantity(Math.max(1, defaultQty));
             if (insertQuotationDetail(d)) added++;
         }
@@ -867,7 +868,8 @@ public class DAOQuotation {
             DTOQuotation qRef = new DTOQuotation(); qRef.setQuotationID(quotationID); d.setQuotation(qRef);
             DTOVehicleVersion vRef = new DTOVehicleVersion(); vRef.setVersionID(vID); d.setVersion(vRef);
             DTOVehicleColor cRef = new DTOVehicleColor(); cRef.setColorID(cID); d.setColor(cRef);
-            d.setUnitPrice(veh.getVersion().getModel()!=null?veh.getVersion().getModel().getBasePrice():java.math.BigDecimal.ZERO);
+            java.math.BigDecimal dealerUnit = veh.getDealerSellingPriceResolved()!=null? veh.getDealerSellingPriceResolved(): java.math.BigDecimal.ZERO;
+            d.setUnitPrice(dealerUnit);
             d.setQuantity(qty);
             if (insertQuotationDetail(d)) added++;
         }
@@ -1065,5 +1067,22 @@ public class DAOQuotation {
             log.error("updateQuotationDetailFields failed detailID={}", quotationDetailID, e);
             return false;
         }
+    }
+
+    /** Normalize existing quotation detail unit prices to dealer model price if still using base price. */
+    public int normalizeQuotationDealerPrices(int quotationID, int dealerID) {
+        String sql = "UPDATE qd SET UnitPrice = dmp.DealerSellingPrice FROM QuotationDetail qd " +
+                "JOIN Quotation q ON qd.QuotationID=q.QuotationID " +
+                "JOIN VehicleVersion vv ON qd.VersionID=vv.VersionID " +
+                "JOIN VehicleModel vm ON vv.ModelID=vm.ModelID " +
+                "JOIN DealerModelPrice dmp ON dmp.ModelID=vm.ModelID AND dmp.DealerID=q.DealerID " +
+                "WHERE qd.QuotationID=? AND q.DealerID=? AND dmp.DealerSellingPrice IS NOT NULL AND qd.UnitPrice = vm.BasePrice";
+        try (Connection c = DBUtils.getConnection(); PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setInt(1, quotationID); ps.setInt(2, dealerID);
+            int rows = ps.executeUpdate();
+            if (rows > 0) { log.info("Normalized {} quotation detail prices to dealer price quotationID={}", rows, quotationID); recalcQuotationTotal(quotationID); }
+            return rows;
+        } catch (SQLException e) { log.error("normalizeQuotationDealerPrices failed quotationID={} dealerID={}", quotationID, dealerID, e); }
+        return 0;
     }
 }

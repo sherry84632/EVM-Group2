@@ -8,6 +8,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.io.IOException;
 import java.nio.file.*;
@@ -24,6 +25,7 @@ public class EVMVehicleController {
 
     private static final Logger log = LoggerFactory.getLogger(EVMVehicleController.class);
     private final DAOVehicle dao;
+    private final DAOVehicleModel daoVehicleModel = new DAOVehicleModel();
     private static final String UPLOAD_DIR = "src/main/resources/static/uploads/vehicle/";
 
     public EVMVehicleController(DAOVehicle dao) {
@@ -637,6 +639,31 @@ public class EVMVehicleController {
             }
         } catch (Exception e) {
             model.addAttribute("error", "Error deleting vehicle: " + e.getMessage());
+        }
+        return "redirect:/evm/vehicle/list";
+    }
+
+    // === Dealer Selling Price Management ===
+    @PostMapping("/model/{modelId}/price")
+    public String updateDealerSellingPrice(@PathVariable int modelId,
+                                           @RequestParam("price") String priceStr,
+                                           RedirectAttributes ra) {
+        try {
+            java.math.BigDecimal price = new java.math.BigDecimal(priceStr);
+            if (price.compareTo(java.math.BigDecimal.ZERO) < 0) {
+                ra.addFlashAttribute("error","Price must be >= 0");
+                return "redirect:/evm/vehicle/list";
+            }
+            boolean ok = daoVehicleModel.updateDealerSellingPrice(modelId, price);
+            if (ok) {
+                // propagate to in-stock vehicles
+                dao.propagateDealerModelPrice(modelId, price);
+                ra.addFlashAttribute("message","Updated dealer selling price for ModelID="+modelId);
+            } else {
+                ra.addFlashAttribute("error","Failed updating price for ModelID="+modelId);
+            }
+        } catch (Exception e) {
+            ra.addFlashAttribute("error","Invalid price: "+ e.getMessage());
         }
         return "redirect:/evm/vehicle/list";
     }

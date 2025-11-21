@@ -181,6 +181,10 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/contract/updateStatus", "/contract/create").hasAnyRole("DEALER", "DEALERSTAFF")
                 .requestMatchers("/contract/**").hasAnyRole("DEALER", "DEALERSTAFF", "ADMIN")
 
+                // Dealer Model Prices management
+                .requestMatchers(HttpMethod.GET, "/dealer/model-prices", "/dealer/model-prices/").hasAnyRole("DEALER","DEALERSTAFF")
+                .requestMatchers(HttpMethod.POST, "/dealer/model-prices/update").hasRole("DEALER")
+
                 // All other requests require authentication
                 .anyRequest().authenticated()
             )

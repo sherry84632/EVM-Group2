@@ -6,6 +6,9 @@ import com.dealermanagementsysstem.project.Model.DTOVehicle;
 import com.dealermanagementsysstem.project.Model.VehicleStatus;
 import com.dealermanagementsysstem.project.Model.DAOAccount;
 import com.dealermanagementsysstem.project.Model.DTOCustomer;
+import com.dealermanagementsysstem.project.Model.DAODealerModelPrice;
+import com.dealermanagementsysstem.project.Model.DTOAccount;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -37,9 +40,11 @@ public class VehicleController {
     }
 
     @GetMapping("/getVehicleListToOrder")
-    public String vehicleList2(Model model) {
+    public String vehicleList2(Model model, HttpSession session) {
         DAOVehicle daoVehicle = new DAOVehicle();
         List<DTOVehicle> vehicle = getTemplateVehicles(daoVehicle);
+        // Apply dealer model prices if dealer context
+        applyDealerPrices(session, vehicle);
         model.addAttribute("vehicleList", vehicle);
         
         // Add user information for Spring Security
@@ -55,9 +60,10 @@ public class VehicleController {
     }
 
     @GetMapping("/getVehicleListToCreateQuotation")
-    public String vehicleList3(Model model) {
+    public String vehicleList3(Model model, HttpSession session) {
         DAOVehicle daoVehicle = new DAOVehicle();
         List<DTOVehicle> vehicle = getTemplateVehicles(daoVehicle);
+        applyDealerPrices(session, vehicle);
         model.addAttribute("vehicleList", vehicle);
 
         //  Filter customers by dealerId
@@ -106,5 +112,22 @@ public class VehicleController {
         }
 
         return vehicles;
+    }
+
+    private void applyDealerPrices(HttpSession session, List<DTOVehicle> vehicles) {
+        if (vehicles == null || vehicles.isEmpty()) return;
+        Object accObj = session != null ? session.getAttribute("loggedInAccount") : null;
+        if (!(accObj instanceof DTOAccount acc) || acc.getDealerStaff()==null || acc.getDealerStaff().getDealer()==null) return;
+        int dealerId = acc.getDealerStaff().getDealer().getDealerID();
+        DAODealerModelPrice dmp = new DAODealerModelPrice();
+        var modelPriceList = dmp.listDealerModels(dealerId);
+        java.util.Map<Integer, java.math.BigDecimal> priceMap = new java.util.HashMap<>();
+        for (var m : modelPriceList) {
+            Object mid = m.get("modelID"); Object p = m.get("dealerPrice");
+            if (mid instanceof Integer && p instanceof java.math.BigDecimal) priceMap.put((Integer)mid,(java.math.BigDecimal)p);
+        }
+        for (DTOVehicle v : vehicles) {
+            Integer mid = v.getModelID(); if (mid!=null && priceMap.containsKey(mid)) v.setDealerSellingPrice(priceMap.get(mid));
+        }
     }
 }

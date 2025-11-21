@@ -61,6 +61,17 @@
                     </button>
                 </a>
             </div>
+
+            <div class="d-flex" style="justify-content: center; align-items: center; padding: 35px;" th:if="${session.loggedInAccount != null and session.loggedInAccount.role.name()=='DEALER'}">
+                <a href="/dealer/model-prices" style="text-decoration: none;">
+                    <button class="icon-btn">
+                        <i class="fa-solid fa-dollar-sign"></i>
+                        <span>
+                            Model Prices
+                        </span>
+                    </button>
+                </a>
+            </div>
         </div>
 
     </div>

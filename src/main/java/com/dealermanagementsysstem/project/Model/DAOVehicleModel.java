@@ -13,7 +13,7 @@ import org.springframework.stereotype.Repository;
 public class DAOVehicleModel {
     public List<DTOVehicleModel> getAllModels() {
         List<DTOVehicleModel> list = new ArrayList<>();
-        String sql = "SELECT ModelID, ModelName, Brand, Year, BodyType, BasePrice, Description, ModelImage FROM VehicleModel";
+        String sql = "SELECT ModelID, ModelName, Brand, Year, BodyType, BasePrice, DealerSellingPrice, Description, ModelImage FROM VehicleModel";
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
@@ -26,6 +26,7 @@ public class DAOVehicleModel {
                 if (!rs.wasNull()) m.setYear(yearVal);
                 m.setBodyType(rs.getString("BodyType"));
                 m.setBasePrice(rs.getBigDecimal("BasePrice"));
+                m.setDealerSellingPrice(rs.getBigDecimal("DealerSellingPrice"));
                 m.setDescription(rs.getString("Description"));
                 byte[] img = rs.getBytes("ModelImage");
                 if (img != null && img.length > 0) m.setModelImage(img);
@@ -39,7 +40,7 @@ public class DAOVehicleModel {
 
     public DTOVehicleModel getModelById(int modelId) {
         DTOVehicleModel model = null;
-        String sql = "SELECT ModelID, ModelName, Brand, Year, BodyType, BasePrice, Description, ModelImage FROM VehicleModel WHERE ModelID = ?";
+        String sql = "SELECT ModelID, ModelName, Brand, Year, BodyType, BasePrice, DealerSellingPrice, Description, ModelImage FROM VehicleModel WHERE ModelID = ?";
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, modelId);
@@ -52,6 +53,7 @@ public class DAOVehicleModel {
                     model.setYear(rs.getInt("Year"));
                     model.setBodyType(rs.getString("BodyType"));
                     model.setBasePrice(rs.getBigDecimal("BasePrice"));
+                    model.setDealerSellingPrice(rs.getBigDecimal("DealerSellingPrice"));
                     model.setDescription(rs.getString("Description"));
 
                     // Get image as byte array
@@ -65,5 +67,15 @@ public class DAOVehicleModel {
             e.printStackTrace();
         }
         return model;
+    }
+
+    public boolean updateDealerSellingPrice(int modelId, java.math.BigDecimal price) {
+        String sql = "UPDATE VehicleModel SET DealerSellingPrice=? WHERE ModelID=?";
+        try (Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setBigDecimal(1, price);
+            ps.setInt(2, modelId);
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) { e.printStackTrace(); }
+        return false;
     }
 }

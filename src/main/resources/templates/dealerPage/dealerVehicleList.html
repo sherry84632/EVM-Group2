@@ -76,6 +76,14 @@
                                 </span>
                             </span>
                         </div>
+                        <div class="dv-meta-row">
+                            <span class="dv-label">Dealer Price</span>
+                            <span class="dv-value">
+                                <span class="dv-price-tag bg-success text-white">
+                                    $<span th:text="${#numbers.formatDecimal(vehicle.dealerSellingPriceResolved, 0, 'COMMA', 0, 'POINT')}">0</span>
+                                </span>
+                            </span>
+                        </div>
                         <div class="dv-meta-row" th:if="${vehicle.color != null}">
                             <span class="dv-label">Color</span>
                             <span class="dv-value"><span class="dv-badge" th:text="${vehicle.color.colorName}"></span></span>

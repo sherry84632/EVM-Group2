@@ -64,48 +64,8 @@ public class DAODealerReport {
                     ? savings.divide(grossRevenue, 6, java.math.RoundingMode.HALF_UP)
                     .multiply(java.math.BigDecimal.valueOf(100)).doubleValue() : 0.0;
             kpi.put("discountSavingsPercent", savingsPct);
-            if (dealerId != null) {
-                Double levelSharePercent = fetchDealerLevelSharePercent(conn, dealerId);
-                kpi.put("levelSharePercent", levelSharePercent);
-                java.math.BigDecimal dealerLevelShareTotal = netRevenue.multiply(java.math.BigDecimal.valueOf(levelSharePercent / 100.0));
-                kpi.put("dealerLevelShareTotal", dealerLevelShareTotal);
-                // Dealer income after discounts & share (net revenue + share commission)
-                kpi.put("dealerIncomeAfterShare", netRevenue.add(dealerLevelShareTotal));
-            }
         } catch (SQLException ignored) { }
         return kpi;
-    }
-
-    // Helper to derive level share percent for a dealer (dynamic: use SharePercent column; fallback Bronze 5 / Silver 7 / Gold 9 / Platinum 12)
-    private Double fetchDealerLevelSharePercent(Connection externalConn, Integer dealerId) {
-        if (dealerId == null) return 0.0;
-        String sql = "SELECT dl.LevelName, dl.SharePercent FROM Dealer d JOIN DealerLevel dl ON d.LevelID = dl.LevelID WHERE d.DealerID=?";
-        try (PreparedStatement ps = externalConn.prepareStatement(sql)) {
-            ps.setInt(1, dealerId);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    String levelName = rs.getString("LevelName");
-                    Double share = null;
-                    try {
-                        share = rs.getDouble("SharePercent");
-                        if (rs.wasNull()) share = null;
-                    } catch (Exception ignore) {}
-                    // Use stored SharePercent if valid (0..100)
-                    if (share != null && share >= 0.0 && share <= 100.0) {
-                        return share;
-                    }
-                    // Fallback legacy mapping by name
-                    if (levelName != null) {
-                        String n = levelName.toLowerCase();
-                        if (n.contains("platinum")) return 12.0;
-                        if (n.contains("gold")) return 9.0;
-                        if (n.contains("silver")) return 7.0;
-                        if (n.contains("bronze")) return 5.0;
-                    }
-                }
-            }
-        } catch (SQLException ignored) { }
-        return 0.0;
     }
 
     public List<Map<String, Object>> getSalesByMonth(Integer dealerId, java.sql.Date fromDate, java.sql.Date toDate) {

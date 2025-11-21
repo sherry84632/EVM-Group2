@@ -38,6 +38,9 @@ public class DTOVehicle {
     @Column(name = "UpdatedAt")
     private java.sql.Timestamp updatedAt;
 
+    @Column(name = "DealerSellingPrice")
+    private java.math.BigDecimal dealerSellingPrice;
+
     public DTOVehicle() {
     }
 
@@ -122,6 +125,15 @@ public class DTOVehicle {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public java.math.BigDecimal getDealerSellingPrice() { return dealerSellingPrice; }
+    public void setDealerSellingPrice(java.math.BigDecimal p) { this.dealerSellingPrice = p; }
+    // Convenience: fallback to model dealerSellingPrice if vehicle-level null
+    public java.math.BigDecimal getDealerSellingPriceResolved() {
+        if (dealerSellingPrice != null) return dealerSellingPrice;
+        return (version != null && version.getModel()!=null && version.getModel().getDealerSellingPrice()!=null)
+                ? version.getModel().getDealerSellingPrice() : getBasePrice();
     }
 
     // === CONVENIENCE METHODS FOR THYMELEAF TEMPLATES ===
