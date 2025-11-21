@@ -25,6 +25,9 @@ public class DTOVehicle {
     @Column(name = "EngineNumber")
     private String engineNumber;
     
+    @Column(name = "VIN", length = 50, unique = true)
+    private String vin;
+    
     @Column(name = "Status", columnDefinition = "VARCHAR(50)")
     @Enumerated(EnumType.STRING)
     private VehicleStatus status;
@@ -186,13 +189,20 @@ public class DTOVehicle {
         return color != null ? color.getColorID() : null;
     }
 
+    public String getVin() {
+        return vin;
+    }
+
+    public void setVin(String vin) {
+        this.vin = vin;
+    }
+
     /**
      * Convenience method to access VIN (Vehicle Identification Number)
      * Usage in Thymeleaf: ${vehicle.VIN}
-     * Assuming engineNumber represents VIN in current data model
      */
     public String getVIN() {
-        return getEngineNumber();
+        return vin != null ? vin : (engineNumber != null ? engineNumber : null);
     }
 
     /**

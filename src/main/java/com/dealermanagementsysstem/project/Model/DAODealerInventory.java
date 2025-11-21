@@ -502,7 +502,11 @@ public class DAODealerInventory {
     }
 
     //  Chỉ thêm inventory khi đơn hàng hãng đã giao thành công
-    public boolean addWhenDeliveryCompleted(int purchaseOrderId, int dealerID, int colorID, int versionID, int quantity) {
+    public boolean addWhenDeliveryCompleted(int purchaseOrderId, int dealerID, int poDetailId, int colorID, int versionID, List<String> vins) {
+        if (vins == null || vins.isEmpty()) {
+            log.warn("VIN list is empty for PurchaseOrder {} detail {}", purchaseOrderId, poDetailId);
+            return false;
+        }
         String checkDelivered = "SELECT TOP 1 1 FROM Delivery WHERE PurchaseOrderID = ? AND DeliveryStatus = 'DELIVERED'";
         try (Connection conn = DBUtils.getConnection();
              PreparedStatement ps = conn.prepareStatement(checkDelivered)) {
@@ -518,36 +522,14 @@ public class DAODealerInventory {
             return false;
         }
 
-        //  Kiểm tra xem đã có xe được tạo cho PO này với ColorID và VersionID cụ thể chưa (tránh tạo trùng)
-        // QUAN TRỌNG: Check theo combination (PO + Color + Version) để hỗ trợ nhiều loại xe trong 1 đơn
-        String checkExisting = """
-            SELECT COUNT(*) as cnt FROM DealerInventory di
-            INNER JOIN Vehicle v ON di.VehicleID = v.VehicleID
-            INNER JOIN DeliveryDetail dd ON dd.VehicleID = v.VehicleID
-            INNER JOIN Delivery d ON d.DeliveryID = dd.DeliveryID
-            WHERE d.PurchaseOrderID = ? 
-              AND v.ColorID = ? 
-              AND v.VersionID = ?
-        """;
-        try (Connection conn = DBUtils.getConnection();
-             PreparedStatement ps = conn.prepareStatement(checkExisting)) {
-            ps.setInt(1, purchaseOrderId);
-            ps.setInt(2, colorID);
-            ps.setInt(3, versionID);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next() && rs.getInt("cnt") > 0) {
-                    log.info("Vehicles already added to inventory for PO {} with ColorID={} VersionID={} - skipping duplicate creation",
-                             purchaseOrderId, colorID, versionID);
-                    return true; // Already added, không tạo nữa
-                }
-            }
-        } catch (SQLException e) {
-            log.error("Failed checking existing inventory for PO {} ColorID={} VersionID={}",
-                      purchaseOrderId, colorID, versionID, e);
-            return false;
+        boolean vinAssignmentEnabled = isVinAssignmentTableAvailable();
+
+        if (vinAssignmentEnabled && hasExistingVinAssignments(poDetailId)) {
+            log.info("VINs already assigned for PO {} detail {}", purchaseOrderId, poDetailId);
+            return true;
         }
 
-        return addVehiclesToInventoryForPO(purchaseOrderId, dealerID, colorID, versionID, quantity);
+        return addVehiclesToInventoryForPO(purchaseOrderId, dealerID, poDetailId, colorID, versionID, vins, vinAssignmentEnabled);
     }
 
     //  Chỉ xuất inventory khi đơn bán cho khách hàng đã hoàn tất
@@ -656,8 +638,8 @@ public class DAODealerInventory {
     }
 
     //  Thêm xe vào Inventory và gắn DeliveryDetail tới PO cụ thể
-    private boolean addVehiclesToInventoryForPO(int purchaseOrderId, int dealerID, int colorID, int versionID, int quantity) {
-        log.info("Adding {} vehicles to inventory dealerID={}, colorID={}, versionID={} for PO {}", quantity, dealerID, colorID, versionID, purchaseOrderId);
+    private boolean addVehiclesToInventoryForPO(int purchaseOrderId, int dealerID, int poDetailId, int colorID, int versionID, List<String> vins, boolean recordAssignments) {
+        log.info("Adding {} vehicles to inventory dealerID={}, colorID={}, versionID={} for PO {} detail {}", vins.size(), dealerID, colorID, versionID, purchaseOrderId, poDetailId);
         if (!validateColorAndVersion(colorID, versionID)) {
             log.warn("Validation failed for colorID={} versionID={}", colorID, versionID);
             return false;
@@ -667,8 +649,8 @@ public class DAODealerInventory {
         java.math.BigDecimal costPrice = getCostPriceFromPO(purchaseOrderId, colorID, versionID);
 
         String sqlInsertVehicle = """
-                    INSERT INTO Vehicle (ColorID, VersionID, ManufactureYear, EngineNumber, Status, CreatedAt, UpdatedAt) 
-                    VALUES (?, ?, YEAR(GETDATE()), ?, 'IN_STOCK', GETDATE(), GETDATE())
+                    INSERT INTO Vehicle (ColorID, VersionID, ManufactureYear, EngineNumber, VIN, Status, CreatedAt, UpdatedAt) 
+                    VALUES (?, ?, YEAR(GETDATE()), ?, ?, 'IN_STOCK', GETDATE(), GETDATE())
                 """;
         String sqlInsertInventory = """
                     INSERT INTO DealerInventory (DealerID, VehicleID, VIN, ReceivedDate, Status, CostPrice, PurchaseOrderID) 
@@ -676,6 +658,10 @@ public class DAODealerInventory {
                 """;
         String sqlGetLatestDelivery = "SELECT TOP 1 DeliveryID FROM Delivery WHERE PurchaseOrderID = ? ORDER BY DeliveryID DESC";
         String sqlInsertDeliveryDetail = "INSERT INTO DeliveryDetail (DeliveryID, VehicleID) VALUES (?, ?)";
+        String sqlInsertVinAssignment = """
+                    INSERT INTO PurchaseOrderVinAssignment (PurchaseOrderID, PODetailID, VehicleID, VIN)
+                    VALUES (?, ?, ?, ?)
+                """;
         try (Connection conn = DBUtils.getConnection()) {
             conn.setAutoCommit(false);
 
@@ -687,43 +673,94 @@ public class DAODealerInventory {
                 }
             }
 
-            for (int i = 0; i < quantity; i++) {
-                String vin = utils.VINUtils.generateVin(colorID, versionID);
-                Integer vehicleId = null;
-                try (PreparedStatement psVehicleGen = conn.prepareStatement(sqlInsertVehicle, Statement.RETURN_GENERATED_KEYS)) {
-                    psVehicleGen.setInt(1, colorID);
-                    psVehicleGen.setInt(2, versionID);
-                    psVehicleGen.setString(3, "ENG" + System.currentTimeMillis() + i);
-                    psVehicleGen.executeUpdate();
-                    try (ResultSet rs = psVehicleGen.getGeneratedKeys()) {
-                        if (rs.next()) vehicleId = rs.getInt(1);
-                    }
-                }
+            try (PreparedStatement psVehicle = conn.prepareStatement(sqlInsertVehicle, Statement.RETURN_GENERATED_KEYS);
+                 PreparedStatement psInventory = conn.prepareStatement(sqlInsertInventory);
+                 PreparedStatement psVinAssignment = recordAssignments ? conn.prepareStatement(sqlInsertVinAssignment) : null;
+                 PreparedStatement psDelDetail = deliveryId != null ? conn.prepareStatement(sqlInsertDeliveryDetail) : null) {
 
-                try (PreparedStatement psInventory = conn.prepareStatement(sqlInsertInventory)) {
+                for (int i = 0; i < vins.size(); i++) {
+                    String vin = vins.get(i);
+                    Integer vehicleId = null;
+                    psVehicle.setInt(1, colorID);
+                    psVehicle.setInt(2, versionID);
+                    psVehicle.setString(3, "ENG" + System.currentTimeMillis() + "-" + i);
+                    psVehicle.setString(4, vin);
+                    psVehicle.executeUpdate();
+                    try (ResultSet rs = psVehicle.getGeneratedKeys()) {
+                        if (rs.next()) {
+                            vehicleId = rs.getInt(1);
+                        }
+                    }
+
+                    if (vehicleId == null) {
+                        conn.rollback();
+                        log.error("Missing VehicleID for VIN {} in PO {}", vin, purchaseOrderId);
+                        return false;
+                    }
+
                     psInventory.setInt(1, dealerID);
-                    if (vehicleId != null) psInventory.setInt(2, vehicleId); else psInventory.setNull(2, Types.INTEGER);
+                    psInventory.setInt(2, vehicleId);
                     psInventory.setString(3, vin);
-                    //  Lưu giá cost (sau chiết khấu)
                     psInventory.setBigDecimal(4, costPrice);
-                    //  Lưu PurchaseOrderID để link xe với đơn hàng
                     psInventory.setInt(5, purchaseOrderId);
                     psInventory.executeUpdate();
-                }
 
-                if (deliveryId != null && vehicleId != null) {
-                    try (PreparedStatement psDelDetail = conn.prepareStatement(sqlInsertDeliveryDetail)) {
+                    if (psDelDetail != null) {
                         psDelDetail.setInt(1, deliveryId);
                         psDelDetail.setInt(2, vehicleId);
                         psDelDetail.executeUpdate();
                     }
+
+                    if (recordAssignments && psVinAssignment != null) {
+                        psVinAssignment.setInt(1, purchaseOrderId);
+                        psVinAssignment.setInt(2, poDetailId);
+                        psVinAssignment.setInt(3, vehicleId);
+                        psVinAssignment.setString(4, vin);
+                        psVinAssignment.executeUpdate();
+                    }
                 }
+
+                conn.commit();
+                if (recordAssignments) {
+                    log.info("Successfully recorded {} VIN assignments for PO {} detail {}", vins.size(), purchaseOrderId, poDetailId);
+                } else {
+                    log.warn("VIN assignment table unavailable, skipped recording assignments for PO {} detail {}", purchaseOrderId, poDetailId);
+                }
+                return true;
+            } catch (SQLException inner) {
+                conn.rollback();
+                throw inner;
             }
-            conn.commit();
-            log.info("Successfully added {} vehicles to inventory dealerID={} for PO {} with costPrice={}", quantity, dealerID, purchaseOrderId, costPrice);
-            return true;
         } catch (SQLException e) {
             log.error("Error adding vehicles to inventory dealerID={} for PO {}", dealerID, purchaseOrderId, e);
+            return false;
+        }
+    }
+
+    private boolean hasExistingVinAssignments(int poDetailId) {
+        String sql = "SELECT COUNT(1) FROM PurchaseOrderVinAssignment WHERE PODetailID = ?";
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, poDetailId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next() && rs.getInt(1) > 0) {
+                    return true;
+                }
+            }
+        } catch (SQLException e) {
+            log.error("Error checking VIN assignments for PODetailID {}", poDetailId, e);
+        }
+        return false;
+    }
+
+    private boolean isVinAssignmentTableAvailable() {
+        String sql = "SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'PurchaseOrderVinAssignment'";
+        try (Connection conn = DBUtils.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            return rs.next();
+        } catch (SQLException e) {
+            log.warn("Unable to verify PurchaseOrderVinAssignment table", e);
             return false;
         }
     }

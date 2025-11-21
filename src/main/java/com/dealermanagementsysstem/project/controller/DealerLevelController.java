@@ -39,61 +39,72 @@ public class DealerLevelController {
 
         // ===== Load dynamic dealer levels =====
         java.util.List<DTODealerLevel> levels = daoDealer.getAllDealerLevels();
-        // Sort ascending by vehiclesRequired (fallback 0 if missing)
         levels.sort((a,b) -> Integer.compare(a.getVehiclesRequired(), b.getVehiclesRequired()));
-        // Filter out any negative values just in case
         java.util.List<DTODealerLevel> validLevels = new java.util.ArrayList<>();
-        for (DTODealerLevel lvl : levels) {
-            if (lvl.getVehiclesRequired() >= 0) validLevels.add(lvl);
+        for (DTODealerLevel lvl : levels) { if (lvl.getVehiclesRequired() >= 0) validLevels.add(lvl); }
+
+        // Find record matching dealer's stored level (respect manual assignment)
+        DTODealerLevel currentLevelRecord = null;
+        for (DTODealerLevel lvl : validLevels) {
+            if (lvl.getLevelID() == dealer.getLevelID()) { currentLevelRecord = lvl; break; }
+        }
+        if (currentLevelRecord == null && !validLevels.isEmpty()) {
+            // Fallback: first level if none matches
+            currentLevelRecord = validLevels.get(0);
         }
 
-        DTODealerLevel achieved = null;
-        DTODealerLevel next = null;
+        // Achieved starts at current stored level; only upgrade upwards if soldQty meets higher requirements
+        DTODealerLevel achieved = currentLevelRecord;
         for (DTODealerLevel lvl : validLevels) {
-            if (soldQty >= lvl.getVehiclesRequired()) {
-                achieved = lvl; // highest achieved as we go ascending
-            } else {
-                // first level whose requirement we haven't met yet is next
-                if (next == null) next = lvl;
+            if (lvl.getVehiclesRequired() >= achieved.getVehiclesRequired() && soldQty >= lvl.getVehiclesRequired()) {
+                // qualifies for this higher (or equal) tier
+                if (lvl.getVehiclesRequired() > achieved.getVehiclesRequired()) {
+                    achieved = lvl; // upgrade candidate
+                }
             }
         }
-        // If nothing achieved but there are levels, current is first level (not yet reached)
-        String currentTierName;
-        if (achieved != null) {
-            currentTierName = achieved.getLevelName() != null ? achieved.getLevelName() + " Dealer" : "Dealer Level";
-        } else if (!validLevels.isEmpty()) {
-            currentTierName = "Chưa đạt cấp đầu tiên";
-        } else {
-            currentTierName = "Không có cấu hình cấp";
+
+        // Next tier: first level with requirement greater than achieved
+        DTODealerLevel next = null;
+        for (DTODealerLevel lvl : validLevels) {
+            if (lvl.getVehiclesRequired() > achieved.getVehiclesRequired()) { next = lvl; break; }
         }
 
+        String currentTierName = achieved != null && achieved.getLevelName()!=null ? achieved.getLevelName() + " Dealer" : "Dealer Level";
         Integer nextThreshold = next != null ? next.getVehiclesRequired() : null;
         String nextTierName = next != null && next.getLevelName()!=null ? next.getLevelName() + " Dealer" : null;
         int remaining = nextThreshold != null ? Math.max(0, nextThreshold - soldQty) : 0;
-        double progressPercent = nextThreshold != null && nextThreshold > 0 ? (soldQty * 100.0 / nextThreshold) : 100.0;
-        if (progressPercent > 100.0) progressPercent = 100.0;
 
-        // Auto upgrade dealer's stored LevelID if achieved level differs
+        // Progress between achieved tier and next tier (segment progress)
+        double progressPercent;
+        if (next != null) {
+            int baseReq = achieved.getVehiclesRequired();
+            int range = next.getVehiclesRequired() - baseReq;
+            int progressSegment = Math.max(0, soldQty - baseReq);
+            progressPercent = range > 0 ? (progressSegment * 100.0 / range) : 100.0;
+            if (progressPercent > 100.0) progressPercent = 100.0;
+        } else {
+            progressPercent = 100.0; // top tier
+        }
+
+        // Upgrade dealer level in DB only if achieved is higher than stored (prevent downgrade)
         boolean upgraded = false;
-        if (achieved != null && dealer.getLevelID() != achieved.getLevelID()) {
+        if (achieved != null && currentLevelRecord != null && achieved.getLevelID() != dealer.getLevelID() && achieved.getVehiclesRequired() > currentLevelRecord.getVehiclesRequired()) {
             if (daoDealer.updateDealerLevel(dealerId, achieved.getLevelID())) {
                 upgraded = true;
                 try { dealer = daoDealer.getDealerById(dealerId); } catch (Exception ignored) {}
             }
         }
 
-        // Use DB stored level name after potential upgrade
-        String dbLevelName = null;
-        for (DTODealerLevel lvl : validLevels) {
-            if (lvl.getLevelID() == dealer.getLevelID()) {
-                dbLevelName = lvl.getLevelName();
-                break;
+        // dbLevelName based on (possibly updated) dealer level
+        String dbLevelName = achieved != null ? achieved.getLevelName() : currentTierName;
+        if (dealer.getLevelID() != achieved.getLevelID()) { // if not upgraded yet keep stored name
+            for (DTODealerLevel lvl : validLevels) {
+                if (lvl.getLevelID() == dealer.getLevelID()) { dbLevelName = lvl.getLevelName(); break; }
             }
         }
-        if (dbLevelName == null) dbLevelName = achieved != null ? achieved.getLevelName() : currentTierName;
 
-        // Share percent for current tier (prefer explicit sharePercent)
-        Double sharePercent = achieved != null ? achieved.getSharePercent()!=null? achieved.getSharePercent().doubleValue() : achieved.getDiscountSharePercent() : null;
+        Double sharePercent = achieved != null ? (achieved.getSharePercent()!=null? achieved.getSharePercent().doubleValue() : achieved.getDiscountSharePercent()) : null;
 
         model.addAttribute("upgraded", upgraded);
         model.addAttribute("soldQty", soldQty);
