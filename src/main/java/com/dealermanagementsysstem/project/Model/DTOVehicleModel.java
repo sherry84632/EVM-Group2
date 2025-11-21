@@ -38,6 +38,9 @@ public class DTOVehicleModel {
     @Column(name = "EvmID")
     private int evmID;
     
+    @Column(name = "DealerSellingPrice")
+    private java.math.BigDecimal dealerSellingPrice;
+
     @OneToMany(mappedBy = "model")
     private List<DTOVehicleVersion> versions;
     
@@ -123,6 +126,14 @@ public class DTOVehicleModel {
         this.evmID = evmID;
     }
     
+    public java.math.BigDecimal getDealerSellingPrice() {
+        return dealerSellingPrice;
+    }
+
+    public void setDealerSellingPrice(java.math.BigDecimal dealerSellingPrice) {
+        this.dealerSellingPrice = dealerSellingPrice;
+    }
+
     public List<DTOVehicleVersion> getVersions() {
         return versions;
     }

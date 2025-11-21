@@ -22,6 +22,7 @@ public class DAOVehicle {
                 v.Description,
                 v.CreatedAt,
                 v.UpdatedAt,
+                v.DealerSellingPrice AS VehicleDealerSellingPrice,
                 vc.ColorID,
                 vc.ColorName,
                 vv.VersionID,
@@ -33,6 +34,7 @@ public class DAOVehicle {
                 vm.Brand,
                 vm.Year,
                 vm.BasePrice,
+                vm.DealerSellingPrice AS ModelDealerSellingPrice,
                 vm.BodyType,
                 vm.Description AS ModelDescription
             FROM Vehicle v
@@ -370,6 +372,7 @@ public class DAOVehicle {
         v.setDescription(rs.getString("Description"));
         v.setCreatedAt(rs.getTimestamp("CreatedAt"));
         v.setUpdatedAt(rs.getTimestamp("UpdatedAt"));
+        v.setDealerSellingPrice(rs.getBigDecimal("VehicleDealerSellingPrice"));
 
         if (rs.getString("ColorName") != null) {
             DTOVehicleColor color = new DTOVehicleColor();
@@ -390,6 +393,7 @@ public class DAOVehicle {
                 model.setBrand(rs.getString("Brand"));
                 model.setYear(rs.getInt("Year"));
                 model.setBasePrice(rs.getBigDecimal("BasePrice"));
+                model.setDealerSellingPrice(rs.getBigDecimal("ModelDealerSellingPrice"));
                 model.setBodyType(rs.getString("BodyType"));
                 model.setDescription(rs.getString("ModelDescription"));
                 version.setModel(model);
@@ -681,5 +685,13 @@ public class DAOVehicle {
             try (ResultSet rs = ps.executeQuery()) { while (rs.next()) ids.add(rs.getInt(1)); }
         } catch (SQLException e) { log.error("Error fetching ANY status vehicles version {} color {} limit {}", versionId, colorId, limit, e); }
         return ids;
+    }
+
+    public boolean propagateDealerModelPrice(int modelId, java.math.BigDecimal price) {
+        String sql = "UPDATE Vehicle SET DealerSellingPrice=? WHERE VersionID IN (SELECT VersionID FROM VehicleVersion WHERE ModelID=?) AND Status IN ('IN_STOCK','RESERVED','ALLOCATED')";
+        try (Connection c = DBUtils.getConnection(); PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setBigDecimal(1, price); ps.setInt(2, modelId); return ps.executeUpdate() >= 0;
+        } catch (SQLException e) { log.error("Error propagating dealer price model {}", modelId, e); }
+        return false;
     }
 }

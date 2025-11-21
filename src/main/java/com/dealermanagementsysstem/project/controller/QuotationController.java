@@ -270,6 +270,7 @@ public class QuotationController {
                 model.addAttribute("error", "Vehicle not found.");
                 return "dealerPage/quotationForm";
             }
+            applyDealerPriceToVehicle(vehicle, resolvedDealerId);
 
             // Determine discount
             double discountPercentValue = 0.0;
@@ -285,8 +286,8 @@ public class QuotationController {
             }
 
             // Pricing
-            java.math.BigDecimal basePriceBD = vehicle.getBasePrice() != null ? vehicle.getBasePrice() : java.math.BigDecimal.ZERO;
-            double basePrice = basePriceBD.doubleValue();
+            java.math.BigDecimal unitPriceBD = vehicle.getDealerSellingPriceResolved() != null ? vehicle.getDealerSellingPriceResolved() : java.math.BigDecimal.ZERO;
+            double basePrice = unitPriceBD.doubleValue();
             int safeQuantity = Math.max(1, quantity);
             double gross = basePrice * safeQuantity;
             double net = gross * (1 - discountPercentValue/100.0);
@@ -320,7 +321,7 @@ public class QuotationController {
                 DTOQuotation qRef = new DTOQuotation();
                 qRef.setQuotationID(quotationID);
                 detail.setQuotation(qRef);
-                detail.setUnitPrice(basePriceBD); // store base price per unit
+                detail.setUnitPrice(unitPriceBD); // store dealer resolved price per unit
                 DTOVehicleVersion versionRef = new DTOVehicleVersion();
                 versionRef.setVersionID(vehicle.getVersion().getVersionID());
                 detail.setVersion(versionRef);
@@ -403,6 +404,10 @@ public class QuotationController {
             if (quotation == null) {
                 model.addAttribute("error", "Quotation not found!");
                 return "redirect:/quotation/list";
+            }
+            if (quotation.getDealer()!=null) {
+                dao.normalizeQuotationDealerPrices(id, quotation.getDealer().getDealerID());
+                quotation = dao.getQuotationById(id); // reload after normalization
             }
 
             List<DTOQuotationDetail> details = dao.getQuotationDetails(id);
@@ -822,6 +827,7 @@ public class QuotationController {
             ra.addFlashAttribute("error", "Vehicle not found.");
             return "redirect:/vehicleList";
         }
+        applyDealerPriceToVehicle(vehicle, dealerID);
         int levelID = 1;
         DTODealer dealer = dao.getDealerByID(dealerID);
         if (dealer != null && dealer.getLevelID() > 0) levelID = dealer.getLevelID();
@@ -841,8 +847,8 @@ public class QuotationController {
         DTOQuotation qRef = new DTOQuotation(); qRef.setQuotationID(quotationID); detail.setQuotation(qRef);
         DTOVehicleVersion vRef = new DTOVehicleVersion(); vRef.setVersionID(vehicle.getVersion().getVersionID()); detail.setVersion(vRef);
         DTOVehicleColor cRef = new DTOVehicleColor(); cRef.setColorID(vehicle.getColor().getColorID()); detail.setColor(cRef);
-        java.math.BigDecimal basePrice = vehicle.getBasePrice() != null ? vehicle.getBasePrice() : java.math.BigDecimal.ZERO;
-        detail.setUnitPrice(basePrice);
+        java.math.BigDecimal unitPrice = vehicle.getDealerSellingPriceResolved() != null ? vehicle.getDealerSellingPriceResolved() : java.math.BigDecimal.ZERO;
+        detail.setUnitPrice(unitPrice);
         detail.setQuantity(Math.max(1, quantity));
         boolean ok = dao.insertQuotationDetail(detail);
         if (ok) { dao.recalcQuotationTotal(quotationID); ra.addFlashAttribute("message", "Added vehicle to quotation #" + quotationID); }
@@ -1334,5 +1340,23 @@ public class QuotationController {
             ra.addFlashAttribute("error", "Bulk update failed: " + ex.getMessage());
         }
         return "redirect:/quotation/detail/" + quotationID;
+    }
+
+    private void applyDealerPriceToVehicle(DTOVehicle vehicle, Integer dealerId) {
+        if (vehicle == null || dealerId == null || dealerId <= 0) return;
+        try {
+            DAODealerModelPrice dmp = new DAODealerModelPrice();
+            Integer modelId = vehicle.getModelID();
+            if (modelId != null) {
+                java.math.BigDecimal price = dmp.getPrice(dealerId, modelId);
+                if (price != null) {
+                    vehicle.setDealerSellingPrice(price);
+                    // also push into model for templates resolving
+                    if (vehicle.getVersion()!=null && vehicle.getVersion().getModel()!=null) {
+                        vehicle.getVersion().getModel().setDealerSellingPrice(price);
+                    }
+                }
+            }
+        } catch (Exception ignored) { }
     }
 }

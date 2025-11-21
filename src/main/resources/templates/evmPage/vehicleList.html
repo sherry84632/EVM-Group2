@@ -76,16 +76,16 @@
                     <div th:each="vehicle : ${vehicles}" class="col-md-6">
                         <a th:href="@{/evm/vehicle/detail/{id}(id=${vehicle.vehicleID})}" style="text-decoration: none;">
                             <div class="card shadow">
-                                <div class="card-header">
+                                <div class="card-header d-flex justify-content-between align-items-center">
                                     <div class="model-name">
                                         <span th:text="${vehicle.model != null ? vehicle.model.modelName : 'N/A'}">Model Name</span>
                                     </div>
+                                    <div class="small text-muted" th:if="${vehicle.model != null}">
+                                        Base: <span th:text="${@numberFormat.formatCompactCurrency(vehicle.model.basePrice)}"></span>
+                                    </div>
                                 </div>
-
                                 <div class="card-body">
-
                                     <div class="row">
-
                                         <div class="col-md-3">
                                             <div class="image-placeholder">
                                                 <!-- Hiển thị ảnh từ database nếu có -->
@@ -101,7 +101,7 @@
                                             </div>
                                         </div>
 
-                                        <div class="col-md-6">
+                                        <div class="col-md-9">
                                             <div class="item-info">
                                                 <div class="info-row">
                                                     <div class="info-item">
@@ -125,7 +125,6 @@
                                                 </div>
                                             </div>
                                         </div>
-
                                     </div>
 
                                 </div>

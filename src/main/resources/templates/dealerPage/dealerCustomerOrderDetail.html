@@ -497,14 +497,6 @@
                                 <span>Net Total</span>
                                 <span th:text="${T(utils.NumberFormatUtil).formatCurrency(order.totalAmount)}">$0</span>
                             </div>
-                            <div class="summary-item">
-                                <span>Dealer Level Share</span>
-                                <span th:text="${T(utils.NumberFormatUtil).formatCurrency(dealerLevelShareTotal != null ? dealerLevelShareTotal : 0)}">$0</span>
-                            </div>
-                            <div class="summary-item">
-                                <span>Level Share %</span>
-                                <span th:text="${#numbers.formatDecimal(dealerLevelSharePercent,2,0)} + '%'">0%</span>
-                            </div>
                         </div>
                     </div>
                     <p class="text-muted" th:if="${order.detail == null or order.detail.isEmpty()}">No line items.</p>
