@@ -55,6 +55,12 @@ public class DTOPurchaseOrderDetail {
     @Transient
     private java.math.BigDecimal discountAmount; // Số tiền chiết khấu
 
+    @Transient
+    private Integer colorIdValue;
+
+    @Transient
+    private Integer versionIdValue;
+
     public DTOPurchaseOrderDetail() {}
 
     public DTOPurchaseOrderDetail(int poDetailId, DTOPurchaseOrder purchaseOrder, DTOVehicleColor color, 
@@ -109,4 +115,32 @@ public class DTOPurchaseOrderDetail {
 
     public String getPaymentStatus() { return paymentStatus; }
     public void setPaymentStatus(String paymentStatus) { this.paymentStatus = paymentStatus; }
+
+    public Integer getResolvedColorId() {
+        if (color != null) {
+            int id = color.getColorID();
+            if (id > 0) {
+                return id;
+            }
+        }
+        return colorIdValue;
+    }
+
+    public void setResolvedColorId(Integer colorIdValue) {
+        this.colorIdValue = colorIdValue;
+    }
+
+    public Integer getResolvedVersionId() {
+        if (version != null) {
+            int id = version.getVersionID();
+            if (id > 0) {
+                return id;
+            }
+        }
+        return versionIdValue;
+    }
+
+    public void setResolvedVersionId(Integer versionIdValue) {
+        this.versionIdValue = versionIdValue;
+    }
 }

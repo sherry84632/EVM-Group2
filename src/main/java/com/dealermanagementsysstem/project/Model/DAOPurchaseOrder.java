@@ -145,6 +145,11 @@ public class DAOPurchaseOrder {
                                 d.setQuantity(drs.getInt("Quantity"));
                                 d.setSubtotal(drs.getBigDecimal("Subtotal"));
 
+                                int rawColorId = drs.getInt("ColorID");
+                                d.setResolvedColorId(drs.wasNull() ? null : rawColorId);
+                                int rawVersionId = drs.getInt("VersionID");
+                                d.setResolvedVersionId(drs.wasNull() ? null : rawVersionId);
+
                                 //  Set PaymentStatus
                                 String paymentStatus = drs.getString("PaymentStatus");
                                 d.setPaymentStatus(paymentStatus != null ? paymentStatus : "UNPAID");
