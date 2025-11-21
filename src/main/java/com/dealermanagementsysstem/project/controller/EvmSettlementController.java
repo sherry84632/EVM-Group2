@@ -69,6 +69,9 @@ public class EvmSettlementController {
         BigDecimal totalNet = BigDecimal.ZERO;
         BigDecimal totalManufacturerDiscount = BigDecimal.ZERO;
         BigDecimal totalDiscountSavings = BigDecimal.ZERO; // gross - net
+        // NEW aggregates
+        BigDecimal totalReimbursed = BigDecimal.ZERO; // tổng đã quyết toán
+        BigDecimal totalOutstanding = BigDecimal.ZERO; // tổng còn lại cần quyết toán
 
         // Policy aggregate container
         class PolicyAgg { BigDecimal discount = BigDecimal.ZERO; int orders = 0; int vehicles = 0; String name; }
@@ -148,11 +151,10 @@ public class EvmSettlementController {
                     } catch (Exception ignore) {}
                 }
             }
-            // Settlement status filter logic: if user selected a settlement status, require a settlement and match
+            // Settlement status filter logic
             if (settlementStatusFilter != null && !settlementStatusFilter.isBlank()) {
                 if (settlement == null || settlement.getStatus()==null || !settlement.getStatus().equalsIgnoreCase(settlementStatusFilter)) {
-                    // skip this order entirely from rows and aggregates
-                    continue;
+                    continue; // skip
                 }
             }
             row.put("settlement", settlement);
@@ -162,6 +164,15 @@ public class EvmSettlementController {
             totalNet = totalNet.add(orderNet);
             totalManufacturerDiscount = totalManufacturerDiscount.add(orderManufacturerDiscount);
             totalDiscountSavings = totalDiscountSavings.add(orderSavings);
+            // NEW aggregate logic per settlement
+            if (settlement != null) {
+                BigDecimal reimb = settlement.getReimbursedAmount()!=null? settlement.getReimbursedAmount(): BigDecimal.ZERO;
+                BigDecimal outstanding = settlement.getOutstanding()!=null? settlement.getOutstanding(): BigDecimal.ZERO;
+                // Clamp negative outstanding (in case of over payment)
+                if (outstanding.compareTo(BigDecimal.ZERO) < 0) outstanding = BigDecimal.ZERO;
+                totalReimbursed = totalReimbursed.add(reimb);
+                totalOutstanding = totalOutstanding.add(outstanding);
+            }
         }
 
         double effectivePercent = totalGross.compareTo(BigDecimal.ZERO) > 0 ?
@@ -169,9 +180,18 @@ public class EvmSettlementController {
                         .multiply(BigDecimal.valueOf(100)).doubleValue() : 0.0;
 
         double savingsPercentOverall = totalGross.compareTo(BigDecimal.ZERO)>0 ? totalDiscountSavings.divide(totalGross,6,java.math.RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)).doubleValue() : 0.0;
+        // NEW percent paid (tỷ lệ đã quyết toán trên tổng cần hoàn)
+        double percentPaid = totalManufacturerDiscount.compareTo(BigDecimal.ZERO)>0 ?
+                totalReimbursed.divide(totalManufacturerDiscount,6,java.math.RoundingMode.HALF_UP)
+                        .multiply(BigDecimal.valueOf(100)).doubleValue() : 0.0;
+
         model.addAttribute("totalDiscountSavings", totalDiscountSavings);
         model.addAttribute("discountSavingsPercent", savingsPercentOverall);
-        model.addAttribute("reimbursementDue", totalManufacturerDiscount); // alias for clarity
+        model.addAttribute("reimbursementDue", totalManufacturerDiscount);
+        // NEW attributes for UI
+        model.addAttribute("totalReimbursed", totalReimbursed);
+        model.addAttribute("totalOutstanding", totalOutstanding);
+        model.addAttribute("percentPaid", percentPaid);
 
         // build policy breakdown list
         List<Map<String,Object>> policyBreakdown = new ArrayList<>();

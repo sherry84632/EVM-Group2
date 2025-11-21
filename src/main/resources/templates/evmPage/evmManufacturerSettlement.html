@@ -81,6 +81,17 @@
                 <div class="label">Effective % (Gross)</div>
                 <div class="value" th:text="${#numbers.formatDecimal(effectivePercent,2,0)} + '%'">0%</div>
             </div>
+            <div class="summary-card discount">
+                <span class="summary-icon"><i class="fas fa-check-circle"></i></span>
+                <div class="label">Reimbursed (Paid)</div>
+                <div class="value text-mono" th:title="${@numberFormat.formatCurrency(totalReimbursed)}" th:text="${@numberFormat.formatCompactCurrency(totalReimbursed)}">$0</div>
+                <div class="subnote" th:text="${#numbers.formatDecimal(percentPaid,2,0)} + '%'">0%</div>
+            </div>
+            <div class="summary-card discount">
+                <span class="summary-icon"><i class="fas fa-hourglass-half"></i></span>
+                <div class="label">Outstanding (Remain)</div>
+                <div class="value text-mono" th:title="${@numberFormat.formatCurrency(totalOutstanding)}" th:text="${@numberFormat.formatCompactCurrency(totalOutstanding)}">$0</div>
+            </div>
         </div>
         <!-- Policy Breakdown -->
         <div class="section-card mb-4">
@@ -133,10 +144,15 @@
                             <span th:if="${r['policyNames'] == null or r['policyNames'].isEmpty()}" class="text-muted">—</span>
                         </td>
                         <td>
-                            <div th:if="${st != null}" class="settlement-box p-2 border rounded bg-white" style="max-width:300px;">
+                            <div th:if="${st != null}" class="settlement-box p-2 border rounded bg-white" style="max-width:320px;">
                                 <form th:action="@{/evm/settlement/update-status}" method="post" class="d-flex flex-column gap-1">
                                     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
                                     <input type="hidden" name="settlementID" th:value="${st.settlementID}"/>
+                                    <div class="small text-muted mb-1">
+                                        <span class="me-2">Total: <strong th:text="${@numberFormat.formatCurrency(st.totalManufacturerDiscount)}"></strong></span>
+                                        <span class="me-2">Paid: <strong th:text="${@numberFormat.formatCurrency(st.reimbursedAmount)}"></strong></span>
+                                        <span>Remain: <strong th:text="${@numberFormat.formatCurrency(st.outstanding)}"></strong></span>
+                                    </div>
                                     <div class="input-group input-group-sm">
                                         <label class="input-group-text" th:for="${'statusInput_'+r['order'].saleOrderID}">Status</label>
                                         <select th:id="${'statusInput_'+r['order'].saleOrderID}" name="status" class="form-select form-select-sm">
