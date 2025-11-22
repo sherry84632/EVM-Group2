@@ -110,15 +110,6 @@
                     </div>
                 </div>
             </div>
-            <div class="col-12 col-sm-6 col-xl-3">
-                <div class="card shadow-sm stat-card">
-                    <div class="card-body">
-                        <div class="text-muted small">💾 Discount Savings</div>
-                        <div class="fs-5 fw-semibold text-primary" th:text="${T(utils.NumberFormatUtil).formatCurrency(kpis['discountSavings'] != null ? kpis['discountSavings'] : 0)}">$0</div>
-                        <div class="small text-muted" th:text="${kpis['grossRevenue'] != null && kpis['grossRevenue'] > 0 ? ( (kpis['discountSavings'] / kpis['grossRevenue']) * 100.0 ) : 0} + '% saved'">0% saved</div>
-                    </div>
-                </div>
-            </div>
         </div>
 
         <div class="row g-3">
