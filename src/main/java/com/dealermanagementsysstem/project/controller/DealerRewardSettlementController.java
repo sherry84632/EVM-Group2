@@ -179,9 +179,25 @@ public class DealerRewardSettlementController {
     @PostMapping("/pay-all")
     public String payAll(@RequestParam Integer id,
                          @RequestParam(required=false) String notes){
+        System.out.println("🔵 [PayAll] Received request - ID: " + id + ", Notes: " + notes);
         DTODealerRewardSettlement dto = rewardDAO.getById(id);
-        if(dto!=null && !dto.isLocked()){
-            rewardDAO.payAll(id, notes);
+        if(dto == null) {
+            System.out.println("❌ [PayAll] Settlement not found with ID: " + id);
+            return "redirect:/evm/reward-settlement";
+        }
+        System.out.println("🔵 [PayAll] Current settlement - Locked: " + dto.isLocked() +
+                         ", Outstanding: " + dto.getOutstanding() +
+                         ", Status: " + dto.getStatus());
+        if(dto.isLocked()){
+            System.out.println("⚠️ [PayAll] Settlement is locked, cannot pay");
+            return "redirect:/evm/reward-settlement";
+        }
+        DTODealerRewardSettlement result = rewardDAO.payAll(id, notes);
+        if(result != null) {
+            System.out.println("✅ [PayAll] Payment successful - New Status: " + result.getStatus() +
+                             ", Reimbursed: " + result.getReimbursedAmount());
+        } else {
+            System.out.println("❌ [PayAll] Payment failed");
         }
         return "redirect:/evm/reward-settlement";
     }
