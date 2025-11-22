@@ -11,52 +11,6 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * EN: Data Access Object for managing customer promotional discount codes ("Promo Codes").
- * <p>
- * Provides CRUD operations, search, usage counting, and business validation logic for promo
- * codes stored in the {@code DiscountPolicy} table. This class supersedes the legacy usage of
- * DiscountPolicy entries for manufacturer/dealer commission splits; here the records strictly
- * represent customer-facing discount instruments (e.g. "SUMMER2024", "NEWCAR15").
- * </p>
- * <p>
- * Typical usage flow:
- * 1. {@link #findByPromoCode(String)} to load the code the customer entered.
- * 2. {@link #validatePromoCode(String, int, BigDecimal)} to check applicability & business rules.
- * 3. Apply discount (percent or fixed) obeying max discount cap & purchase constraints.
- * 4. Persist order; only then call {@link #incrementUsageCount(int)} to avoid counting failed attempts.
- * </p>
- * <p>
- * Thread-safety: Methods obtain fresh JDBC connections via {@link DBUtils#getConnection()} and do
- * not share mutable state. Each individual call is safe in a Spring singleton context. Note that
- * validation + increment is not atomic: concurrent checkouts could pass validation simultaneously
- * and exceed intended {@code UsageLimit}. To harden against race conditions you may later adopt a
- * single UPDATE with predicate (e.g. WHERE UsedCount < UsageLimit) or a transaction with locking.
- * </p>
- * <p>
- * Glossary (EN -> VI):
- * - Promo Code: Customer discount code -> Mã giảm giá khách hàng.
- * - Usage Limit (nullable): Max allowed uses; NULL means unlimited -> Giới hạn sử dụng (NULL = không giới hạn).
- * - Used Count: Current number of successful applications -> Số lượt đã dùng.
- * - Applicable Models: Comma-separated model IDs -> Danh sách ID mẫu xe áp dụng (phân tách bằng dấu phẩy).
- * - Discount Percent / Amount: Percentage vs fixed absolute discount -> Phần trăm / số tiền giảm cố định.
- * - Max Discount Amount: Cap for computed discount -> Giới hạn số tiền giảm tối đa.
- * - Active window: StartDate .. EndDate (EndDate NULL = open-ended) -> Khoảng thời gian hiệu lực.
- * </p>
- * <p>
- * VI: Lớp DAO quản lý các mã giảm giá cho khách hàng. Cung cấp các chức năng tạo, sửa, xóa,
- * tìm kiếm, kiểm tra điều kiện áp dụng và tăng số lượt sử dụng. Thay thế logic cũ dùng bảng
- * DiscountPolicy cho việc chia hoa hồng giữa hãng và đại lý; hiện các bản ghi chỉ đại diện
- * cho công cụ giảm giá dành cho khách hàng.
- * </p>
- * <p>
- * Quy trình sử dụng điển hình:
- * 1. Gọi {@link #findByPromoCode(String)} để lấy thông tin mã nhập vào.
- * 2. Gọi {@link #validatePromoCode(String, int, BigDecimal)} để kiểm tra hợp lệ.
- * 3. Áp dụng giảm giá theo phần trăm hoặc số tiền, tuân thủ giới hạn tối đa.
- * 4. Sau khi đơn hàng thành công mới gọi {@link #incrementUsageCount(int)} để tránh tăng sai.
- * </p>
- */
 @Repository
 @SuppressWarnings({"SqlDialectInspection", "SqlNoDataSourceInspection", "unused"})
 public class DAOPromoCode {
