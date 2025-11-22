@@ -96,10 +96,23 @@ public class DAODealerRewardSettlement {
         return null;
     }
     public DTODealerRewardSettlement payAll(int id, String notes){
+        System.out.println("🔵 [DAO PayAll] Starting - ID: " + id);
         DTODealerRewardSettlement cur = getById(id);
-        if(cur==null) return null; if(cur.isLocked()) return cur;
+        if(cur==null) {
+            System.out.println("❌ [DAO PayAll] Settlement not found");
+            return null;
+        }
+        if(cur.isLocked()) {
+            System.out.println("⚠️ [DAO PayAll] Settlement is locked");
+            return cur;
+        }
         java.math.BigDecimal remain = cur.getOutstanding();
-        return partialPay(id, remain, notes);
+        System.out.println("🔵 [DAO PayAll] Outstanding amount: " + remain +
+                         ", RewardAmount: " + cur.getRewardAmount() +
+                         ", ReimbursedAmount: " + cur.getReimbursedAmount());
+        DTODealerRewardSettlement result = partialPay(id, remain, notes);
+        System.out.println("✅ [DAO PayAll] Completed");
+        return result;
     }
     private DTODealerRewardSettlement map(ResultSet rs) throws SQLException {
         DTODealerRewardSettlement d=new DTODealerRewardSettlement();
