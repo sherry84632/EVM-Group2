@@ -1,4 +1,4 @@
-package com.dealermanagementsysstem.project.controller;
+﻿package com.dealermanagementsysstem.project.controller;
 
 import com.dealermanagementsysstem.project.Model.*;
 import jakarta.servlet.http.HttpSession;
@@ -42,7 +42,7 @@ public class DealerStaffManagementController {
         DTOAccount loggedInAccount = (DTOAccount) session.getAttribute("loggedInAccount");
 
         if (loggedInAccount == null) {
-            redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Please login first!");
+            redirectAttributes.addFlashAttribute("errorMessage", "Please login first!");
             return "redirect:/login";
         }
 
@@ -54,7 +54,7 @@ public class DealerStaffManagementController {
         }
 
         if (dealerId == null) {
-            redirectAttributes.addFlashAttribute("errorMessage", "⚠️ No dealer associated with your account!");
+            redirectAttributes.addFlashAttribute("errorMessage", "No dealer associated with your account!");
             return "redirect:/showDealerHomePage";
         }
 
@@ -81,7 +81,7 @@ public class DealerStaffManagementController {
             return "dealerPage/dealerStaffManagement";
         } catch (Exception e) {
             e.printStackTrace();
-            redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Error loading staff: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "Error loading staff: " + e.getMessage());
             return "redirect:/showDealerHomePage";
         }
     }
@@ -105,7 +105,7 @@ public class DealerStaffManagementController {
         DTOAccount loggedInAccount = (DTOAccount) session.getAttribute("loggedInAccount");
 
         if (loggedInAccount == null) {
-            redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Please login first!");
+            redirectAttributes.addFlashAttribute("errorMessage", "Please login first!");
             return "redirect:/login";
         }
 
@@ -117,13 +117,13 @@ public class DealerStaffManagementController {
         }
 
         if (dealerId == null) {
-            redirectAttributes.addFlashAttribute("errorMessage", "⚠️ No dealer associated with your account!");
+            redirectAttributes.addFlashAttribute("errorMessage", "No dealer associated with your account!");
             return "redirect:/showDealerHomePage";
         }
 
         // Only DEALER role can create accounts, not DEALERSTAFF
         if (loggedInAccount.getRole() != Role.DEALER) {
-            redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Only dealer owners can create accounts!");
+            redirectAttributes.addFlashAttribute("errorMessage", "Only dealer owners can create accounts!");
             return "redirect:/dealer/staff/list";
         }
 
@@ -133,44 +133,44 @@ public class DealerStaffManagementController {
             accountRole = Role.valueOf(roleStr);
             // Only allow DEALER and DEALERSTAFF roles
             if (accountRole != Role.DEALER && accountRole != Role.DEALERSTAFF) {
-                redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Can only create DEALER or DEALERSTAFF accounts!");
+                redirectAttributes.addFlashAttribute("errorMessage", "Can only create DEALER or DEALERSTAFF accounts!");
                 return "redirect:/dealer/staff/list";
             }
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Invalid role!");
+            redirectAttributes.addFlashAttribute("errorMessage", "Invalid role!");
             return "redirect:/dealer/staff/list";
         }
 
         try {
             // Validation
             if (username == null || username.trim().isEmpty()) {
-                redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Username is required!");
+                redirectAttributes.addFlashAttribute("errorMessage", "Username is required!");
                 return "redirect:/dealer/staff/list";
             }
 
             if (email == null || email.trim().isEmpty()) {
-                redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Email is required!");
+                redirectAttributes.addFlashAttribute("errorMessage", "Email is required!");
                 return "redirect:/dealer/staff/list";
             }
 
             if (password == null || password.trim().isEmpty()) {
-                redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Password is required!");
+                redirectAttributes.addFlashAttribute("errorMessage", "Password is required!");
                 return "redirect:/dealer/staff/list";
             }
 
             if (staffFullName == null || staffFullName.trim().isEmpty()) {
-                redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Full Name is required!");
+                redirectAttributes.addFlashAttribute("errorMessage", "Full Name is required!");
                 return "redirect:/dealer/staff/list";
             }
 
             if (staffPhone == null || staffPhone.trim().isEmpty()) {
-                redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Phone is required!");
+                redirectAttributes.addFlashAttribute("errorMessage", "Phone is required!");
                 return "redirect:/dealer/staff/list";
             }
 
             // Check if email already exists
             if (daoAccount.emailExists(email, null)) {
-                redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Email already exists!");
+                redirectAttributes.addFlashAttribute("errorMessage", "Email already exists!");
                 return "redirect:/dealer/staff/list";
             }
 
@@ -185,7 +185,7 @@ public class DealerStaffManagementController {
             int accountId = daoAccount.insertAccount(account);
 
             if (accountId <= 0) {
-                redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Failed to create account!");
+                redirectAttributes.addFlashAttribute("errorMessage", "Failed to create account!");
                 return "redirect:/dealer/staff/list";
             }
 
@@ -218,16 +218,16 @@ public class DealerStaffManagementController {
             if (staffId <= 0) {
                 // Rollback: delete account
                 daoAccount.deleteAccount(accountId);
-                redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Failed to create staff record!");
+                redirectAttributes.addFlashAttribute("errorMessage", "Failed to create staff record!");
                 return "redirect:/dealer/staff/list";
             }
 
             String roleLabel = accountRole == Role.DEALER ? "Manager" : "Staff";
-            redirectAttributes.addFlashAttribute("successMessage", "✅ " + roleLabel + " account created successfully!");
+            redirectAttributes.addFlashAttribute("successMessage", "" + roleLabel + " account created successfully!");
 
         } catch (Exception e) {
             e.printStackTrace();
-            redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Error: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "Error: " + e.getMessage());
         }
 
         return "redirect:/dealer/staff/list";
@@ -245,13 +245,13 @@ public class DealerStaffManagementController {
         DTOAccount loggedInAccount = (DTOAccount) session.getAttribute("loggedInAccount");
 
         if (loggedInAccount == null) {
-            redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Please login first!");
+            redirectAttributes.addFlashAttribute("errorMessage", "Please login first!");
             return "redirect:/login";
         }
 
         // Only DEALER role can delete staff
         if (loggedInAccount.getRole() != Role.DEALER) {
-            redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Only dealer owners can delete staff accounts!");
+            redirectAttributes.addFlashAttribute("errorMessage", "Only dealer owners can delete staff accounts!");
             return "redirect:/dealer/staff/list";
         }
 
@@ -264,7 +264,7 @@ public class DealerStaffManagementController {
             }
 
             if (dealerId == null) {
-                redirectAttributes.addFlashAttribute("errorMessage", "⚠️ No dealer associated with your account!");
+                redirectAttributes.addFlashAttribute("errorMessage", "No dealer associated with your account!");
                 return "redirect:/dealer/staff/list";
             }
 
@@ -280,7 +280,7 @@ public class DealerStaffManagementController {
             }
 
             if (staffToDelete == null) {
-                redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Staff not found or does not belong to your dealer!");
+                redirectAttributes.addFlashAttribute("errorMessage", "Staff not found or does not belong to your dealer!");
                 return "redirect:/dealer/staff/list";
             }
 
@@ -288,9 +288,9 @@ public class DealerStaffManagementController {
             boolean deleted = daoDealerStaff.deleteDealerStaff(staffId);
 
             if (deleted) {
-                redirectAttributes.addFlashAttribute("successMessage", "✅ Staff deleted successfully!");
+                redirectAttributes.addFlashAttribute("successMessage", "Staff deleted successfully!");
             } else {
-                redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Failed to delete staff!");
+                redirectAttributes.addFlashAttribute("errorMessage", "Failed to delete staff!");
             }
 
         } catch (Exception e) {
@@ -302,10 +302,10 @@ public class DealerStaffManagementController {
                 e.getMessage().contains("SaleOrder") ||
                 e.getMessage().contains("StaffID"))) {
                 redirectAttributes.addFlashAttribute("errorMessage",
-                    "⚠️ Cannot delete staff! This staff has related data (sale orders, customers, etc.). " +
+                    "Cannot delete staff! This staff has related data (sale orders, customers, etc.). " +
                     "Please reassign or delete related data first.");
             } else {
-                redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Error: " + e.getMessage());
+                redirectAttributes.addFlashAttribute("errorMessage", "Error: " + e.getMessage());
             }
         }
 
@@ -326,19 +326,19 @@ public class DealerStaffManagementController {
                               HttpSession session,
                               RedirectAttributes redirectAttributes) {
         DTOAccount loggedInAccount = (DTOAccount) session.getAttribute("loggedInAccount");
-        if (loggedInAccount == null) { redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Please login first!"); return "redirect:/login"; }
-        if (loggedInAccount.getRole() != Role.DEALER) { redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Only dealer owners can update staff!"); return "redirect:/dealer/staff/list"; }
+        if (loggedInAccount == null) { redirectAttributes.addFlashAttribute("errorMessage", "Please login first!"); return "redirect:/login"; }
+        if (loggedInAccount.getRole() != Role.DEALER) { redirectAttributes.addFlashAttribute("errorMessage", "Only dealer owners can update staff!"); return "redirect:/dealer/staff/list"; }
         Integer dealerId = null;
         if (loggedInAccount.getDealerStaff()!=null && loggedInAccount.getDealerStaff().getDealer()!=null) dealerId = loggedInAccount.getDealerStaff().getDealer().getDealerID();
-        if (dealerId == null) { redirectAttributes.addFlashAttribute("errorMessage", "⚠️ No dealer associated with your account!"); return "redirect:/dealer/staff/list"; }
+        if (dealerId == null) { redirectAttributes.addFlashAttribute("errorMessage", "No dealer associated with your account!"); return "redirect:/dealer/staff/list"; }
         try {
             // Locate staff
             List<DTODealerStaff> staffList = daoDealerStaff.getStaffsByDealerId(dealerId);
             DTODealerStaff target = null;
             for (DTODealerStaff s: staffList) if (s.getStaffID()==staffId) { target=s; break; }
-            if (target == null) { redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Staff not found or not in your dealer!"); return "redirect:/dealer/staff/list"; }
+            if (target == null) { redirectAttributes.addFlashAttribute("errorMessage", "Staff not found or not in your dealer!"); return "redirect:/dealer/staff/list"; }
             // Validate required fields
-            if (staffFullName==null || staffFullName.trim().isEmpty()) { redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Full Name is required!"); return "redirect:/dealer/staff/list"; }
+            if (staffFullName==null || staffFullName.trim().isEmpty()) { redirectAttributes.addFlashAttribute("errorMessage", "Full Name is required!"); return "redirect:/dealer/staff/list"; }
             // Update staff object
             target.setFullName(staffFullName.trim());
             target.setPhone(staffPhone!=null? staffPhone.trim(): target.getPhone());
@@ -352,14 +352,14 @@ public class DealerStaffManagementController {
                     if (accountEmail!=null && !accountEmail.trim().isEmpty()) {
                         // Check email uniqueness
                         if (daoAccount.emailExists(accountEmail.trim(), account.getAccountId())) {
-                            redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Account email already exists!");
+                            redirectAttributes.addFlashAttribute("errorMessage", "Account email already exists!");
                             return "redirect:/dealer/staff/list";
                         }
                         account.setEmail(accountEmail.trim());
                     }
                     if (active != null) account.setActive(active);
                     boolean accOk = daoAccount.updateAccount(account);
-                    if (!accOk) { redirectAttributes.addFlashAttribute("errorMessage", "❌ Failed to update account info!"); return "redirect:/dealer/staff/list"; }
+                    if (!accOk) { redirectAttributes.addFlashAttribute("errorMessage", "Failed to update account info!"); return "redirect:/dealer/staff/list"; }
                 }
             }
             // Ensure dealer association is preserved (staff objects from list lack dealer reference)
@@ -369,11 +369,11 @@ public class DealerStaffManagementController {
                 target.setDealer(dealerRef);
             }
             boolean staffOk = daoDealerStaff.updateDealerStaff(target);
-            if (staffOk) redirectAttributes.addFlashAttribute("successMessage", "✅ Updated staff '"+target.getFullName()+"' successfully!");
-            else redirectAttributes.addFlashAttribute("errorMessage", "❌ Failed to update staff record!");
+            if (staffOk) redirectAttributes.addFlashAttribute("successMessage", "Updated staff '"+target.getFullName()+"' successfully!");
+            else redirectAttributes.addFlashAttribute("errorMessage", "Failed to update staff record!");
         } catch (Exception e) {
             e.printStackTrace();
-            redirectAttributes.addFlashAttribute("errorMessage", "❌ Error updating staff: "+ e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "Error updating staff: "+ e.getMessage());
         }
         return "redirect:/dealer/staff/list";
     }

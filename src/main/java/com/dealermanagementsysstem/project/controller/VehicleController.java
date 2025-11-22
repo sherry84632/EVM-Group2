@@ -1,4 +1,4 @@
-package com.dealermanagementsysstem.project.controller;
+﻿package com.dealermanagementsysstem.project.controller;
 
 import com.dealermanagementsysstem.project.Model.DAOCustomer;
 import com.dealermanagementsysstem.project.Model.DAOVehicle;
@@ -81,7 +81,7 @@ public class VehicleController {
                 } else {
                     // Admin/EVM user: show all customers
                     customerList = daoCustomer.getAllCustomers();
-                    log.info("⚠ No dealerId found for email={}, loaded all {} customers", email, customerList.size());
+                    log.info("No dealerId found for email={}, loaded all {} customers", email, customerList.size());
                 }
                 model.addAttribute("customerList", customerList);
             } else {

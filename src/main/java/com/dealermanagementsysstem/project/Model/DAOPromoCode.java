@@ -1,4 +1,4 @@
-package com.dealermanagementsysstem.project.Model;
+﻿package com.dealermanagementsysstem.project.Model;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -104,13 +104,13 @@ public class DAOPromoCode {
                 try (ResultSet rs = ps.getGeneratedKeys()) {
                     if (rs.next()) {
                         int promoId = rs.getInt(1);
-                        log.info("✅ Created promo code: {} (ID={})", promo.getPromoCode(), promoId);
+                        log.info("Created promo code: {} (ID={})", promo.getPromoCode(), promoId);
                         return promoId;
                     }
                 }
             }
         } catch (SQLException e) {
-            log.error("❌ Error creating promo code: {}", promo.getPromoCode(), e);
+            log.error("Error creating promo code: {}", promo.getPromoCode(), e);
         }
         return -1;
     }
@@ -140,9 +140,9 @@ public class DAOPromoCode {
             while (rs.next()) {
                 list.add(mapPromoCode(rs));
             }
-            log.info("📋 Loaded {} active promo codes", list.size());
+            log.info("Loaded {} active promo codes", list.size());
         } catch (SQLException e) {
-            log.error("❌ Error fetching active promo codes", e);
+            log.error("Error fetching active promo codes", e);
         }
         return list;
     }
@@ -164,9 +164,9 @@ public class DAOPromoCode {
             while (rs.next()) {
                 list.add(mapPromoCode(rs));
             }
-            log.info("📋 Loaded {} total promo codes", list.size());
+            log.info("Loaded {} total promo codes", list.size());
         } catch (SQLException e) {
-            log.error("❌ Error fetching all promo codes", e);
+            log.error("Error fetching all promo codes", e);
         }
         return list;
     }
@@ -189,15 +189,15 @@ public class DAOPromoCode {
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     DTODiscountPolicy promo = mapPromoCode(rs);
-                    log.info("🔍 Found promo code: {}", promoCode);
+                    log.info("Found promo code: {}", promoCode);
                     return promo;
                 }
             }
         } catch (SQLException e) {
-            log.error("❌ Error finding promo code: {}", promoCode, e);
+            log.error("Error finding promo code: {}", promoCode, e);
         }
 
-        log.warn("⚠️ Promo code not found: {}", promoCode);
+        log.warn("Promo code not found: {}", promoCode);
         return null;
     }
 
@@ -221,7 +221,7 @@ public class DAOPromoCode {
                 }
             }
         } catch (SQLException e) {
-            log.error("❌ Error fetching promo code ID={}", policyId, e);
+            log.error("Error fetching promo code ID={}", policyId, e);
         }
         return null;
     }
@@ -265,11 +265,11 @@ public class DAOPromoCode {
 
             int rows = ps.executeUpdate();
             if (rows > 0) {
-                log.info("✅ Updated promo code ID={}", promo.getPolicyID());
+                log.info("Updated promo code ID={}", promo.getPolicyID());
                 return true;
             }
         } catch (SQLException e) {
-            log.error("❌ Error updating promo code ID={}", promo.getPolicyID(), e);
+            log.error("Error updating promo code ID={}", promo.getPolicyID(), e);
         }
         return false;
     }
@@ -291,11 +291,11 @@ public class DAOPromoCode {
             int rows = ps.executeUpdate();
 
             if (rows > 0) {
-                log.info("🗑️ Deleted promo code ID={}", policyId);
+                log.info("Deleted promo code ID={}", policyId);
                 return true;
             }
         } catch (SQLException e) {
-            log.error("❌ Error deleting promo code ID={}", policyId, e);
+            log.error("Error deleting promo code ID={}", policyId, e);
         }
         return false;
     }
@@ -318,11 +318,11 @@ public class DAOPromoCode {
             int rows = ps.executeUpdate();
 
             if (rows > 0) {
-                log.info("📈 Incremented usage count for promo code ID={}", policyId);
+                log.info("Incremented usage count for promo code ID={}", policyId);
                 return true;
             }
         } catch (SQLException e) {
-            log.error("❌ Error incrementing usage count for ID={}", policyId, e);
+            log.error("Error incrementing usage count for ID={}", policyId, e);
         }
         return false;
     }
@@ -404,9 +404,9 @@ public class DAOPromoCode {
                     list.add(mapPromoCode(rs));
                 }
             }
-            log.info("🔍 Found {} promo codes matching '{}'", list.size(), keyword);
+            log.info("Found {} promo codes matching '{}'", list.size(), keyword);
         } catch (SQLException e) {
-            log.error("❌ Error searching promo codes: {}", keyword, e);
+            log.error("Error searching promo codes: {}", keyword, e);
         }
         return list;
     }

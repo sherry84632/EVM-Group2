@@ -1,4 +1,4 @@
-package com.dealermanagementsysstem.project.controller;
+﻿package com.dealermanagementsysstem.project.controller;
 
 import com.dealermanagementsysstem.project.Model.*;
 import org.springframework.stereotype.Controller;
@@ -189,7 +189,7 @@ public class DealerRewardSettlementController {
                          ", Outstanding: " + dto.getOutstanding() +
                          ", Status: " + dto.getStatus());
         if(dto.isLocked()){
-            System.out.println("⚠ [PayAll] Settlement is locked, cannot pay");
+            System.out.println("[PayAll] Settlement is locked, cannot pay");
             return "redirect:/evm/reward-settlement";
         }
         DTODealerRewardSettlement result = rewardDAO.payAll(id, notes);

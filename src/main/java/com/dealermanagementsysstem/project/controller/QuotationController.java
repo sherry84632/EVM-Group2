@@ -1,4 +1,4 @@
-package com.dealermanagementsysstem.project.controller;
+﻿package com.dealermanagementsysstem.project.controller;
 
 import com.dealermanagementsysstem.project.Model.*;
 import jakarta.servlet.http.HttpSession;
@@ -94,7 +94,7 @@ public class QuotationController {
         System.out.println(" Current User Email: " + currentUserEmail);
 
         Integer dealerId = getDealerIdFromSession();
-        System.out.println(" Dealer ID from getDealerIdFromSession(): " + (dealerId != null ? dealerId : "❌ NULL"));
+        System.out.println(" Dealer ID from getDealerIdFromSession(): " + (dealerId != null ? dealerId : "NULL"));
 
         DTODealer dealer = null;
         if (dealerId != null && dealerId > 0) {
@@ -1261,28 +1261,28 @@ public class QuotationController {
                 ok = dao.deleteQuotation(id);
             }
             if (ok) {
-                ra.addFlashAttribute("message", force?"✅ Force deleted quotation":"✅ Quotation deleted successfully");
+                ra.addFlashAttribute("message", force?"Force deleted quotation":"Quotation deleted successfully");
             } else {
                 // gather refs for diagnostics
                 java.util.List<DTOSaleOrder> refs = dao.getSaleOrderRefs(id);
                 if (!refs.isEmpty()) {
                     StringBuilder sb = new StringBuilder();
-                    sb.append("❌ Cannot delete. Referenced by sale orders: ");
+                    sb.append("Cannot delete. Referenced by sale orders: ");
                     for (DTOSaleOrder so : refs) {
                         sb.append('#').append(so.getSaleOrderID()).append('(').append(so.getStatus()).append(") ");
                     }
                     if (force) sb.append(" | Completed orders block force delete.");
                     ra.addFlashAttribute("error", sb.toString());
                 } else {
-                    ra.addFlashAttribute("error", "❌ Failed to delete quotation (unknown reason)");
+                    ra.addFlashAttribute("error", "Failed to delete quotation (unknown reason)");
                 }
             }
         } catch (Exception e) {
             String errorMsg = e.getMessage();
             if (errorMsg != null && errorMsg.contains("sale order")) {
-                ra.addFlashAttribute("error", "⚠️ Cannot delete quotation: " + errorMsg + (force?" (force ignored)":""));
+                ra.addFlashAttribute("error", "Cannot delete quotation: " + errorMsg + (force?" (force ignored)":""));
             } else {
-                ra.addFlashAttribute("error", "❌ Exception deleting quotation: " + errorMsg);
+                ra.addFlashAttribute("error", "Exception deleting quotation: " + errorMsg);
             }
         }
         return "redirect:/quotation/list";

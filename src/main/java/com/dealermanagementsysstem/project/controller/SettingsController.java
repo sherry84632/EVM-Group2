@@ -1,4 +1,4 @@
-package com.dealermanagementsysstem.project.controller;
+﻿package com.dealermanagementsysstem.project.controller;
 
 import com.dealermanagementsysstem.project.configuration.BusinessConfig;
 import com.dealermanagementsysstem.project.Model.DAODealerLevel;
@@ -49,7 +49,7 @@ public class SettingsController {
             // Validate VAT rate
             if (vatRate == null || vatRate < 0 || vatRate > 100) {
                 redirectAttributes.addFlashAttribute("errorMessage",
-                    "❌ Invalid VAT rate! Must be between 0 and 100.");
+                    "Invalid VAT rate! Must be between 0 and 100.");
                 return "redirect:/settings";
             }
 
@@ -60,14 +60,14 @@ public class SettingsController {
             try { daoBusinessSetting.upsertDecimalSetting("VAT_RATE", vatRate); } catch (Exception ignore) {}
 
             redirectAttributes.addFlashAttribute("successMessage",
-                "✅ VAT rate updated successfully to " + vatRate + "%");
+                "VAT rate updated successfully to " + vatRate + "%");
 
             // Log the change
-            System.out.println("✅ VAT rate changed to: " + vatRate + "%");
+            System.out.println("VAT rate changed to: " + vatRate + "%");
 
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage",
-                "❌ Error updating VAT rate: " + e.getMessage());
+                "Error updating VAT rate: " + e.getMessage());
             e.printStackTrace();
         }
 
@@ -83,10 +83,10 @@ public class SettingsController {
             businessConfig.getVat().setRate(10.0);
             try { daoBusinessSetting.upsertDecimalSetting("VAT_RATE", 10.0); } catch (Exception ignore) {}
             redirectAttributes.addFlashAttribute("successMessage",
-                "✅ VAT rate reset to default (10%)");
+                "VAT rate reset to default (10%)");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage",
-                "❌ Error resetting VAT rate: " + e.getMessage());
+                "Error resetting VAT rate: " + e.getMessage());
         }
         return "redirect:/settings";
     }
@@ -102,20 +102,20 @@ public class SettingsController {
                                     RedirectAttributes redirectAttributes) {
         try {
             if (levelName == null || levelName.trim().isEmpty()) {
-                redirectAttributes.addFlashAttribute("errorMessage", "❌ Level name cannot be empty");
+                redirectAttributes.addFlashAttribute("errorMessage", "Level name cannot be empty");
                 return "redirect:/settings";
             }
             if (vehiclesRequired == null || vehiclesRequired < 0) {
-                redirectAttributes.addFlashAttribute("errorMessage", "❌ Vehicles required must be >= 0");
+                redirectAttributes.addFlashAttribute("errorMessage", "Vehicles required must be >= 0");
                 return "redirect:/settings";
             }
             if (sharePercent == null || sharePercent < 0 || sharePercent > 100) {
-                redirectAttributes.addFlashAttribute("errorMessage", "❌ Share percent must be between 0 and 100");
+                redirectAttributes.addFlashAttribute("errorMessage", "Share percent must be between 0 and 100");
                 return "redirect:/settings";
             }
             DTODealerLevel lvl = daoDealerLevel.getDealerLevelById(levelID);
             if (lvl == null) {
-                redirectAttributes.addFlashAttribute("errorMessage", "❌ Dealer level not found");
+                redirectAttributes.addFlashAttribute("errorMessage", "Dealer level not found");
                 return "redirect:/settings";
             }
             lvl.setLevelName(levelName.trim());
@@ -123,13 +123,13 @@ public class SettingsController {
             lvl.setSharePercent(java.math.BigDecimal.valueOf(sharePercent));
             boolean ok = daoDealerLevel.updateDealerLevel(lvl);
             if (ok) {
-                redirectAttributes.addFlashAttribute("successMessage", "✅ Updated level " + levelName + " successfully");
+                redirectAttributes.addFlashAttribute("successMessage", "Updated level " + levelName + " successfully");
             } else {
-                redirectAttributes.addFlashAttribute("errorMessage", "❌ Failed to update level");
+                redirectAttributes.addFlashAttribute("errorMessage", "Failed to update level");
             }
         } catch (Exception e) {
             e.printStackTrace();
-            redirectAttributes.addFlashAttribute("errorMessage", "❌ Error updating level: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "Error updating level: " + e.getMessage());
         }
         return "redirect:/settings";
     }
@@ -144,15 +144,15 @@ public class SettingsController {
                                     RedirectAttributes redirectAttributes) {
         try {
             if (levelName == null || levelName.trim().isEmpty()) {
-                redirectAttributes.addFlashAttribute("errorMessage", "❌ Level name cannot be empty");
+                redirectAttributes.addFlashAttribute("errorMessage", "Level name cannot be empty");
                 return "redirect:/settings";
             }
             if (vehiclesRequired == null || vehiclesRequired < 0) {
-                redirectAttributes.addFlashAttribute("errorMessage", "❌ Vehicles required must be >= 0");
+                redirectAttributes.addFlashAttribute("errorMessage", "Vehicles required must be >= 0");
                 return "redirect:/settings";
             }
             if (sharePercent == null || sharePercent < 0 || sharePercent > 100) {
-                redirectAttributes.addFlashAttribute("errorMessage", "❌ Share percent must be between 0 and 100");
+                redirectAttributes.addFlashAttribute("errorMessage", "Share percent must be between 0 and 100");
                 return "redirect:/settings";
             }
             DTODealerLevel lvl = new DTODealerLevel();
@@ -161,13 +161,13 @@ public class SettingsController {
             lvl.setSharePercent(java.math.BigDecimal.valueOf(sharePercent));
             int id = daoDealerLevel.createDealerLevel(lvl);
             if (id > 0) {
-                redirectAttributes.addFlashAttribute("successMessage", "✅ Created level '" + levelName + "' (ID=" + id + ")");
+                redirectAttributes.addFlashAttribute("successMessage", "Created level '" + levelName + "' (ID=" + id + ")");
             } else {
-                redirectAttributes.addFlashAttribute("errorMessage", "❌ Failed to create level");
+                redirectAttributes.addFlashAttribute("errorMessage", "Failed to create level");
             }
         } catch (Exception e) {
             e.printStackTrace();
-            redirectAttributes.addFlashAttribute("errorMessage", "❌ Error creating level: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "Error creating level: " + e.getMessage());
         }
         return "redirect:/settings";
     }

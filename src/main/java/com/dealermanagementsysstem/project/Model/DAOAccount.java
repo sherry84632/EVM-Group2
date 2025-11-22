@@ -1,4 +1,4 @@
-package com.dealermanagementsysstem.project.Model;
+﻿package com.dealermanagementsysstem.project.Model;
 
 import utils.DBUtils;
 import java.sql.Connection;
@@ -236,13 +236,13 @@ public class DAOAccount {
                 try (ResultSet generatedKeys = ps.getGeneratedKeys()) {
                     if (generatedKeys.next()) {
                         int newAccountId = generatedKeys.getInt(1);
-                        System.out.println("✅ Account created successfully: " + account.getEmail() + " (ID: " + newAccountId + ")");
+                        System.out.println("Account created successfully: " + account.getEmail() + " (ID: " + newAccountId + ")");
                         return newAccountId;
                     }
                 }
             }
         } catch (Exception e) {
-            System.out.println("❌ Failed to insert account!");
+            System.out.println("Failed to insert account!");
             e.printStackTrace();
         }
         return -1;
@@ -268,11 +268,11 @@ public class DAOAccount {
             int rows = ps.executeUpdate();
 
             if (rows > 0) {
-                System.out.println("✅ Account updated successfully: " + account.getEmail());
+                System.out.println("Account updated successfully: " + account.getEmail());
                 return true;
             }
         } catch (Exception e) {
-            System.out.println("❌ Failed to update account!");
+            System.out.println("Failed to update account!");
             e.printStackTrace();
         }
         return false;
@@ -292,7 +292,7 @@ public class DAOAccount {
             try (PreparedStatement ps = con.prepareStatement(deleteDealerStaff)) {
                 ps.setInt(1, accountId);
                 int deletedStaff = ps.executeUpdate();
-                System.out.println("🗑️ Deleted " + deletedStaff + " dealer staff record(s) for Account ID: " + accountId);
+                System.out.println("Deleted " + deletedStaff + " dealer staff record(s) for Account ID: " + accountId);
             }
 
             // 2. Delete Account
@@ -303,17 +303,17 @@ public class DAOAccount {
 
                 if (deleted > 0) {
                     con.commit();
-                    System.out.println("🗑️ Account deleted successfully (ID: " + accountId + ")");
+                    System.out.println("Account deleted successfully (ID: " + accountId + ")");
                     return true;
                 } else {
                     con.rollback();
-                    System.out.println("⚠️ Account not found (ID: " + accountId + ")");
+                    System.out.println("Account not found (ID: " + accountId + ")");
                     return false;
                 }
             }
 
         } catch (Exception e) {
-            System.out.println("❌ Failed to delete account!");
+            System.out.println("Failed to delete account!");
             e.printStackTrace();
             if (con != null) {
                 try {
@@ -364,7 +364,7 @@ public class DAOAccount {
                 }
             }
         } catch (Exception e) {
-            System.out.println("❌ Failed to search accounts!");
+            System.out.println("Failed to search accounts!");
             e.printStackTrace();
         }
         return list;

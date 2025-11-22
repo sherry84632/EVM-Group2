@@ -1,4 +1,4 @@
-package com.dealermanagementsysstem.project.Model;
+﻿package com.dealermanagementsysstem.project.Model;
 
 import utils.DBUtils;
 import org.slf4j.Logger;
@@ -60,7 +60,7 @@ public class DAODiscountPolicy {
      */
     @Deprecated
     public boolean createDiscountPolicy(DTODiscountPolicy dto) {
-        log.warn("⚠️ Using deprecated createDiscountPolicy(). Use DAOPromoCode for new promo codes.");
+        log.warn("Using deprecated createDiscountPolicy(). Use DAOPromoCode for new promo codes.");
 
         String sql = "INSERT INTO DiscountPolicy " +
                 "(PolicyName, PromoCode, Description, DiscountPercent, DiscountAmount, " +
@@ -99,14 +99,14 @@ public class DAODiscountPolicy {
                 try (ResultSet rs = ps.getGeneratedKeys()) {
                     if (rs.next()) {
                         int newPolicyId = rs.getInt(1);
-                        log.info("✅ Policy created with ID: {}", newPolicyId);
+                        log.info("Policy created with ID: {}", newPolicyId);
                         return true;
                     }
                 }
             }
 
         } catch (SQLException e) {
-            log.error("❌ Error creating Discount Policy", e);
+            log.error("Error creating Discount Policy", e);
         }
         return false;
     }
@@ -220,12 +220,12 @@ public class DAODiscountPolicy {
 
             int rows = ps.executeUpdate();
             if (rows > 0) {
-                log.info("✅ Updated policy ID: {}", dto.getPolicyID());
+                log.info("Updated policy ID: {}", dto.getPolicyID());
                 return true;
             }
 
         } catch (SQLException e) {
-            log.error("❌ Error updating policy", e);
+            log.error("Error updating policy", e);
         }
         return false;
     }
@@ -245,12 +245,12 @@ public class DAODiscountPolicy {
             int rows = ps.executeUpdate();
 
             if (rows > 0) {
-                log.info("🗑️ Deleted policy ID: {}", policyId);
+                log.info("Deleted policy ID: {}", policyId);
                 return true;
             }
 
         } catch (SQLException e) {
-            log.error("❌ Error deleting policy ID: {}", policyId, e);
+            log.error("Error deleting policy ID: {}", policyId, e);
         }
         return false;
     }

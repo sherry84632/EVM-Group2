@@ -1,4 +1,4 @@
-package com.dealermanagementsysstem.project.controller;
+﻿package com.dealermanagementsysstem.project.controller;
 
 import com.dealermanagementsysstem.project.Model.*;
 import com.dealermanagementsysstem.project.util.SecurityUtil;
@@ -72,7 +72,7 @@ public class DealerDiscountPolicyController {
             List<DTOVehicleModel> vehicleModels = daoVehicleModel.getAllModels();
             model.addAttribute("vehicleModels", vehicleModels);
         } catch (Exception e) {
-            System.out.println("⚠️ Could not load vehicle models: " + e.getMessage());
+            System.out.println("Could not load vehicle models: " + e.getMessage());
         }
 
         // Add dealer list for dropdown (only for admin/EVM)
@@ -106,7 +106,7 @@ public class DealerDiscountPolicyController {
                         dealerMap.put(policy.getPolicyID(), dealer);
                     }
                 } catch (Exception e) {
-                    System.out.println("⚠️ Could not load dealer for policy " + policy.getPolicyID());
+                    System.out.println("Could not load dealer for policy " + policy.getPolicyID());
                 }
             }
         }
@@ -152,7 +152,7 @@ public class DealerDiscountPolicyController {
             // Verify dealer exists
             DTODealer dealer = daoDealer.getDealerById(dealerId);
             if (dealer == null) {
-                redirectAttributes.addFlashAttribute("error", "❌ Dealer not found!");
+                redirectAttributes.addFlashAttribute("error", "Dealer not found!");
                 return "redirect:/discount-policy";
             }
 
@@ -176,11 +176,11 @@ public class DealerDiscountPolicyController {
                         .reduce((a, b) -> a + "," + b)
                         .orElse("");
                 dto.setApplicableToModels(modelIds);
-                System.out.println("✅ Policy applies to specific models: " + modelIds);
+                System.out.println("Policy applies to specific models: " + modelIds);
             } else {
                 // Apply to all models
                 dto.setApplicableToModels(null);
-                System.out.println("✅ Policy applies to ALL vehicle models");
+                System.out.println("Policy applies to ALL vehicle models");
             }
 
             // Set deprecated fields as null (backward compatibility)
@@ -190,13 +190,13 @@ public class DealerDiscountPolicyController {
             boolean success = daoPolicy.createDiscountPolicy(dto);
 
             if (success) {
-                redirectAttributes.addFlashAttribute("message", "✅ Created Discount Policy successfully!");
+                redirectAttributes.addFlashAttribute("message", "Created Discount Policy successfully!");
             } else {
-                redirectAttributes.addFlashAttribute("error", "❌ Failed to create Discount Policy!");
+                redirectAttributes.addFlashAttribute("error", "Failed to create Discount Policy!");
             }
 
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "❌ Error: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("error", "Error: " + e.getMessage());
             e.printStackTrace();
         }
 
@@ -208,7 +208,7 @@ public class DealerDiscountPolicyController {
     public String getPolicyDetail(@PathVariable int id, Model model) {
         DTODiscountPolicy policy = daoPolicy.getPolicyById(id);
         if (policy == null) {
-            model.addAttribute("error", "❌ Policy not found!");
+            model.addAttribute("error", "Policy not found!");
             return "redirect:/discount-policy";
         }
 
@@ -218,7 +218,7 @@ public class DealerDiscountPolicyController {
             List<DTOVehicleModel> vehicleModels = daoVehicleModel.getAllModels();
             model.addAttribute("vehicleModels", vehicleModels);
         } catch (Exception e) {
-            System.out.println("⚠️ Could not load vehicle models: " + e.getMessage());
+            System.out.println("Could not load vehicle models: " + e.getMessage());
         }
 
         // Load dealer info for the policy being edited
@@ -227,7 +227,7 @@ public class DealerDiscountPolicyController {
                 DTODealer policyDealer = daoDealer.getDealerById(policy.getDealerID());
                 model.addAttribute("policyDealer", policyDealer);
             } catch (Exception e) {
-                System.out.println("⚠️ Could not load dealer for policy " + id);
+                System.out.println("Could not load dealer for policy " + id);
             }
         }
 
@@ -242,7 +242,7 @@ public class DealerDiscountPolicyController {
                     DTODealer dealer = daoDealer.getDealerById(p.getDealerID());
                     dealerMap.put(p.getPolicyID(), dealer);
                 } catch (Exception e) {
-                    System.out.println("⚠️ Could not load dealer for policy " + p.getPolicyID());
+                    System.out.println("Could not load dealer for policy " + p.getPolicyID());
                 }
             }
         }
@@ -271,7 +271,7 @@ public class DealerDiscountPolicyController {
         try {
             DTODiscountPolicy policy = daoPolicy.getPolicyById(id);
             if (policy == null) {
-                redirectAttributes.addFlashAttribute("error", "❌ Policy not found!");
+                redirectAttributes.addFlashAttribute("error", "Policy not found!");
                 return "redirect:/discount-policy";
             }
 
@@ -290,11 +290,11 @@ public class DealerDiscountPolicyController {
                         .reduce((a, b) -> a + "," + b)
                         .orElse("");
                 policy.setApplicableToModels(modelIds);
-                System.out.println("✅ Policy applies to specific models: " + modelIds);
+                System.out.println("Policy applies to specific models: " + modelIds);
             } else {
                 // Apply to all models
                 policy.setApplicableToModels(null);
-                System.out.println("✅ Policy applies to ALL vehicle models");
+                System.out.println("Policy applies to ALL vehicle models");
             }
 
             // Keep deprecated fields as null
@@ -310,13 +310,13 @@ public class DealerDiscountPolicyController {
             boolean success = daoPolicy.updateDiscountPolicy(policy);
 
             if (success) {
-                redirectAttributes.addFlashAttribute("message", "✅ Updated Discount Policy successfully!");
+                redirectAttributes.addFlashAttribute("message", "Updated Discount Policy successfully!");
             } else {
-                redirectAttributes.addFlashAttribute("error", "❌ Failed to update Discount Policy!");
+                redirectAttributes.addFlashAttribute("error", "Failed to update Discount Policy!");
             }
 
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "❌ Error: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("error", "Error: " + e.getMessage());
             e.printStackTrace();
         }
 

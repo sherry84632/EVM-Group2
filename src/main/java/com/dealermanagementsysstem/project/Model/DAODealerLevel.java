@@ -1,4 +1,4 @@
-package com.dealermanagementsysstem.project.Model;
+﻿package com.dealermanagementsysstem.project.Model;
 
 import utils.DBUtils;
 import java.sql.*;
@@ -81,11 +81,11 @@ public class DAODealerLevel {
             ps.setInt(4, level.getLevelID());
             int rows = ps.executeUpdate();
             if (rows > 0) {
-                System.out.println("✅ DealerLevel updated ID=" + level.getLevelID());
+                System.out.println("DealerLevel updated ID=" + level.getLevelID());
                 return true;
             }
         } catch (SQLException e) {
-            System.out.println("❌ Failed to update DealerLevel ID=" + level.getLevelID() + ": " + e.getMessage());
+            System.out.println("Failed to update DealerLevel ID=" + level.getLevelID() + ": " + e.getMessage());
             e.printStackTrace();
         }
         return false;
@@ -107,13 +107,13 @@ public class DAODealerLevel {
                 try (ResultSet rs = ps.getGeneratedKeys()) {
                     if (rs.next()) {
                         int id = rs.getInt(1);
-                        System.out.println("✅ DealerLevel created ID=" + id);
+                        System.out.println("DealerLevel created ID=" + id);
                         return id;
                     }
                 }
             }
         } catch (SQLException e) {
-            System.out.println("❌ Failed to create DealerLevel: " + e.getMessage());
+            System.out.println("Failed to create DealerLevel: " + e.getMessage());
             e.printStackTrace();
         }
         return -1;

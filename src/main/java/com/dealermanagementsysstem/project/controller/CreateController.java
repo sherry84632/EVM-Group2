@@ -1,4 +1,4 @@
-package com.dealermanagementsysstem.project.controller;
+﻿package com.dealermanagementsysstem.project.controller;
 
 import com.dealermanagementsysstem.project.Model.*;
 import org.springframework.stereotype.Controller;
@@ -29,7 +29,7 @@ public class CreateController {
         DTOVehicleColor color = daoColor.getColorByColorName(colorName);
         DTOVehicleVersion version = daoVersion.getVersionById(versionID);
 
-        // ⚠️ Validation: Kiểm tra các entity tồn tại
+        // Validation: Kiểm tra các entity tồn tại
         if (color == null) {
             model.addAttribute("error", " ColorName không tồn tại trong hệ thống.");
             return "evmPage/createANewVehicleToList";

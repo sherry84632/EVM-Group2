@@ -1,4 +1,4 @@
-package com.dealermanagementsysstem.project.controller;
+﻿package com.dealermanagementsysstem.project.controller;
 
 import com.dealermanagementsysstem.project.Model.*;
 import com.dealermanagementsysstem.project.service.DiscountCalculationService;
@@ -355,10 +355,10 @@ public class OrderController {
                     System.out.println("✓ Setting isReadOnly = FALSE (Dealer user)");
                 }
             } else {
-                System.out.println("⚠ Account not found for email: " + auth.getName());
+                System.out.println("Account not found for email: " + auth.getName());
             }
         } else {
-            System.out.println("⚠ No authentication found");
+            System.out.println("No authentication found");
         }
         System.out.println("Final isReadOnly value: " + isReadOnly);
         System.out.println("================================");

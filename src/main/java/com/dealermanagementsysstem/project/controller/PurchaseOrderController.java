@@ -1,4 +1,4 @@
-package com.dealermanagementsysstem.project.controller;
+﻿package com.dealermanagementsysstem.project.controller;
 
 import com.dealermanagementsysstem.project.Model.*;
 import com.dealermanagementsysstem.project.configuration.BusinessConfig;
@@ -53,7 +53,7 @@ public class PurchaseOrderController {
             model.addAttribute("vehicleList", vehicles);
         } catch (Exception e) {
             e.printStackTrace();
-            model.addAttribute("message", "⚠️ Lỗi khi tải danh sách xe: " + e.getMessage());
+            model.addAttribute("message", "Lỗi khi tải danh sách xe: " + e.getMessage());
             model.addAttribute("vehicleList", List.of());
         }
         return "dealerPage/dealerOrderVehicleList";
@@ -71,14 +71,14 @@ public class PurchaseOrderController {
                     (org.springframework.security.core.userdetails.User) auth.getPrincipal();
             String email = user.getUsername();
 
-            System.out.println("🔍 DEBUG: Logged in email = " + email);
+            System.out.println("DEBUG: Logged in email = " + email);
 
             // Lấy DealerID dựa theo email đăng nhập (qua Account → DealerStaff → Dealer)
             int dealerId = daoPurchaseOrder.getDealerIdByEmail(email);
-            System.out.println("🔍 DEBUG: DealerID found = " + dealerId);
+            System.out.println("DEBUG: DealerID found = " + dealerId);
 
             if (dealerId <= 0) {
-                model.addAttribute("message", "❌ Không tìm thấy Dealer tương ứng với tài khoản đăng nhập (" + email + "). " +
+                model.addAttribute("message", "Không tìm thấy Dealer tương ứng với tài khoản đăng nhập (" + email + "). " +
                     "Vui lòng liên hệ admin để được gán vào một dealer.");
                 model.addAttribute("orders", List.of());
                 return "dealerPage/orderStatusList";
@@ -86,13 +86,13 @@ public class PurchaseOrderController {
 
             // Lấy danh sách đơn hàng theo DealerID
             List<DTOPurchaseOrder> orders = daoPurchaseOrder.getPurchaseOrdersByDealerId(dealerId);
-            System.out.println("✅ DEBUG: Number of orders found = " + (orders != null ? orders.size() : 0) + " for DealerID=" + dealerId);
+            System.out.println("DEBUG: Number of orders found = " + (orders != null ? orders.size() : 0) + " for DealerID=" + dealerId);
 
             model.addAttribute("orders", orders);
             model.addAttribute("dealerId", dealerId); // Add for debugging
         } catch (Exception e) {
             e.printStackTrace();
-            model.addAttribute("message", "⚠️ Lỗi khi tải danh sách đơn hàng: " + e.getMessage());
+            model.addAttribute("message", "Lỗi khi tải danh sách đơn hàng: " + e.getMessage());
             model.addAttribute("orders", List.of());
         }
 
@@ -115,7 +115,7 @@ public class PurchaseOrderController {
             int dealerId = daoPurchaseOrder.getDealerIdByEmail(email);
             
             if (dealerId <= 0) {
-                model.addAttribute("message", "❌ Không tìm thấy Dealer tương ứng với tài khoản đăng nhập.");
+                model.addAttribute("message", "Không tìm thấy Dealer tương ứng với tài khoản đăng nhập.");
                 model.addAttribute("orders", List.of());
                 return "dealerPage/orderHistoryList";
             }
@@ -146,7 +146,7 @@ public class PurchaseOrderController {
 
         } catch (Exception e) {
             e.printStackTrace();
-            model.addAttribute("message", "⚠️ Lỗi khi tải lịch sử đơn hàng: " + e.getMessage());
+            model.addAttribute("message", "Lỗi khi tải lịch sử đơn hàng: " + e.getMessage());
             model.addAttribute("orders", List.of());
         }
 
@@ -165,28 +165,28 @@ public class PurchaseOrderController {
             var user = (org.springframework.security.core.userdetails.User) auth.getPrincipal();
             String email = user.getUsername();
 
-            System.out.println("🔍 DEBUG PurchaseOrder: Logged in email = " + email);
+            System.out.println("DEBUG PurchaseOrder: Logged in email = " + email);
 
             int dealerId = daoPurchaseOrder.getDealerIdByEmail(email);
             int staffId = daoPurchaseOrder.getStaffIdByEmail(email);
 
-            System.out.println("🔍 DEBUG PurchaseOrder: DealerID = " + dealerId + ", StaffID = " + staffId);
+            System.out.println("DEBUG PurchaseOrder: DealerID = " + dealerId + ", StaffID = " + staffId);
 
             if (dealerId <= 0) {
-                redirectAttributes.addFlashAttribute("errorMessage", "❌ Không tìm thấy Dealer tương ứng với tài khoản (" + email + "). " +
+                redirectAttributes.addFlashAttribute("errorMessage", "Không tìm thấy Dealer tương ứng với tài khoản (" + email + "). " +
                     "Account của bạn chưa được liên kết với dealer nào. Vui lòng liên hệ admin.");
                 return "redirect:/orderdealer";
             }
 
             if (staffId <= 0) {
-                redirectAttributes.addFlashAttribute("errorMessage", "❌ Không tìm thấy Staff tương ứng với tài khoản (" + email + "). " +
+                redirectAttributes.addFlashAttribute("errorMessage", "Không tìm thấy Staff tương ứng với tài khoản (" + email + "). " +
                     "Account của bạn chưa có thông tin DealerStaff. Vui lòng liên hệ admin.");
                 return "redirect:/orderdealer";
             }
 
             // Validate input
             if (vehicleIds == null || vehicleIds.isEmpty()) {
-                redirectAttributes.addFlashAttribute("errorMessage", "❌ Không có xe nào được chọn!");
+                redirectAttributes.addFlashAttribute("errorMessage", "Không có xe nào được chọn!");
                 return "redirect:/orderdealer";
             }
 
@@ -225,7 +225,7 @@ public class PurchaseOrderController {
             }
 
             if (orderItems.isEmpty()) {
-                redirectAttributes.addFlashAttribute("errorMessage", "❌ Không có xe hợp lệ để đặt hàng!");
+                redirectAttributes.addFlashAttribute("errorMessage", "Không có xe hợp lệ để đặt hàng!");
                 return "redirect:/orderdealer";
             }
 
@@ -260,15 +260,15 @@ public class PurchaseOrderController {
                     if (added) successCount++;
                 }
 
-                redirectAttributes.addFlashAttribute("successMessage", "✅ Đặt hàng thành công! Đơn hàng #" + newOrderId + " với " + successCount + " loại xe.");
+                redirectAttributes.addFlashAttribute("successMessage", "Đặt hàng thành công! Đơn hàng #" + newOrderId + " với " + successCount + " loại xe.");
                 redirectAttributes.addFlashAttribute("orderId", newOrderId);
             } else {
-                redirectAttributes.addFlashAttribute("errorMessage", "❌ Không thể tạo đơn hàng!");
+                redirectAttributes.addFlashAttribute("errorMessage", "Không thể tạo đơn hàng!");
             }
 
         } catch (Exception e) {
             e.printStackTrace();
-            redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Lỗi hệ thống: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi hệ thống: " + e.getMessage());
         }
 
         return "redirect:/orderdealer";

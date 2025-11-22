@@ -1,4 +1,4 @@
-package com.dealermanagementsysstem.project.controller;
+﻿package com.dealermanagementsysstem.project.controller;
 
 import com.dealermanagementsysstem.project.Model.*;
 import com.dealermanagementsysstem.project.configuration.BusinessConfig;
@@ -329,7 +329,7 @@ public class EVMOrderController {
                                     failedDetails.add("Detail #" + d.getPoDetailId());
                                 }
                             } else {
-                                System.out.println(" ️ Skipped: Invalid ColorID/VersionID/Qty");
+                                System.out.println(" Skipped: Invalid ColorID/VersionID/Qty");
                                 failedDetails.add("Detail #" + d.getPoDetailId());
                             }
                         }

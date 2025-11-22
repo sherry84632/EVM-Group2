@@ -39,9 +39,9 @@ public class DBUtils {
             conn = DriverManager.getConnection(url, user, pass);
 
         } catch (ClassNotFoundException e) {
-            System.err.println("❌ JDBC Driver not found: " + e.getMessage());
+            System.err.println("JDBC Driver not found: " + e.getMessage());
         } catch (SQLException e) {
-            System.err.println("❌ Failed to connect to DB: " + e.getMessage());
+            System.err.println("Failed to connect to DB: " + e.getMessage());
         }
         return conn;
     }

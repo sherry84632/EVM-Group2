@@ -1,4 +1,4 @@
-package com.dealermanagementsysstem.project.controller;
+﻿package com.dealermanagementsysstem.project.controller;
 
 import com.dealermanagementsysstem.project.Model.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,17 +57,17 @@ public class DealerCompanyController {
         try {
             // Validation
             if (dealer.getDealerName() == null || dealer.getDealerName().trim().isEmpty()) {
-                redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Dealer name is required!");
+                redirectAttributes.addFlashAttribute("errorMessage", "Dealer name is required!");
                 return "redirect:/dealer/company/list";
             }
 
             if (dealer.getPhone() == null || dealer.getPhone().trim().isEmpty()) {
-                redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Phone is required!");
+                redirectAttributes.addFlashAttribute("errorMessage", "Phone is required!");
                 return "redirect:/dealer/company/list";
             }
 
             if (dealer.getEmail() == null || dealer.getEmail().trim().isEmpty()) {
-                redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Email is required!");
+                redirectAttributes.addFlashAttribute("errorMessage", "Email is required!");
                 return "redirect:/dealer/company/list";
             }
 
@@ -87,14 +87,14 @@ public class DealerCompanyController {
 
             if (dealerId > 0) {
                 redirectAttributes.addFlashAttribute("successMessage",
-                    "✅ Dealer company created successfully! (ID: " + dealerId + ")");
+                    "Dealer company created successfully! (ID: " + dealerId + ")");
             } else {
-                redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Failed to create dealer!");
+                redirectAttributes.addFlashAttribute("errorMessage", "Failed to create dealer!");
             }
 
         } catch (Exception e) {
             e.printStackTrace();
-            redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Error: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "Error: " + e.getMessage());
         }
 
         return "redirect:/dealer/company/list";
@@ -111,10 +111,10 @@ public class DealerCompanyController {
         try {
             dealer.setDealerID(id);
             daoDealer.updateDealer(dealer);
-            redirectAttributes.addFlashAttribute("successMessage", "✅ Dealer updated successfully!");
+            redirectAttributes.addFlashAttribute("successMessage", "Dealer updated successfully!");
         } catch (Exception e) {
             e.printStackTrace();
-            redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Error: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "Error: " + e.getMessage());
         }
 
         return "redirect:/dealer/company/list";
@@ -127,15 +127,15 @@ public class DealerCompanyController {
     public String deleteDealer(@PathVariable int id, RedirectAttributes redirectAttributes) {
         try {
             daoDealer.deleteDealer(id);
-            redirectAttributes.addFlashAttribute("successMessage", "✅ Dealer deleted successfully!");
+            redirectAttributes.addFlashAttribute("successMessage", "Dealer deleted successfully!");
         } catch (Exception e) {
             if (e.getMessage() != null && (
                 e.getMessage().contains("REFERENCE constraint") ||
                 e.getMessage().contains("foreign key"))) {
                 redirectAttributes.addFlashAttribute("errorMessage",
-                    "⚠️ Cannot delete dealer! This dealer has related data (customers, orders, or staff).");
+                    "Cannot delete dealer! This dealer has related data (customers, orders, or staff).");
             } else {
-                redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Error: " + e.getMessage());
+                redirectAttributes.addFlashAttribute("errorMessage", "Error: " + e.getMessage());
             }
         }
 
@@ -150,7 +150,7 @@ public class DealerCompanyController {
         try {
             DTODealer dealer = daoDealer.getDealerById(id);
             if (dealer == null) {
-                redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Dealer company not found!");
+                redirectAttributes.addFlashAttribute("errorMessage", "Dealer company not found!");
                 return "redirect:/dealer/company/list";
             }
 
@@ -171,7 +171,7 @@ public class DealerCompanyController {
             return "evmPage/dealerCompanyDetail";
         } catch (Exception e) {
             e.printStackTrace();
-            redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Error loading dealer: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "Error loading dealer: " + e.getMessage());
             return "redirect:/dealer/company/list";
         }
     }
@@ -197,44 +197,44 @@ public class DealerCompanyController {
         try {
             accountRole = Role.valueOf(roleStr);
             if (accountRole != Role.DEALER && accountRole != Role.DEALERSTAFF) {
-                redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Can only create DEALER or DEALERSTAFF accounts!");
+                redirectAttributes.addFlashAttribute("errorMessage", "Can only create DEALER or DEALERSTAFF accounts!");
                 return "redirect:/dealer/company/" + dealerId + "/detail";
             }
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Invalid role!");
+            redirectAttributes.addFlashAttribute("errorMessage", "Invalid role!");
             return "redirect:/dealer/company/" + dealerId + "/detail";
         }
 
         try {
             // Validation
             if (username == null || username.trim().isEmpty()) {
-                redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Username is required!");
+                redirectAttributes.addFlashAttribute("errorMessage", "Username is required!");
                 return "redirect:/dealer/company/" + dealerId + "/detail";
             }
 
             if (email == null || email.trim().isEmpty()) {
-                redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Email is required!");
+                redirectAttributes.addFlashAttribute("errorMessage", "Email is required!");
                 return "redirect:/dealer/company/" + dealerId + "/detail";
             }
 
             if (password == null || password.trim().isEmpty()) {
-                redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Password is required!");
+                redirectAttributes.addFlashAttribute("errorMessage", "Password is required!");
                 return "redirect:/dealer/company/" + dealerId + "/detail";
             }
 
             if (staffFullName == null || staffFullName.trim().isEmpty()) {
-                redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Full Name is required!");
+                redirectAttributes.addFlashAttribute("errorMessage", "Full Name is required!");
                 return "redirect:/dealer/company/" + dealerId + "/detail";
             }
 
             if (staffPhone == null || staffPhone.trim().isEmpty()) {
-                redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Phone is required!");
+                redirectAttributes.addFlashAttribute("errorMessage", "Phone is required!");
                 return "redirect:/dealer/company/" + dealerId + "/detail";
             }
 
             // Check if email already exists
             if (daoAccount.emailExists(email, null)) {
-                redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Email already exists!");
+                redirectAttributes.addFlashAttribute("errorMessage", "Email already exists!");
                 return "redirect:/dealer/company/" + dealerId + "/detail";
             }
 
@@ -249,7 +249,7 @@ public class DealerCompanyController {
             int accountId = daoAccount.insertAccount(account);
 
             if (accountId <= 0) {
-                redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Failed to create account!");
+                redirectAttributes.addFlashAttribute("errorMessage", "Failed to create account!");
                 return "redirect:/dealer/company/" + dealerId + "/detail";
             }
 
@@ -282,16 +282,16 @@ public class DealerCompanyController {
             if (staffId <= 0) {
                 // Rollback: delete account
                 daoAccount.deleteAccount(accountId);
-                redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Failed to create staff record!");
+                redirectAttributes.addFlashAttribute("errorMessage", "Failed to create staff record!");
                 return "redirect:/dealer/company/" + dealerId + "/detail";
             }
 
             String roleLabel = accountRole == Role.DEALER ? "Manager" : "Staff";
-            redirectAttributes.addFlashAttribute("successMessage", "✅ " + roleLabel + " account created successfully!");
+            redirectAttributes.addFlashAttribute("successMessage", "" + roleLabel + " account created successfully!");
 
         } catch (Exception e) {
             e.printStackTrace();
-            redirectAttributes.addFlashAttribute("errorMessage", "⚠️ Error: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "Error: " + e.getMessage());
         }
 
         return "redirect:/dealer/company/" + dealerId + "/detail";

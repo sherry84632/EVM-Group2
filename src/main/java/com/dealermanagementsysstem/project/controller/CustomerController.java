@@ -1,4 +1,4 @@
-package com.dealermanagementsysstem.project.controller;
+﻿package com.dealermanagementsysstem.project.controller;
 
 import com.dealermanagementsysstem.project.Model.DAOCustomer;
 import com.dealermanagementsysstem.project.Model.DAOTestDrive;
@@ -143,7 +143,7 @@ public class CustomerController {
 
             System.out.println(" Creating customer for DealerID=" + dealerID);
         } else {
-            System.out.println("⚠ No dealer found in session, customer will have DealerID=NULL");
+            System.out.println("No dealer found in session, customer will have DealerID=NULL");
         }
 
         //  Lưu customer và lấy customerID
