@@ -8,16 +8,113 @@
     <link rel="stylesheet" href="/css/mainPageStyle.css">
     <link rel="stylesheet" href="/css/iconStyle.css">
     <link rel="stylesheet" href="/css/breadScrumbNav.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"
+          integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw=="
+          crossorigin="anonymous" referrerpolicy="no-referrer"/>
     <style>
         .breadcrumb-item a:hover {
             color: #007bff;
+        }
+        .detail-card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .detail-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+        }
+        .detail-card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px 12px 0 0 !important;
+            padding: 1.25rem;
+        }
+        .info-item {
+            padding: 0.75rem;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background-color 0.2s ease;
+        }
+        .info-item:last-child {
+            border-bottom: none;
+        }
+        .info-item:hover {
+            background-color: #f8f9fa;
+        }
+        .info-label {
+            font-size: 0.85rem;
+            color: #6c757d;
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .info-value {
+            font-size: 1rem;
+            color: #212529;
+            font-weight: 600;
+        }
+        .image-card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+        .image-container {
+            height: 400px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .vehicle-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            transition: transform 0.3s ease;
+        }
+        .vehicle-image:hover {
+            transform: scale(1.05);
+        }
+        .no-image-placeholder {
+            text-align: center;
+            color: #adb5bd;
+        }
+        .no-image-placeholder i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+        .status-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+        .price-display {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #28a745;
+        }
+        .action-btn {
+            border-radius: 8px;
+            padding: 0.5rem 1.5rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
     </style>
 </head>
 <body class="bg-gradient2-custom">
 <div class="d-flex">
     <div th:replace="~{mainPage/navBarFragment :: navBar}"></div>
-    <div class="mainContent flex-grow-1 p-3">
+    <div class="mainContent flex-grow-1 p-4">
         <nav aria-label="breadcrumb" class="mb-4">
             <ol class="breadcrumb">
                 <li class="breadcrumb-item">
@@ -39,62 +136,138 @@
             </ol>
         </nav>
 
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h3 class="mb-0">Vehicle Detail</h3>
-            <a class="btn btn-outline-secondary btn-sm" href="/dealer-inventory">Back</a>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="mb-0">
+                <i class="fas fa-car me-2 text-primary"></i>Vehicle Detail
+            </h2>
+            <a class="btn btn-outline-secondary action-btn" href="/dealer-inventory">
+                <i class="fas fa-arrow-left me-2"></i>Back to Inventory
+            </a>
         </div>
 
-        <div class="row g-3">
+        <div class="row g-4">
             <div class="col-12 col-lg-8">
-                <div class="card shadow-sm">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <span class="fw-semibold">VIN: <span th:text="${detail.vin}"></span></span>
-                        <span th:text="${detail.status=='AVAILABLE' ? 'IN_STOCK' : detail.status}"
-                              th:class="${detail.status=='AVAILABLE' ? 'badge bg-primary' : (detail.status=='RESERVED' ? 'badge bg-warning text-dark' : (detail.status=='SOLD' ? 'badge bg-success' : 'badge bg-secondary'))}"></span>
+                <div class="card detail-card">
+                    <div class="card-header detail-card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="mb-1">
+                                    <i class="fas fa-barcode me-2"></i>VIN: <span th:text="${detail.vin}"></span>
+                                </h5>
+                            </div>
+                            <span class="status-badge"
+                                  th:class="${detail.status=='AVAILABLE' ? 'bg-light text-success' : (detail.status=='RESERVED' ? 'bg-warning text-dark' : (detail.status=='SOLD' ? 'bg-success text-white' : 'bg-secondary text-white'))}"
+                                  th:text="${detail.status=='AVAILABLE' ? 'IN_STOCK' : detail.status}">
+                            </span>
+                        </div>
                     </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-6 mb-2">
-                                <small class="text-muted d-block">Model</small>
-                                <span th:text="${detail.modelName}">Model</span>
+                    <div class="card-body p-0">
+                        <div class="row g-0">
+                            <div class="col-md-6">
+                                <div class="info-item">
+                                    <div class="info-label">
+                                        <i class="fas fa-car text-primary"></i>Model
+                                    </div>
+                                    <div class="info-value" th:text="${detail.modelName}">Model</div>
+                                </div>
                             </div>
-                            <div class="col-6 mb-2">
-                                <small class="text-muted d-block">Version</small>
-                                <span th:text="${detail.versionName}">Version</span>
+                            <div class="col-md-6">
+                                <div class="info-item">
+                                    <div class="info-label">
+                                        <i class="fas fa-tag text-info"></i>Version
+                                    </div>
+                                    <div class="info-value" th:text="${detail.versionName}">Version</div>
+                                </div>
                             </div>
-                            <div class="col-6 mb-2">
-                                <small class="text-muted d-block">Color</small>
-                                <span th:text="${detail.colorName}">Color</span>
+                            <div class="col-md-6">
+                                <div class="info-item">
+                                    <div class="info-label">
+                                        <i class="fas fa-palette text-warning"></i>Color
+                                    </div>
+                                    <div class="info-value" th:text="${detail.colorName}">Color</div>
+                                </div>
                             </div>
-                            <div class="col-6 mb-2">
-                                <small class="text-muted d-block">Engine</small>
-                                <span th:text="${detail.engine}">Engine</span>
+                            <div class="col-md-6">
+                                <div class="info-item">
+                                    <div class="info-label">
+                                        <i class="fas fa-cog text-secondary"></i>Engine
+                                    </div>
+                                    <div class="info-value" th:text="${detail.engine}">Engine</div>
+                                </div>
                             </div>
-                            <div class="col-6 mb-2">
-                                <small class="text-muted d-block">Received Date</small>
-                                <span th:text="${#dates.format(detail.receivedDate,'yyyy-MM-dd')}">Date</span>
+                            <div class="col-md-6">
+                                <div class="info-item">
+                                    <div class="info-label">
+                                        <i class="fas fa-calendar-alt text-success"></i>Received Date
+                                    </div>
+                                    <div class="info-value" th:text="${#dates.format(detail.receivedDate,'dd/MM/yyyy')}">Date</div>
+                                </div>
                             </div>
-                            <div class="col-6 mb-2">
-                                <small class="text-muted d-block">Price</small>
-                                <span th:text="${#numbers.formatDecimal(detail.basePrice, 0, 'POINT', 0, 'COMMA')}">0</span>
+                            <div class="col-md-6">
+                                <div class="info-item">
+                                    <div class="info-label">
+                                        <i class="fas fa-dollar-sign text-danger"></i>Base Price
+                                    </div>
+                                    <div class="price-display" th:text="${#numbers.formatDecimal(detail.basePrice, 0, 'COMMA', 0, 'POINT') + ' VND'}">0</div>
+                                </div>
                             </div>
-                            <div class="col-6 mb-2" th:if="${detail.purchaseOrderId != null}">
-                                <small class="text-muted d-block">Purchase Order ID</small>
-                                <a th:href="@{'/evm/orders/detail/' + ${detail.purchaseOrderId}}" th:text="${detail.purchaseOrderId}">PO</a>
+                            <div class="col-md-6" th:if="${detail.transmission != null}">
+                                <div class="info-item">
+                                    <div class="info-label">
+                                        <i class="fas fa-sliders-h text-primary"></i>Transmission
+                                    </div>
+                                    <div class="info-value" th:text="${detail.transmission}">Transmission</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6" th:if="${detail.engineNumber != null}">
+                                <div class="info-item">
+                                    <div class="info-label">
+                                        <i class="fas fa-hashtag text-info"></i>Engine Number
+                                    </div>
+                                    <div class="info-value" th:text="${detail.engineNumber}">Engine Number</div>
+                                </div>
+                            </div>
+                            <div class="col-12" th:if="${detail.purchaseOrderId != null}">
+                                <div class="info-item">
+                                    <div class="info-label">
+                                        <i class="fas fa-file-invoice text-primary"></i>Purchase Order ID
+                                    </div>
+                                    <div class="info-value">
+                                        <a th:href="@{'/evm/orders/detail/' + ${detail.purchaseOrderId}}" 
+                                           class="text-decoration-none fw-bold"
+                                           th:text="${detail.purchaseOrderId}">PO</a>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="card-footer bg-white d-flex gap-2">
-                        <a class="btn btn-sm btn-outline-primary" th:if="${detail.purchaseOrderId != null}"
-                           th:href="@{'/evm/orders/detail/' + ${detail.purchaseOrderId}}">View Purchase Order</a>
+                    <div class="card-footer bg-white d-flex gap-2 p-3">
+                        <a class="btn btn-primary action-btn" 
+                           th:if="${detail.purchaseOrderId != null}"
+                           th:href="@{'/evm/orders/detail/' + ${detail.purchaseOrderId}}">
+                            <i class="fas fa-file-invoice me-2"></i>View Purchase Order
+                        </a>
                     </div>
                 </div>
             </div>
             <div class="col-12 col-lg-4">
-                <div class="card shadow-sm h-100">
-                    <div class="card-header">Model Thumbnail</div>
-                    <div class="card-body d-flex align-items-center justify-content-center">
-                        <img src="/images/productIcon.png" alt="thumbnail" class="img-fluid" style="max-height: 180px;"/>
+                <div class="card image-card h-100">
+                    <div class="card-header bg-white border-bottom">
+                        <h5 class="mb-0">
+                            <i class="fas fa-image me-2 text-primary"></i>Model Image
+                        </h5>
+                    </div>
+                    <div class="image-container">
+                        <img th:if="${detail.modelId != null}"
+                             th:src="@{/evm/vehicle/modelImage/{modelId}(modelId=${detail.modelId})}"
+                             alt="Vehicle Model Image"
+                             class="vehicle-image"
+                             onload="this.nextElementSibling.style.display='none';"
+                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"/>
+                        <div class="no-image-placeholder" style="display: none;">
+                            <i class="fas fa-car"></i>
+                            <p class="mb-0">No Image Available</p>
+                        </div>
                     </div>
                 </div>
             </div>
