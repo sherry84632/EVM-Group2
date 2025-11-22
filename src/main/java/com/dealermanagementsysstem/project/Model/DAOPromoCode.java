@@ -12,13 +12,50 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * DAOPromoCode - Manages customer promotional discount codes
- *
- * This DAO handles CRUD operations for promotional codes that customers
- * can use when purchasing vehicles (e.g., "SUMMER2024", "NEWCAR15")
- *
- * Replaces the old DiscountPolicy logic which was incorrectly used for
- * manufacturer-dealer commission splits.
+ * EN: Data Access Object for managing customer promotional discount codes ("Promo Codes").
+ * <p>
+ * Provides CRUD operations, search, usage counting, and business validation logic for promo
+ * codes stored in the {@code DiscountPolicy} table. This class supersedes the legacy usage of
+ * DiscountPolicy entries for manufacturer/dealer commission splits; here the records strictly
+ * represent customer-facing discount instruments (e.g. "SUMMER2024", "NEWCAR15").
+ * </p>
+ * <p>
+ * Typical usage flow:
+ * 1. {@link #findByPromoCode(String)} to load the code the customer entered.
+ * 2. {@link #validatePromoCode(String, int, BigDecimal)} to check applicability & business rules.
+ * 3. Apply discount (percent or fixed) obeying max discount cap & purchase constraints.
+ * 4. Persist order; only then call {@link #incrementUsageCount(int)} to avoid counting failed attempts.
+ * </p>
+ * <p>
+ * Thread-safety: Methods obtain fresh JDBC connections via {@link DBUtils#getConnection()} and do
+ * not share mutable state. Each individual call is safe in a Spring singleton context. Note that
+ * validation + increment is not atomic: concurrent checkouts could pass validation simultaneously
+ * and exceed intended {@code UsageLimit}. To harden against race conditions you may later adopt a
+ * single UPDATE with predicate (e.g. WHERE UsedCount < UsageLimit) or a transaction with locking.
+ * </p>
+ * <p>
+ * Glossary (EN -> VI):
+ * - Promo Code: Customer discount code -> Mã giảm giá khách hàng.
+ * - Usage Limit (nullable): Max allowed uses; NULL means unlimited -> Giới hạn sử dụng (NULL = không giới hạn).
+ * - Used Count: Current number of successful applications -> Số lượt đã dùng.
+ * - Applicable Models: Comma-separated model IDs -> Danh sách ID mẫu xe áp dụng (phân tách bằng dấu phẩy).
+ * - Discount Percent / Amount: Percentage vs fixed absolute discount -> Phần trăm / số tiền giảm cố định.
+ * - Max Discount Amount: Cap for computed discount -> Giới hạn số tiền giảm tối đa.
+ * - Active window: StartDate .. EndDate (EndDate NULL = open-ended) -> Khoảng thời gian hiệu lực.
+ * </p>
+ * <p>
+ * VI: Lớp DAO quản lý các mã giảm giá cho khách hàng. Cung cấp các chức năng tạo, sửa, xóa,
+ * tìm kiếm, kiểm tra điều kiện áp dụng và tăng số lượt sử dụng. Thay thế logic cũ dùng bảng
+ * DiscountPolicy cho việc chia hoa hồng giữa hãng và đại lý; hiện các bản ghi chỉ đại diện
+ * cho công cụ giảm giá dành cho khách hàng.
+ * </p>
+ * <p>
+ * Quy trình sử dụng điển hình:
+ * 1. Gọi {@link #findByPromoCode(String)} để lấy thông tin mã nhập vào.
+ * 2. Gọi {@link #validatePromoCode(String, int, BigDecimal)} để kiểm tra hợp lệ.
+ * 3. Áp dụng giảm giá theo phần trăm hoặc số tiền, tuân thủ giới hạn tối đa.
+ * 4. Sau khi đơn hàng thành công mới gọi {@link #incrementUsageCount(int)} để tránh tăng sai.
+ * </p>
  */
 @Repository
 @SuppressWarnings({"SqlDialectInspection", "SqlNoDataSourceInspection", "unused"})
@@ -27,11 +64,17 @@ public class DAOPromoCode {
     private static final Logger log = LoggerFactory.getLogger(DAOPromoCode.class);
 
     /**
-     * Create a new promo code
+     * EN: Create a new promo code record.
+     * Persist all supplied business fields; {@code CreatedAt} is assigned by DB server time (GETDATE()).
+     * Returns generated primary key (PolicyID) or -1 on failure.
+     * VI: Tạo mới một mã giảm giá. Trả về ID sinh ra hoặc -1 nếu lỗi.
+     *
+     * @param promo DTO containing promo code details (validated by caller layer)
+     * @return generated PolicyID or -1 if insert failed
      */
     public int createPromoCode(DTODiscountPolicy promo) {
         String sql = """
-            INSERT INTO DiscountPolicy 
+            INSERT INTO DiscountPolicy
             (PolicyName, PromoCode, Description, DiscountPercent, DiscountAmount,
              MinPurchaseAmount, MaxDiscountAmount, UsageLimit, UsedCount,
              ApplicableToModels, StartDate, EndDate, Status, CreatedAt, CreatedBy)
@@ -48,7 +91,7 @@ public class DAOPromoCode {
             ps.setBigDecimal(5, promo.getDiscountAmount());
             ps.setBigDecimal(6, promo.getMinPurchaseAmount());
             ps.setBigDecimal(7, promo.getMaxDiscountAmount());
-            ps.setObject(8, promo.getUsageLimit(), Types.INTEGER);
+            ps.setObject(8, promo.getUsageLimit(), Types.INTEGER); // NULL => unlimited usage
             ps.setInt(9, promo.getUsedCount() != null ? promo.getUsedCount() : 0);
             ps.setString(10, promo.getApplicableToModels());
             ps.setDate(11, Date.valueOf(promo.getStartDate()));
@@ -73,7 +116,11 @@ public class DAOPromoCode {
     }
 
     /**
-     * Get all active promo codes
+     * EN: Retrieve all promo codes currently active & usable.
+     * Filters by Status=ACTIVE, within date window, usage limit not exceeded.
+     * VI: Lấy danh sách tất cả mã giảm giá đang hoạt động và còn lượt dùng.
+     *
+     * @return list of active promo code DTOs (empty if none or error)
      */
     public List<DTODiscountPolicy> getActivePromoCodes() {
         List<DTODiscountPolicy> list = new ArrayList<>();
@@ -84,7 +131,7 @@ public class DAOPromoCode {
             AND (EndDate IS NULL OR EndDate >= CAST(GETDATE() AS DATE))
             AND (UsageLimit IS NULL OR UsedCount < UsageLimit)
             ORDER BY CreatedAt DESC
-        """;
+        """; // Date comparisons done in DB (assumes server timezone authoritative)
 
         try (Connection conn = DBUtils.getConnection();
              Statement stmt = conn.createStatement();
@@ -101,7 +148,10 @@ public class DAOPromoCode {
     }
 
     /**
-     * Get all promo codes (for admin management)
+     * EN: Retrieve all promo codes (administrative view). No filtering.
+     * VI: Lấy toàn bộ mã giảm giá (cho quản trị), không lọc.
+     *
+     * @return list of all promo codes
      */
     public List<DTODiscountPolicy> getAllPromoCodes() {
         List<DTODiscountPolicy> list = new ArrayList<>();
@@ -122,7 +172,12 @@ public class DAOPromoCode {
     }
 
     /**
-     * Find promo code by code string (for customer validation)
+     * EN: Find a promo code by its string value (exact match).
+     * Returns null if not found or on error.
+     * VI: Tìm mã giảm giá theo chuỗi (khớp chính xác). Trả về null nếu không thấy.
+     *
+     * @param promoCode raw code entered by customer
+     * @return DTO or null
      */
     public DTODiscountPolicy findByPromoCode(String promoCode) {
         String sql = "SELECT * FROM DiscountPolicy WHERE PromoCode = ?";
@@ -147,7 +202,11 @@ public class DAOPromoCode {
     }
 
     /**
-     * Get promo code by ID
+     * EN: Fetch promo code by primary key ID.
+     * VI: Lấy mã giảm giá theo ID khóa chính.
+     *
+     * @param policyId database primary key
+     * @return DTO or null if not found
      */
     public DTODiscountPolicy getPromoCodeById(int policyId) {
         String sql = "SELECT * FROM DiscountPolicy WHERE PolicyID = ?";
@@ -168,7 +227,11 @@ public class DAOPromoCode {
     }
 
     /**
-     * Update promo code
+     * EN: Update all editable fields of an existing promo code.
+     * VI: Cập nhật toàn bộ trường cho một mã giảm giá đã tồn tại.
+     *
+     * @param promo DTO with updated values (must include PolicyID)
+     * @return true on success, false otherwise
      */
     public boolean updatePromoCode(DTODiscountPolicy promo) {
         String sql = """
@@ -192,7 +255,7 @@ public class DAOPromoCode {
             ps.setBigDecimal(5, promo.getDiscountAmount());
             ps.setBigDecimal(6, promo.getMinPurchaseAmount());
             ps.setBigDecimal(7, promo.getMaxDiscountAmount());
-            ps.setObject(8, promo.getUsageLimit(), Types.INTEGER);
+            ps.setObject(8, promo.getUsageLimit(), Types.INTEGER); // keep NULL if unlimited
             ps.setInt(9, promo.getUsedCount() != null ? promo.getUsedCount() : 0);
             ps.setString(10, promo.getApplicableToModels());
             ps.setDate(11, Date.valueOf(promo.getStartDate()));
@@ -212,7 +275,11 @@ public class DAOPromoCode {
     }
 
     /**
-     * Delete promo code
+     * EN: Delete a promo code by ID.
+     * VI: Xóa mã giảm giá theo ID.
+     *
+     * @param policyId primary key
+     * @return true if a record was removed
      */
     public boolean deletePromoCode(int policyId) {
         String sql = "DELETE FROM DiscountPolicy WHERE PolicyID = ?";
@@ -234,7 +301,12 @@ public class DAOPromoCode {
     }
 
     /**
-     * Increment usage count when promo code is used
+     * EN: Increment the UsedCount field by 1 after a successful application.
+     * NOT atomic with validation; race conditions possible under high concurrency.
+     * VI: Tăng số lượt sử dụng sau khi áp dụng thành công (không bảo đảm tránh race condition).
+     *
+     * @param policyId promo code primary key
+     * @return true if update affected a row
      */
     public boolean incrementUsageCount(int policyId) {
         String sql = "UPDATE DiscountPolicy SET UsedCount = UsedCount + 1 WHERE PolicyID = ?";
@@ -256,8 +328,15 @@ public class DAOPromoCode {
     }
 
     /**
-     * Validate promo code for a purchase
-     * Returns error message if invalid, null if valid
+     * EN: Validate a promo code for a specific purchase context.
+     * Returns a localized Vietnamese error message if invalid, or null if valid.
+     * Validation order: existence -> status/date window/usage limit -> model applicability -> min purchase.
+     * VI: Kiểm tra mã giảm giá trong ngữ cảnh đơn hàng. Trả về thông báo lỗi (tiếng Việt) hoặc null nếu hợp lệ.
+     *
+     * @param promoCode code entered
+     * @param modelId vehicle model ID the customer is purchasing
+     * @param purchaseAmount gross purchase amount before discount
+     * @return Vietnamese error message, or null if valid
      */
     public String validatePromoCode(String promoCode, int modelId, BigDecimal purchaseAmount) {
         DTODiscountPolicy promo = findByPromoCode(promoCode);
@@ -266,6 +345,7 @@ public class DAOPromoCode {
             return "Mã giảm giá không tồn tại";
         }
 
+        // Delegate deeper validity checks to DTO's isValid but provide detailed messages for UI.
         if (!promo.isValid()) {
             if (promo.getStatus() != DiscountPolicyStatus.ACTIVE) {
                 return "Mã giảm giá không còn hiệu lực";
@@ -298,7 +378,11 @@ public class DAOPromoCode {
     }
 
     /**
-     * Search promo codes by name or code
+     * EN: Search promo codes by partial match on PolicyName or PromoCode.
+     * VI: Tìm kiếm mã giảm giá theo chuỗi (LIKE) trên tên chính sách hoặc mã.
+     *
+     * @param keyword substring to search
+     * @return list of matching promo codes
      */
     public List<DTODiscountPolicy> searchPromoCodes(String keyword) {
         List<DTODiscountPolicy> list = new ArrayList<>();
@@ -328,7 +412,13 @@ public class DAOPromoCode {
     }
 
     /**
-     * Map ResultSet to DTODiscountPolicy
+     * EN: Map a JDBC {@link ResultSet} row into a {@link DTODiscountPolicy} DTO.
+     * Handles nullable date & integer fields, converts SQL Date to LocalDate.
+     * VI: Ánh xạ một dòng {@link ResultSet} sang đối tượng DTO. Xử lý giá trị null cho ngày & giới hạn.
+     *
+     * @param rs positioned ResultSet
+     * @return populated DTO
+     * @throws SQLException if column access fails
      */
     private DTODiscountPolicy mapPromoCode(ResultSet rs) throws SQLException {
         DTODiscountPolicy promo = new DTODiscountPolicy();
@@ -340,8 +430,8 @@ public class DAOPromoCode {
         promo.setDiscountAmount(rs.getBigDecimal("DiscountAmount"));
         promo.setMinPurchaseAmount(rs.getBigDecimal("MinPurchaseAmount"));
         promo.setMaxDiscountAmount(rs.getBigDecimal("MaxDiscountAmount"));
-        promo.setUsageLimit((Integer) rs.getObject("UsageLimit"));
-        promo.setUsedCount(rs.getInt("UsedCount"));
+        promo.setUsageLimit((Integer) rs.getObject("UsageLimit")); // NULL preserved
+        promo.setUsedCount(rs.getInt("UsedCount")); // SQL getInt returns 0 if NULL; business expects 0 default
         promo.setApplicableToModels(rs.getString("ApplicableToModels"));
 
         Date startDate = rs.getDate("StartDate");
@@ -361,4 +451,3 @@ public class DAOPromoCode {
         return promo;
     }
 }
-
