@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicle Comparison</title>
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/mainPageStyle.css">
+    <link rel="stylesheet" href="/css/iconStyle.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"
+          integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw=="
+          crossorigin="anonymous" referrerpolicy="no-referrer"/>
+    <style>
+        .comparison-container {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+        .comparison-table {
+            min-width: 800px;
+            width: 100%;
+        }
+        .comparison-table th {
+            background-color: #f8f9fa;
+            position: sticky;
+            left: 0;
+            z-index: 10;
+            min-width: 200px;
+            font-weight: 600;
+        }
+        .comparison-table td {
+            text-align: center;
+            vertical-align: middle;
+            padding: 12px;
+        }
+        .comparison-table td:first-child {
+            text-align: left;
+            font-weight: 500;
+            background-color: #f8f9fa;
+            position: sticky;
+            left: 0;
+            z-index: 5;
+        }
+        .vehicle-column {
+            min-width: 200px;
+            max-width: 250px;
+        }
+        .vehicle-card {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            background: white;
+        }
+        .vehicle-image {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        .vehicle-name {
+            font-weight: 600;
+            font-size: 1.1em;
+            margin-bottom: 5px;
+        }
+        .price-highlight {
+            color: #dc3545;
+            font-weight: 700;
+            font-size: 1.2em;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+        .empty-state i {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+        .action-buttons {
+            margin-bottom: 20px;
+        }
+        .badge-available {
+            background-color: #28a745;
+        }
+        .badge-unavailable {
+            background-color: #dc3545;
+        }
+        .remove-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(220, 53, 69, 0.8);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .remove-btn:hover {
+            background: #dc3545;
+        }
+        .spec-row {
+            border-bottom: 1px solid #e9ecef;
+        }
+        .spec-row:hover {
+            background-color: #f8f9fa;
+        }
+    </style>
+</head>
+
+<body class="bg-gradient2-custom">
+<button class="mobile-menu-toggle" id="menuToggleBtn">
+    <i class="fa-solid fa-bars"></i>
+</button>
+
+<div class="d-flex">
+    <div th:replace="~{mainPage/navBarFragment :: navBar}"></div>
+
+    <div class="mainContent flex-grow-1 p-3" style="overflow: hidden">
+        <div class="container-fluid">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fa-solid fa-balance-scale"></i> Vehicle Comparison</h2>
+                <div class="action-buttons">
+                    <button class="btn btn-secondary me-2" onclick="clearComparison()">
+                        <i class="fa-solid fa-trash"></i> Clear All
+                    </button>
+                    <button class="btn btn-primary" onclick="generateShareLink()">
+                        <i class="fa-solid fa-share"></i> Share
+                    </button>
+                </div>
+            </div>
+
+            <div th:if="${vehicles == null or vehicles.isEmpty()}" class="empty-state">
+                <i class="fa-solid fa-balance-scale"></i>
+                <h3>No vehicles to compare</h3>
+                <p>Add vehicles to your comparison list to see them side-by-side.</p>
+                <a href="/evm/vehicle/list" class="btn btn-primary mt-3">
+                    <i class="fa-solid fa-car"></i> Browse Vehicles
+                </a>
+            </div>
+
+            <div th:if="${vehicles != null and !vehicles.isEmpty()}" class="comparison-container">
+                <div class="alert alert-info">
+                    <i class="fa-solid fa-info-circle"></i>
+                    Comparing <strong th:text="${count}"></strong> vehicle(s)
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-bordered comparison-table">
+                        <thead>
+                            <tr>
+                                <th>Specification</th>
+                                <th th:each="vehicle, iterStat : ${vehicles}" 
+                                    class="vehicle-column"
+                                    th:text="${vehicle.displayName}">
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="spec : ${specs}" class="spec-row">
+                                <td th:text="${spec}"></td>
+                                <td th:each="vehicle, vehicleIter : ${vehicles}">
+                                    <span th:if="${comparisonMatrix != null and comparisonMatrix.containsKey(spec)}"
+                                          th:text="${comparisonMatrix.get(spec)[vehicleIter.index]}">
+                                    </span>
+                                    <span th:unless="${comparisonMatrix != null and comparisonMatrix.containsKey(spec)}">
+                                        N/A
+                                    </span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="row mt-4">
+                    <div th:each="vehicle : ${vehicles}" class="col-md-4 mb-3">
+                        <div class="vehicle-card position-relative">
+                            <button class="remove-btn" 
+                                    th:onclick="'removeFromComparison(' + ${vehicle.vehicleID} + ')'"
+                                    title="Remove from comparison">
+                                <i class="fa-solid fa-times"></i>
+                            </button>
+                            
+                            <img th:if="${vehicle.modelID != null}"
+                                 th:src="@{/evm/vehicle/modelImage/{modelId}(modelId=${vehicle.modelID})}"
+                                 class="vehicle-image"
+                                 alt="Vehicle Image"
+                                 onload="this.nextElementSibling.style.display='none';"
+                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                            <div class="vehicle-image d-flex align-items-center justify-content-center bg-light"
+                                 style="display: none;">
+                                <i class="fa-solid fa-car" style="font-size: 48px; color: #ccc;"></i>
+                            </div>
+                            
+                            <div class="vehicle-name" th:text="${vehicle.displayName}"></div>
+                            
+                            <div class="mt-2">
+                                <small class="text-muted">Version:</small>
+                                <div th:text="${vehicle.versionName}"></div>
+                            </div>
+                            
+                            <div class="mt-2">
+                                <small class="text-muted">Color:</small>
+                                <div th:text="${vehicle.colorName != null ? vehicle.colorName : 'N/A'}"></div>
+                            </div>
+                            
+                            <div class="mt-3">
+                                <span class="price-highlight" 
+                                      th:text="${vehicle.finalPrice != null ? (#numbers.formatDecimal(vehicle.finalPrice, 0, 'COMMA', 0, 'POINT') + ' VND') : 'N/A'}">
+                                </span>
+                            </div>
+                            
+                            <div class="mt-2">
+                                <span th:if="${vehicle.isAvailable()}" 
+                                      class="badge badge-available">Available</span>
+                                <span th:unless="${vehicle.isAvailable()}" 
+                                      class="badge badge-unavailable">Not Available</span>
+                            </div>
+                            
+                            <div class="mt-3">
+                                <a th:if="${vehicle.vehicleID != null}"
+                                   th:href="@{/evm/vehicle/detail/{id}(id=${vehicle.vehicleID})}" 
+                                   class="btn btn-sm btn-outline-primary w-100">
+                                    <i class="fa-solid fa-eye"></i> View Details
+                                </a>
+                                <a th:unless="${vehicle.vehicleID != null}"
+                                   th:href="@{/evm/vehicle/list}" 
+                                   class="btn btn-sm btn-outline-secondary w-100">
+                                    <i class="fa-solid fa-list"></i> Browse Vehicles
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/scripts/navBarMenuProject.js"></script>
+<script>
+    function removeFromComparison(vehicleId) {
+        if (!confirm('Remove this vehicle from comparison?')) {
+            return;
+        }
+        
+        const token = document.querySelector('meta[name="_csrf"]').content;
+        const header = document.querySelector('meta[name="_csrf_header"]').content;
+        
+        const formData = new URLSearchParams();
+        formData.append('vehicleId', vehicleId);
+        
+        fetch('/vehicle/compare/remove', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                [header]: token
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.message || 'Failed to remove vehicle');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred');
+        });
+    }
+    
+    function clearComparison() {
+        if (!confirm('Clear all vehicles from comparison?')) {
+            return;
+        }
+        
+        const token = document.querySelector('meta[name="_csrf"]').content;
+        const header = document.querySelector('meta[name="_csrf_header"]').content;
+        
+        fetch('/vehicle/compare/clear', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                [header]: token
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Failed to clear comparison');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred');
+        });
+    }
+    
+    function generateShareLink() {
+        fetch('/vehicle/compare/share-link')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const fullUrl = window.location.origin + data.shareUrl;
+                navigator.clipboard.writeText(fullUrl).then(() => {
+                    alert('Share link copied to clipboard!\n\n' + fullUrl);
+                }).catch(() => {
+                    prompt('Copy this link:', fullUrl);
+                });
+            } else {
+                alert(data.message || 'Failed to generate share link');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred');
+        });
+    }
+    
+    function updateComparisonBadge() {
+        fetch('/vehicle/compare/list')
+        .then(response => response.json())
+        .then(data => {
+            const badge = document.getElementById('compareBadge');
+            if (badge) {
+                if (data.count > 0) {
+                    badge.textContent = data.count;
+                    badge.style.display = 'inline-block';
+                } else {
+                    badge.style.display = 'none';
+                }
+            }
+        })
+        .catch(error => console.error('Error updating badge:', error));
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        updateComparisonBadge();
+    });
+</script>
+</body>
+</html>
+
