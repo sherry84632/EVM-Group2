@@ -24,17 +24,4 @@ public class DAOAccountHelper {
         return null;
     }
 
-    public Integer getStaffIdByEmail(String email) {
-        String sql = "SELECT StaffID FROM DealerStaff WHERE Email = ?";
-        try (Connection conn = DBUtils.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, email);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) return rs.getInt("StaffID");
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
 }
