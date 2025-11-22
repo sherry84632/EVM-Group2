@@ -1,4 +1,4 @@
-﻿package com.dealermanagementsysstem.project.Model;
+package com.dealermanagementsysstem.project.Model;
 
 import utils.DBUtils;
 import org.slf4j.Logger;

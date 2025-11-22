@@ -1,4 +1,4 @@
-﻿package com.dealermanagementsysstem.project.controller;
+package com.dealermanagementsysstem.project.controller;
 
 import com.dealermanagementsysstem.project.Model.*;
 import com.dealermanagementsysstem.project.service.DiscountCalculationService;
