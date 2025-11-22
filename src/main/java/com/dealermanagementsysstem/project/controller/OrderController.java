@@ -1,6 +1,7 @@
 package com.dealermanagementsysstem.project.controller;
 
 import com.dealermanagementsysstem.project.Model.*;
+import com.dealermanagementsysstem.project.configuration.BusinessConfig;
 import com.dealermanagementsysstem.project.service.DiscountCalculationService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.security.core.Authentication;
@@ -10,6 +11,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -23,6 +25,8 @@ public class OrderController {
     private final DAOPurchaseOrder purchaseOrderDAO = new DAOPurchaseOrder();
     private final DAOPurchaseOrderDetail purchaseOrderDetailDAO = new DAOPurchaseOrderDetail();
     private final DAODealerInventory inventoryDAO = new DAODealerInventory(); // Thêm DAO Inventory
+    @org.springframework.beans.factory.annotation.Autowired
+    private BusinessConfig businessConfig; // NEW for VAT
 
     // ======================================================
     //  DANH SÁCH TẤT CẢ SALE ORDER
@@ -408,6 +412,17 @@ public class OrderController {
         model.addAttribute("dealerLevelSharePercentOfNet", dealerLevelSharePercentOfNet);
         model.addAttribute("order", order);
         model.addAttribute("isReadOnly", isReadOnly);
+        // ===== VAT CALCULATION ON SALE (OUTPUT VAT) =====
+        Double vatRateCfg = (businessConfig != null && businessConfig.getVat() != null && businessConfig.getVat().getRate() != null)
+                ? businessConfig.getVat().getRate() : 10.0; // fallback
+        BigDecimal netTotal = order.getTotalAmount() != null ? order.getTotalAmount() : BigDecimal.ZERO;
+        BigDecimal vatAmount = netTotal.multiply(BigDecimal.valueOf(vatRateCfg / 100.0));
+        BigDecimal totalWithVat = netTotal.add(vatAmount);
+        model.addAttribute("vatRate", vatRateCfg);
+        model.addAttribute("vatAmount", vatAmount);
+        model.addAttribute("totalWithVat", totalWithVat);
+        model.addAttribute("vatAmountFormatted", utils.NumberFormatUtil.formatCurrency(vatAmount));
+        model.addAttribute("totalWithVatFormatted", utils.NumberFormatUtil.formatCurrency(totalWithVat));
         return "dealerPage/dealerCustomerOrderDetail";
     }
 

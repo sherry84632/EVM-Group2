@@ -1,6 +1,7 @@
 package com.dealermanagementsysstem.project.controller;
 
 import com.dealermanagementsysstem.project.Model.*;
+import com.dealermanagementsysstem.project.configuration.BusinessConfig;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.slf4j.Logger;
@@ -13,6 +14,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -31,6 +33,8 @@ public class QuotationController {
     private DAODealerPriceAdjustment daoDealerPriceAdjustment;
     @Autowired
     private DAOVehicle vehicleDAO; // new injection for multi-select
+    @Autowired
+    private BusinessConfig businessConfig; // NEW: for VAT rate
 
     private static final Logger log = LoggerFactory.getLogger(QuotationController.class);
 
@@ -538,6 +542,19 @@ public class QuotationController {
             model.addAttribute("baseDiscountPercent", baseDiscountPct);
             double effectiveCombinedPercent = grossAll > 0 ? (1 - finalNetTotal / grossAll) * 100.0 : 0.0;
             model.addAttribute("finalCombinedDiscountPercent", effectiveCombinedPercent);
+
+            // ===== VAT CALCULATION (APPLY ON FINAL NET TOTAL) =====
+            Double vatRateCfg = (businessConfig != null && businessConfig.getVat() != null && businessConfig.getVat().getRate() != null)
+                    ? businessConfig.getVat().getRate() : 10.0; // fallback default
+            BigDecimal netTotalBD = BigDecimal.valueOf(finalNetTotal);
+            BigDecimal vatAmount = netTotalBD.multiply(BigDecimal.valueOf(vatRateCfg / 100.0));
+            BigDecimal totalWithVat = netTotalBD.add(vatAmount);
+            model.addAttribute("vatRate", vatRateCfg);
+            model.addAttribute("vatAmount", vatAmount);
+            model.addAttribute("totalWithVat", totalWithVat);
+            // Provide formatted helper strings (optional)
+            model.addAttribute("vatAmountFormatted", utils.NumberFormatUtil.formatCurrency(vatAmount));
+            model.addAttribute("totalWithVatFormatted", utils.NumberFormatUtil.formatCurrency(totalWithVat));
 
             // Add quotation locked status
             boolean quotationLocked = dao.isQuotationLocked(id);
