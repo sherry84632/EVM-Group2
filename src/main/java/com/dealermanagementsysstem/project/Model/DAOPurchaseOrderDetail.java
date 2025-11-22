@@ -39,20 +39,7 @@ public class DAOPurchaseOrderDetail {
         }
     }
 
-    // Overloaded method for backward compatibility
-    public boolean insertOrderDetail(int purchaseOrderId, int modelId, int colorId, int quantity, String version) {
-        // Convert version string to version ID (assuming version is the ID)
-        int versionId = Integer.parseInt(version);
-        BigDecimal autoPrice = computeUnitPrice(versionId, null);
-        return insertOrderDetail(purchaseOrderId, colorId, versionId, quantity, autoPrice);
-    }
 
-    // Consistent insertion with dealer-specific discount
-    public boolean insertOrderDetailConsistent(int purchaseOrderId, int colorId, int versionId, int quantity, Integer dealerId) {
-        BigDecimal unit = computeUnitPrice(versionId, dealerId);
-        if (unit == null || unit.compareTo(BigDecimal.ZERO) == 0) unit = fetchBasePriceFromVersion(versionId);
-        return insertOrderDetail(purchaseOrderId, colorId, versionId, quantity, unit);
-    }
 
     // Dealer-aware unit price (REMOVE discount logic: always use pure BasePrice)
     public BigDecimal computeUnitPrice(int versionId, Integer dealerId) {
@@ -69,33 +56,9 @@ public class DAOPurchaseOrderDetail {
         return BigDecimal.ZERO;
     }
 
-    private BigDecimal fetchBasePriceFromVersion(int versionId) {
-        String sql = "SELECT vm.BasePrice FROM VehicleVersion vv JOIN VehicleModel vm ON vv.ModelID = vm.ModelID WHERE vv.VersionID = ?";
-        try (Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, versionId);
-            try (ResultSet rs = ps.executeQuery()) { if (rs.next()) return rs.getBigDecimal("BasePrice"); }
-        } catch (SQLException e) { e.printStackTrace(); }
-        return BigDecimal.ZERO;
-    }
 
     // Optionally expose list retrieval if needed (placeholder)
     public List<DTOPurchaseOrderDetail> placeholder() { return new ArrayList<>(); }
-
-    /**
-     * Update payment status for a specific purchase order detail
-     */
-    public boolean updatePaymentStatus(int poDetailId, String paymentStatus) {
-        String sql = "UPDATE PurchaseOrderDetail SET PaymentStatus = ? WHERE PODetailID = ?";
-        try (Connection conn = DBUtils.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, paymentStatus);
-            ps.setInt(2, poDetailId);
-            return ps.executeUpdate() > 0;
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
 
     /**
      * Update payment status for all details of a purchase order
@@ -161,17 +124,5 @@ public class DAOPurchaseOrderDetail {
         return "N/A";
     }
 
-    // --- NEW: Cập nhật lại đơn giá và subtotal cho 1 dòng chi tiết (fix giá sai) ---
-    public boolean updateUnitAndSubtotal(int poDetailId, BigDecimal newUnitPrice, int quantity) {
-        if (newUnitPrice == null) return false;
-        BigDecimal newSubtotal = newUnitPrice.multiply(BigDecimal.valueOf(Math.max(1, quantity)));
-        String sql = "UPDATE PurchaseOrderDetail SET UnitPrice = ?, Subtotal = ? WHERE PODetailID = ?";
-        try (Connection conn = DBUtils.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setBigDecimal(1, newUnitPrice);
-            ps.setBigDecimal(2, newSubtotal);
-            ps.setInt(3, poDetailId);
-            return ps.executeUpdate() > 0;
-        } catch (SQLException e) { e.printStackTrace(); }
-        return false;
-    }
+
 }

@@ -12,38 +12,7 @@ import org.springframework.stereotype.Repository;
 
 public class DAOColor {
 
-    public List<DTOVehicleColor> getAllColors() {
-        List<DTOVehicleColor> list = new ArrayList<>();
-        String sql = """
-            SELECT vc.ColorID, vc.ColorName, vc.ModelID,
-                   vm.ModelID, vm.ModelName
-            FROM VehicleColor vc
-            LEFT JOIN VehicleModel vm ON vc.ModelID = vm.ModelID
-            ORDER BY vc.ColorName
-        """;
-        try (Connection conn = DBUtils.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
-                DTOVehicleColor c = new DTOVehicleColor();
-                c.setColorID(rs.getInt("ColorID"));
-                c.setColorName(rs.getString("ColorName"));
-                
-                // Set model relationship if available
-                if (rs.getString("ModelName") != null) {
-                    DTOVehicleModel model = new DTOVehicleModel();
-                    model.setModelID(rs.getInt("ModelID"));
-                    model.setModelName(rs.getString("ModelName"));
-                    c.setModel(model);
-                }
-                
-                list.add(c);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return list;
-    }
+
 
     public DTOVehicleColor getColorByColorName(String colorName) {
         String sql = """

@@ -9,43 +9,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class DAOVehicleVersion {
 
-    //  Lấy danh sách VehicleVersion
-    public List<DTOVehicleVersion> getAllVersions() {
-        List<DTOVehicleVersion> list = new ArrayList<>();
-        String sql = """
-                    SELECT vv.VersionID, vv.VersionName, vv.ModelID,
-                           vm.ModelID, vm.ModelName, vm.BasePrice
-                    FROM VehicleVersion vv
-                    LEFT JOIN VehicleModel vm ON vv.ModelID = vm.ModelID
-                    ORDER BY vv.VersionName
-                """;
-        
-        try (Connection conn = DBUtils.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            
-            while (rs.next()) {
-                DTOVehicleVersion version = new DTOVehicleVersion();
-                version.setVersionID(rs.getInt("VersionID"));
-                version.setVersionName(rs.getString("VersionName"));
-                
-                // Set model relationship
-                if (rs.getString("ModelName") != null) {
-                    DTOVehicleModel model = new DTOVehicleModel();
-                    model.setModelID(rs.getInt("ModelID"));
-                    model.setModelName(rs.getString("ModelName"));
-                    model.setBasePrice(rs.getBigDecimal("BasePrice"));
-                    version.setModel(model);
-                }
-                
-                list.add(version);
-            }
-            
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return list;
-    }
 
     //  Lấy VehicleVersion theo ID
     public DTOVehicleVersion getVersionById(int versionID) {
