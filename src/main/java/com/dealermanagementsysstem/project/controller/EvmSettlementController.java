@@ -143,12 +143,24 @@ public class EvmSettlementController {
                 if (settlement == null) {
                     settlement = settlementDAO.create(order.getSaleOrderID(), order.getDealer().getDealerID(), orderManufacturerDiscount);
                 } else if (settlement.getTotalManufacturerDiscount()!=null && settlement.getTotalManufacturerDiscount().compareTo(orderManufacturerDiscount)!=0) {
-                    try (java.sql.Connection c = utils.DBUtils.getConnection(); java.sql.PreparedStatement ps = c.prepareStatement("UPDATE ManufacturerDiscountSettlement SET TotalManufacturerDiscount=?, UpdatedAt=GETDATE() WHERE SettlementID=?")) {
-                        ps.setBigDecimal(1, orderManufacturerDiscount);
-                        ps.setInt(2, settlement.getSettlementID());
-                        ps.executeUpdate();
-                        settlement.setTotalManufacturerDiscount(orderManufacturerDiscount);
-                    } catch (Exception ignore) {}
+                    // IMPORTANT: Only auto-update Total if settlement is PENDING with ZERO payment
+                    // Once payment started, Total should be LOCKED to prevent recalculation errors
+                    BigDecimal currentPaid = settlement.getReimbursedAmount() != null ? settlement.getReimbursedAmount() : BigDecimal.ZERO;
+                    boolean isPendingWithNoPayment = "PENDING".equals(settlement.getStatus()) && currentPaid.compareTo(BigDecimal.ZERO) == 0;
+
+                    if (isPendingWithNoPayment) {
+                        // Safe to update Total since no payment has been made yet
+                        try (java.sql.Connection c = utils.DBUtils.getConnection(); java.sql.PreparedStatement ps = c.prepareStatement("UPDATE ManufacturerDiscountSettlement SET TotalManufacturerDiscount=?, UpdatedAt=GETDATE() WHERE SettlementID=?")) {
+                            ps.setBigDecimal(1, orderManufacturerDiscount);
+                            ps.setInt(2, settlement.getSettlementID());
+                            ps.executeUpdate();
+                            settlement.setTotalManufacturerDiscount(orderManufacturerDiscount);
+                            System.out.println("[Settlement] Auto-updated Total for Settlement #" + settlement.getSettlementID() + " from " + settlement.getTotalManufacturerDiscount() + " to " + orderManufacturerDiscount);
+                        } catch (Exception ignore) {}
+                    } else {
+                        // Payment already started - do NOT update Total to prevent breaking the payment tracking
+                        System.out.println("[Settlement] LOCKED Total for Settlement #" + settlement.getSettlementID() + " (Status=" + settlement.getStatus() + ", Paid=" + currentPaid + ") - not updating despite recalculated discount=" + orderManufacturerDiscount);
+                    }
                 }
             }
             // Settlement status filter logic
@@ -268,6 +280,78 @@ public class EvmSettlementController {
             }
         } catch (Exception e) {
             ra.addFlashAttribute("error", "Update error: " + e.getMessage());
+        }
+        return "redirect:/evm/settlement";
+    }
+
+    @PostMapping("/partial-pay")
+    public String partialPay(@RequestParam Integer settlementID,
+                             @RequestParam(required = false) BigDecimal payAmount,
+                             @RequestParam(required = false) String notes,
+                             RedirectAttributes ra) {
+        try {
+            com.dealermanagementsysstem.project.Model.DTOManufacturerDiscountSettlement settlement = settlementDAO.getById(settlementID);
+            if (settlement == null) {
+                ra.addFlashAttribute("error", "Settlement not found!");
+                return "redirect:/evm/settlement";
+            }
+
+            if (payAmount == null || payAmount.compareTo(BigDecimal.ZERO) <= 0) {
+                ra.addFlashAttribute("error", "Please enter a valid payment amount!");
+                return "redirect:/evm/settlement";
+            }
+
+            com.dealermanagementsysstem.project.Model.DTOManufacturerDiscountSettlement updated = settlementDAO.partialPay(settlementID, payAmount, notes);
+
+            if (updated != null) {
+                ra.addFlashAttribute("message", String.format("Payment of %s processed. Settlement #%d now has %s paid, %s remaining (Status: %s)",
+                        payAmount, updated.getSettlementID(), updated.getReimbursedAmount(), updated.getOutstanding(), updated.getStatus()));
+            } else {
+                ra.addFlashAttribute("error", "Payment processing failed!");
+            }
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", "Payment error: " + e.getMessage());
+        }
+        return "redirect:/evm/settlement";
+    }
+
+    @PostMapping("/pay-all")
+    public String payAll(@RequestParam Integer settlementID,
+                         @RequestParam(required = false) String notes,
+                         RedirectAttributes ra) {
+        try {
+            System.out.println("[PayAll] Received request - Settlement ID: " + settlementID);
+
+            com.dealermanagementsysstem.project.Model.DTOManufacturerDiscountSettlement settlement = settlementDAO.getById(settlementID);
+            if (settlement == null) {
+                System.out.println("[PayAll] Settlement not found");
+                ra.addFlashAttribute("error", "Settlement not found!");
+                return "redirect:/evm/settlement";
+            }
+
+            BigDecimal remaining = settlement.getOutstanding();
+            System.out.println("[PayAll] Settlement #" + settlementID + " - Outstanding: " + remaining);
+
+            if (remaining == null || remaining.compareTo(BigDecimal.ZERO) <= 0) {
+                System.out.println("[PayAll] Settlement already fully paid");
+                ra.addFlashAttribute("message", "Settlement is already fully paid!");
+                return "redirect:/evm/settlement";
+            }
+
+            com.dealermanagementsysstem.project.Model.DTOManufacturerDiscountSettlement updated = settlementDAO.payAll(settlementID, notes);
+
+            if (updated != null) {
+                System.out.println("[PayAll] Payment successful - New status: " + updated.getStatus());
+                ra.addFlashAttribute("message", String.format("Settlement #%d fully paid! Total: %s, Status: %s",
+                        updated.getSettlementID(), updated.getTotalManufacturerDiscount(), updated.getStatus()));
+            } else {
+                System.out.println("[PayAll] Payment failed");
+                ra.addFlashAttribute("error", "Full payment processing failed!");
+            }
+        } catch (Exception e) {
+            System.out.println("[PayAll] Error: " + e.getMessage());
+            e.printStackTrace();
+            ra.addFlashAttribute("error", "Payment error: " + e.getMessage());
         }
         return "redirect:/evm/settlement";
     }
